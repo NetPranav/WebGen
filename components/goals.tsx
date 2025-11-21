@@ -10,8 +10,6 @@ export default function Goals() {
     "Collect donations", 
     "Get appointments",
     "Offer a contact form",
-    "Promote a physical business",
-    "Sell access to group events",
     "Publish a blog or other media",
     "Sell memberships",
     "Sell products",

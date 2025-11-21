@@ -84,7 +84,7 @@ export default function PersonalitySelector() {
       </div>
 
       {/* RIGHT PANEL - CONFIGURATION SIDEBAR */}
-      <div className="w-full lg:w-[400px] xl:w-[450px] bg-white h-full shadow-xl z-20 flex flex-col border-l border-gray-200">
+      <div className="w-full lg:w-[400px] xl:w-[350px] bg-white h-full shadow-xl z-20 flex flex-col border-l border-gray-200">
         {/* Header / Close Button */}
         <div className="p-6 flex justify-end">
           <button className="text-gray-400 hover:text-gray-600 transition-colors">

@@ -131,7 +131,7 @@ export default function Carousal() {
   }, []);
 
   const carousalStyle =
-    "h-[60vh] w-full relative overflow-hidden flex items-center justify-center bg-gradient-to-b from-transparent from-50% to-black to-50%";
+    "h-[60vh] w-full mb-[350px] relative overflow-hidden flex items-center justify-center bg-gradient-to-b from-transparent from-50% to-black to-50% z-4";
   const frameStyle =
     "absolute h-full w-[50%] transition-[left] duration-1000 ease-out flex justify-center items-center";
   const bannerStyle =

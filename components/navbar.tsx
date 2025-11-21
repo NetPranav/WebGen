@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
@@ -8,12 +8,27 @@ import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
+  const [showNotification, setShowNotification] = useState(false);
 
   const router = useRouter();
 
   const handleLogin = () => {
     router.push("/login");
   };
+
+  const handleNotificationClick = () => {
+    setShowNotification(!showNotification)
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showNotification){
+        setShowNotification(false)
+      }
+    };
+    document.addEventListener('mousedown',handleClickOutside)
+    return () => document.removeEventListener('mousedown',handleClickOutside)
+  },[showNotification])
 
   useEffect(() => {
     if (session) {
@@ -76,10 +91,19 @@ export default function Navbar() {
     <div className="h-[full] w-full flex justify-center items-center"> {/* Changed width to full */}
       <div className="flex justify-evenly items-center w-full h-full">
         {/* Notification Panel  */}
-        <button className="p-2 text-white hover:bg-white- rounded-[50%] transisiton-colors duration-200 relative">
+        <button className="p-2 text-white hover:bg-white- rounded-[50%] transisiton-colors duration-200 relative" onClick={handleNotificationClick}>
           <Bell />
           <span className="absolute top-0 right-1 w-2 h-2 bg-yellow-500 rounded-[50%]"></span>
         </button>
+
+
+        {/* notification */}
+        {showNotification && (
+          <div id='' className=""></div>
+        )}
+        
+
+
 
         {/* profile dropdown */}
         <div className="relative group flex justify-center items-center ml-2">

@@ -5,12 +5,7 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    // The main container for the footer.
-    // pt-[30vh] creates space *above* the footer content so it appears below the carousel.
-    // The actual footer content then has padding-top of 8rem (p-32) to ensure it's well below the carousel's lowest point.
-    // z-10 ensures the footer is above the background video.
-    // The background is black to seamlessly blend with the bottom of your video.
-    <footer className="w-full bg-black text-white pt-[30vh] z-10 relative">
+    <footer className="w-full bg-black text-white z-[-1] fixed bottom-0">
       <div className="container mx-auto p-4 md:p-8 lg:p-12 xl:p-16 pt-32"> {/* Increased padding-top for content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 border-b border-gray-700 pb-8 mb-8">
           {/* Company Info */}

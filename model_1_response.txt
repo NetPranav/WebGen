@@ -1,0 +1,12 @@
+User wants a navigation bar (navbar) component with:
+- Brand/Logo section
+- Navigation links
+
+TECHNICAL REQUIREMENTS FOR CODE GENERATION:
+- ALWAYS start with 'use client'
+- Main container div MUST have className="h-full w-full"
+- MUST use GSAP for all animations
+- MUST use Tailwind CSS for styling
+- MUST be a single page.tsx file
+- MUST include proper TypeScript types
+- MUST include GSAP cleanup in useEffect

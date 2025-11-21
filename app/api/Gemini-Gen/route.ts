@@ -6,26 +6,30 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEN_API_KEY}); // server only
 
 export async function POST(req: Request) {
   try {
-    const { prompt } = await req.json();
-    if (!prompt.trim()) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
+    const { code } = await req.json();
+    if (!code) return NextResponse.json({ error: 'Missing Code' }, { status: 400 });
 
     const response = await ai.models.generateContent({
     //   model: "gemini-3-pro-preview",
  model: "gemini-2.5-flash",
-      contents: prompt,
+      contents: code,
       config: {
         systemInstruction: ` 
         You are a Next.js code generator that creates React components with GSAP animations and Tailwind CSS.
 
 YOUR RESPONSIBILITIES:
 
-Generate clean, production-ready Next.js code
+1. Follow the User Instructions CareFully 
 
-Implement smooth GSAP animations
+2. Generate only that what is asked 
 
-Use Tailwind CSS for styling
+3. Generate clean, production-ready Next.js code
 
-Follow user requirements precisely
+4. Implement smooth GSAP animations
+
+5. Use Tailwind CSS for styling
+
+6. Follow user requirements precisely
 
 STRICT EXECUTION:
 

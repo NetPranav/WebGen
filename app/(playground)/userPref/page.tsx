@@ -11,7 +11,7 @@ export default function UserPref() {
     { id: "prime", element: <Topic /> },
     { id: "sec", element: <Goals /> },
     { id: "third", element: <Personality /> },
-    { id: "fourth", element: <Personality /> }
+    { id: "fourth", element: <Personality /> },
   ]);
 
   // positional styles from top (0) to bottom (3). index 0 is the large/primary frame.
@@ -49,15 +49,11 @@ export default function UserPref() {
   // Next: rotate left — the current largest (frames[0]) moves to end and becomes smallest; frames[1] becomes large.
   const [clickCount, setClickCount] = useState(0);
   function handleNext() {
-    setClickCount((c) => {
-      const next = c + 1;
-      if (next >= 4) {
-        // placeholder redirect — replace "/your-path-here" with actual route
-        redirect("/template-Generator")
-        return 0;
-      }
-      return next;
-    });
+    setClickCount((c: number) => c++);
+
+    if (clickCount >= 4) {
+      redirect("/template-Generator");
+    }
 
     setFrames((prev) => {
       if (prev.length <= 1) return prev;
@@ -71,6 +67,7 @@ export default function UserPref() {
       if (prev.length <= 1) return prev;
       return [prev[prev.length - 1], ...prev.slice(0, prev.length - 1)];
     });
+    setClickCount((c: number) => c++);
   }
 
   return (
