@@ -42,14 +42,10 @@ export default function Carousal() {
         hoverZoneRef.current = null;
         setHoverZone(null);
         if (prev.current) {
-          // prev.current.style.left = "0px";
-          // prev.current.style.top = "40%";
           prev.current.style.opacity = "0";
           prev.current.style.scale = "0.8";
         }
         if (next.current) {
-          // next.current.style.left = `${Math.max(0, rect.width - 100)}px`;
-          // next.current.style.top = "40%";
           next.current.style.opacity = "0";
           next.current.style.scale = "0.8";
         }
@@ -116,18 +112,17 @@ export default function Carousal() {
     window.addEventListener("mousemove", onMouseMove);
     return () => window.removeEventListener("mousemove", onMouseMove);
   }, []);
-
   useEffect(() => {
     function onClick() {
-      const zone = hoverZoneRef.current;
-      if (zone === "prev") {
-        setIndex((i) => (i - 1 + 5) % 5);
-      } else if (zone === "next") {
-        setIndex((i) => (i + 1) % 5);
-      }
+      const zone = hoverZoneRef.current
+        if (zone === "prev") {
+          setIndex((i) => (i - 1 + 5) % 5);
+        } else if (zone === "next") {
+          setIndex((i) => (i + 1) % 5);
+        }
     }
     window.addEventListener("click", onClick);
-    return () => window.removeEventListener("click", onClick);
+    return () => { return window.removeEventListener("click", onClick);};
   }, []);
 
   const carousalStyle =
@@ -156,9 +151,7 @@ export default function Carousal() {
                 transform: `rotateZ(${rotate[idx]}deg) scale(${scale[idx]}) translateY(${y[idx]}px)`,
                 filter: `brightness(${bright[idx]})`,
                 opacity: opacity[idx],
-                backgroundImage: `url(${
-                  bgImages[k]
-                })`,
+                backgroundImage: `url(${bgImages[k]})`,
                 backgroundSize: `cover`,
               }}
               id={`b${k + 1}`}
@@ -190,7 +183,6 @@ export default function Carousal() {
   );
 }
 
-
 // "use client";
 // import React, { useEffect, useRef, useState } from "react";
 
@@ -203,7 +195,7 @@ export default function Carousal() {
 //   const bright = [0.7, 0.7, 1, 0.7, 0.7];
 //   const cursor = ["pointer", "pointer", "default", "pointer", "pointer"];
 //   const opacity = [0, 1, 1, 1, 0];
-  
+
 //   // Fixed: Added error handling for images
 //   const bgImages = [
 //     "/Template_1.png",
@@ -244,7 +236,7 @@ export default function Carousal() {
 //       const rect = el.getBoundingClientRect();
 //       const relX = e.clientX - rect.left;
 //       const relY = e.clientY - rect.top;
-      
+
 //       if (relY < 0 || relY > rect.height || relX < 0 || relX > rect.width) {
 //         hoverZoneRef.current = null;
 //         setHoverZone(null);
@@ -258,10 +250,10 @@ export default function Carousal() {
 //         }
 //         return;
 //       }
-      
+
 //       const leftThreshold = rect.width / 4;
 //       const rightThreshold = rect.width - leftThreshold;
-      
+
 //       if (relX < leftThreshold) {
 //         hoverZoneRef.current = "prev";
 //         setHoverZone("prev");
@@ -332,7 +324,7 @@ export default function Carousal() {
 //       {Array.from({ length: 5 }).map((_, k) => {
 //         const idx = (index + k) % 5;
 //         const imageIndex = idx; // Use idx instead of k+1
-        
+
 //         return (
 //           <div
 //             key={k}
@@ -348,8 +340,8 @@ export default function Carousal() {
 //                 transform: `rotateZ(${rotate[idx]}deg) scale(${scale[idx]}) translateY(${y[idx]}px)`,
 //                 filter: `brightness(${bright[idx]})`,
 //                 opacity: opacity[idx],
-//                 backgroundImage: imageErrors[imageIndex] 
-//                   ? 'linear-gradient(45deg, #f0f0f0, #e0e0e0)' 
+//                 backgroundImage: imageErrors[imageIndex]
+//                   ? 'linear-gradient(45deg, #f0f0f0, #e0e0e0)'
 //                   : `url(${bgImages[imageIndex]})`,
 //                 backgroundSize: 'cover',
 //                 backgroundColor: imageErrors[imageIndex] ? '#f0f0f0' : 'transparent',
@@ -366,7 +358,7 @@ export default function Carousal() {
 //           </div>
 //         );
 //       })}
-      
+
 //       <button
 //         ref={prev}
 //         style={{
@@ -377,7 +369,7 @@ export default function Carousal() {
 //       >
 //         Previous
 //       </button>
-      
+
 //       <button
 //         style={{
 //           transitionTimingFunction: "ease",

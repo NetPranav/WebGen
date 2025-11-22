@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Company Info */}
           <div className="col-span-1">
             <Link href="/" className="flex items-center mb-4">
-              <Image src="/logo.png" alt="WebGen Logo" width={150} height={40} />
+              <Image src="/logo.png" alt="LazyLayout Logo" width={150} height={40} />
             </Link>
             <p className="text-gray-400 text-sm">
               Your vision, our code. Transforming ideas into stunning digital experiences.
@@ -84,7 +84,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="text-center text-gray-500 text-sm">
-          &copy; {new Date().getFullYear()} WebGen. All rights reserved.
+          &copy; {new Date().getFullYear()} LazyLayout. All rights reserved.
         </div>
       </div>
     </footer>

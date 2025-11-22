@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+body{
+  background-color: #000;
+}
+
 #navBar {
   color: white;
   transition: background 0.5s ease;

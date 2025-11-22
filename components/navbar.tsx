@@ -38,7 +38,6 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      console.log("scroll happened", window.scrollY);
       const nav = document.getElementById("navBar");
 
       if (window.scrollY > 50) {
@@ -65,7 +64,7 @@ export default function Navbar() {
         className="h-full pl-[2%] w-[18%] flex justify-center items-center -mt-1"
         id="logo"
       >
-        <img src="/logo.png" alt="WebGen" className="w-48"/>
+        <img src="/logo.png" alt="LazyLayout Logo" className="w-48"/>
       </div>
       <div
         className="h-full w-[60%] flex justify-center gap-[25px]"
