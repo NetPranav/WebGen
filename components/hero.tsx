@@ -9,11 +9,10 @@ export default function Hero() {
   const [opacity, setOpacity] = useState(0);
 
   useEffect(() => {
-    function handleFadeIn() {
+    setTimeout(()=>{
       setTop(0);
       setOpacity(1);
-    }
-    window.addEventListener("load", handleFadeIn);
+    },500)  
   }, []);
 
   const handleGetStartedButton = () => 
