@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@babel/standalone": "^7.28.5",
     "@google/genai": "^1.30.0",
     "@vercel/blob": "^2.0.0",
     "@vinejs/vine": "^4.1.0",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/babel__standalone": "^7.1.9",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
