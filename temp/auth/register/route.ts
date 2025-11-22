@@ -5,7 +5,6 @@ import vine, { errors } from "@vinejs/vine";
 import ErrorReporter from "@/validator/ErrorReporter";
 import bcrypt from "bcryptjs";
 import { User } from "@/model/user";
-
 // for db connection
 connect();
 
@@ -26,30 +25,21 @@ export async function POST(req: NextRequest) {
             email: "User with this email already exists",
           },
         },
-        { status: 400 } // ✅ FIXED: Changed from 200 to 400
+        { status: 200 }
       );
     } else {
-      // Encrypting password
+      // Enctrypting password
       const salt = bcrypt.genSaltSync(10);
       output.password = bcrypt.hashSync(output.password, salt);
       await User.create(output);
-      return NextResponse.json(
-        { status: 200, message: "Account Created Successfully" }, 
-        { status: 200 }
-      );
+      return NextResponse.json({status:200, message:"Account Created Successfully"}, { status: 200 });
     }
   } catch (error) {
     if (error instanceof errors.E_VALIDATION_ERROR) {
       return NextResponse.json(
         { status: 400, errors: error.messages },
-        { status: 400 } // ✅ FIXED: Changed from 200 to 400
+        { status: 200 }
       );
     }
-    // Handle other errors
-    console.error("Registration error:", error);
-    return NextResponse.json(
-      { status: 500, message: "Internal server error" },
-      { status: 500 }
-    );
   }
 }

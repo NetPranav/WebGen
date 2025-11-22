@@ -71,7 +71,7 @@ export  default function UserPref() {
   }
 
   return (
-    <div className={`h-full w-full`}>
+    <div className={`h-full w-full `}>
       <div className={`h-18 w-max`} id="topBar">
         <img src="/logo.png" alt="WebGen" className={`w-40 invert m-4`} />
       </div>

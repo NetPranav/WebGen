@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 body{
-  background-color: #000;
+  background-color: #fff;
 }
 
 #navBar {
@@ -35,5 +35,24 @@ body{
     );
     pointer-events: none;
     
+  }
+}
+
+footer{
+  animation-name: come;
+  animation-timeline: scroll(y);
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-range: 200px 700px;
+}
+
+@keyframes come{
+  from{
+    bottom: -200px;
+    scale: 0.9;
+  }
+  to{
+    bottom: 0px;
+    scale: 1;
   }
 }
