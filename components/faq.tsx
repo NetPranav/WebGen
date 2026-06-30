@@ -65,7 +65,7 @@ export default function FAQ() {
                 >
                   {faq.question}
                 </span>
-                <span className="shrink-0">
+                <div className="shrink-0">
                   <div
                     className={`w-6 h-6 flex items-center justify-center transition-transform duration-300 ${
                       openIndex === index ? "rotate-180" : ""
@@ -77,7 +77,7 @@ export default function FAQ() {
                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
                     )}
                   </div>
-                </span>
+                </div>
               </button>
 
               <div

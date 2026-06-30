@@ -208,7 +208,16 @@ const Card = ({ title, children, action }: { title: string; children: React.Reac
   </div>
 );
 
-const DataRow = ({ label, value, isEditing, name, onChange, icon }: any) => (
+interface DataRowProps {
+  label: string;
+  value: React.ReactNode;
+  isEditing?: boolean;
+  name?: string;
+  onChange?: (field: string, value: string | boolean) => void;
+  icon?: string;
+}
+
+const DataRow = ({ label, value, isEditing, name, onChange, icon }: DataRowProps) => (
   <div className="flex items-center justify-between px-4 py-3 text-[12px] group hover:bg-white/[0.01] transition-colors">
     <span className="text-gray-500 w-1/3">{label}</span>
     <div className="w-2/3 text-right">
@@ -216,8 +225,8 @@ const DataRow = ({ label, value, isEditing, name, onChange, icon }: any) => (
         <input 
           type="text" 
           name={name} 
-          value={value} 
-          onChange={(e) => onChange(name, e.target.value)}
+          value={value as string} 
+          onChange={(e) => onChange?.(name, e.target.value)}
           className="bg-white/5 border border-white/10 rounded px-2 py-0.5 text-white w-full text-right outline-none focus:border-blue-500/50 transition"
         />
       ) : (

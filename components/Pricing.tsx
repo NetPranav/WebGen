@@ -71,10 +71,6 @@ const Pricing = () => {
               <li>✔ Connect bank feeds</li>
               <li>✔ Expense tracking</li>
               <li>✔ Custom reports</li>
-              <li>✔ Progress invoicing</li>
-              <li>✔ Connect bank feeds</li>
-              <li>✔ Expense tracking</li>
-              <li>✔ Custom reports</li>
             </ul>
           </div>
 
@@ -103,11 +99,6 @@ const Pricing = () => {
               <li>✔ Sales & purchase orders</li>
               <li>✔ Multi-currency support</li>
               <li>✔ Workflow automation</li>
-
-              <li>✔ Vendor bills & payments</li>
-              <li>✔ Sales & purchase orders</li>
-              <li>✔ Multi-currency support</li>
-              <li>✔ Workflow automation</li> 
             </ul>
           </div>
         </div>

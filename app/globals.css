@@ -7,10 +7,8 @@ body{
 #navBar {
   color: white;
   transition: background 0.5s ease;
-  /* background-color: transparent; */
 
   & * {
-    /* font-size: clamp(10px, 1vw, 14px); */
     font-size: 14px;
   }
 
@@ -34,70 +32,26 @@ body{
       rgba(0, 0, 0, 1) 100%
     );
     pointer-events: none;
-    
   }
 }
 
-/* footer{
-  animation-name: come;
-  animation-timeline: scroll(y);
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-range: 200px 700px;
-}
-
-@keyframes come{
-  from{
-    bottom: -200px;
-    scale: 0.9;
-  }
-  to{
-    bottom: 0px;
-    scale: 1;
-  }
-} */
-
-/* .questions{
-  animation-timeline: view();
-  animation-name: growout;
-  animation-timing-function: ease-in;
-  animation-fill-mode: both;
-  animation-range: 0px 400px;
-}
-
-@keyframes growout{
-  from{
-    width: 80%;
-  }
-  to{
-    width: 100%;
-  }} */
-
-
-  @layer utilities {
+@layer utilities {
   .scroll-reveal {
-    /* Default state (Mobile): No animation, full opacity */
     opacity: 1;
     transform: scale(1);
   }
 
-  /* Desktop Only: Apply the scroll animation */
   @media (min-width: 768px) {
     .scroll-reveal {
       animation-timeline: view();
       animation-name: grow-in;
       animation-fill-mode: both;
-      /* Range: Starts animating when top of element enters bottom of screen */
       animation-range: 0%  80%; 
-      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); /* smooth ease-out */
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     }
   }
 }
 
-/* FIX FOR TEXT JUMPING:
-   We animate 'scale' and 'opacity' instead of 'width'.
-   This prevents the text from re-wrapping (reflow) during the animation.
-*/
 @keyframes grow-in {
   from {
     opacity: 0;
@@ -111,16 +65,6 @@ body{
   }
 }
 
-
-
-
-
-
-
-
-
-/* test */
-/* In your global.css or add to a <style> tag */
 .preview-scroll-container {
   height: 100%;
   display: flex;

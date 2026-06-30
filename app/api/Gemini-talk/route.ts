@@ -1,18 +1,9 @@
-// app/api/generate/route.ts  (server-only)
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 
-// function randKey(){
-//   let apiNum = Math.floor(Math.random() * 5);
-//   console.log(apiNum)
-//   return process.env[`TALK_API_KEY_${apiNum}`];
-// }
-const ai = new GoogleGenAI({ apiKey: process.env.TALK_API_KEY_5 });
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  
-  // let ai = new GoogleGenAI({ apiKey: randKey()}); // server only  
-  // server only  
 
 
   const systemPrompt = `You are a **Senior Frontend Architect and UX Designer**. Your goal is to translate user requests into precise, production-ready specifications for a Next.js Code Generator.
@@ -81,11 +72,12 @@ The Code Generator MUST follow these rules strictly:
     - MUST include \`useLayoutEffect\` (or \`useEffect\`) with \`ctx.revert()\` for cleanup.
     - **Trigger:** Use ScrollTrigger if the section is likely to be scrolled into view.
 
-5.  **Assets & Icons:**
+7.  **Assets & Icons:**
     - Use \`lucide-react\` for icons. Import example: \`import { Check, Star, ArrowRight } from 'lucide-react'\`.
-    - Use placeholder images: \`https://placehold.co/600x400/1a1a1a/ffffff?text=Image\`
+    - Use standard HTML \`<img>\` tags with placeholders like: \`https://placehold.co/600x400/1a1a1a/ffffff?text=Placeholder\`.
+    - **NEVER** import \`next/image\` or declare/use an \`Image\` component, as it causes syntax conflicts in the sandbox.
 
-6.  **TypeScript:**
+8.  **TypeScript:**
     - Use interfaces for props (e.g., \`interface CardProps { ... }\`).
     - No \`any\` types.
 \`\`\`
@@ -149,22 +141,54 @@ The Code Generator MUST follow these rules strictly:
 
   try {
     const { prompt } = await req.json();
-    if (!prompt.trim()) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
+    
+    console.log(`\n\n[API: Gemini-talk] 🔵 New description request received. Preview: "${prompt.substring(0, 100)}..."`);
+    
+    if (!prompt.trim()) {
+      console.log(`[API: Gemini-talk] 🔴 Error: Missing prompt`);
+      return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
+    }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction: systemPrompt,
+    console.log(`[API: Gemini-talk] ⏳ Calling Google GenAI (gemini-2.5-flash) via native fetch...`);
+    
+    const apiKey = process.env.TALK_API_KEY_5;
+    if (!apiKey) {
+      throw new Error("TALK_API_KEY_5 is not set");
+    }
 
-        // thinkingConfig: { thinkingBudget: 0 },
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        contents: [
+          {
+            parts: [{ text: prompt }]
+          }
+        ]
+      })
     });
-    console.log(response.text);
-    return NextResponse.json({ text: response.text });
-  } catch (err) {
-    console.error(err);
-    // POST(req);
+
+    if (!res.ok) {
+      const errorData = await res.text();
+      throw new Error(`Gemini API Error (${res.status}): ${errorData}`);
+    }
+
+    const data = await res.json();
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedText) {
+      throw new Error("Invalid response format from Gemini API");
+    }
+
+    console.log(`[API: Gemini-talk] ✅ Generation successful! Response length: ${generatedText.length} chars`);
+    return NextResponse.json({ text: generatedText });
+  } catch (err: any) {
+    console.error(`[API: Gemini-talk] ❌ SERVER ERROR:`, err.message || err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

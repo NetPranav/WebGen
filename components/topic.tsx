@@ -6,21 +6,17 @@ const SiteTopicSelector = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
-  const handleSearchChange = (event: any) => {
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
   };
 
   const handleTopicClick = (topic: string) => {
     console.log(`Selected topic: ${topic}`);
-    // You might want to navigate or set state based on the selected topic
-    // For example: router.push(`/next-step?topic=${topic}`);
   };
 
-  const handleSearchSubmit = (event: any) => {
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     console.log(`Searching for: ${searchTerm}`);
-    // You might want to navigate or set state based on the search term
-    // For example: router.push(`/next-step?search=${searchTerm}`);
   };
 
   const steps = [
@@ -176,3 +172,12 @@ const SiteTopicSelector = () => {
 };
 
 export default SiteTopicSelector;
+
+
+
+
+
+
+
+
+

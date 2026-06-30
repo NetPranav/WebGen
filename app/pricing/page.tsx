@@ -1,13 +1,11 @@
 import React from 'react'
 import Pricing from '@/components/Pricing'
 
-function page() {
+export default function PricingPage() {
   return (
     <div>
       <Pricing />
     </div>
   )
 }
-
-export default page
 

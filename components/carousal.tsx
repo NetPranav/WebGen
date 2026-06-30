@@ -236,6 +236,7 @@ export default function Carousal() {
               handlePrev();
             }}
             className="absolute left-2 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white active:scale-95 transition-transform"
+            aria-label="Previous slide"
           >
             <ChevronLeft size={24} />
           </button>
@@ -245,6 +246,7 @@ export default function Carousal() {
               handleNext();
             }}
             className="absolute right-2 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white active:scale-95 transition-transform"
+            aria-label="Next slide"
           >
             <ChevronRight size={24} />
           </button>

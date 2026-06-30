@@ -399,7 +399,14 @@ const Terms = () => {
   );
 };
 
-const TermSection = ({ id, number, title, children }: any) => (
+interface TermSectionProps {
+  id: string;
+  number: string;
+  title: string;
+  children: React.ReactNode;
+}
+
+const TermSection = ({ id, number, title, children }: TermSectionProps) => (
   <section id={id} className="scroll-mt-10 group">
     <div className="flex items-center gap-4 mb-4">
       <span className="text-[10px] font-mono text-purple-500 font-bold bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">ARTICLE {number}</span>

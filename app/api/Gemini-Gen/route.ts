@@ -1,28 +1,27 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
-// function randKey(){
-//   let apiNum = Math.floor(Math.random() * 5);
-//   console.log(apiNum)
-//   return process.env[`GEN_API_KEY_${apiNum}`];
-// }
-let ai = new GoogleGenAI({ apiKey: process.env.GEN_API_KEY_5 });
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  // let ai = new GoogleGenAI({ apiKey: randKey() });
 
   try {
     const { code } = await req.json();
-    if (!code)
+    console.log(`\n\n[API: Gemini-Gen] 🔵 New code generation request received.`);
+    
+    if (!code) {
+      console.log(`[API: Gemini-Gen] 🔴 Error: Missing Code payload.`);
       return NextResponse.json({ error: "Missing Code" }, { status: 400 });
+    }
+    
+    console.log(`[API: Gemini-Gen] ⏳ Calling Google GenAI (gemini-2.5-flash) for code generation via native fetch...`);
 
-    const response = await ai.models.generateContent({
-      // model: "gemini-3-pro-preview",
-      // model: "gemini-3-pro-preview",
-      model: "gemini-2.5-flash",
-      contents: code,
-      config: {
-        systemInstruction: ` 
+    const apiKey = process.env.GEN_API_KEY_5;
+    if (!apiKey) {
+      throw new Error("GEN_API_KEY_5 is not set");
+    }
+
+    const systemInstruction = ` 
         You are a Next.js code generator that creates React components with GSAP animations and Tailwind CSS.
 
 STRICT EXECUTION:
@@ -47,7 +46,7 @@ YOUR RESPONSIBILITIES:
 
 6. Follow user requirements precisely
 
-7. Use Image from online (Unsplash)
+7. Use standard HTML \`<img>\` tags for images from Unsplash. **NEVER import \`next/image\` or declare an \`Image\` variable/function**, as it conflicts with the preview sandbox environment.
 
 8. Try to make the components scalable and reponsive 
 
@@ -83,18 +82,43 @@ Generate the code based on the detailed specifications you receive, focusing on 
 remeber the format of output should be 
 \`\`\`
 //code 
-\`\`\` 
+\`\`\`
 next js code should be inside \`\`\` \`\`\` this quotes :
+        `;
 
-        `,
-        // thinkingConfig: { thinkingBudget: 0 },
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents: [
+          {
+            parts: [{ text: code }]
+          }
+        ]
+      })
     });
-    console.log(response.text);
-    return NextResponse.json({ tex: response.text });
-  } catch (err) {
-    console.error(err);
-    // POST(req);
+
+    if (!res.ok) {
+      const errorData = await res.text();
+      throw new Error(`Gemini API Error (${res.status}): ${errorData}`);
+    }
+
+    const data = await res.json();
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedText) {
+      throw new Error("Invalid response format from Gemini API");
+    }
+    
+    console.log(`[API: Gemini-Gen] ✅ Code generation successful! Output length: ${generatedText.length} chars`);
+    return NextResponse.json({ text: generatedText });
+  } catch (err: any) {
+    console.error(`[API: Gemini-Gen] ❌ SERVER ERROR:`, err.message || err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

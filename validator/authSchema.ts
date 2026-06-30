@@ -1,5 +1,4 @@
 import vine from '@vinejs/vine';
-import Email from 'next-auth/providers/email';
 
 export const registerSchema = vine.object({
     name: vine.string().trim().minLength(2).maxLength(30),

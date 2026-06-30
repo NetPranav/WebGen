@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Bell, Menu, X, ChevronRight } from "lucide-react";
 import SignOutButton from "./signOutButton";
-import { useRouter, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -69,7 +69,7 @@ export default function Navbar() {
     };
   }, []);
 
-  const router = useRouter();
+
 
   // Lock Scroll on Mobile Menu
   useEffect(() => {
@@ -80,7 +80,6 @@ export default function Navbar() {
     }
   }, [isMobileMenuOpen]);
 
-  const handleLogin = () => router.push("/login");
   const handleNotificationClick = () => setShowNotification(!showNotification);
 
   // Scroll Background Effect
@@ -117,16 +116,12 @@ export default function Navbar() {
         {/* --- DESKTOP NAVIGATION --- */}
         <div className="hidden md:flex h-full items-center gap-12">
           {navItems.map((item) => (
-            <div key={item.label}
-            onClick={()=>{
-              router.push(item.path)
-            }}
-            className="group relative cursor-pointer py-2">
+            <Link key={item.label} href={item.path} className="group relative cursor-pointer py-2">
               <span className="text-sm font-medium text-white hover:text-white transition-colors tracking-wide">
                 {item.label.toUpperCase()}
               </span>
               <span className="absolute bottom-0 left-0 w-0 h-px bg-white transition-all duration-300 group-hover:w-full"></span>
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -140,13 +135,13 @@ export default function Navbar() {
               <div className="flex items-center gap-3 pl-6 border-l border-white/10">
                  <span className="text-sm font-medium">{session.user.name}</span>
                  <div className="h-8 w-8 rounded-full bg-gray-800 border border-white/10 overflow-hidden">
-                    {session.user.image && <img src={session.user.image} className="w-full h-full object-cover"/>}
+                    {session.user.image && <img src={session.user.image} alt={session.user.name || "User avatar"} className="w-full h-full object-cover"/>}
                  </div>
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-8">
-              <button onClick={handleLogin} className="text-sm font-medium text-white hover:text-white transition-colors">Sign In</button>
+              <Link href="/login" className="text-sm font-medium text-white hover:text-white transition-colors">Sign In</Link>
               
               {/* --- RESTORED GET STARTED BUTTON --- */}
               <div
@@ -202,10 +197,9 @@ export default function Navbar() {
                 <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 mb-4 font-semibold">Menu</p>
 
                 {[
-                  { name: "Products", href: "#" }, 
+                  { name: "Products", href: "/products" }, 
                   { name: "Template", href: "/Template" },
-                  { name: "Pricing", href: "#" },
-                  { name: "Community", href: "/community" }
+                  { name: "Pricing", href: "/pricing" }
                 ].map((item, i) => (
                   <Link 
                     key={i}
@@ -232,7 +226,7 @@ export default function Navbar() {
                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             {session.user.image ? (
-                                <img src={session.user.image} className="w-10 h-10 rounded-full grayscale opacity-80" />
+                                <img src={session.user.image} alt={session.user.name || "User avatar"} className="w-10 h-10 rounded-full grayscale opacity-80" />
                             ) : (
                                 <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-sm font-bold">U</div>
                             )}
@@ -248,7 +242,7 @@ export default function Navbar() {
                 ) : (
                     <div className="flex flex-col gap-4">
                         <button
-                          onClick={() => { setIsMobileMenuOpen(false); handleLogin(); }}
+                          onClick={() => { setIsMobileMenuOpen(false); redirect("/login"); }}
                           className="w-full py-4 text-sm text-gray-400 hover:text-white border border-white/10 hover:border-white/30 rounded-lg transition-all"
                         >
                           Sign In to Account
