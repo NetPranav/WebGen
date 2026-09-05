@@ -60,6 +60,7 @@ export const DockTabBar: React.FC<DockTabBarProps> = ({
               type="button"
               className={`dock-tabbar__tab ${isActive ? "dock-tabbar__tab--active" : ""}`}
               onClick={() => onSelectTab(tab.id)}
+              onMouseEnter={() => onSelectTab(tab.id)}
             >
               <span>{tab.title}</span>
               {tab.closable && onCloseTab && (

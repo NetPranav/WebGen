@@ -147,10 +147,10 @@
   align-items: center;
   gap: var(--space-xs);
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
   cursor: pointer;
   white-space: nowrap;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
 .dock-tabbar__tab:hover {
@@ -160,10 +160,10 @@
 
 .dock-tabbar__tab--active {
   background: var(--surface-panel-solid);
-  color: var(--accent-primary);
+  color: var(--text-primary);
   font-weight: var(--font-semibold);
-  border-color: var(--border-subtle);
-  box-shadow: var(--shadow-xs);
+  border: none;
+  box-shadow: none;
 }
 
 .dock-tabbar__close {
