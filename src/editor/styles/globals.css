@@ -1,0 +1,96 @@
+/**
+ * ============================================================================
+ * ENGINE GLOBAL STYLES & CSS RESET
+ * ============================================================================
+ * UI Element: Global Document Body, Canvas Stage, and Base Resets
+ * Screen / Scope: Whole Application Engine
+ * Role: Provides baseline normalization, default font assignments, and custom scrollbars.
+ * 
+ * CSS ISOLATION RULE:
+ * This file handles ONLY base document defaults and root viewport sizing.
+ * No panel-specific styles or component rules are permitted here.
+ * ============================================================================
+ */
+
+@import "./tokens.css";
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background-color: var(--canvas-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ----------------------------------------------------------------------------
+ * Custom Scrollbar Styling (Minimalist, Translucent, Curved)
+ * ---------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.24);
+}
+
+/* ----------------------------------------------------------------------------
+ * Interactive Reset (Buttons, Inputs, Selects)
+ * ---------------------------------------------------------------------------- */
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+button {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------------------
+ * Selection & Focus Indicators
+ * ---------------------------------------------------------------------------- */
+::selection {
+  background-color: var(--accent-primary-light);
+  color: var(--accent-primary-hover);
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}

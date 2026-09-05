@@ -1,0 +1,150 @@
+/**
+ * ============================================================================
+ * ENGINE UI DESIGN TOKENS
+ * ============================================================================
+ * UI Element: Global Design Token Registry
+ * Screen / Scope: Entire Engine IDE Shell, Viewport, Blueprints, Panels
+ * Role: Single Source of Truth for all colors, radii, shadows, typography, and transitions.
+ * 
+ * SWAPPABILITY NOTE:
+ * If modifying the visual design (e.g. updating the palette, changing border radii,
+ * or adjusting elevation), change ONLY the tokens defined in this file.
+ * Do not override or duplicate these tokens in individual panel stylesheets.
+ * ============================================================================
+ */
+
+:root {
+  /* --------------------------------------------------------------------------
+   * Canvas & Surfaces (Confluence Whiteboard Aesthetic)
+   * -------------------------------------------------------------------------- */
+  --canvas-bg: #FCFDFD;
+  --canvas-dot-color: #E2E8F0;
+  --canvas-dot-size: 1.5px;
+  --canvas-dot-spacing: 24px;
+
+  --surface-panel: rgba(255, 255, 255, 0.92);
+  --surface-panel-solid: #FFFFFF;
+  --surface-panel-hover: #F8FAFC;
+  --surface-panel-active: #F1F5F9;
+  --surface-panel-selected: #EFF6FF;
+
+  --surface-dock-bar: rgba(255, 255, 255, 0.85);
+  --surface-toolbar: rgba(255, 255, 255, 0.95);
+  --surface-statusbar: #FFFFFF;
+
+  --surface-overlay: rgba(15, 23, 42, 0.4);
+  --surface-tooltip: #0F172A;
+
+  /* --------------------------------------------------------------------------
+   * Borders & Separators (Ultra-refined Micro-borders)
+   * -------------------------------------------------------------------------- */
+  --border-subtle: rgba(15, 23, 42, 0.06);
+  --border-default: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.14);
+  --border-focus: #3B82F6;
+  --border-active: rgba(59, 130, 246, 0.5);
+
+  /* --------------------------------------------------------------------------
+   * Typography & Text Colors
+   * -------------------------------------------------------------------------- */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "Fira Code", monospace;
+
+  --text-primary: #0F172A;     /* Slate 900 */
+  --text-secondary: #475569;   /* Slate 600 */
+  --text-muted: #64748B;       /* Slate 500 */
+  --text-tertiary: #94A3B8;    /* Slate 400 */
+  --text-inverse: #FFFFFF;
+  --text-accent: #2563EB;
+
+  /* Font Sizes */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+
+  /* --------------------------------------------------------------------------
+   * Semantic Accent Colors
+   * -------------------------------------------------------------------------- */
+  --accent-primary: #3B82F6;       /* Electric Blue */
+  --accent-primary-hover: #2563EB;
+  --accent-primary-light: #EFF6FF;
+
+  --accent-success: #10B981;       /* Emerald */
+  --accent-success-light: #ECFDF5;
+
+  --accent-warning: #F59E0B;       /* Amber */
+  --accent-warning-light: #FFFBEB;
+
+  --accent-danger: #EF4444;        /* Rose / Red */
+  --accent-danger-light: #FEF2F2;
+
+  --accent-info: #06B6D4;          /* Cyan */
+  --accent-info-light: #ECFEFF;
+
+  /* --------------------------------------------------------------------------
+   * Wire & Pin Data-Type Taxonomy (Strictly follows UI.md §2.2)
+   * -------------------------------------------------------------------------- */
+  --wire-exec: #0F172A;
+  --wire-string: #E11D48;
+  --wire-number: #06B6D4;
+  --wire-boolean: #EA580C;
+  --wire-object: #F59E0B;
+  --wire-array: #EAB308;
+  --wire-database: #10B981;
+  --wire-motion: #8B5CF6;
+  --wire-event: #3B82F6;
+
+  /* --------------------------------------------------------------------------
+   * Curvature & Border Radii (Refined Unreal Curvature)
+   * -------------------------------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;      /* Buttons, Input fields, Badges */
+  --radius-lg: 12px;     /* Cards, Dropdowns, Section boxes */
+  --radius-xl: 16px;     /* Docked Panels, Windows */
+  --radius-2xl: 20px;    /* Floating Docks, Modals */
+  --radius-full: 9999px; /* Badges, Avatars, Pills */
+
+  /* --------------------------------------------------------------------------
+   * Elevation & Box Shadows
+   * -------------------------------------------------------------------------- */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
+  --shadow-floating-dock: 0 12px 36px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  --shadow-divider: 0 0 0 1px rgba(15, 23, 42, 0.06);
+
+  /* --------------------------------------------------------------------------
+   * Blur & Glassmorphism
+   * -------------------------------------------------------------------------- */
+  --glass-blur: blur(20px);
+  --glass-blur-subtle: blur(12px);
+
+  /* --------------------------------------------------------------------------
+   * Z-Index Scale (Strict Layering)
+   * -------------------------------------------------------------------------- */
+  --z-canvas: 1;
+  --z-viewport-elements: 5;
+  --z-gizmo: 10;
+  --z-panels: 20;
+  --z-header: 30;
+  --z-floating-dock: 40;
+  --z-dropdown: 50;
+  --z-modal: 60;
+  --z-tooltip: 70;
+  --z-toast: 80;
+
+  /* --------------------------------------------------------------------------
+   * Transitions & Durations
+   * -------------------------------------------------------------------------- */
+  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
