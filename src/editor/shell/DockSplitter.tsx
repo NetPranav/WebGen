@@ -37,19 +37,29 @@ export const DockSplitter: React.FC<DockSplitterProps> = ({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       setIsDragging(true);
 
-      const startPos = orientation === "vertical" ? e.clientX : e.clientY;
+      let lastPos = orientation === "vertical" ? e.clientX : e.clientY;
+
+      document.body.classList.add("is-resizing");
+      document.body.style.cursor =
+        orientation === "vertical" ? "col-resize" : "row-resize";
+      document.body.style.userSelect = "none";
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const currentPos =
           orientation === "vertical" ? moveEvent.clientX : moveEvent.clientY;
-        const delta = currentPos - startPos;
+        const delta = currentPos - lastPos;
+        lastPos = currentPos;
         onResize(delta);
       };
 
       const handleMouseUp = () => {
         setIsDragging(false);
+        document.body.classList.remove("is-resizing");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
         if (onResizeEnd) onResizeEnd();
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);

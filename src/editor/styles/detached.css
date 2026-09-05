@@ -1,0 +1,93 @@
+/**
+ * ============================================================================
+ * DETACHED PANEL SHELL STYLES
+ * ============================================================================
+ * UI Element: Detached Panel Browser Tab Shell
+ * Screen / Scope: `/editor/detach/[panelId]` route
+ * Role: Styles the lightweight wrapper for panels opened in a new browser tab
+ *       via the tear-off system.
+ *
+ * CSS ISOLATION RULE:
+ * Governs only `.detached-shell` and its children. All token values come from
+ * `tokens.css`.
+ * ============================================================================
+ */
+
+/* Root container — fills the entire viewport */
+.detached-shell {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas-bg);
+  overflow: hidden;
+}
+
+/* Compact header bar */
+.detached-header {
+  height: 40px;
+  min-height: 40px;
+  background: var(--surface-dock-bar);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.detached-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.detached-header__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.detached-header__badge {
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  color: var(--text-tertiary);
+  padding: 1px 6px;
+  background: var(--surface-panel-hover);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+}
+
+/* Return to Main Editor button */
+.detached-header__return {
+  height: 26px;
+  padding: 0 var(--space-sm);
+  background: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: all var(--transition-fast);
+}
+
+.detached-header__return:hover {
+  background: var(--surface-panel-hover);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Content area — remaining height */
+.detached-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}

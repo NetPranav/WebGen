@@ -81,3 +81,70 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Schema versioning and migration strategy
 
 - **CHANGELOG.md** (v1.0.0) — This file
+
+---
+
+## [1.1.0] — 2026-09-05
+
+### Phase 1.4 Implementation & Shell Ergonomics
+
+#### Added
+- **2D Corner Splitter Handles (`DockCornerSplitter.tsx`)**:
+  - Interactive drag vertices at intersection points (bottom-left and bottom-right where side panel splitters meet the bottom drawer splitter).
+  - Enables simultaneous 2D resizing of side panel width and bottom drawer height.
+  - Hover indicator with glowing blue handle dot and diagonal resize cursors (`nesw-resize` / `nwse-resize`).
+- **Floating Viewport History Actions (`EditorShell.tsx`)**:
+  - Shifted Save, Undo, and Redo action buttons to the top-left corner inside the canvas viewport.
+  - 100% transparent idle state with hover-reveal glassmorphic pill background.
+- **Per-Frame Incremental Splitter Delta (`DockSplitter.tsx`)**:
+  - Fixed cumulative position snapping issue by tracking incremental deltas (`currentPos - lastPos`).
+  - Disabled transitions during active dragging via `body.is-resizing` for 1:1 real-time tracking.
+
+---
+
+## [1.2.0] — 2026-09-05
+
+### Phase 1.5 Confluence Whiteboard Canvas (Center Viewport)
+
+#### Added
+- **Infinite Dot-Grid Canvas (`WhiteboardCanvas.tsx`)**:
+  - Infinite 2D pan (Space+Drag, Middle-click drag, Pan tool).
+  - Smooth zoom (Ctrl+Wheel / Pinch, 10% to 400%) with hardware-accelerated CSS custom properties.
+  - Luminous `#FCFDFD` background with 24px scalable dot matrix.
+- **Responsive Device Frames**:
+  - Multi-device preview frames for Desktop (`1440 × 900`), Tablet (`768 × 1024`), and Mobile (`375 × 812` with phone notch).
+  - Auto-fit centering with optimal scale calculation and responsive metadata header.
+- **Atlassian Confluence Floating Dock (`FloatingDock.tsx`)**:
+  - Frosted glassmorphism pill toolbar with tools: Select (`V`), Pan (`H`), Pencil (`P`), Text (`T`), Wire (`W`), Shapes (`S`), Components (`C`), Assets (`A`), and Quick Insert (`+`).
+- **Interactive Component Selection & Overlay (`CanvasOverlay.tsx`)**:
+  - Bounding box with 8 resize handles and dimension readout badge on selected elements.
+- **Floating Zoom Controls Widget (`ZoomControls.tsx`)**:
+  - Zoom in, Zoom out, percentage readout with click-to-reset, and Fit to Screen action.
+
+---
+
+## [1.3.0] — 2026-09-05
+
+### Phase 1.6 Core Panel Shells (Outliner, Details, Content Browser, Console, Settings, Blueprint)
+
+#### Added
+- **Design System Form Controls (`forms.css`)**:
+  - Form groups, number scrub inputs with axis badges (`X`, `Y`, `W`, `H`), segmented controls, dropdown selects, range sliders, and Unreal-style smooth pill toggle switches.
+- **Core Panel Stylesheet (`panels.css`)**:
+  - Master panel shell, collapsible accordion sections with chevron rotation, tree hierarchy node styling, asset card grid/list views, console log stream, and interactive CLI command row.
+- **Application Outliner (`OutlinerTree.tsx`)**:
+  - Full hierarchical tree view (`Pages > Home > Components`, `Blueprints`, `Database`).
+  - Search filter bar, expand/collapse toggles, visibility (`Eye`/`EyeOff`), and lock (`Lock`/`Unlock`) state buttons.
+- **Properties & Details Inspector (`DetailsInspector.tsx`)**:
+  - Context-aware inspector with collapsible sections for Transform, Layout & Flexbox, Appearance, Typography, and Data Bindings & Events.
+- **Content & Asset Browser (`ContentBrowser.tsx`)**:
+  - Breadcrumb navigation, category filter pills (`All`, `Components`, `Blueprints`, `Database`, `Assets`, `Pages`), Grid View / List View toggle, and asset cards with drag-to-stage hints.
+- **Output Log & Console (`OutputConsole.tsx`)**:
+  - Monospace log stream with severity badges (`INFO`, `WARN`, `ERROR`, `INIT`, `EXEC`, `DB`, `API`), category filter tabs, copy, clear, and interactive CLI prompt (`> `).
+- **Project Settings (`ProjectSettings.tsx`)**:
+  - 4-category configuration dashboard: General, Build & Framework, Theme & Design Tokens, and Environment Secrets with password reveal toggles.
+- **Logic Blueprint Editor Shell (`BlueprintCanvas.tsx`)**:
+  - Event Graph stage with sample nodes (`OnMount`, `FetchUserSession`, `Branch`, `SetComponentState`) connected by curved Hermite SVG wires following data-type colors.
+- **Full Shell Integration (`EditorShell.tsx` & `WindowMenu.tsx`)**:
+  - All 6 panels registered and switchable across left, center, right, and bottom dock zones.
+  - Window menu items and top header preferences gear directly activate their respective panels and tabs.

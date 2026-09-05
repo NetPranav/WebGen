@@ -36,6 +36,9 @@ interface DockZoneProps {
   style?: React.CSSProperties;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  onClick?: () => void;
+  /** Called when a tab is dragged past the tear-off threshold */
+  onTearOffStart?: (tabId: string, tabTitle: string, originX: number, originY: number) => void;
 }
 
 export const DockZone: React.FC<DockZoneProps> = ({
@@ -54,6 +57,8 @@ export const DockZone: React.FC<DockZoneProps> = ({
   style,
   onMouseEnter,
   onMouseLeave,
+  onClick,
+  onTearOffStart,
 }) => {
   const currentSize = isCollapsed ? collapsedSize : size;
   const isHorizontalZone = zoneId === "left" || zoneId === "right";
@@ -82,6 +87,7 @@ export const DockZone: React.FC<DockZoneProps> = ({
         style={{ ...sizeStyle, ...style }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        onClick={onClick}
       >
         <div className="dock-collapsed-strip">
           <button
@@ -106,6 +112,7 @@ export const DockZone: React.FC<DockZoneProps> = ({
       style={{ ...sizeStyle, ...style }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onClick={onClick}
     >
       {zoneId !== "center" && (
         <DockTabBar
@@ -117,6 +124,7 @@ export const DockZone: React.FC<DockZoneProps> = ({
           onAddTab={onAddTab}
           onToggleCollapse={onToggleCollapse}
           isCollapsed={isCollapsed}
+          onTearOffStart={onTearOffStart}
         />
       )}
       <div className="dock-content">{children}</div>

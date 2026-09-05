@@ -71,6 +71,13 @@
   transition: width var(--transition-fast), height var(--transition-fast);
 }
 
+body.is-resizing .dock-zone,
+body.is-resizing .dock-center-col,
+body.is-resizing .dock-splitter,
+body.is-resizing .dock-corner-splitter {
+  transition: none !important;
+}
+
 .dock-zone--left {
   height: 100%;
   border-right: 1px solid var(--border-default);
@@ -98,20 +105,17 @@
 }
 
 /* Layering Elevations:
- * Hovering or focusing Outliner or Details elevates them in front of Bottom Drawer!
- * Hovering Bottom Drawer elevates it in front edge-to-edge!
+ * Governed by 2-second hover dwell or instant click (.dock-zone--elevated).
+ * Bottom Drawer remains on top until dwell threshold is reached.
  */
-.dock-zone--left:hover,
 .dock-zone--left.dock-zone--elevated {
-  z-index: 28;
+  z-index: 35;
 }
 
-.dock-zone--right:hover,
 .dock-zone--right.dock-zone--elevated {
-  z-index: 28;
+  z-index: 35;
 }
 
-.dock-zone--bottom:hover,
 .dock-zone--bottom.dock-zone--elevated {
   z-index: 29;
 }
@@ -333,6 +337,32 @@
 }
 
 /* ----------------------------------------------------------------------------
+ * Dock Corner Splitter (2D Intersection Drag Handle)
+ * ---------------------------------------------------------------------------- */
+.dock-corner-splitter {
+  position: absolute;
+  user-select: none;
+  touch-action: none;
+  z-index: 40;
+}
+
+.dock-corner-splitter__handle {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  transition: all var(--transition-fast);
+  pointer-events: none;
+}
+
+.dock-corner-splitter:hover .dock-corner-splitter__handle,
+.dock-corner-splitter--active .dock-corner-splitter__handle {
+  background: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 0 8px var(--accent-primary);
+  transform: scale(1.4);
+}
+
+/* ----------------------------------------------------------------------------
  * Status Bar Styling
  * ---------------------------------------------------------------------------- */
 .statusbar {
@@ -441,5 +471,158 @@
   font-size: var(--text-xs);
   color: inherit;
   opacity: 0.85;
+}
+
+/* Unreal-Style Output Log Button in Bottom Bar */
+.statusbar__log-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  background: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.statusbar__log-btn:hover {
+  background: var(--surface-panel-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.statusbar__log-btn--active {
+  background: var(--surface-panel-selected);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================================================
+ * TEAR-OFF DRAG SYSTEM
+ * ============================================================================
+ * Floating preview, header drop zone indicator, and tab drag feedback
+ * for the Unreal Engine-style tear-off tab system.
+ * ============================================================================ */
+
+/* Fullscreen overlay container (pointer-events: none so it doesn't block clicks) */
+.tearoff-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Header drop zone indicator — glowing bar across the top */
+.tearoff-header-dropzone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s var(--ease-out-expo);
+  pointer-events: none;
+}
+
+.tearoff-header-dropzone--active {
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.08) 0%,
+    rgba(59, 130, 246, 0.02) 60%,
+    transparent 100%
+  );
+  border-bottom-color: var(--accent-primary);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+}
+
+/* Floating glassmorphic preview rectangle */
+.tearoff-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 70px;
+  background: var(--surface-panel);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  pointer-events: none;
+  animation: tearoff-appear 0.15s var(--ease-out-expo);
+  will-change: transform;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tearoff-preview--header-zone {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-lg), 0 0 16px rgba(59, 130, 246, 0.25), 0 0 0 1px var(--accent-primary);
+}
+
+.tearoff-preview__grip {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.tearoff-preview__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tearoff-preview__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tearoff-preview__hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  color: var(--text-tertiary);
+  letter-spacing: 0.03em;
+}
+
+.tearoff-preview--header-zone .tearoff-preview__hint {
+  color: var(--accent-primary);
+}
+
+/* Tab in dragging state */
+.dock-tabbar__tab--dragging {
+  opacity: 0.35;
+  outline: 1px dashed var(--border-strong);
+  outline-offset: -1px;
+}
+
+@keyframes tearoff-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 

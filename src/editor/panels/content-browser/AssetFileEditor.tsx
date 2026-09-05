@@ -1,0 +1,417 @@
+"use client";
+
+/**
+ * ============================================================================
+ * ASSET FILE EDITOR COMPONENT
+ * ============================================================================
+ * UI Element: Unreal Engine-Style Asset / File Editor Canvas
+ * Screen / Scope: Full-Page Dock Stage for Opened Files (`/editor`)
+ * Role: Renders an interactive asset workspace for components (e.g. Button.tsx,
+ *       HeroSection.tsx), database models, vector SVGs, and images when dragged
+ *       or opened from Content Browser or Outliner.
+ * Styling Source: `@/editor/styles/panels.css` & `@/editor/styles/dock.css`
+ * ============================================================================
+ */
+
+import React, { useState } from "react";
+import {
+  Code2,
+  Eye,
+  Layers,
+  Sparkles,
+  Save,
+  RotateCw,
+  Copy,
+  Check,
+  FileCode2,
+  Database,
+  ImageIcon,
+  Box,
+  Cpu,
+  Table,
+  ExternalLink,
+  ChevronRight,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+
+export interface AssetFileEditorProps {
+  assetId: string;
+  assetTitle: string;
+  isDirty?: boolean;
+  onSave?: () => void;
+}
+
+// Sample mock code sources for components
+const MOCK_CODES: Record<string, string> = {
+  ast_btn: `import React from "react";
+import styles from "./Button.module.css";
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
+  isLoading?: boolean;
+}
+
+export const Button: React.FC<ButtonProps> = ({
+  variant = "primary",
+  size = "md",
+  isLoading = false,
+  children,
+  ...props
+}) => {
+  return (
+    <button
+      className={\`btn btn--\${variant} btn--\${size}\`}
+      disabled={isLoading || props.disabled}
+      {...props}
+    >
+      {isLoading ? <span className="spinner" /> : children}
+    </button>
+  );
+};`,
+
+  ast_hero: `import React from "react";
+import { Sparkles, ArrowRight } from "lucide-react";
+
+export interface HeroSectionProps {
+  headline?: string;
+  subhead?: string;
+  ctaText?: string;
+  onCtaClick?: () => void;
+}
+
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  headline = "Next-Generation Web Applications",
+  subhead = "Engineered with Unreal Engine precision and reactive AST compiling.",
+  ctaText = "Get Started",
+  onCtaClick,
+}) => {
+  return (
+    <section className="hero-container">
+      <div className="hero-badge">
+        <Sparkles size={13} />
+        <span>v2.0 Engine Release</span>
+      </div>
+      <h1 className="hero-headline">{headline}</h1>
+      <p className="hero-subhead">{subhead}</p>
+      <div className="hero-actions">
+        <button className="hero-cta-btn" onClick={onCtaClick}>
+          <span>{ctaText}</span>
+          <ArrowRight size={14} />
+        </button>
+      </div>
+    </section>
+  );
+};`,
+
+  ast_navbar: `import React from "react";
+import { Layers } from "lucide-react";
+
+export interface NavbarProps {
+  projectName?: string;
+  onNavigate?: (route: string) => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({
+  projectName = "Web Engine Studio",
+  onNavigate,
+}) => {
+  return (
+    <header className="navbar-header">
+      <div className="navbar-logo">
+        <Layers size={18} />
+        <span className="navbar-title">{projectName}</span>
+      </div>
+      <nav className="navbar-links">
+        <a href="#features">Features</a>
+        <a href="#docs">Documentation</a>
+        <a href="#pricing">Pricing</a>
+      </nav>
+      <div className="navbar-actions">
+        <button className="navbar-btn">Dashboard</button>
+      </div>
+    </header>
+  );
+};`,
+
+  ast_db_users: `-- Schema Definition: UsersCollection (SQLite / WASM Embedded)
+CREATE TABLE users (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  email TEXT UNIQUE NOT NULL,
+  display_name TEXT NOT NULL,
+  role TEXT CHECK(role IN ('admin', 'editor', 'viewer')) DEFAULT 'viewer',
+  is_verified BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);`,
+
+  ast_db_projects: `-- Schema Definition: ProjectsCollection
+CREATE TABLE projects (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  status TEXT DEFAULT 'draft',
+  ast_tree JSON NOT NULL DEFAULT '{}',
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);`,
+};
+
+export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
+  assetId,
+  assetTitle,
+  isDirty = false,
+  onSave,
+}) => {
+  const [activeTab, setActiveTab] = useState<"preview" | "code" | "schema">("preview");
+  const [copied, setCopied] = useState(false);
+  const [zoom, setZoom] = useState(100);
+
+  // Determine asset category from id or title
+  const isDb = assetId.includes("db") || assetTitle.endsWith(".db");
+  const isImage = assetId.includes("logo") || assetId.includes("banner") || assetTitle.endsWith(".svg") || assetTitle.endsWith(".webp");
+  const isBlueprint = assetId.includes("bp_") || assetTitle.endsWith(".graph");
+
+  const codeSource =
+    MOCK_CODES[assetId] ||
+    `// ${assetTitle}\n// Component asset registered in WebAPPBuilder AST\nexport default function Asset() {\n  return <div>${assetTitle}</div>;\n}`;
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(codeSource);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="asset-file-editor" role="region" aria-label={`Asset Editor: ${assetTitle}`}>
+      {/* Top Asset Sub-Toolbar */}
+      <div className="asset-file-editor__toolbar">
+        <div className="asset-file-editor__modes">
+          <button
+            type="button"
+            className={`asset-file-editor__mode-btn ${activeTab === "preview" ? "asset-file-editor__mode-btn--active" : ""}`}
+            onClick={() => setActiveTab("preview")}
+          >
+            <Eye size={13} />
+            <span>Interactive Preview</span>
+          </button>
+          <button
+            type="button"
+            className={`asset-file-editor__mode-btn ${activeTab === "code" ? "asset-file-editor__mode-btn--active" : ""}`}
+            onClick={() => setActiveTab("code")}
+          >
+            <Code2 size={13} />
+            <span>Source Code (TSX)</span>
+          </button>
+          {isDb && (
+            <button
+              type="button"
+              className={`asset-file-editor__mode-btn ${activeTab === "schema" ? "asset-file-editor__mode-btn--active" : ""}`}
+              onClick={() => setActiveTab("schema")}
+            >
+              <Table size={13} />
+              <span>Data Records</span>
+            </button>
+          )}
+        </div>
+
+        <div className="asset-file-editor__actions">
+          <div className="asset-file-editor__zoom-ctrl">
+            <button
+              type="button"
+              className="panel-icon-btn"
+              onClick={() => setZoom((z) => Math.max(z - 10, 50))}
+              title="Zoom Out"
+            >
+              <ZoomOut size={12} />
+            </button>
+            <span className="asset-file-editor__zoom-val">{zoom}%</span>
+            <button
+              type="button"
+              className="panel-icon-btn"
+              onClick={() => setZoom((z) => Math.min(z + 10, 200))}
+              title="Zoom In"
+            >
+              <ZoomIn size={12} />
+            </button>
+          </div>
+
+          <div className="asset-file-editor__divider" />
+
+          <button
+            type="button"
+            className="asset-file-editor__action-btn"
+            onClick={handleCopyCode}
+            title="Copy Source Code"
+          >
+            {copied ? <Check size={12} style={{ color: "var(--accent-success)" }} /> : <Copy size={12} />}
+            <span>{copied ? "Copied" : "Copy"}</span>
+          </button>
+
+          <button
+            type="button"
+            className="asset-file-editor__action-btn"
+            onClick={onSave}
+            title="Recompile Asset AST"
+          >
+            <RotateCw size={12} />
+            <span>Hot Reload</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Asset Canvas Body */}
+      <div className="asset-file-editor__viewport">
+        {activeTab === "preview" ? (
+          <div
+            className="asset-file-editor__canvas-stage confluence-grid"
+            style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center" }}
+          >
+            {isImage ? (
+              <div className="asset-preview-image-card">
+                <div className="asset-preview-checkerboard">
+                  {assetTitle.endsWith(".svg") ? (
+                    <div className="asset-svg-demo">
+                      <svg width="120" height="120" viewBox="0 0 100 100" fill="none">
+                        <circle cx="50" cy="50" r="45" stroke="var(--accent-primary)" strokeWidth="6" />
+                        <polygon points="50,25 75,70 25,70" fill="var(--accent-primary)" opacity="0.85" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="asset-webp-demo">
+                      <ImageIcon size={64} style={{ color: "var(--accent-info)" }} />
+                      <span>{assetTitle} (1440 × 900 @ 2x WebP)</span>
+                    </div>
+                  )}
+                </div>
+                <div className="asset-preview-meta">
+                  <span>{assetTitle}</span>
+                  <span className="asset-badge">SVG / WebP Vector</span>
+                </div>
+              </div>
+            ) : isDb ? (
+              <div className="asset-db-table-card">
+                <div className="asset-db-table-header">
+                  <Database size={15} style={{ color: "#059669" }} />
+                  <span>Table: {assetTitle}</span>
+                  <span className="asset-badge">SQLite v3.45</span>
+                </div>
+                <table className="asset-table-view">
+                  <thead>
+                    <tr>
+                      <th>Column</th>
+                      <th>Type</th>
+                      <th>Key</th>
+                      <th>Default</th>
+                      <th>Nullable</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>id</code></td>
+                      <td>TEXT</td>
+                      <td><span className="pk-badge">PK</span></td>
+                      <td>UUIDv4()</td>
+                      <td>NO</td>
+                    </tr>
+                    <tr>
+                      <td><code>email</code></td>
+                      <td>TEXT</td>
+                      <td><span className="idx-badge">UNIQUE</span></td>
+                      <td>NULL</td>
+                      <td>NO</td>
+                    </tr>
+                    <tr>
+                      <td><code>display_name</code></td>
+                      <td>TEXT</td>
+                      <td>-</td>
+                      <td>NULL</td>
+                      <td>NO</td>
+                    </tr>
+                    <tr>
+                      <td><code>role</code></td>
+                      <td>ENUM</td>
+                      <td>-</td>
+                      <td>'viewer'</td>
+                      <td>NO</td>
+                    </tr>
+                    <tr>
+                      <td><code>created_at</code></td>
+                      <td>DATETIME</td>
+                      <td>-</td>
+                      <td>CURRENT_TIMESTAMP</td>
+                      <td>NO</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              /* Component Visual Preview Card */
+              <div className="asset-component-preview-card">
+                <div className="asset-preview-tag">
+                  <Box size={13} />
+                  <span>Live Component Render: {assetTitle}</span>
+                </div>
+
+                <div className="asset-live-component">
+                  {assetId === "ast_btn" ? (
+                    <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                      <button className="preview-btn preview-btn--primary">Primary Action</button>
+                      <button className="preview-btn preview-btn--secondary">Secondary</button>
+                      <button className="preview-btn preview-btn--ghost">Ghost</button>
+                    </div>
+                  ) : assetId === "ast_navbar" ? (
+                    <div className="preview-navbar">
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Layers size={16} style={{ color: "var(--accent-primary)" }} />
+                        <strong>Brand Studio</strong>
+                      </div>
+                      <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
+                        <span>Overview</span>
+                        <span>Components</span>
+                        <span>API Docs</span>
+                      </div>
+                      <button className="preview-btn preview-btn--primary" style={{ padding: "4px 10px" }}>Login</button>
+                    </div>
+                  ) : (
+                    <div className="preview-hero">
+                      <div className="preview-hero__badge">
+                        <Sparkles size={12} />
+                        <span>Interactive Asset Preview</span>
+                      </div>
+                      <h2 style={{ fontSize: 24, fontWeight: 700, margin: "8px 0" }}>
+                        {assetTitle.replace(/\.[^/.]+$/, "")}
+                      </h2>
+                      <p style={{ color: "var(--text-secondary)", fontSize: 14, maxWidth: 440, textAlign: "center" }}>
+                        Visual component rendered directly from the AST runtime engine with real-time prop reflection.
+                      </p>
+                      <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+                        <button className="preview-btn preview-btn--primary">Primary Action</button>
+                        <button className="preview-btn preview-btn--secondary">Inspect Props</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Code View Tab */
+          <div className="asset-file-editor__code-container">
+            <div className="asset-code-header">
+              <span className="asset-code-path">src/components/{assetTitle}</span>
+              <span className="asset-code-lang">TypeScript JSX</span>
+            </div>
+            <pre className="asset-code-pre">
+              <code>{codeSource}</code>
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

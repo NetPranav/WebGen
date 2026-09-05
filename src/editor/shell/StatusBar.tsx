@@ -27,6 +27,7 @@ import {
   PanelBottom,
   ChevronUp,
   ChevronDown,
+  Terminal,
 } from "lucide-react";
 
 interface StatusBarProps {
@@ -42,6 +43,9 @@ interface StatusBarProps {
   isBottomOpen?: boolean;
   bottomActiveTab?: string;
   onToggleBottom?: () => void;
+  isOutputLogOpen?: boolean;
+  onToggleOutputLog?: () => void;
+  onTearOffLog?: (originX: number, originY: number) => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -55,13 +59,17 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   fps = 120,
   memoryUsage = "38 MB",
   isBottomOpen = true,
+  bottomActiveTab = "blueprint",
   onToggleBottom,
+  isOutputLogOpen = false,
+  onToggleOutputLog,
+  onTearOffLog,
 }) => {
   return (
     <footer className="statusbar" role="contentinfo" aria-label="Engine Status Bar">
-      {/* Left section: Most-left logo + Common Name to open 4 menus + Status */}
+      {/* Left section: Most-left logo + Common Name to open bottom drawer + Status */}
       <div className="statusbar__left">
-        {/* Single elegant trigger for the 4 bottom menus */}
+        {/* Single elegant trigger for the bottom drawer */}
         <div className="statusbar__drawer-group">
           <button
             type="button"
@@ -69,11 +77,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               isBottomOpen ? "statusbar__drawer-trigger--active" : ""
             }`}
             onClick={onToggleBottom}
-            title="Toggle Bottom Drawer (Console • Logic Blueprint • Sequencer • AI Studio)"
+            title="Toggle Bottom Drawer (Logic Blueprint • Timeline Sequencer)"
           >
             <PanelBottom size={13} />
             <span>Bottom Drawer</span>
-            <span className="statusbar__drawer-count">(4 Menus)</span>
+            <span className="statusbar__drawer-count">(Logic & Sequencer)</span>
             {isBottomOpen ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
           </button>
         </div>
@@ -101,6 +109,45 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             </span>
           </div>
         )}
+
+        {/* Unreal-Style Output Log Button in Bottom Bar (Right of Target Selection, draggable) */}
+        <button
+          type="button"
+          className={`statusbar__log-btn ${
+            isOutputLogOpen ? "statusbar__log-btn--active" : ""
+          }`}
+          onClick={onToggleOutputLog}
+          onPointerDown={(e) => {
+            if (!onTearOffLog || e.button !== 0) return;
+            const originX = e.clientX;
+            const originY = e.clientY;
+            let activated = false;
+
+            const onMove = (moveEvt: PointerEvent) => {
+              if (activated) return;
+              const dx = moveEvt.clientX - originX;
+              const dy = moveEvt.clientY - originY;
+              if (Math.sqrt(dx * dx + dy * dy) >= 40) {
+                activated = true;
+                onTearOffLog(originX, originY);
+                window.removeEventListener("pointermove", onMove);
+                window.removeEventListener("pointerup", onUp);
+              }
+            };
+
+            const onUp = () => {
+              window.removeEventListener("pointermove", onMove);
+            };
+
+            window.addEventListener("pointermove", onMove);
+            window.addEventListener("pointerup", onUp, { once: true });
+          }}
+          title="Toggle or drag Output Log (Unreal Engine Console)"
+          style={{ cursor: "grab" }}
+        >
+          <Terminal size={12} />
+          <span>Output Log</span>
+        </button>
       </div>
 
       {/* Center section: Performance & Diagnostics */}

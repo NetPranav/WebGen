@@ -170,12 +170,12 @@
   --z-viewport-elements: 5;
   --z-gizmo: 10;
   --z-panels: 20;
-  --z-header: 30;
-  --z-floating-dock: 40;
-  --z-dropdown: 50;
-  --z-modal: 60;
-  --z-tooltip: 70;
-  --z-toast: 80;
+  --z-header: 45;
+  --z-floating-dock: 50;
+  --z-dropdown: 60;
+  --z-modal: 70;
+  --z-tooltip: 80;
+  --z-toast: 90;
 
   /* --------------------------------------------------------------------------
    * Transitions & Durations

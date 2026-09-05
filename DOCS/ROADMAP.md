@@ -88,15 +88,15 @@ The project is organized into **7 major phases**, each broken into **numbered su
 **Goal:** Build the top menu bar (File, Edit, View, Window, Help) and the action toolbar (Save, Undo, Redo, AI, Build, Play, Deploy). These are the user's primary engine controls.
 
 **Checklist:**
-- [ ] Create `src/editor/shell/StudioHeader.tsx` — Outer header container with logo, project name, and menu bar
-- [ ] Create `src/editor/shell/MainToolbar.tsx` — Action button row (Save, Undo, Redo, AI, Build, Play, Deploy)
-- [ ] Create `src/editor/menus/FileMenu.tsx` — File > New, Open, Save, Save As, Export, Recent
-- [ ] Create `src/editor/menus/EditMenu.tsx` — Edit > Undo, Redo, Cut, Copy, Paste, Preferences
-- [ ] Create `src/editor/menus/ViewMenu.tsx` — View > Zoom In/Out, Toggle Grid, Toggle Guides
-- [ ] Create `src/editor/menus/WindowMenu.tsx` — Window > Toggle each panel, Workspace presets
-- [ ] Create `src/editor/menus/HelpMenu.tsx` — Help > Docs, Keyboard Shortcuts, About
-- [ ] Create `src/editor/styles/menus.css` — Dropdown styling, menu item hover states, keyboard shortcut badges
-- [ ] Verify: Clicking menu items opens dropdown menus; toolbar buttons have hover states and tooltips
+- [x] Create `src/editor/shell/StudioHeader.tsx` — Outer header container with logo, project name, and menu bar
+- [x] Create `src/editor/shell/MainToolbar.tsx` — Action button row (Save, Undo, Redo, AI, Build, Play, Deploy)
+- [x] Create `src/editor/menus/FileMenu.tsx` — File > New, Open, Save, Save As, Export, Recent
+- [x] Create `src/editor/menus/EditMenu.tsx` — Edit > Undo, Redo, Cut, Copy, Paste, Preferences
+- [x] Create `src/editor/menus/ViewMenu.tsx` — View > Zoom In/Out, Toggle Grid, Toggle Guides
+- [x] Create `src/editor/menus/WindowMenu.tsx` — Window > Toggle each panel, Workspace presets
+- [x] Create `src/editor/menus/HelpMenu.tsx` — Help > Docs, Keyboard Shortcuts, About
+- [x] Create `src/editor/styles/menus.css` — Dropdown styling, menu item hover states, keyboard shortcut badges
+- [x] Verify: Clicking menu items opens dropdown menus; toolbar buttons have hover states and tooltips
 
 ---
 
@@ -104,15 +104,15 @@ The project is organized into **7 major phases**, each broken into **numbered su
 **Goal:** Build the infinite dot-grid canvas — the heart of the editor where the user sees their application. This must feel like Confluence Whiteboards: clean, infinite, responsive.
 
 **Checklist:**
-- [ ] Create `src/editor/canvas/WhiteboardCanvas.tsx` — Infinite canvas with CSS dot-grid pattern background
-- [ ] Create `src/editor/styles/whiteboard.css` — Dot grid rendering, canvas background, zoom transitions
-- [ ] Implement pan: Space+Drag or Middle-click drag (translate canvas origin)
-- [ ] Implement zoom: Ctrl+Scroll with smooth transition (10% – 400%)
-- [ ] Create `src/editor/canvas/CanvasOverlay.tsx` — Layer for bounding boxes, snap guides, selection rectangles
-- [ ] Create `src/editor/canvas/FloatingDock.tsx` — Atlassian-style bottom pill toolbar (Select, Pan, Pen, Text, Wire, Shapes, Components, Assets, +)
-- [ ] Create zoom controls widget: bottom-right floating pill with `+`, `100%`, `−`
-- [ ] Create undo/redo widget: bottom-left floating pill
-- [ ] Verify: Canvas renders with dot grid; user can pan infinitely and zoom smoothly; floating dock is visible at bottom center
+- [x] Create `src/editor/canvas/WhiteboardCanvas.tsx` — Infinite canvas with CSS dot-grid pattern background
+- [x] Create `src/editor/styles/whiteboard.css` — Dot grid rendering, canvas background, zoom transitions
+- [x] Implement pan: Space+Drag or Middle-click drag (translate canvas origin)
+- [x] Implement zoom: Ctrl+Scroll with smooth transition (10% – 400%)
+- [x] Create `src/editor/canvas/CanvasOverlay.tsx` — Layer for bounding boxes, snap guides, selection rectangles
+- [x] Create `src/editor/canvas/FloatingDock.tsx` — Atlassian-style bottom pill toolbar (Select, Pan, Pen, Text, Wire, Shapes, Components, Assets, +)
+- [x] Create zoom controls widget: bottom-right floating pill with `+`, `100%`, `−`, fit-to-screen
+- [x] Create undo/redo widget: top-left floating canvas action pill (Save, Undo, Redo with hover-reveal)
+- [x] Verify: Canvas renders with dot grid; user can pan infinitely and zoom smoothly; floating dock is visible at bottom center (Tested & verified in browser)
 
 ---
 
@@ -120,16 +120,16 @@ The project is organized into **7 major phases**, each broken into **numbered su
 **Goal:** Create the MVP panel components as functional shells. They don't need real data yet — they need correct layout, headers, and placeholder content to prove the docking system works.
 
 **Checklist:**
-- [ ] Create `src/editor/panels/outliner/OutlinerTree.tsx` — Tree view with mock hierarchy (Pages > Home, Components > Button, etc.)
-- [ ] Create `src/editor/panels/details/DetailsInspector.tsx` — Collapsible sections (Transform, Layout, Appearance, Typography) with mock inputs
-- [ ] Create `src/editor/panels/content-browser/ContentBrowser.tsx` — Breadcrumb navigation, grid/list toggle, mock asset cards
-- [ ] Create `src/editor/panels/console/OutputConsole.tsx` — Log stream with filter tabs (All, Errors, Warnings), mock entries
-- [ ] Create `src/editor/panels/settings/ProjectSettings.tsx` — Settings form with General, Environment, Theme sections
-- [ ] Create `src/editor/panels/blueprint/BlueprintCanvas.tsx` — Empty infinite canvas placeholder (will be powered by Wasm in Phase 2)
-- [ ] Create `src/editor/styles/panels.css` — Panel chrome, section headers, collapsible section animations
-- [ ] Create `src/editor/styles/forms.css` — Input fields, sliders, toggles, dropdowns, color pickers
-- [ ] Register all panels in the DockManager so they appear in Window menu
-- [ ] Verify: All 6 panels render inside dock zones; panels can be switched via tabs; Window menu toggles panels
+- [x] Create `src/editor/panels/outliner/OutlinerTree.tsx` — Tree view with mock hierarchy (Pages > Home, Components > Button, etc.)
+- [x] Create `src/editor/panels/details/DetailsInspector.tsx` — Collapsible sections (Transform, Layout, Appearance, Typography) with mock inputs
+- [x] Create `src/editor/panels/content-browser/ContentBrowser.tsx` — Breadcrumb navigation, grid/list toggle, mock asset cards
+- [x] Create `src/editor/panels/console/OutputConsole.tsx` — Log stream with filter tabs (All, Errors, Warnings), mock entries
+- [x] Create `src/editor/panels/settings/ProjectSettings.tsx` — Settings form with General, Environment, Theme sections
+- [x] Create `src/editor/panels/blueprint/BlueprintCanvas.tsx` — Empty infinite canvas placeholder (will be powered by Wasm in Phase 2)
+- [x] Create `src/editor/styles/panels.css` — Panel chrome, section headers, collapsible section animations
+- [x] Create `src/editor/styles/forms.css` — Input fields, sliders, toggles, dropdowns, color pickers
+- [x] Register all panels in the DockManager so they appear in Window menu
+- [x] Verify: All 6 panels render inside dock zones; panels can be switched via tabs; Window menu toggles panels (Tested & verified in browser)
 
 ---
 

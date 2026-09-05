@@ -1,0 +1,132 @@
+/**
+ * ============================================================================
+ * FULL-PAGE DOCK STYLES
+ * ============================================================================
+ * UI Element: Unreal Engine-Style Full-Page Panel Dock & File Tab Bar
+ * Screen / Scope: Center Stage Area (`/editor`)
+ * Role: Styles the full-page dock view that replaces the normal viewport when
+ *       a panel is docked via drag-to-header. Includes the file tab bar with
+ *       Save/Undo/Redo/Name/Close controls.
+ *
+ * CSS ISOLATION RULE:
+ * Governs only `.fullpage-dock` and its children. All token values come from
+ * `tokens.css`. No layout sizing for dock zones belongs here.
+ * ============================================================================
+ */
+
+/* Root full-page dock container */
+.fullpage-dock {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-panel);
+  animation: fadeIn 0.2s var(--ease-out-expo);
+  position: relative;
+  z-index: 10;
+}
+
+/* ---- File Tab Bar ---- */
+.fullpage-dock__filebar {
+  height: 36px;
+  min-height: 36px;
+  background: var(--surface-dock-bar);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-sm);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.fullpage-dock__filebar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.fullpage-dock__filebar-right {
+  display: flex;
+  align-items: center;
+}
+
+/* Icon buttons (Save, Undo, Redo) */
+.fullpage-dock__filebar-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.fullpage-dock__filebar-btn:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+}
+
+/* Dirty indicator dot on Save button */
+.fullpage-dock__dirty-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--accent-warning);
+}
+
+/* Vertical divider between controls and name */
+.fullpage-dock__filebar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-default);
+  margin: 0 var(--space-xs);
+}
+
+/* Panel/File name */
+.fullpage-dock__filebar-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+  letter-spacing: 0.01em;
+}
+
+/* Close button */
+.fullpage-dock__filebar-close {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.fullpage-dock__filebar-close:hover {
+  background: var(--accent-danger-light);
+  color: var(--accent-danger);
+}
+
+/* ---- Content Area ---- */
+.fullpage-dock__content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
