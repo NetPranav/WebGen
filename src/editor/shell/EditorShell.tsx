@@ -218,33 +218,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               </div>
             )}
           </div>
-
-          {/* Bottom Horizontal Splitter */}
-          {!bottomCollapsed && (
-            <DockSplitter orientation="horizontal" onResize={handleBottomResize} />
-          )}
-
-          {/* Bottom Dock Zone */}
-          <DockZone
-            zoneId="bottom"
-            size={bottomHeight}
-            isCollapsed={bottomCollapsed}
-            tabs={bottomTabs}
-            activeTabId={bottomActiveTab}
-            onSelectTab={setBottomActiveTab}
-            onToggleCollapse={() => setBottomCollapsed((c) => !c)}
-          >
-            {bottomPanels[bottomActiveTab] || (
-              <div style={{ padding: "var(--space-md)", color: "var(--text-secondary)" }}>
-                <h4 style={{ fontSize: "var(--text-sm)", marginBottom: "var(--space-xs)" }}>
-                  {bottomTabs.find((t) => t.id === bottomActiveTab)?.title} Panel
-                </h4>
-                <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-                  [Output Log] Engine initialized in 48ms • Wasm runtime linked • 0 errors
-                </p>
-              </div>
-            )}
-          </DockZone>
         </div>
 
         {/* Right Vertical Splitter */}
@@ -274,6 +247,33 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           )}
         </DockZone>
       </div>
+
+      {/* Edge-to-Edge Bottom Horizontal Splitter */}
+      {!bottomCollapsed && (
+        <DockSplitter orientation="horizontal" onResize={handleBottomResize} />
+      )}
+
+      {/* Edge-to-Edge Bottom Drawer Zone */}
+      <DockZone
+        zoneId="bottom"
+        size={bottomHeight}
+        isCollapsed={bottomCollapsed}
+        tabs={bottomTabs}
+        activeTabId={bottomActiveTab}
+        onSelectTab={setBottomActiveTab}
+        onToggleCollapse={() => setBottomCollapsed((c) => !c)}
+      >
+        {bottomPanels[bottomActiveTab] || (
+          <div style={{ padding: "var(--space-md)", color: "var(--text-secondary)" }}>
+            <h4 style={{ fontSize: "var(--text-sm)", marginBottom: "var(--space-xs)" }}>
+              {bottomTabs.find((t) => t.id === bottomActiveTab)?.title} Panel
+            </h4>
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+              [Output Log] Engine initialized in 48ms • Wasm runtime linked • 0 errors
+            </p>
+          </div>
+        )}
+      </DockZone>
 
       {/* Bottom Status Bar with Drawer Controller */}
       <div className="dock-layout__statusbar">

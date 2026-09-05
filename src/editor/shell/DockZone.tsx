@@ -53,7 +53,7 @@ export const DockZone: React.FC<DockZoneProps> = ({
   const sizeStyle: React.CSSProperties = isHorizontalZone
     ? { width: `${currentSize}px`, minWidth: `${currentSize}px` }
     : zoneId === "bottom"
-    ? { height: `${currentSize}px`, minHeight: `${currentSize}px` }
+    ? { height: `${currentSize}px`, minHeight: `${currentSize}px`, width: "100%" }
     : {};
 
   const getCollapsedIcon = () => {
