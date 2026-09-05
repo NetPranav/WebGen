@@ -364,26 +364,25 @@
   color: var(--text-primary);
 }
 
-/* Bottom Panel Buttons inside Status Bar */
+/* Bottom Drawer Controller in Status Bar */
 .statusbar__drawer-group {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 var(--space-xs);
+  padding-right: var(--space-sm);
   margin-right: var(--space-xs);
   border-right: 1px solid var(--border-default);
 }
 
 .statusbar__drawer-trigger {
   height: 22px;
-  padding: 0 var(--space-xs);
+  padding: 0 var(--space-sm);
   border-radius: var(--radius-xs);
   font-size: 11px;
   font-weight: var(--font-semibold);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   cursor: pointer;
   background: var(--surface-panel-hover);
   border: 1px solid var(--border-default);
@@ -402,31 +401,13 @@
   border-color: var(--accent-primary);
 }
 
-.statusbar__tab-btn {
-  height: 22px;
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius-xs);
-  font-size: 11px;
-  font-weight: var(--font-medium);
-  color: var(--text-muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  background: transparent;
-  border: 1px solid transparent;
-  transition: all var(--transition-fast);
-}
-
-.statusbar__tab-btn:hover {
-  background: var(--surface-panel-hover);
-  color: var(--text-primary);
-}
-
-.statusbar__tab-btn--active {
+.statusbar__drawer-badge {
+  padding: 1px 5px;
   background: var(--surface-panel-solid);
-  color: var(--accent-primary);
-  font-weight: var(--font-semibold);
-  border-color: var(--border-subtle);
-  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
 }
+

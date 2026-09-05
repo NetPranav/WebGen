@@ -284,20 +284,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           onZoomReset={() => setZoomLevel(100)}
           isBottomOpen={!bottomCollapsed}
           bottomActiveTab={bottomActiveTab}
-          onToggleBottom={(tabId) => {
-            if (!tabId) {
-              setBottomCollapsed((prev) => !prev);
-              return;
-            }
-            if (bottomCollapsed) {
-              setBottomCollapsed(false);
-              setBottomActiveTab(tabId);
-            } else if (bottomActiveTab === tabId) {
-              setBottomCollapsed(true);
-            } else {
-              setBottomActiveTab(tabId);
-            }
-          }}
+          onToggleBottom={() => setBottomCollapsed((prev) => !prev)}
         />
       </div>
     </div>

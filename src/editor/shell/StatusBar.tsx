@@ -2,16 +2,17 @@
 
 /**
  * ============================================================================
- * STATUS BAR COMPONENT WITH BOTTOM DRAWER TRIGGERS
+ * STATUS BAR COMPONENT WITH BOTTOM DRAWER CONTROLLER
  * ============================================================================
  * UI Element: Bottom Status Bar & Bottom Panel Controller
  * Screen / Scope: Entire IDE Studio Shell (`/editor`)
- * Role: Hosts bottom drawer triggers for all 4 panels:
- *       - Console
- *       - Logic Blueprint
- *       - Sequencer
- *       - AI Studio
- *       Plus the bring-up logo toggle, engine status, 120 FPS Wasm stats, and zoom controls.
+ * Role: Hosts:
+ *       - Most-left logo & common label toggle to open/collapse the 4 bottom menus
+ *         (Console, Logic Blueprint, Sequencer, AI Studio)
+ *       - Engine readiness indicator & AST version badge
+ *       - Active target selection
+ *       - 120 FPS Wasm stats & memory counter
+ *       - Zoom controls
  * Styling Source: `@/editor/styles/dock.css` (`.statusbar`)
  * ============================================================================
  */
@@ -26,10 +27,6 @@ import {
   PanelBottom,
   ChevronUp,
   ChevronDown,
-  Terminal,
-  Network,
-  Film,
-  Sparkles,
 } from "lucide-react";
 
 interface StatusBarProps {
@@ -44,7 +41,7 @@ interface StatusBarProps {
   memoryUsage?: string;
   isBottomOpen?: boolean;
   bottomActiveTab?: string;
-  onToggleBottom?: (tabId?: string) => void;
+  onToggleBottom?: () => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -58,50 +55,27 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   fps = 120,
   memoryUsage = "38 MB",
   isBottomOpen = true,
-  bottomActiveTab = "console",
   onToggleBottom,
 }) => {
-  const bottomTabs = [
-    { id: "console", label: "Console", icon: <Terminal size={12} /> },
-    { id: "blueprint", label: "Logic Blueprint", icon: <Network size={12} /> },
-    { id: "timeline", label: "Sequencer", icon: <Film size={12} /> },
-    { id: "ai-copilot", label: "AI Studio", icon: <Sparkles size={12} style={{ color: "#8B5CF6" }} /> },
-  ];
-
   return (
     <footer className="statusbar" role="contentinfo" aria-label="Engine Status Bar">
-      {/* Left section: Drawer trigger logo + 4 panel buttons + Status */}
+      {/* Left section: Most-left logo + Common Name to open 4 menus + Status */}
       <div className="statusbar__left">
-        {/* Bring-up toggle logo */}
+        {/* Single elegant trigger for the 4 bottom menus */}
         <div className="statusbar__drawer-group">
           <button
             type="button"
             className={`statusbar__drawer-trigger ${
               isBottomOpen ? "statusbar__drawer-trigger--active" : ""
             }`}
-            onClick={() => onToggleBottom && onToggleBottom()}
-            title={isBottomOpen ? "Collapse Bottom Panel" : "Bring Up Bottom Panel"}
+            onClick={onToggleBottom}
+            title="Toggle Bottom Drawer (Console • Logic Blueprint • Sequencer • AI Studio)"
           >
-            <PanelBottom size={13} />
+            <PanelBottom size={13} style={{ color: "var(--accent-primary)" }} />
+            <span>Bottom Drawer</span>
+            <span className="statusbar__drawer-badge">4 Menus</span>
             {isBottomOpen ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
           </button>
-
-          {/* 4 Bottom Panel Buttons */}
-          {bottomTabs.map((tab) => {
-            const isActive = isBottomOpen && bottomActiveTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                className={`statusbar__tab-btn ${isActive ? "statusbar__tab-btn--active" : ""}`}
-                onClick={() => onToggleBottom && onToggleBottom(tab.id)}
-                title={`Open ${tab.label}`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
         </div>
 
         {/* Engine status indicator */}
