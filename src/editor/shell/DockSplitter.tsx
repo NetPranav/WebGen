@@ -21,12 +21,16 @@ interface DockSplitterProps {
   orientation: "vertical" | "horizontal";
   onResize: (delta: number) => void;
   onResizeEnd?: () => void;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export const DockSplitter: React.FC<DockSplitterProps> = ({
   orientation,
   onResize,
   onResizeEnd,
+  className,
+  style,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -61,7 +65,8 @@ export const DockSplitter: React.FC<DockSplitterProps> = ({
     <div
       className={`dock-splitter dock-splitter--${orientation} ${
         isDragging ? "dock-splitter--active" : ""
-      }`}
+      } ${className || ""}`}
+      style={style}
       onMouseDown={handleMouseDown}
       role="separator"
       aria-orientation={orientation}

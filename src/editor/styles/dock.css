@@ -72,23 +72,48 @@
 }
 
 .dock-zone--left {
+  height: 100%;
   border-right: 1px solid var(--border-default);
   box-shadow: var(--shadow-xs);
-  z-index: var(--z-panels);
+  z-index: 20;
 }
 
 .dock-zone--right {
+  height: 100%;
   border-left: 1px solid var(--border-default);
   box-shadow: var(--shadow-xs);
-  z-index: var(--z-panels);
+  z-index: 20;
 }
 
 .dock-zone--bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   flex-shrink: 0;
   border-top: 1px solid var(--border-default);
-  box-shadow: var(--shadow-xs);
-  z-index: var(--z-panels);
+  box-shadow: var(--shadow-md);
+  z-index: 22;
+}
+
+/* Layering Elevations:
+ * Hovering or focusing Outliner or Details elevates them in front of Bottom Drawer!
+ * Hovering Bottom Drawer elevates it in front edge-to-edge!
+ */
+.dock-zone--left:hover,
+.dock-zone--left.dock-zone--elevated {
+  z-index: 28;
+}
+
+.dock-zone--right:hover,
+.dock-zone--right.dock-zone--elevated {
+  z-index: 28;
+}
+
+.dock-zone--bottom:hover,
+.dock-zone--bottom.dock-zone--elevated {
+  z-index: 29;
 }
 
 .dock-zone--center {
@@ -275,6 +300,7 @@
   width: 5px;
   cursor: col-resize;
   margin: 0 -2px;
+  z-index: 28;
 }
 
 .dock-splitter--vertical::after {
@@ -290,6 +316,7 @@
   cursor: row-resize;
   margin: -2px 0;
   flex-shrink: 0;
+  z-index: 26;
 }
 
 .dock-splitter--horizontal::after {

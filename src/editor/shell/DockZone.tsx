@@ -32,6 +32,10 @@ interface DockZoneProps {
   onAddTab?: () => void;
   onToggleCollapse: () => void;
   children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export const DockZone: React.FC<DockZoneProps> = ({
@@ -46,6 +50,10 @@ export const DockZone: React.FC<DockZoneProps> = ({
   onAddTab,
   onToggleCollapse,
   children,
+  className,
+  style,
+  onMouseEnter,
+  onMouseLeave,
 }) => {
   const currentSize = isCollapsed ? collapsedSize : size;
   const isHorizontalZone = zoneId === "left" || zoneId === "right";
@@ -70,8 +78,10 @@ export const DockZone: React.FC<DockZoneProps> = ({
     }
     return (
       <aside
-        className={`dock-zone dock-zone--${zoneId} dock-zone--collapsed`}
-        style={sizeStyle}
+        className={`dock-zone dock-zone--${zoneId} dock-zone--collapsed ${className || ""}`}
+        style={{ ...sizeStyle, ...style }}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       >
         <div className="dock-collapsed-strip">
           <button
@@ -92,8 +102,10 @@ export const DockZone: React.FC<DockZoneProps> = ({
 
   return (
     <div
-      className={`dock-zone dock-zone--${zoneId}`}
-      style={sizeStyle}
+      className={`dock-zone dock-zone--${zoneId} ${className || ""}`}
+      style={{ ...sizeStyle, ...style }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {zoneId !== "center" && (
         <DockTabBar

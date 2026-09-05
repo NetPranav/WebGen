@@ -49,6 +49,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
+  const [activeLayer, setActiveLayer] = useState<"left" | "right" | "bottom" | null>(null);
 
   /* --------------------------------------------------------------------------
    * Active Tab State
@@ -137,7 +138,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         )}
       </div>
 
-      {/* Main Dock Body (Left, Center Column, Right) */}
+      {/* Main Dock Body (Left, Center Column, Right, and Overlapping Bottom Drawer) */}
       <div className="dock-layout__body">
         {/* Left Dock Zone */}
         <DockZone
@@ -148,6 +149,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           activeTabId={leftActiveTab}
           onSelectTab={setLeftActiveTab}
           onToggleCollapse={() => setLeftCollapsed((c) => !c)}
+          onMouseEnter={() => setActiveLayer("left")}
+          className={activeLayer === "left" ? "dock-zone--elevated" : ""}
         >
           {leftPanels[leftActiveTab] || (
             <div style={{ padding: "var(--space-lg)", color: "var(--text-secondary)" }}>
@@ -163,11 +166,18 @@ export const EditorShell: React.FC<EditorShellProps> = ({
 
         {/* Left Vertical Splitter */}
         {!leftCollapsed && (
-          <DockSplitter orientation="vertical" onResize={handleLeftResize} />
+          <DockSplitter
+            orientation="vertical"
+            onResize={handleLeftResize}
+            style={{ zIndex: activeLayer === "left" ? 29 : 28 }}
+          />
         )}
 
-        {/* Center Column: Center Stage + Bottom Zone */}
-        <div className="dock-center-col">
+        {/* Center Column: Center Stage */}
+        <div
+          className="dock-center-col"
+          style={{ paddingBottom: bottomCollapsed ? 0 : `${bottomHeight}px` }}
+        >
           {/* Center Tab Bar */}
           <DockTabBar
             zoneId="center"
@@ -222,7 +232,11 @@ export const EditorShell: React.FC<EditorShellProps> = ({
 
         {/* Right Vertical Splitter */}
         {!rightCollapsed && (
-          <DockSplitter orientation="vertical" onResize={handleRightResize} />
+          <DockSplitter
+            orientation="vertical"
+            onResize={handleRightResize}
+            style={{ zIndex: activeLayer === "right" ? 29 : 28 }}
+          />
         )}
 
         {/* Right Dock Zone */}
@@ -234,6 +248,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           activeTabId={rightActiveTab}
           onSelectTab={setRightActiveTab}
           onToggleCollapse={() => setRightCollapsed((c) => !c)}
+          onMouseEnter={() => setActiveLayer("right")}
+          className={activeLayer === "right" ? "dock-zone--elevated" : ""}
         >
           {rightPanels[rightActiveTab] || (
             <div style={{ padding: "var(--space-lg)", color: "var(--text-secondary)" }}>
@@ -246,34 +262,55 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             </div>
           )}
         </DockZone>
-      </div>
 
-      {/* Edge-to-Edge Bottom Horizontal Splitter */}
-      {!bottomCollapsed && (
-        <DockSplitter orientation="horizontal" onResize={handleBottomResize} />
-      )}
-
-      {/* Edge-to-Edge Bottom Drawer Zone */}
-      <DockZone
-        zoneId="bottom"
-        size={bottomHeight}
-        isCollapsed={bottomCollapsed}
-        tabs={bottomTabs}
-        activeTabId={bottomActiveTab}
-        onSelectTab={setBottomActiveTab}
-        onToggleCollapse={() => setBottomCollapsed((c) => !c)}
-      >
-        {bottomPanels[bottomActiveTab] || (
-          <div style={{ padding: "var(--space-md)", color: "var(--text-secondary)" }}>
-            <h4 style={{ fontSize: "var(--text-sm)", marginBottom: "var(--space-xs)" }}>
-              {bottomTabs.find((t) => t.id === bottomActiveTab)?.title} Panel
-            </h4>
-            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-              [Output Log] Engine initialized in 48ms • Wasm runtime linked • 0 errors
-            </p>
-          </div>
+        {/* Edge-to-Edge Bottom Horizontal Splitter */}
+        {!bottomCollapsed && (
+          <DockSplitter
+            orientation="horizontal"
+            onResize={handleBottomResize}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: `${bottomHeight}px`,
+              zIndex: activeLayer === "bottom" ? 30 : 26,
+            }}
+          />
         )}
-      </DockZone>
+
+        {/* Edge-to-Edge Bottom Drawer Zone */}
+        <DockZone
+          zoneId="bottom"
+          size={bottomHeight}
+          isCollapsed={bottomCollapsed}
+          tabs={bottomTabs}
+          activeTabId={bottomActiveTab}
+          onSelectTab={setBottomActiveTab}
+          onToggleCollapse={() => setBottomCollapsed((c) => !c)}
+          onMouseEnter={() => setActiveLayer("bottom")}
+          className={activeLayer === "bottom" ? "dock-zone--elevated" : ""}
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            height: `${bottomHeight}px`,
+            zIndex: activeLayer === "bottom" ? 29 : 22,
+          }}
+        >
+          {bottomPanels[bottomActiveTab] || (
+            <div style={{ padding: "var(--space-md)", color: "var(--text-secondary)" }}>
+              <h4 style={{ fontSize: "var(--text-sm)", marginBottom: "var(--space-xs)" }}>
+                {bottomTabs.find((t) => t.id === bottomActiveTab)?.title} Panel
+              </h4>
+              <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                [Output Log] Engine initialized in 48ms • Wasm runtime linked • 0 errors
+              </p>
+            </div>
+          )}
+        </DockZone>
+      </div>
 
       {/* Bottom Status Bar with Drawer Controller */}
       <div className="dock-layout__statusbar">
