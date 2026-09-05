@@ -71,9 +71,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             onClick={onToggleBottom}
             title="Toggle Bottom Drawer (Console • Logic Blueprint • Sequencer • AI Studio)"
           >
-            <PanelBottom size={13} style={{ color: "var(--accent-primary)" }} />
+            <PanelBottom size={13} />
             <span>Bottom Drawer</span>
-            <span className="statusbar__drawer-badge">4 Menus</span>
+            <span className="statusbar__drawer-count">(4 Menus)</span>
             {isBottomOpen ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
           </button>
         </div>
