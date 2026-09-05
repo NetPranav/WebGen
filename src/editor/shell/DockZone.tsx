@@ -65,6 +65,9 @@ export const DockZone: React.FC<DockZoneProps> = ({
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   if (isCollapsed && zoneId !== "center") {
+    if (zoneId === "bottom") {
+      return null;
+    }
     return (
       <aside
         className={`dock-zone dock-zone--${zoneId} dock-zone--collapsed`}

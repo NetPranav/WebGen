@@ -275,13 +275,29 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         </DockZone>
       </div>
 
-      {/* Bottom Status Bar */}
+      {/* Bottom Status Bar with Drawer Controller */}
       <div className="dock-layout__statusbar">
         <StatusBar
           zoomLevel={zoomLevel}
           onZoomIn={() => setZoomLevel((z) => Math.min(z + 10, 250))}
           onZoomOut={() => setZoomLevel((z) => Math.max(z - 10, 25))}
           onZoomReset={() => setZoomLevel(100)}
+          isBottomOpen={!bottomCollapsed}
+          bottomActiveTab={bottomActiveTab}
+          onToggleBottom={(tabId) => {
+            if (!tabId) {
+              setBottomCollapsed((prev) => !prev);
+              return;
+            }
+            if (bottomCollapsed) {
+              setBottomCollapsed(false);
+              setBottomActiveTab(tabId);
+            } else if (bottomActiveTab === tabId) {
+              setBottomCollapsed(true);
+            } else {
+              setBottomActiveTab(tabId);
+            }
+          }}
         />
       </div>
     </div>
