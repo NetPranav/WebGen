@@ -286,3 +286,40 @@ Users can switch between tailored panel configurations using the top menu (`Wind
 1. **Aesthetic Choice:** Confluence Whiteboard canvas paired with modern, curved Unreal dockable panels delivers a fresh, professional, and accessible user experience.
 2. **Rendering Performance:** Critical wire curvature, cable physics, and execution pulses are driven by a **C++ WebAssembly Kernel** rendering to HTML5 Canvas/WebGL at 120 FPS.
 3. **Application Shell:** Fully powered by **Next.js 15, React 19, and Vanilla CSS variables**, ensuring fast load times, modular component architecture, and native web platform integration.
+
+---
+
+## 7. CSS Modularity, Isolation & UI Swappability Architecture
+
+### 7.1 The "One Element = One Styling Source" Principle
+To prevent UI elements from getting "stuck" when styled by multiple conflicting sources (e.g. inline styles competing with global rules or cross-component class leaks):
+1. **Single Styling Authority:** Every UI element in the engine is styled by exactly ONE stylesheet.
+   - Global typography, resets, and custom scrollbars: `globals.css`
+   - Reusable micro-animations: `animations.css`
+   - All visual constants (colors, radii, shadows, fonts, transitions): `tokens.css`
+   - Individual panels and screens: their own scoped stylesheet (e.g., `outliner.css`, `details.css`, `dock.css`).
+2. **No Inline Styles:** Dynamic values (canvas panning X/Y, zoom ratio, splitter drag positions) are applied via CSS custom properties on the container element, NEVER hardcoded in `style="..."`.
+3. **No Cross-Panel Style Leaks:** A stylesheet for the Outliner panel cannot style any element inside the Details panel or Toolbar.
+
+### 7.2 Mandatory UI Code Commenting Standard
+Every UI component file must begin with a standardized header block:
+```typescript
+/**
+ * ============================================================================
+ * [COMPONENT NAME]
+ * ============================================================================
+ * UI Element: [Specific UI element, e.g. Outliner Tree Node / Splitter Bar]
+ * Screen / Scope: [Screen Name from PANELS.md, e.g. Panel 02: Application Outliner]
+ * Role: [What this component does and renders]
+ * Styling Source: [Path to the ONLY stylesheet controlling this component]
+ * ============================================================================
+ */
+```
+
+### 7.3 UI Swappability & Future Customization Protocol
+Because the user may want to update the visual appearance, customize curves, tweak elevations, or switch themes:
+1. **Zero Hardcoded Visuals:** No component or panel CSS file may use hardcoded hex codes, pixel border radii, or box shadows. All values must reference `var(--token-name)`.
+2. **Global Visual Upgrades:** Any future visual change (changing the canvas tone, adjusting corner curvature from 16px to 24px, changing accent color) is performed **solely by updating `tokens.css`**.
+3. **Panel Layout Upgrades:** If a specific panel's layout needs adjustment, only that panel's dedicated `.css` file is touched.
+4. **Safety Verification:** When a token is updated in `tokens.css`, all 32 panels automatically reflect the change uniformly without CSS conflicts.
+
