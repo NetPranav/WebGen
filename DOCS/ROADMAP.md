@@ -73,14 +73,14 @@ The project is organized into **7 major phases**, each broken into **numbered su
 **Goal:** Build the outer IDE shell — the top bar, status bar, and the resizable dock zone containers (left, center, right, bottom) that will host all future panels.
 
 **Checklist:**
-- [ ] Create `src/editor/shell/EditorShell.tsx` — Root layout component with CSS Grid defining 4 dock zones (left, center, right, bottom)
-- [ ] Create `src/editor/styles/dock.css` — Dock zone borders, splitter handles, glass panel styling
-- [ ] Create `src/editor/shell/DockZone.tsx` — A dock zone container that accepts panel children and supports tabbing
-- [ ] Create `src/editor/shell/DockSplitter.tsx` — Draggable splitter bars between dock zones with hover indicators
-- [ ] Create `src/editor/shell/DockTabBar.tsx` — Tab strip at the top of each dock zone for switching between stacked panels
-- [ ] Create `src/editor/shell/StatusBar.tsx` — Bottom status bar showing zoom level, cursor context, save status
-- [ ] Wire into `src/app/editor/layout.tsx` and `src/app/editor/page.tsx`
-- [ ] Verify: The editor page shows a 4-zone grid layout with draggable splitters between zones
+- [x] Create `src/editor/shell/EditorShell.tsx` — Root layout component with CSS Grid defining 4 dock zones (left, center, right, bottom)
+- [x] Create `src/editor/styles/dock.css` — Dock zone borders, splitter handles, glass panel styling
+- [x] Create `src/editor/shell/DockZone.tsx` — A dock zone container that accepts panel children and supports tabbing
+- [x] Create `src/editor/shell/DockSplitter.tsx` — Draggable splitter bars between dock zones with hover indicators
+- [x] Create `src/editor/shell/DockTabBar.tsx` — Tab strip at the top of each dock zone for switching between stacked panels
+- [x] Create `src/editor/shell/StatusBar.tsx` — Bottom status bar showing zoom level, cursor context, save status
+- [x] Wire into `src/app/editor/layout.tsx` and `src/app/editor/page.tsx`
+- [x] Verify: The editor page shows a 4-zone grid layout with draggable splitters between zones (Tested & verified in browser)
 
 ---
 
