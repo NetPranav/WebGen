@@ -163,6 +163,26 @@
   font-weight: var(--font-semibold);
 }
 
+.menu-bar__trigger--database {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  border: 1px solid transparent;
+}
+
+.menu-bar__trigger--database:hover {
+  background: var(--surface-panel-hover);
+  border-color: var(--border-subtle);
+}
+
+.menu-bar__trigger--database.menu-bar__trigger--active {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
 /* ----------------------------------------------------------------------------
  * Menu Dropdown Overlay
  * ---------------------------------------------------------------------------- */

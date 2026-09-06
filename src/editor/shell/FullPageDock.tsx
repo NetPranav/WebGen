@@ -18,33 +18,93 @@
  */
 
 import React from "react";
-import { Save, Undo2, Redo2, X } from "lucide-react";
+import { Save, Undo2, Redo2, X, Workflow, Film, Terminal, FileCode, Database } from "lucide-react";
+import type { TearOffDragSource } from "@/core/events/useTearOff";
 import "@/editor/styles/fullpage-dock.css";
 
-interface FullPageDockProps {
+export interface FullPageTabItem {
   panelId: string;
   panelTitle: string;
+  dragSource?: TearOffDragSource;
+  isDirty?: boolean;
+}
+
+interface FullPageDockProps {
+  tabs: FullPageTabItem[];
+  activeTabId: string;
+  onSelectTab: (panelId: string) => void;
+  onCloseTab: (panelId: string) => void;
+  onTabDragStart?: (panelId: string, panelTitle: string, originX: number, originY: number) => void;
   isDirty?: boolean;
   onSave: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  onClose: () => void;
+  onCloseAll: () => void;
   children: React.ReactNode;
 }
 
 export const FullPageDock: React.FC<FullPageDockProps> = ({
-  panelId,
-  panelTitle,
+  tabs,
+  activeTabId,
+  onSelectTab,
+  onCloseTab,
+  onTabDragStart,
   isDirty = false,
   onSave,
   onUndo,
   onRedo,
-  onClose,
+  onCloseAll,
   children,
 }) => {
+  const getTabIcon = (panelId: string) => {
+    if (panelId === "blueprint") return <Workflow size={13} />;
+    if (panelId === "sequencer") return <Film size={13} />;
+    if (panelId === "console") return <Terminal size={13} />;
+    if (panelId === "er-modeler" || panelId === "database") return <Database size={13} />;
+    return <FileCode size={13} />;
+  };
+
+  const handleTabPointerDown = (
+    e: React.PointerEvent,
+    tab: FullPageTabItem
+  ) => {
+    if (e.button !== 0) return;
+    // Don't initiate drag if clicking the close 'X' button
+    if ((e.target as HTMLElement).closest(".fullpage-dock__tab-close")) return;
+
+    const originX = e.clientX;
+    const originY = e.clientY;
+    let activated = false;
+
+    const onMove = (moveEvt: PointerEvent) => {
+      if (activated) return;
+      const dx = moveEvt.clientX - originX;
+      const dy = moveEvt.clientY - originY;
+      if (Math.sqrt(dx * dx + dy * dy) >= 24) {
+        activated = true;
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        onTabDragStart?.(tab.panelId, tab.panelTitle, originX, originY);
+      }
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp, { once: true });
+  };
+
+  const activeTab = tabs.find((t) => t.panelId === activeTabId) || tabs[0];
+
   return (
-    <div className="fullpage-dock" role="region" aria-label={`Full Page: ${panelTitle}`}>
-      {/* UE-Style File Tab Bar */}
+    <div
+      className="fullpage-dock"
+      role="region"
+      aria-label={`Full Page Workspace: ${activeTab?.panelTitle || "Editor"}`}
+    >
+      {/* UE-Style Multi-Tab File Bar */}
       <div className="fullpage-dock__filebar">
         <div className="fullpage-dock__filebar-left">
           {/* Save Button */}
@@ -52,7 +112,7 @@ export const FullPageDock: React.FC<FullPageDockProps> = ({
             type="button"
             className="fullpage-dock__filebar-btn"
             onClick={onSave}
-            title="Save (Ctrl+S)"
+            title="Save Project (Ctrl+S)"
           >
             <Save size={14} style={{ color: isDirty ? "var(--accent-warning)" : undefined }} />
             {isDirty && <span className="fullpage-dock__dirty-dot" />}
@@ -81,17 +141,48 @@ export const FullPageDock: React.FC<FullPageDockProps> = ({
           {/* Divider */}
           <div className="fullpage-dock__filebar-divider" />
 
-          {/* Panel/File Name */}
-          <span className="fullpage-dock__filebar-name">{panelTitle}</span>
+          {/* Browser-Style Multi-Tab Strip */}
+          <div className="fullpage-dock__tabs" role="tablist" aria-label="Open Full-Screen Files">
+            {tabs.map((tab) => {
+              const isActive = tab.panelId === activeTabId;
+              return (
+                <div
+                  key={tab.panelId}
+                  role="tab"
+                  aria-selected={isActive}
+                  tabIndex={0}
+                  className={`fullpage-dock__tab ${isActive ? "fullpage-dock__tab--active" : ""}`}
+                  onClick={() => onSelectTab(tab.panelId)}
+                  onPointerDown={(e) => handleTabPointerDown(e, tab)}
+                  title={`${tab.panelTitle} (Drag tab title to detach)`}
+                >
+                  <span className="fullpage-dock__tab-icon">{getTabIcon(tab.panelId)}</span>
+                  <span className="fullpage-dock__tab-title">{tab.panelTitle}</span>
+                  <button
+                    type="button"
+                    className="fullpage-dock__tab-close"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCloseTab(tab.panelId);
+                    }}
+                    title={`Close ${tab.panelTitle}`}
+                    aria-label={`Close ${tab.panelTitle}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="fullpage-dock__filebar-right">
-          {/* Close Button */}
+          {/* Close All / Return to Viewport */}
           <button
             type="button"
             className="fullpage-dock__filebar-close"
-            onClick={onClose}
-            title="Close and return to viewport"
+            onClick={onCloseAll}
+            title="Close full-screen view and return to viewport"
           >
             <X size={14} />
           </button>

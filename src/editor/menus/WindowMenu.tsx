@@ -24,6 +24,7 @@ import {
   LayoutTemplate,
   RotateCcw,
   Check,
+  Database,
 } from "lucide-react";
 
 interface WindowMenuProps {
@@ -146,6 +147,17 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         <span className="menu-item__left">
           <span className="menu-item__icon"><LayoutTemplate size={13} /></span>
           <span>Project Settings</span>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "er-modeler") : undefined)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Database size={13} /></span>
+          <span>Database Schema (ER Modeler)</span>
         </span>
       </button>
 

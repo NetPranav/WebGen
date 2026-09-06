@@ -254,7 +254,7 @@ export const OutlinerTree: React.FC<OutlinerTreeProps> = ({
                 if (activated) return;
                 const dx = moveEvt.clientX - originX;
                 const dy = moveEvt.clientY - originY;
-                if (Math.sqrt(dx * dx + dy * dy) >= 40) {
+                if (Math.sqrt(dx * dx + dy * dy) >= 24) {
                   activated = true;
                   const panelId = node.type === "blueprint" ? "blueprint" : node.id;
                   onTearOffItem(panelId, node.label, originX, originY);

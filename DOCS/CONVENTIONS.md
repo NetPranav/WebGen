@@ -386,3 +386,34 @@ coverage/
 - `feature/<name>` — Individual feature branches
 - `fix/<name>` — Bug fix branches
 - `docs/<name>` — Documentation updates
+
+---
+
+## 7. Inside-Out Engine Development Law (Core → Compatibility → Diagnostics → UI)
+
+### 7.1 The Axiom: Build From the Inside Out
+Never build visual editor controls or UI panels before the underlying data contracts, connection settings, and runtime compatibility validators exist. Features MUST be constructed in strict inside-out order:
+
+```
+[Layer 1: Core Type Contracts & Schemas (Innermost)]
+   └── Defines pure data models, property keys, animation track types, and connection interfaces in `src/core/types/`.
+         │
+         ▼
+[Layer 2: Engine Runtime & Compatibility Validators (Middle Wrapper)]
+   └── Evaluates whether property, animation, or data binding connections are valid for the given element archetype.
+         │
+         ▼
+[Layer 3: Diagnostic Bus & Output Log Integration]
+   └── If an element cannot accept a property, animation sample, or binding, emits a structured error/warning to the Output Log (`[ANIM_COMPAT]`, `[PROP_MISMATCH]`, `[BIND_ERR]`).
+         │
+         ▼
+[Layer 4: UI Presentation & Details Inspector (Outermost)]
+   └── Visual controls, sliders, keyframe timelines, and archetype badges that reflect and command Layers 1–3.
+```
+
+### 7.2 Incompatible Connection Handling
+Whenever an animation sample, transition track, or data source is attached to an element:
+1. **Compatibility Check**: The validator evaluates whether the target element's archetype supports that property track.
+2. **Error Logging**: If incompatible, the engine MUST NOT silently fail or crash. It MUST emit an error directly to the **Output Log** with actionable context (element ID, archetype, requested track, suggestion).
+3. **UI Reflection**: The UI highlights the incompatible connection with an error state badge.
+

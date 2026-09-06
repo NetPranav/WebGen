@@ -2,13 +2,13 @@
 
 /**
  * ============================================================================
- * ASSET FILE EDITOR COMPONENT
+ * ASSET FILE EDITOR COMPONENT (UNREAL ENGINE STYLE)
  * ============================================================================
  * UI Element: Unreal Engine-Style Asset / File Editor Canvas
  * Screen / Scope: Full-Page Dock Stage for Opened Files (`/editor`)
- * Role: Renders an interactive asset workspace for components (e.g. Button.tsx,
- *       HeroSection.tsx), database models, vector SVGs, and images when dragged
- *       or opened from Content Browser or Outliner.
+ * Role: Renders an isolated asset workspace with interactive element state testing
+ *       (Default, Hover, Active, Disabled, Loading), responsive boundary sizing,
+ *       direct switching between Viewport, Event Graph (Blueprint), and Source Code.
  * Styling Source: `@/editor/styles/panels.css` & `@/editor/styles/dock.css`
  * ============================================================================
  */
@@ -19,21 +19,20 @@ import {
   Eye,
   Layers,
   Sparkles,
-  Save,
   RotateCw,
   Copy,
   Check,
-  FileCode2,
   Database,
   ImageIcon,
   Box,
-  Cpu,
   Table,
-  ExternalLink,
-  ChevronRight,
-  Maximize2,
+  Workflow,
   ZoomIn,
   ZoomOut,
+  Monitor,
+  Tablet,
+  Smartphone,
+  Loader2,
 } from "lucide-react";
 
 export interface AssetFileEditorProps {
@@ -41,6 +40,7 @@ export interface AssetFileEditorProps {
   assetTitle: string;
   isDirty?: boolean;
   onSave?: () => void;
+  onSwitchToBlueprint?: () => void;
 }
 
 // Sample mock code sources for components
@@ -161,20 +161,27 @@ CREATE TABLE projects (
 );`,
 };
 
+type ElementState = "default" | "hover" | "active" | "disabled" | "loading";
+type DevicePreview = "desktop" | "tablet" | "mobile";
+
 export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
   assetId,
   assetTitle,
   isDirty = false,
   onSave,
+  onSwitchToBlueprint,
 }) => {
   const [activeTab, setActiveTab] = useState<"preview" | "code" | "schema">("preview");
   const [copied, setCopied] = useState(false);
   const [zoom, setZoom] = useState(100);
 
-  // Determine asset category from id or title
+  // Element state simulation (Unreal Widget preview)
+  const [elementState, setElementState] = useState<ElementState>("default");
+  // Responsive boundary preview
+  const [devicePreview, setDevicePreview] = useState<DevicePreview>("desktop");
+
   const isDb = assetId.includes("db") || assetTitle.endsWith(".db");
   const isImage = assetId.includes("logo") || assetId.includes("banner") || assetTitle.endsWith(".svg") || assetTitle.endsWith(".webp");
-  const isBlueprint = assetId.includes("bp_") || assetTitle.endsWith(".graph");
 
   const codeSource =
     MOCK_CODES[assetId] ||
@@ -184,6 +191,12 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
     navigator.clipboard.writeText(codeSource);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const getDeviceWidth = () => {
+    if (devicePreview === "mobile") return 375;
+    if (devicePreview === "tablet") return 768;
+    return "100%";
   };
 
   return (
@@ -197,8 +210,22 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
             onClick={() => setActiveTab("preview")}
           >
             <Eye size={13} />
-            <span>Interactive Preview</span>
+            <span>Interactive Viewport</span>
           </button>
+
+          {/* Direct link to Event Graph (Logic Blueprint) */}
+          {onSwitchToBlueprint && (
+            <button
+              type="button"
+              className="asset-file-editor__mode-btn"
+              onClick={onSwitchToBlueprint}
+              title="Open Logic Blueprint Event Graph"
+            >
+              <Workflow size={13} style={{ color: "var(--accent-primary)" }} />
+              <span>Event Graph</span>
+            </button>
+          )}
+
           <button
             type="button"
             className={`asset-file-editor__mode-btn ${activeTab === "code" ? "asset-file-editor__mode-btn--active" : ""}`}
@@ -207,6 +234,7 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
             <Code2 size={13} />
             <span>Source Code (TSX)</span>
           </button>
+
           {isDb && (
             <button
               type="button"
@@ -264,12 +292,71 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
         </div>
       </div>
 
+      {/* Secondary Bar: Interactive State Toggles & Device Boundary Selectors */}
+      {activeTab === "preview" && !isDb && !isImage && (
+        <div className="asset-viewport-header">
+          {/* Element State Tester (Default, Hover, Active, Disabled, Loading) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>
+              State Preview:
+            </span>
+            <div className="asset-state-toggles">
+              {(["default", "hover", "active", "disabled", "loading"] as ElementState[]).map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  className={`asset-state-btn ${elementState === st ? "asset-state-btn--active" : ""}`}
+                  onClick={() => setElementState(st)}
+                >
+                  {st.charAt(0).toUpperCase() + st.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Device Boundary Pills (Desktop, Tablet, Mobile) */}
+          <div className="asset-device-pills">
+            <button
+              type="button"
+              className={`asset-device-pill ${devicePreview === "desktop" ? "asset-device-pill--active" : ""}`}
+              onClick={() => setDevicePreview("desktop")}
+              title="Desktop 1440px"
+            >
+              <Monitor size={11} />
+              <span>Desktop</span>
+            </button>
+            <button
+              type="button"
+              className={`asset-device-pill ${devicePreview === "tablet" ? "asset-device-pill--active" : ""}`}
+              onClick={() => setDevicePreview("tablet")}
+              title="Tablet 768px"
+            >
+              <Tablet size={11} />
+              <span>Tablet (768px)</span>
+            </button>
+            <button
+              type="button"
+              className={`asset-device-pill ${devicePreview === "mobile" ? "asset-device-pill--active" : ""}`}
+              onClick={() => setDevicePreview("mobile")}
+              title="Mobile 375px"
+            >
+              <Smartphone size={11} />
+              <span>Mobile (375px)</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Asset Canvas Body */}
       <div className="asset-file-editor__viewport">
         {activeTab === "preview" ? (
           <div
             className="asset-file-editor__canvas-stage confluence-grid"
-            style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center" }}
+            style={{
+              transform: `scale(${zoom / 100})`,
+              transformOrigin: "center center",
+              transition: "transform 0.1s ease-out",
+            }}
           >
             {isImage ? (
               <div className="asset-preview-image-card">
@@ -350,19 +437,69 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
                 </table>
               </div>
             ) : (
-              /* Component Visual Preview Card */
-              <div className="asset-component-preview-card">
+              /* Component Visual Preview Card with device frame */
+              <div
+                className="asset-component-preview-card"
+                style={{
+                  width: getDeviceWidth(),
+                  maxWidth: "100%",
+                  transition: "width 0.25s var(--ease-out-expo)",
+                }}
+              >
                 <div className="asset-preview-tag">
                   <Box size={13} />
-                  <span>Live Component Render: {assetTitle}</span>
+                  <span>Live Sandbox: {assetTitle}</span>
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      fontSize: 10,
+                      textTransform: "uppercase",
+                      fontWeight: 600,
+                      color:
+                        elementState === "loading"
+                          ? "#facc15"
+                          : elementState === "disabled"
+                          ? "#f87171"
+                          : "var(--accent-primary)",
+                    }}
+                  >
+                    State: {elementState}
+                  </span>
                 </div>
 
-                <div className="asset-live-component">
+                <div className={`asset-live-component asset-live-component--${elementState}`}>
                   {assetId === "ast_btn" ? (
                     <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                      <button className="preview-btn preview-btn--primary">Primary Action</button>
-                      <button className="preview-btn preview-btn--secondary">Secondary</button>
-                      <button className="preview-btn preview-btn--ghost">Ghost</button>
+                      <button
+                        className={`preview-btn preview-btn--primary ${
+                          elementState === "hover"
+                            ? "preview-btn--hover"
+                            : elementState === "active"
+                            ? "preview-btn--active"
+                            : ""
+                        }`}
+                        disabled={elementState === "disabled" || elementState === "loading"}
+                      >
+                        {elementState === "loading" ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <Loader2 size={13} className="animate-spin" />
+                            <span>Processing...</span>
+                          </div>
+                        ) : (
+                          <span>Primary Action</span>
+                        )}
+                      </button>
+                      <button
+                        className={`preview-btn preview-btn--secondary ${
+                          elementState === "hover" ? "preview-btn--hover" : ""
+                        }`}
+                        disabled={elementState === "disabled"}
+                      >
+                        Secondary
+                      </button>
+                      <button className="preview-btn preview-btn--ghost" disabled={elementState === "disabled"}>
+                        Ghost
+                      </button>
                     </div>
                   ) : assetId === "ast_navbar" ? (
                     <div className="preview-navbar">
@@ -375,7 +512,13 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
                         <span>Components</span>
                         <span>API Docs</span>
                       </div>
-                      <button className="preview-btn preview-btn--primary" style={{ padding: "4px 10px" }}>Login</button>
+                      <button
+                        className="preview-btn preview-btn--primary"
+                        style={{ padding: "4px 10px" }}
+                        disabled={elementState === "disabled"}
+                      >
+                        {elementState === "loading" ? "Loading..." : "Login"}
+                      </button>
                     </div>
                   ) : (
                     <div className="preview-hero">
@@ -390,8 +533,17 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
                         Visual component rendered directly from the AST runtime engine with real-time prop reflection.
                       </p>
                       <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
-                        <button className="preview-btn preview-btn--primary">Primary Action</button>
-                        <button className="preview-btn preview-btn--secondary">Inspect Props</button>
+                        <button
+                          className={`preview-btn preview-btn--primary ${
+                            elementState === "hover" ? "preview-btn--hover" : ""
+                          }`}
+                          disabled={elementState === "disabled" || elementState === "loading"}
+                        >
+                          {elementState === "loading" ? "Loading..." : "Primary Action"}
+                        </button>
+                        <button className="preview-btn preview-btn--secondary" disabled={elementState === "disabled"}>
+                          Inspect Props
+                        </button>
                       </div>
                     </div>
                   )}

@@ -127,7 +127,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               if (activated) return;
               const dx = moveEvt.clientX - originX;
               const dy = moveEvt.clientY - originY;
-              if (Math.sqrt(dx * dx + dy * dy) >= 40) {
+              if (Math.sqrt(dx * dx + dy * dy) >= 24) {
                 activated = true;
                 onTearOffLog(originX, originY);
                 window.removeEventListener("pointermove", onMove);

@@ -668,3 +668,97 @@ project-v1.json  →  migration_v1_to_v2()  →  project-v2.json
 ```
 
 This ensures backward compatibility and prevents data loss during engine upgrades.
+
+---
+
+## 13. Property Connection & Archetype Compatibility Contracts
+
+The core foundation of the **Inside-Out Engine Law** is that all visual controls are backed by formal schemas defined in `src/core/types/`.
+
+### 13.1 Innermost Property Connection Descriptor (`PropertyDescriptor`)
+
+Defines the contract for every editable property that can be connected to an element archetype:
+
+```json
+{
+  "$schema": "https://visual-engine.dev/schemas/property-descriptor-v1.json",
+  "id": "prop_typography_letter_spacing",
+  "key": "letterSpacing",
+  "label": "Letter Spacing",
+  "dataType": "number",
+  "controlType": "slider",
+  "defaultValue": 0,
+  "units": ["px", "em", "rem"],
+  "defaultUnit": "px",
+  "validation": {
+    "min": -10,
+    "max": 50,
+    "step": 0.5
+  },
+  "supportedArchetypes": ["text", "button", "input"],
+  "category": "typography"
+}
+```
+
+### 13.2 Archetype Animation Track Compatibility (`ArchetypeAnimationCompatibility`)
+
+Defines which animation tracks are legally supported by each element archetype. If an unsupported track is applied to an element, the Engine Compatibility Evaluator rejects the connection and routes a structured error to the Output Log:
+
+```json
+{
+  "$schema": "https://visual-engine.dev/schemas/animation-compat-v1.json",
+  "archetype": "image",
+  "supportedTracks": [
+    "opacity",
+    "translateX",
+    "translateY",
+    "scale",
+    "scaleX",
+    "scaleY",
+    "rotate",
+    "filterBlur",
+    "filterBrightness",
+    "filterContrast",
+    "borderRadius",
+    "boxShadow"
+  ],
+  "disallowedTracks": [
+    {
+      "trackId": "letterSpacing",
+      "reason": "Image elements do not possess text rendering pipelines.",
+      "alternativeSuggestion": "Apply letter spacing animations to parent or sibling text/button elements."
+    },
+    {
+      "trackId": "lineHeight",
+      "reason": "Image elements do not possess font metric layout pipelines.",
+      "alternativeSuggestion": "Use height, scaleY, or padding tracks instead."
+    }
+  ]
+}
+```
+
+### 13.3 Output Log Diagnostic Event Contract (`DiagnosticEvent`)
+
+Structured payload emitted whenever the Engine Compatibility Evaluator traps an invalid property, broken data binding, or unsupported animation track:
+
+```json
+{
+  "$schema": "https://visual-engine.dev/schemas/diagnostic-event-v1.json",
+  "id": "diag_8f91a2bc",
+  "timestamp": 1757165000000,
+  "level": "error",
+  "channel": "ANIM_COMPAT",
+  "source": {
+    "panel": "Panel 06: Motion Blueprint & GSAP Sequencer",
+    "entityId": "comp_hero_image_01",
+    "entityName": "HeroBannerImage",
+    "archetype": "image",
+    "propertyKey": "letterSpacing"
+  },
+  "message": "Incompatible Track: 'letterSpacing' cannot be attached to archetype 'image'.",
+  "suggestion": "Attach 'filterBlur', 'opacity', or 'transform' tracks, or attach typography tracks to a text element.",
+  "targetInspectorSection": "motion",
+  "isFixable": false
+}
+```
+

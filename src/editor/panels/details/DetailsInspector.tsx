@@ -28,6 +28,9 @@ import {
   AlignRight,
   ExternalLink,
 } from "lucide-react";
+import { useProjectStore } from "@/core/store/useProjectStore";
+import { DataBindingEditor } from "./sections/DataBindingEditor";
+import { AnimationEditor } from "./sections/AnimationEditor";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
 
@@ -42,6 +45,10 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
   selectedElementName = "Hero Section",
   onOpenBlueprint,
 }) => {
+  const { elements } = useProjectStore();
+  const currentElement = elements[selectedElementId];
+  const archetype = currentElement?.archetype || "button";
+
   // Collapsible accordion state
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({
     transform: true,
@@ -49,6 +56,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
     appearance: true,
     typography: true,
     bindings: true,
+    motion: true,
   });
 
   const toggleSection = (key: string) => {
@@ -565,46 +573,45 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
           >
             <div className="panel-section__title-group">
               <ChevronRight size={13} className="panel-section__chevron" />
-              <span>Data Bindings & Events</span>
+              <span>Data Bindings</span>
             </div>
             <Link size={12} style={{ color: "var(--accent-info)" }} />
           </button>
 
           {sectionsOpen.bindings && (
             <div className="panel-section__content">
-              <div className="form-group">
-                <label className="form-label">Bind to State Variable</label>
-                <select
-                  className="form-select"
-                  value={boundVariable}
-                  onChange={(e) => setBoundVariable(e.target.value)}
-                >
-                  <option value="none">No Variable Bound</option>
-                  <option value="user.session">state.user.session (Object)</option>
-                  <option value="theme.mode">state.theme.mode (String)</option>
-                  <option value="projects.list">state.projects.list (Array)</option>
-                </select>
-              </div>
+              <DataBindingEditor
+                elementId={selectedElementId}
+                elementName={selectedElementName}
+                archetype={archetype}
+              />
+            </div>
+          )}
+        </div>
 
-              <div className="form-group">
-                <label className="form-label">Attached Event Graph</label>
-                <div className="form-row">
-                  <input
-                    type="text"
-                    className="form-input"
-                    value="HeroSection_OnClick"
-                    disabled
-                  />
-                  <button
-                    type="button"
-                    className="panel-icon-btn panel-icon-btn--active"
-                    title="Open Logic Blueprint"
-                    onClick={onOpenBlueprint}
-                  >
-                    <ExternalLink size={13} />
-                  </button>
-                </div>
-              </div>
+        {/* ====================================================================
+         * SECTION 6: MOTION & ANIMATION
+         * ==================================================================== */}
+        <div className={`panel-section ${sectionsOpen.motion ? "panel-section--open" : ""}`}>
+          <button
+            type="button"
+            className="panel-section__header"
+            onClick={() => toggleSection("motion")}
+          >
+            <div className="panel-section__title-group">
+              <ChevronRight size={13} className="panel-section__chevron" />
+              <span>Motion & Animation</span>
+            </div>
+            <Sparkles size={12} style={{ color: "var(--accent-primary)" }} />
+          </button>
+
+          {sectionsOpen.motion && (
+            <div className="panel-section__content">
+              <AnimationEditor
+                elementId={selectedElementId}
+                elementName={selectedElementName}
+                archetype={archetype}
+              />
             </div>
           )}
         </div>

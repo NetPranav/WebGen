@@ -36,9 +36,12 @@ import { FullPageDock } from "./FullPageDock";
 import { TearOffDragOverlay } from "./TearOffDragOverlay";
 import { AssetDetailsInspector } from "@/editor/panels/details/AssetDetailsInspector";
 import { AssetFileEditor } from "@/editor/panels/content-browser/AssetFileEditor";
-import { useTearOff } from "@/core/events/useTearOff";
+import { StateMatrixViewer } from "@/editor/panels/state/StateMatrixViewer";
+import { DatabaseDesigner } from "@/editor/panels/database/DatabaseDesigner";
+import { DatabaseStudio } from "@/editor/panels/database/DatabaseStudio";
+import { useTearOff, TearOffDragSource } from "@/core/events/useTearOff";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
-import { Save, Undo2, Redo2, Terminal, X } from "lucide-react";
+import { Save, Undo2, Redo2, Terminal, X, Database, Settings } from "lucide-react";
 import { PanelTab } from "@/core/types/workspace";
 
 interface EditorShellProps {
@@ -47,6 +50,7 @@ interface EditorShellProps {
   rightPanels?: Record<string, React.ReactNode>;
   bottomPanels?: Record<string, React.ReactNode>;
   centerPanels?: Record<string, React.ReactNode>;
+  initialPage?: "editor" | "database";
 }
 
 export const EditorShell: React.FC<EditorShellProps> = ({
@@ -55,7 +59,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   rightPanels = {},
   bottomPanels = {},
   centerPanels = {},
+  initialPage = "editor",
 }) => {
+  const [isDatabaseStudioOpen, setIsDatabaseStudioOpen] = useState(initialPage === "database");
   /* --------------------------------------------------------------------------
    * Dock Sizing State (with min/max boundaries)
    * -------------------------------------------------------------------------- */
@@ -138,10 +144,21 @@ export const EditorShell: React.FC<EditorShellProps> = ({
    * Tear-Off & Full-Page Dock State
    * -------------------------------------------------------------------------- */
   const [detachedPanels, setDetachedPanels] = useState<Set<string>>(new Set());
-  const [fullPagePanel, setFullPagePanel] = useState<{
+  const [fullPagePanels, setFullPagePanels] = useState<
+    Array<{ panelId: string; title: string; dragSource?: TearOffDragSource }>
+  >([]);
+  const [activeFullPageIndex, setActiveFullPageIndex] = useState<number>(0);
+
+  /** Store tab state during drag for snap-back cancellation */
+  const draggedFullPageTabRef = React.useRef<{
     panelId: string;
-    title: string;
+    panelTitle: string;
+    originalPanels: Array<{ panelId: string; title: string; dragSource?: TearOffDragSource }>;
+    originalIndex: number;
   } | null>(null);
+
+  const currentFullPagePanel =
+    fullPagePanels[activeFullPageIndex] ?? fullPagePanels[0] ?? null;
 
   /** Store pre-full-page layout state for restoration on close */
   const preFullPageRef = React.useRef<{
@@ -161,17 +178,33 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     blueprint: "Logic Blueprint",
     sequencer: "Timeline Sequencer",
     console: "Output Log",
+    "er-modeler": "Database Schema",
   };
 
   const handleDockFullPage = useCallback(
-    (panelId: string, panelTitle: string) => {
-      // Save current layout state before going full-page
-      preFullPageRef.current = {
-        leftCollapsed: leftCollapsed,
-        bottomCollapsed: bottomCollapsed,
-        bottomActiveTab: bottomActiveTab,
-      };
-      setFullPagePanel({ panelId, title: panelTitle });
+    (panelId: string, panelTitle: string, dragSource?: TearOffDragSource) => {
+      draggedFullPageTabRef.current = null;
+
+      // Save current layout state before going full-page (only on first full-page tab)
+      if (fullPagePanels.length === 0) {
+        preFullPageRef.current = {
+          leftCollapsed: leftCollapsed,
+          bottomCollapsed: bottomCollapsed,
+          bottomActiveTab: bottomActiveTab,
+        };
+      }
+
+      setFullPagePanels((prev) => {
+        const existingIdx = prev.findIndex((p) => p.panelId === panelId);
+        if (existingIdx >= 0) {
+          setActiveFullPageIndex(existingIdx);
+          return prev;
+        }
+        const next = [...prev, { panelId, title: panelTitle, dragSource }];
+        setActiveFullPageIndex(next.length - 1);
+        return next;
+      });
+
       // Auto-collapse left panel (outliner) and bottom drawer in full-page mode
       setLeftCollapsed(true);
       setBottomCollapsed(true);
@@ -186,53 +219,231 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         return next;
       });
     },
-    [leftCollapsed, bottomCollapsed, bottomActiveTab]
+    [fullPagePanels.length, leftCollapsed, bottomCollapsed, bottomActiveTab]
   );
 
-  const handleOpenNewTab = useCallback(
-    (panelId: string, panelTitle: string) => {
-      // Handle output log special case
-      if (panelId === "console") {
-        setIsOutputLogOpen(false);
-      }
-      setDetachedPanels((prev) => new Set(prev).add(panelId));
-      // Open in a new browser tab — must be synchronous from user gesture
-      const url = `${window.location.origin}/editor/detach/${panelId}`;
-      window.open(url, `detach-${panelId}`, "noopener");
-      // If all bottom tabs are now detached or full-paged, collapse the drawer
-      const remainingTabs = ALL_BOTTOM_TABS.filter(
-        (t) => t.id !== panelId && !detachedPanels.has(t.id) && fullPagePanel?.panelId !== t.id
-      );
-      if (remainingTabs.length === 0) {
-        setBottomCollapsed(true);
+  const handleCloseFullPageTab = useCallback((panelId: string) => {
+    setFullPagePanels((prev) => {
+      const closeIdx = prev.findIndex((p) => p.panelId === panelId);
+      if (closeIdx === -1) return prev;
+      const next = prev.filter((p) => p.panelId !== panelId);
+
+      if (next.length === 0) {
+        // All full-page tabs closed! Restore pre-full-page layout
+        if (preFullPageRef.current) {
+          setLeftCollapsed(preFullPageRef.current.leftCollapsed);
+          setBottomCollapsed(preFullPageRef.current.bottomCollapsed);
+          setBottomActiveTab(preFullPageRef.current.bottomActiveTab);
+          preFullPageRef.current = null;
+        } else {
+          setBottomCollapsed(false);
+          setBottomActiveTab(panelId);
+        }
+        setActiveFullPageIndex(0);
       } else {
-        // Switch active tab to first remaining
-        setBottomActiveTab(remainingTabs[0].id);
+        setActiveFullPageIndex((curIdx) => {
+          if (curIdx >= next.length) return next.length - 1;
+          if (curIdx === closeIdx) return Math.max(0, closeIdx - 1);
+          if (curIdx > closeIdx) return curIdx - 1;
+          return curIdx;
+        });
       }
-    },
-    [detachedPanels, fullPagePanel]
-  );
+      return next;
+    });
+  }, []);
 
-  const handleCloseFullPage = useCallback(() => {
-    const panelId = fullPagePanel?.panelId;
-    setFullPagePanel(null);
-    // Restore pre-full-page layout state
+  const handleCloseAllFullPage = useCallback(() => {
+    setFullPagePanels([]);
+    setActiveFullPageIndex(0);
     if (preFullPageRef.current) {
       setLeftCollapsed(preFullPageRef.current.leftCollapsed);
       setBottomCollapsed(preFullPageRef.current.bottomCollapsed);
       setBottomActiveTab(preFullPageRef.current.bottomActiveTab);
       preFullPageRef.current = null;
-    } else if (panelId) {
+    } else {
       setBottomCollapsed(false);
-      setBottomActiveTab(panelId);
     }
-  }, [fullPagePanel]);
+  }, []);
+
+  const startTearOffRef = React.useRef<
+    (panelId: string, panelTitle: string, dragSource: TearOffDragSource, originX: number, originY: number) => void
+  >(() => {});
+
+  /** Starts tear-off from a full-page tab title */
+  const handleFullPageTabDragStart = useCallback(
+    (panelId: string, panelTitle: string, originX: number, originY: number) => {
+      draggedFullPageTabRef.current = {
+        panelId,
+        panelTitle,
+        originalPanels: [...fullPagePanels],
+        originalIndex: activeFullPageIndex,
+      };
+
+      // Lift the tab out of fullPagePanels immediately so:
+      // - If 2+ tabs, another tab displays in full-screen
+      // - If 1 tab, full-screen closes and underlying screen shows!
+      setFullPagePanels((prev) => {
+        const idx = prev.findIndex((p) => p.panelId === panelId);
+        const next = prev.filter((p) => p.panelId !== panelId);
+        if (next.length === 0) {
+          setActiveFullPageIndex(0);
+        } else {
+          setActiveFullPageIndex((cur) => {
+            if (cur >= next.length) return next.length - 1;
+            if (cur === idx) return Math.min(idx, next.length - 1);
+            if (cur > idx) return cur - 1;
+            return cur;
+          });
+        }
+        return next;
+      });
+
+      startTearOffRef.current(panelId, panelTitle, "fullpage-tab", originX, originY);
+    },
+    [fullPagePanels, activeFullPageIndex]
+  );
+
+  /** Restores dragged tab back to full-page tabs on snap-back cancellation */
+  const handleCancelDrag = useCallback(
+    (panelId: string, panelTitle: string, dragSource: TearOffDragSource) => {
+      if (dragSource === "fullpage-tab" && draggedFullPageTabRef.current) {
+        const saved = draggedFullPageTabRef.current;
+        setFullPagePanels(saved.originalPanels);
+        setActiveFullPageIndex(saved.originalIndex);
+        draggedFullPageTabRef.current = null;
+      }
+    },
+    []
+  );
+
+  /** Dropped in bottom drawer region: attach and OPEN bottom drawer */
+  const handleAttachBottomDrawer = useCallback(
+    (panelId: string, panelTitle: string, dragSource: TearOffDragSource) => {
+      draggedFullPageTabRef.current = null;
+      setFullPagePanels((prev) => prev.filter((p) => p.panelId !== panelId));
+      setDetachedPanels((prev) => {
+        const next = new Set(prev);
+        next.delete(panelId);
+        return next;
+      });
+
+      if (panelId === "console") {
+        setIsOutputLogOpen(true);
+      } else {
+        setBottomCollapsed(false);
+        setBottomActiveTab(panelId);
+        handleZoneClick("bottom");
+      }
+    },
+    []
+  );
+
+  /** Dropped on bottom bar: attach to original place but KEEP DRAWER CLOSED */
+  const handleAttachBottomBar = useCallback(
+    (panelId: string, panelTitle: string, dragSource: TearOffDragSource) => {
+      draggedFullPageTabRef.current = null;
+      setFullPagePanels((prev) => prev.filter((p) => p.panelId !== panelId));
+      setDetachedPanels((prev) => {
+        const next = new Set(prev);
+        next.delete(panelId);
+        return next;
+      });
+
+      if (panelId === "console") {
+        setIsOutputLogOpen(false);
+      } else {
+        setBottomActiveTab(panelId);
+        setBottomCollapsed(true);
+      }
+    },
+    []
+  );
+
+  const handleOpenNewTab = useCallback(
+    (panelId: string, panelTitle: string, dragSource?: TearOffDragSource) => {
+      draggedFullPageTabRef.current = null;
+      setFullPagePanels((prev) => prev.filter((p) => p.panelId !== panelId));
+
+      // Handle output log special case
+      if (panelId === "console") {
+        setIsOutputLogOpen(false);
+      }
+
+      // Only bottom-tab items (blueprint, sequencer, console) or fullpage tabs from bottom should vanish from their origin.
+      // Content browser files and outliner items stay visible in their origin panels.
+      const shouldVanishFromOrigin =
+        dragSource === "bottom-tab" || dragSource === "fullpage-tab" || panelId === "console";
+
+      if (shouldVanishFromOrigin) {
+        setDetachedPanels((prev) => new Set(prev).add(panelId));
+      }
+
+      // Open in a new browser tab — must be synchronous from user gesture
+      const url = `${window.location.origin}/editor/detach/${panelId}`;
+      window.open(url, `detach-${panelId}`, "noopener");
+
+      // If all bottom tabs are now detached or full-paged, collapse the drawer
+      if (shouldVanishFromOrigin && panelId !== "console") {
+        const remainingTabs = ALL_BOTTOM_TABS.filter(
+          (t) =>
+            t.id !== panelId &&
+            !detachedPanels.has(t.id) &&
+            !fullPagePanels.some((p) => p.panelId === t.id)
+        );
+        if (remainingTabs.length === 0) {
+          setBottomCollapsed(true);
+        } else {
+          // Switch active tab to first remaining
+          setBottomActiveTab(remainingTabs[0].id);
+        }
+      }
+    },
+    [detachedPanels, fullPagePanels]
+  );
 
   // Tear-off drag hook
   const { tearOffState, startTearOff } = useTearOff({
     onDockFullPage: handleDockFullPage,
     onOpenNewTab: handleOpenNewTab,
+    onAttachBottomDrawer: handleAttachBottomDrawer,
+    onAttachBottomBar: handleAttachBottomBar,
+    onCancelDrag: handleCancelDrag,
   });
+  startTearOffRef.current = startTearOff;
+
+  // When in full-page mode, clicking outside the open bottom drawer / outliner auto-minimizes both
+  React.useEffect(() => {
+    if (fullPagePanels.length === 0) return;
+    const isAnyDrawerOpen = !leftCollapsed || !bottomCollapsed || isOutputLogOpen;
+    if (!isAnyDrawerOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // If click is inside left drawer, bottom drawer, output log, status bar, or splitters, ignore
+      if (
+        target.closest(".dock-zone--left") ||
+        target.closest(".dock-zone--bottom") ||
+        target.closest(".output-log-drawer") ||
+        target.closest(".dock-layout__statusbar") ||
+        target.closest(".dock-splitter") ||
+        target.closest(".dock-corner-splitter")
+      ) {
+        return;
+      }
+
+      // Clicked anywhere else in full-page mode (center canvas, fullpage dock, details panel, etc.)
+      setLeftCollapsed(true);
+      setBottomCollapsed(true);
+      setIsOutputLogOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handleClickOutside);
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside);
+    };
+  }, [fullPagePanels.length, leftCollapsed, bottomCollapsed, isOutputLogOpen]);
 
   // Cross-tab communication: listen for REATTACH from detached tabs
   useTearOffChannel({
@@ -254,8 +465,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   });
 
   /** Bottom tabs filtered to exclude detached and full-page panels */
+  const fullPagePanelIds = new Set(fullPagePanels.map((p) => p.panelId));
   const visibleBottomTabs = ALL_BOTTOM_TABS.filter(
-    (t) => !detachedPanels.has(t.id) && fullPagePanel?.panelId !== t.id
+    (t) => !detachedPanels.has(t.id) && !fullPagePanelIds.has(t.id)
   );
 
   const handleBottomTearOffStart = useCallback(
@@ -348,6 +560,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const leftTabs: PanelTab[] = [
     { id: "outliner", title: "Outliner", closable: false },
     { id: "content-browser", title: "Content Browser", closable: false },
+    { id: "state-matrix", title: "State Matrix", closable: false },
   ];
 
   const rightTabs: PanelTab[] = [
@@ -385,6 +598,10 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     setBottomHeight((prev) => Math.min(Math.max(prev - delta, 140), 480));
   };
 
+  if (isDatabaseStudioOpen) {
+    return <DatabaseStudio onBackToEditor={() => setIsDatabaseStudioOpen(false)} />;
+  }
+
   return (
     <div className="dock-layout">
       {/* Top Header Slot: Single Streamlined StudioHeader */}
@@ -411,6 +628,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             onResetLayout={handleResetLayout}
             onOpenPanel={handleOpenPanel}
             onOpenSettings={handleOpenSettings}
+            onOpenDatabase={() => setIsDatabaseStudioOpen(true)}
+            activePage={isDatabaseStudioOpen ? "database" : "editor"}
           />
         )}
       </div>
@@ -418,7 +637,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       {/* Main Dock Body (Left, Center Column, Right, and Overlapping Bottom Drawer) */}
       <div className="dock-layout__body">
         {/* Full-Page Dock Mode — takes over entire body, outliner minimizes on left, asset details on right */}
-        {fullPagePanel ? (
+        {currentFullPagePanel ? (
           <>
             {/* Minimized Left Outliner DockZone */}
             <DockZone
@@ -448,11 +667,13 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     onTearOffItem={handleGenericTearOffStart}
                     onOpenItem={(id, title) => handleDockFullPage(id, title)}
                   />
-                ) : (
+                ) : leftActiveTab === "content-browser" ? (
                   <ContentBrowser
                     onTearOffItem={handleGenericTearOffStart}
                     onOpenAsset={(id, title) => handleDockFullPage(id, title)}
                   />
+                ) : (
+                  <StateMatrixViewer />
                 )
               )}
             </DockZone>
@@ -465,32 +686,48 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               />
             )}
 
-            {/* Center fills wide workspace, right panel stays for context-specific asset details */}
+            {/* Center fills wide workspace with browser-like multi-tab FullPageDock */}
             <div
               className="dock-center-col"
               style={{ paddingBottom: 0 }}
             >
               <FullPageDock
-                panelId={fullPagePanel.panelId}
-                panelTitle={fullPagePanel.title}
+                tabs={fullPagePanels.map((p) => ({
+                  panelId: p.panelId,
+                  panelTitle: p.title,
+                  dragSource: p.dragSource,
+                  isDirty,
+                }))}
+                activeTabId={currentFullPagePanel.panelId}
+                onSelectTab={(panelId) => {
+                  const idx = fullPagePanels.findIndex((p) => p.panelId === panelId);
+                  if (idx >= 0) setActiveFullPageIndex(idx);
+                }}
+                onCloseTab={handleCloseFullPageTab}
+                onTabDragStart={handleFullPageTabDragStart}
                 isDirty={isDirty}
                 onSave={() => setIsDirty(false)}
                 onUndo={() => {}}
                 onRedo={() => {}}
-                onClose={handleCloseFullPage}
+                onCloseAll={handleCloseAllFullPage}
               >
-                {fullPagePanel.panelId === "blueprint" ? (
+                {currentFullPagePanel.panelId === "blueprint" ? (
                   <BlueprintCanvas />
-                ) : fullPagePanel.panelId === "sequencer" ? (
+                ) : currentFullPagePanel.panelId === "sequencer" ? (
                   <TimelineSequencer />
-                ) : fullPagePanel.panelId === "console" ? (
+                ) : currentFullPagePanel.panelId === "console" ? (
                   <OutputConsole />
+                ) : currentFullPagePanel.panelId === "er-modeler" ? (
+                  <DatabaseDesigner onClose={() => handleCloseFullPageTab("er-modeler")} />
                 ) : (
                   <AssetFileEditor
-                    assetId={fullPagePanel.panelId}
-                    assetTitle={fullPagePanel.title}
+                    assetId={currentFullPagePanel.panelId}
+                    assetTitle={currentFullPagePanel.title}
                     isDirty={isDirty}
                     onSave={() => setIsDirty(false)}
+                    onSwitchToBlueprint={() =>
+                      handleDockFullPage("blueprint", "Logic Blueprint")
+                    }
                   />
                 )}
               </FullPageDock>
@@ -511,7 +748,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               size={rightWidth}
               isCollapsed={rightCollapsed}
               tabs={[
-                { id: "asset-details", title: `${fullPagePanel.title} Details`, closable: false },
+                { id: "asset-details", title: `${currentFullPagePanel.title} Details`, closable: false },
                 { id: "tokens", title: "Tokens", closable: true },
               ]}
               activeTabId="asset-details"
@@ -525,8 +762,11 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               className={activeLayer === "right" ? "dock-zone--elevated" : ""}
             >
               <AssetDetailsInspector
-                panelId={fullPagePanel.panelId}
-                panelTitle={fullPagePanel.title}
+                panelId={currentFullPagePanel.panelId}
+                panelTitle={currentFullPagePanel.title}
+                onOpenBlueprint={(_fnId) =>
+                  handleDockFullPage("blueprint", "Logic Blueprint")
+                }
               />
             </DockZone>
           </>
@@ -561,11 +801,13 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     onTearOffItem={handleGenericTearOffStart}
                     onOpenItem={(id, title) => handleDockFullPage(id, title)}
                   />
-                ) : (
+                ) : leftActiveTab === "content-browser" ? (
                   <ContentBrowser
                     onTearOffItem={handleGenericTearOffStart}
                     onOpenAsset={(id, title) => handleDockFullPage(id, title)}
                   />
+                ) : (
+                  <StateMatrixViewer />
                 )
               )}
             </DockZone>
@@ -584,14 +826,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               className="dock-center-col"
               style={{ paddingBottom: bottomCollapsed ? 0 : `${bottomHeight}px` }}
             >
-              {/* Center Tab Bar */}
-              <DockTabBar
-                zoneId="center"
-                tabs={centerTabs}
-                activeTabId={centerActiveTab}
-                onSelectTab={setCenterActiveTab}
-              />
-
               {/* Center Stage (Confluence Whiteboard Canvas) */}
               <div className="dock-zone dock-zone--center confluence-grid" style={{ position: "relative" }}>
                 {/* Viewport Floating Action Pill (Save, Undo, Redo) in Top-Left Corner */}
@@ -626,6 +860,29 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     <Redo2 size={14} />
                   </button>
                 </div>
+
+                {/* Viewport Floating Action Pill (Project Settings) in Top-Right Corner */}
+                <div
+                  className="viewport-floating-actions"
+                  style={{ left: "auto", right: 12 }}
+                  role="toolbar"
+                  aria-label="Viewport Settings Action"
+                >
+                  <button
+                    type="button"
+                    className="viewport-action-btn"
+                    onClick={() => {
+                      setCenterActiveTab((prev) => (prev === "settings" ? "viewport" : "settings"));
+                    }}
+                    title="Project Settings"
+                    style={{
+                      color: centerActiveTab === "settings" ? "var(--accent-primary)" : "var(--text-secondary)",
+                      background: centerActiveTab === "settings" ? "rgba(59, 130, 246, 0.15)" : undefined,
+                    }}
+                  >
+                    <Settings size={14} />
+                  </button>
+                </div>
                 {centerPanels[centerActiveTab] || (
                   centerActiveTab === "viewport" ? (
                     <WhiteboardCanvas
@@ -637,6 +894,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     <BlueprintCanvas />
                   ) : centerActiveTab === "settings" ? (
                     <ProjectSettings />
+                  ) : centerActiveTab === "er-modeler" ? (
+                    <DatabaseDesigner onClose={() => setCenterActiveTab("viewport")} />
                   ) : (
                     <WhiteboardCanvas
                       deviceMode={deviceMode}
@@ -688,6 +947,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                 )
               )}
             </DockZone>
+          </>
+        )}
 
         {/* Edge-to-Edge Bottom Horizontal Splitter */}
         {!bottomCollapsed && (
@@ -785,7 +1046,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                   if (activated) return;
                   const dx = moveEvt.clientX - originX;
                   const dy = moveEvt.clientY - originY;
-                  if (Math.sqrt(dx * dx + dy * dy) >= 40) {
+                  if (Math.sqrt(dx * dx + dy * dy) >= 24) {
                     activated = true;
                     setIsOutputLogOpen(false);
                     startTearOff("console", "Output Log", "bottom-tab", originX, originY);
@@ -822,9 +1083,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               <OutputConsole />
             </div>
           </div>
-        )}
-
-          </>
         )}
 
         {/* Tear-Off Drag Overlay (floating preview during drag) */}

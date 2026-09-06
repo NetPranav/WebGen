@@ -23,6 +23,12 @@ import {
   X,
   Play,
 } from "lucide-react";
+import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
+import { DatabaseValidator } from "@/core/engine/DatabaseValidator";
+import { ConnectionPipeline } from "@/core/engine/ConnectionPipeline";
+import { AnimationValidator } from "@/core/engine/AnimationValidator";
+import { GSAPTimelineCompiler } from "@/core/engine/GSAPTimelineCompiler";
+import { DiagnosticEvent } from "@/core/types/diagnostics";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
 
@@ -118,6 +124,67 @@ export const OutputConsole: React.FC = () => {
 
   const streamRef = useRef<HTMLDivElement>(null);
 
+  // Subscribe to central DiagnosticBus
+  useEffect(() => {
+    // Process incoming diagnostic events into Output Log entries
+    const handleDiagnostic = (event: DiagnosticEvent) => {
+      const d = new Date(event.timestamp);
+      const timeStr =
+        d.toTimeString().split(" ")[0] +
+        "." +
+        String(d.getMilliseconds()).padStart(3, "0");
+
+      let category: LogEntry["category"] = "all";
+      if (event.channel === "DB_SCHEMA_ERR" || event.channel === "BIND_ERR") {
+        category = "database";
+      } else if (event.channel === "ANIM_COMPAT" || event.channel === "STATE_VAR_WARN") {
+        category = "warning";
+      } else if (event.channel === "BLUEPRINT_ERR") {
+        category = "blueprint";
+      } else if (event.severity === "error") {
+        category = "error";
+      } else if (event.severity === "warning") {
+        category = "warning";
+      }
+
+      const level: LogEntry["level"] =
+        event.severity === "error"
+          ? "error"
+          : event.severity === "warning"
+          ? "warn"
+          : "info";
+
+      const badge = event.channel;
+      const entityTag = event.source.entityName
+        ? `[${event.source.entityName}] `
+        : event.source.entityId
+        ? `[${event.source.entityId}] `
+        : "";
+
+      const fullMessage = `${entityTag}${event.message}${
+        event.suggestion ? ` • Suggestion: ${event.suggestion}` : ""
+      }${
+        event.fallbackApplied !== undefined
+          ? ` (Fallback applied: ${JSON.stringify(event.fallbackApplied)})`
+          : ""
+      }`;
+
+      const entry: LogEntry = {
+        id: event.id,
+        time: timeStr,
+        category,
+        level,
+        badge,
+        message: fullMessage,
+      };
+
+      setLogs((prev) => [...prev, entry]);
+    };
+
+    const unsubscribe = DiagnosticBus.subscribe(handleDiagnostic);
+    return unsubscribe;
+  }, []);
+
   // Auto-scroll on new log entry
   useEffect(() => {
     if (autoScroll && streamRef.current) {
@@ -161,12 +228,192 @@ export const OutputConsole: React.FC = () => {
         category: "compiler",
         level: "info",
         badge: "HELP",
-        message: "Available commands: 'clear', 'build', 'fps', 'stats', 'version', 'reset'",
+        message: "Available commands: 'clear', 'build', 'fps', 'stats', 'version', 'test-bind', 'test-schema', 'reset'",
       };
     } else if (cmd.toLowerCase() === "clear") {
       setLogs([]);
       setCliInput("");
       return;
+    } else if (cmd.toLowerCase() === "test-bind") {
+      // Trigger live binding compatibility test
+      DatabaseValidator.validatePropertyBinding({
+        elementId: "btn_cta_checkout",
+        elementName: "CheckoutButton",
+        archetype: "button",
+        propertyKey: "label",
+        sourceField: {
+          id: "f_rel_items",
+          name: "orderItems",
+          type: "Relation",
+        },
+        sourceCollectionName: "Orders",
+      });
+      responseEntry = {
+        id: `res_${Date.now()}`,
+        time,
+        category: "database",
+        level: "info",
+        badge: "TEST",
+        message: "Simulated illegal binding: 'Orders.orderItems' (Relation) -> Button.label. Diagnostic intercepted.",
+      };
+    } else if (cmd.toLowerCase() === "test-pipeline") {
+      // Trigger live ConnectionPipeline evaluation
+      const mockContext = {
+        database: {
+          Products: [
+            {
+              id: "prod_01",
+              title: "Wireless Mechanical Keyboard",
+              price: 149.99,
+              inStock: true,
+              imageUrl: "/assets/keyboard.png",
+              tags: ["hardware", "peripherals"],
+            },
+          ],
+        },
+        stateVariables: {
+          cartCount: 3,
+          isUserLoggedIn: true,
+        },
+        urlParams: {
+          ref: "promo_summer",
+        },
+        localStorage: {
+          themeMode: "dark",
+        },
+      };
+
+      // 1. Valid binding: Products.title -> heading.textContent
+      ConnectionPipeline.registerBinding({
+        id: "b_head_01",
+        target: {
+          elementId: "el_hero_heading",
+          elementName: "HeroHeading",
+          archetype: "text",
+          propertyKey: "textContent",
+        },
+        sourceType: "database",
+        sourceCollection: "Products",
+        sourceField: "title",
+      });
+
+      // 2. Valid binding with USD currency transform: Products.price -> price_tag.textContent
+      ConnectionPipeline.registerBinding({
+        id: "b_price_01",
+        target: {
+          elementId: "el_price_tag",
+          elementName: "PriceTag",
+          archetype: "text",
+          propertyKey: "textContent",
+        },
+        sourceType: "database",
+        sourceCollection: "Products",
+        sourceField: "price",
+        transformFn: "currency_usd",
+      });
+
+      // 3. Illegal binding: tags (Array) -> Button.label (Should be trapped by DiagnosticBus)
+      ConnectionPipeline.registerBinding({
+        id: "b_btn_illegal",
+        target: {
+          elementId: "el_buy_button",
+          elementName: "BuyButton",
+          archetype: "button",
+          propertyKey: "label",
+        },
+        sourceType: "database",
+        sourceCollection: "Products",
+        sourceField: "tags",
+        fallbackValue: "Buy Now",
+      });
+
+      // Evaluate pipeline
+      const evaluated = ConnectionPipeline.evaluateAll(mockContext);
+
+      responseEntry = {
+        id: `res_${Date.now()}`,
+        time,
+        category: "database",
+        level: "success",
+        badge: "PIPELINE",
+        message: `ConnectionPipeline evaluated ${ConnectionPipeline.getAllBindings().length} active bindings across ${evaluated.size} elements. Incompatible bindings trapped and logged to Output Log.`,
+      };
+    } else if (cmd.toLowerCase() === "test-anim") {
+      // Trigger live animation compatibility test
+      const sampleWithIncompatibleTrack = {
+        id: "sample_hero_fade",
+        name: "HeroEnter",
+        duration: 800,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+        iterations: 1 as const,
+        direction: "normal" as const,
+        fillMode: "forwards" as const,
+        tracks: [
+          {
+            trackId: "opacity" as const,
+            keyframes: [
+              { offset: 0, value: 0 },
+              { offset: 100, value: 1 },
+            ],
+          },
+          {
+            trackId: "translateY" as const,
+            keyframes: [
+              { offset: 0, value: 30 },
+              { offset: 100, value: 0 },
+            ],
+          },
+          // Incompatible with image!
+          {
+            trackId: "letterSpacing" as const,
+            keyframes: [
+              { offset: 0, value: 4 },
+              { offset: 100, value: 0 },
+            ],
+          },
+        ],
+      };
+
+      const valRes = AnimationValidator.validateSampleForElement(
+        sampleWithIncompatibleTrack,
+        {
+          elementId: "img_hero_banner",
+          elementName: "HeroBannerImage",
+          archetype: "image",
+        }
+      );
+
+      const compiled = GSAPTimelineCompiler.compile(valRes.sanitizedSample);
+
+      responseEntry = {
+        id: `res_${Date.now()}`,
+        time,
+        category: "warning",
+        level: "warn",
+        badge: "ANIM",
+        message: `Animation '${sampleWithIncompatibleTrack.name}' attached to HeroBannerImage: ${valRes.allowedTracks.length} tracks allowed, ${valRes.rejectedTracks.length} incompatible tracks trapped and skipped. Compiled to CSS keyframes '${compiled.name}'.`,
+      };
+    } else if (cmd.toLowerCase() === "test-schema") {
+      // Trigger live schema validation test
+      DatabaseValidator.validateSchema(
+        {
+          id: "col_invalid_01",
+          name: "BrokenCatalog",
+          displayName: "Broken Catalog",
+          fields: {
+            title: { id: "f1", name: "title", type: "String" },
+          },
+        },
+        []
+      );
+      responseEntry = {
+        id: `res_${Date.now()}`,
+        time,
+        category: "database",
+        level: "info",
+        badge: "TEST",
+        message: "Simulated invalid schema: 'BrokenCatalog' (no Primary Key). Diagnostic emitted.",
+      };
     } else if (cmd.toLowerCase() === "fps") {
       responseEntry = {
         id: `res_${Date.now()}`,

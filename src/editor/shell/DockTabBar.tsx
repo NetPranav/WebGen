@@ -30,7 +30,7 @@ interface DockTabBarProps {
 }
 
 /** Minimum distance (px) pointer must move before tear-off activates */
-const TEAR_OFF_THRESHOLD = 40;
+const TEAR_OFF_THRESHOLD = 24;
 
 export const DockTabBar: React.FC<DockTabBarProps> = ({
   zoneId,

@@ -19,17 +19,17 @@ The project is organized into **7 major phases**, each broken into **numbered su
 
 ## 2. Phase Overview
 
-| Phase | Name | Sub-Phases | Key Deliverable |
-|-------|------|------------|-----------------|
-| **1** | Foundations & IDE Shell | 1.1 – 1.8 | Dockable IDE with Confluence canvas, panels, and state management |
-| **2** | C++ Wasm Kernel & Blueprint Canvas | 2.1 – 2.5 | 120 FPS curved wire rendering with node connections |
-| **3** | Logic Blueprint Engine & Node System | 3.1 – 3.5 | Functional node graphs with type-safe wiring |
-| **4** | Database, State & Data Binding | 4.1 – 4.4 | Visual ER schema, state variables, drag-to-bind |
-| **5** | Motion Blueprint & GSAP Timeline | 5.1 – 5.4 | Keyframe animation editor with GSAP playback |
-| **6** | Play Mode Runtime & Execution Trace | 6.1 – 6.5 | Live sandbox preview with animated wire pulses |
-| **7** | Compiler & Code Generation | 7.1 – 7.5 | Exportable Next.js + Prisma production code |
+| Phase | Name | Sub-Phases | Key Deliverable | Status |
+|---|---|---|---|---|
+| **1** | Foundations & IDE Shell | 1.1 – 1.7 | Dockable IDE with Confluence canvas, panels, and UE5 Details Inspector | ✅ COMPLETE |
+| **2** | Inside-Out Database Logic, Connection & Animation Engine | 2.1 – 2.5 | Database schemas, property access matrix, diagnostic bus, animation samples & UI wrappers | 🚀 IN PROGRESS (ACTIVE TARGET) |
+| **3** | Logic Blueprint Engine & Node System | 3.1 – 3.5 | Functional node graphs with type-safe wiring & My Blueprint panel | 📋 PLANNED |
+| **4** | C++ Wasm Kernel & Physics Canvas | 4.1 – 4.5 | 120 FPS curved wire rendering with Verlet spring physics | 📋 PLANNED |
+| **5** | Play Mode Runtime & Execution Trace | 5.1 – 5.5 | Live sandbox preview with animated wire pulses & AI diagnostic | 📋 PLANNED |
+| **6** | Compiler & Production Code Generation | 6.1 – 6.5 | Exportable Next.js 15 + React 19 + Prisma production code | 📋 PLANNED |
+| **7** | Operations, Deployment & Extensions | 7.1 – 7.5 | Build pipelines, cloud deploy, plugins, command palette & global search | 📋 PLANNED (IN LAST) |
 
-**Total estimated timeline:** 19–26 weeks for full MVP
+**Architectural Law:** All forward development follows the **Inside-Out Engine Law** (Innermost Connection Settings ➔ Engine Compatibility Evaluator ➔ Output Log Diagnostics ➔ UI Reflection).
 
 ---
 
@@ -133,288 +133,296 @@ The project is organized into **7 major phases**, each broken into **numbered su
 
 ---
 
-### Sub-Phase 1.7: State Management Foundation (Zustand Stores)
-**Goal:** Establish the reactive state backbone that all panels read from and write to. This is the "nervous system" of the editor.
+### Sub-Phase 1.7: Unreal Engine-Style File & Asset Details System
+**Goal:** Implement the deep, Unreal Engine-inspired Asset & File Detail Inspector system. When any file, asset, or component is opened or selected:
+1. The center displays an isolated viewport preview of the character/element/widget alongside the graph/canvas.
+2. The left panel shows the component tree, attachments, variables, and function definitions ("My Blueprint" architecture).
+3. The right Details panel provides a rich, categorized property inspector with variable types, default values, slot attachments, and an event-to-function binding section with quick-action `[ + ]` buttons to wire UI events directly to Blueprint logic.
+
+**Specification Reference:** `DOCS/UNREAL_FILE_DETAILS_SYSTEM.md`
 
 **Checklist:**
-- [ ] Create `src/core/store/useProjectStore.ts` — Holds the loaded project AST (pages, components, graphs, database, state, motion)
-- [ ] Create `src/core/store/useEditorStore.ts` — Active panel, active workspace preset, zoom level, grid visibility, active tool
-- [ ] Create `src/core/store/useSelectionStore.ts` — Currently selected component IDs (supports multi-select)
-- [ ] Create `src/core/store/useHistoryStore.ts` — Undo/redo command stack with action descriptions
-- [ ] Create `src/core/store/useSearchStore.ts` — Global search query, results, and filter state
-- [ ] Create `src/core/store/useClipboardStore.ts` — Copy/paste buffer for components and nodes
-- [ ] Create `src/core/events/EventBus.ts` — Publish/subscribe system for cross-panel communication
-- [ ] Create `src/core/events/EventTypes.ts` — Typed event definitions (SelectionChanged, ZoomChanged, ProjectSaved, etc.)
-- [ ] Connect stores to Outliner, Details, and Canvas panels so selection syncs across all three
-- [ ] Verify: Clicking a mock item in the Outliner updates the Details panel header; Undo/Redo buttons change state
+- [x] Implement data models for `ComponentAttachment`, `ComponentVariable`, and `ComponentEventBinding` in `src/core/types/details.ts`
+- [x] Upgrade `src/editor/panels/details/AssetDetailsInspector.tsx` with UE-style categorized property sections:
+  - Identity & File metadata (type badge, path, parent class)
+  - Slot & Attachments (parent container, slot type, alignment, anchors, sockets)
+  - Appearance & Styling (colors, gradients, borders, shadows, blur)
+  - Typography & Layout (font, size, weight, line height, flex/grid alignment)
+  - Variables & Props (typed variables with yellow reset-to-default `↺` arrows and instance-editable eye icons)
+  - Events & Function Dispatchers (event list with `[ + ]` attach button, function pills, and quick-jump links)
+- [x] Implement the **Events & Function Attachment Section**:
+  - List available component events (`onClick`, `onHover`, `onBlur`, `onChange`, `onSubmit`, `onKeyDown`)
+  - Render UE-style `[ + ]` button to generate or attach to a Blueprint function / event node
+  - Show bound function pills with quick-jump link to the respective Logic Blueprint graph and detach button
+- [x] Implement the **Component Attachment & Slot Hierarchy** section:
+  - Display attach parent, slot type (Flex, Grid, Absolute, Canvas), alignment, and z-index ordering
+- [x] Implement the **Variables & State Inspector**:
+  - Variable type badge (String, Number, Boolean, Object, Array, Function)
+  - Default value editor, category grouping, instance editable toggle, and yellow "Reset to Default" indicator
+- [x] Implement the **Isolated Asset Viewport** in the center stage (`AssetFileEditor.tsx`):
+  - When inspecting an asset/component file, show the dedicated isolated preview with interactive state handles (Default, Hover, Active, Disabled, Loading) and responsive boundary pills
+- [x] Verify: Opening any file displays its isolated element preview, rich variable categories, attachment metadata, and working event-to-function attachment buttons (Tested & verified in browser).
 
 ---
 
-### Sub-Phase 1.8: Keyboard Shortcuts & Command Palette
-**Goal:** Professional keyboard shortcut system and VS Code-style command palette. Power users should be able to navigate the entire IDE without touching the mouse.
-
-**Checklist:**
-- [ ] Create `src/core/keybindings/KeybindingManager.ts` — Global keydown listener that dispatches registered shortcut actions
-- [ ] Create `src/core/keybindings/defaultKeybindings.ts` — Default shortcut map as specified in PANELS.md §4
-- [ ] Create `src/editor/shell/CommandPalette.tsx` — `Ctrl+P` modal: fuzzy search across panels, actions, entities
-- [ ] Implement `Ctrl+S` (Save), `Ctrl+Z` (Undo), `Ctrl+Shift+Z` (Redo), `Escape` (Deselect)
-- [ ] Implement `Ctrl+Shift+O` (Toggle Outliner), `Ctrl+Shift+D` (Toggle Details), `Ctrl+Shift+B` (Toggle Content Browser)
-- [ ] Verify: `Ctrl+P` opens the command palette; typing filters results; selecting a result performs the action; keyboard shortcuts work
+### Phase 1 Completion & Validation Summary
+> **Milestone Status:** ✅ **Phase 1 Complete (Sub-Phases 1.1 through 1.7 verified)**.  
+> All foundational IDE shell components, design tokens, splitters, dock zones, Confluence canvas, and the deep Unreal Engine Details Inspector with element-type specific sections (Phases 2.1 – 2.6 in `DOCS/ROADMAP_2.md`) are built, styled, and verified.
 
 ---
 
-### Phase 1 Magic Moment Test
-> User opens the app → sees a professional white-themed IDE with dockable panels → the center shows an infinite dot-grid canvas with a floating Confluence-style bottom dock → the left has the Application Outliner tree → the right has the Details Inspector with collapsible sections → the bottom has tabbed Content Browser and Console → the user can drag splitters to resize panels, collapse sidebars, switch workspace presets, pan/zoom the canvas, and use Ctrl+P to search actions.
+## 4. Phase 2: Inside-Out Database Logic, Connection & Animation Engine (Current Target)
+
+**Goal:** Build from the innermost data contracts outward. First define the entire logic of the database, its categorized property taxonomy, and the archetype-to-property access compatibility matrix. Next build the central Diagnostic Bus and connection pipeline to trap illegal bindings in the Output Log. Then implement the animation sample connection system (evaluating track legality per element and trapping incompatible assignments). Finally, wrap these validated engines with reactive state stores and visual UI controls.
+
+**Architectural Law (CONVENTIONS.md §7):** Build from the inside out. Never construct visual controls before the data schemas, property access rules, and diagnostic interceptors exist.
 
 ---
 
-## 4. Phase 2: C++ Wasm Kernel & Blueprint Canvas
-
-**Goal:** The node-and-wire canvas becomes visually alive with Unreal-quality curved connections powered by C++ WebAssembly physics.
-
-**Goal Alignment Check (PRD.md §4.1):** "120 FPS Hermite/Bezier curve solving, cable tension, Verlet spring physics"
-
----
-
-### Sub-Phase 2.1: C++ Spline Mathematics Module
-- [ ] Implement `SplineSolver.hpp/.cpp` — Cubic Hermite interpolation, Bezier control point calculation
-- [ ] Implement arc-length parameterization for even spacing along curves
-- [ ] Write unit tests (`SplineSolver.test.cpp`)
-- [ ] Verify: C++ tests pass with correct curve coordinates
-
-### Sub-Phase 2.2: Cable Physics & Spatial Index
-- [ ] Implement `CablePhysics.hpp/.cpp` — Verlet integration for wire droop and spring tension
-- [ ] Implement `SpatialIndex.hpp/.cpp` — Quadtree for fast node hit-testing
-- [ ] Write unit tests
-- [ ] Verify: Physics simulation produces realistic wire drape values
-
-### Sub-Phase 2.3: WebAssembly Build Pipeline
-- [ ] Configure Emscripten build: CMakeLists.txt + Makefile
-- [ ] Implement `WasmBindings.cpp` — Export functions to JavaScript
-- [ ] Build `.wasm` + `.js` glue files into `wasm/dist/`
-- [ ] Create TypeScript wrapper: `src/core/wasm/WasmBridge.ts`
-- [ ] Verify: TypeScript code calls Wasm functions and receives correct spline coordinates
-
-### Sub-Phase 2.4: Canvas Wire Renderer
-- [ ] Create `src/editor/canvas/WasmCableCanvas.tsx` — HTML5 Canvas overlay calling Wasm for spline data
-- [ ] Render curved Bezier wires with type-aware colors (from UI.md §2.2 wire taxonomy)
-- [ ] Implement wire hover highlight and selection
-- [ ] Implement animated execution pulse rendering (dashed line animation)
-- [ ] Verify: Wires render as smooth curves at 120 FPS; wire colors match data types
-
-### Sub-Phase 2.5: Interactive Node Canvas
-- [ ] Enhance `BlueprintCanvas.tsx` with pan/zoom, node placement, and drag
-- [ ] Implement `NodeCard.tsx` with title bar, category badge, input/output pins
-- [ ] Implement `PinHandle.tsx` with colored circles and drag initiation
-- [ ] Implement wire drag: pin → cursor → snap to compatible pin (with cable physics)
-- [ ] Implement `CommentBox.tsx` for grouping nodes
-- [ ] Implement `RerouteNode.tsx` for clean wire routing
-- [ ] Implement `ActionPaletteModal.tsx` (right-click / Tab: searchable node catalog)
-- [ ] Verify: User can place nodes, drag wires with physics, snap connections, group with comments
+### Sub-Phase 2.1: Innermost Database Core Logic, Field Categorization & Element Property Access Matrix (Top Priority) ✅ COMPLETE
+**Goal:** Define the pure TypeScript database schema contracts, categorize database properties into functional groups, and establish the formal compatibility matrix specifying exactly which category of element properties can access which database properties.
+- [x] Create `src/core/types/database.ts` — Relational collection schemas, Prisma-aligned types (`String`, `Int`, `Float`, `Boolean`, `DateTime`, `JSON`, `Enum`, `Relation`), and cardinality rules (1:1, 1:N, N:M).
+- [x] Define **Database Property Categories**:
+  - **Category 1 (Textual / Scalar)**: `String`, `Enum` (titles, descriptions, badges, statuses)
+  - **Category 2 (Numeric)**: `Int`, `Float` (prices, counts, metrics, percentages)
+  - **Category 3 (Boolean / Flag)**: `Boolean` (isPublished, inStock, hasDiscount, isActive)
+  - **Category 4 (Temporal / Timestamp)**: `DateTime` (createdAt, updatedAt, eventDate)
+  - **Category 5 (Media / Asset URL)**: `String` with URL/CDN format (image src, avatar, document file)
+  - **Category 6 (Structured / Document)**: `JSON` (flexible metadata, settings blobs)
+  - **Category 7 (Relational / Collections)**: `Relation` (1:1 user profile, 1:N order items, N:M tags)
+- [x] Define **Element Property Categories & Access Matrix (`ArchetypePropertyBindingMatrix`)**:
+  - **Text Archetype Props** (`textContent`): Can access Textual, Numeric (formatted), Temporal (formatted), Enum. Trapped if assigned Relational, Structured JSON, or Media.
+  - **Image Archetype Props** (`src`, `alt`): `src` can only access Media/Asset URL or Textual URL; `alt` can access Textual. Trapped if assigned Numeric, Boolean, Temporal, or Relational.
+  - **Button Archetype Props** (`label`, `disabled`): `label` can access Textual or Numeric; `disabled` can access Boolean. Trapped if assigned Relational or Structured JSON.
+  - **Toggle / Checkbox Props** (`checked`, `disabled`): `checked` can only access Boolean. Trapped if assigned Textual, Numeric, or Relational.
+  - **Container / List Repeater Props** (`itemsSource`): Can only access Relational (1:N, N:M) or Array of Entities. Trapped if assigned Single Scalar Text, Boolean, or Date.
+  - **Input Archetype Props** (`value`, `placeholder`): `value` can access Textual or Numeric; `placeholder` can access Textual. Trapped if assigned Relational.
+- [x] Create `src/core/engine/DatabaseValidator.ts` — Detects orphaned foreign keys, circular relations, or missing primary keys; dispatches `[DB_SCHEMA_ERR]` to Output Log.
+- [x] Verify: Unit test verifying that assigning a Relational Array to a Button label is trapped, while assigning a String title succeeds (`npm test` passes 5/5 tests).
 
 ---
 
-## 5. Phase 3: Logic Blueprint Engine & Node System
+### Sub-Phase 2.2: Universal Connection Engine & Central Diagnostic Event Bus ✅ COMPLETE
+**Goal:** Build the central pub/sub diagnostic bus that catches all incompatible connections across the engine and dispatches structured, actionable error entries to Panel 07 (Output Log).
+- [x] Create `src/core/types/diagnostics.ts` — Structured diagnostic error payloads, severity levels (`Error`, `Warning`, `Info`), and typed channels:
+  - `[DB_SCHEMA_ERR]`: Schema inconsistencies, foreign key cycles, missing PKs.
+  - `[BIND_ERR]`: Incompatible database/state bindings (e.g. Array to Boolean, Object to Text).
+  - `[ANIM_COMPAT]`: Incompatible animation sample tracks for element archetype (e.g. `letterSpacing` on `image`).
+  - `[PROP_ERR]`: Invalid property ranges, syntax, or unit errors.
+- [x] Create `src/core/engine/DiagnosticBus.ts` — Central pub/sub diagnostic bus routing engine violations directly to Panel 07 (Output Log) with entity jump links.
+- [x] Create `src/core/types/data-binding.ts` — Data binding contracts (`BindingSource`, `DataBindingDescriptor`, `TypeCompatibilityRules`).
+- [x] Create `src/core/engine/DataBindingValidator.ts` & `ConnectionPipeline.ts` — Evaluates source-to-target compatibility using `ArchetypePropertyBindingMatrix`. Traps illegal bindings ➔ logs `[BIND_ERR]` to Output Log and provides safe fallback value to prevent UI crashing.
+- [x] Verify: Emitting mock `[DB_SCHEMA_ERR]`, `[BIND_ERR]`, and live `test-pipeline` events prints structured entries in the Output Log with clickable entity navigation (`npm test` passes 10/10 tests, live browser verified).
 
-**Goal:** Nodes actually represent application logic with type-safe connections and real execution semantics.
+---
 
-**Goal Alignment Check (PRD.md §1.3.2):** "The visual node graph translates directly to a structured AST"
+### Sub-Phase 2.3: Motion & Animation Connection Engine (Animation Samples & Archetype Applicability) ✅ COMPLETE
+**Goal:** Establish the animation sample connection pipeline. Animation samples contain property tracks that connect to element properties. If an animation sample is connected to an element where any track is not applicable, the engine intercepts the violation, logs an error to the Output Log, and safely skips the track.
+- [x] Create `src/core/types/animations.ts` — Animation track identifiers (`opacity`, `translateY`, `translateX`, `scale`, `filterBlur`, `letterSpacing`, `backgroundColor`, `borderRadius`), keyframe points, cubic-bezier handles, and `ArchetypeAnimationCompatibility` matrix.
+- [x] Implement **Animation Sample Connection Model**:
+  - An **Animation Sample** defines reusable motion curves across property tracks.
+  - When an animation sample connects to an element, the engine evaluates track compatibility against the target element archetype.
+  - Applicable tracks apply to the element's CSS properties.
+  - Incompatible tracks (e.g. sample contains `letterSpacing` or `color` track, but element is `image` or `container`) are trapped by the engine, generate an error in the Output Log (`[ANIM_COMPAT]`), and are excluded without corrupting styles.
+- [x] Create `src/core/engine/AnimationValidator.ts` — Evaluates track-to-archetype legality; traps invalid assignments and routes diagnostics to `DiagnosticBus`.
+- [x] Create `src/core/engine/GSAPTimelineCompiler.ts` — Compiles validated animation tracks into GSAP timelines and CSS `@keyframes` for smooth 60/120 FPS execution.
+- [x] Verify: Attaching an animation sample with typography tracks to an Image element logs `[ANIM_COMPAT]` in the Output Log and skips the track; attaching to a Text element applies cleanly (`npm test` passes 13/13 tests, live browser verified).
+
+---
+
+### Sub-Phase 2.4: State Management & Reactive Data Binding Engine ✅ COMPLETE
+**Goal:** Build the reactive state management layer connecting database records and reactive state atoms directly to element properties.
+- [x] Create `src/core/store/useProjectStore.ts` — Single source of truth for the project AST (pages, elements, animations, database schemas, active bindings).
+- [x] Create `src/core/store/useSelectionStore.ts` — Selected element/entity IDs with multi-selection support.
+- [x] Create `src/core/store/useHistoryStore.ts` — Transactional undo/redo stack with descriptive action labels.
+- [x] Create `src/core/events/EventBus.ts` — Cross-panel pub/sub messaging.
+- [x] Create Panel 13: `src/editor/panels/state/StateMatrixViewer.tsx` — State variable manager (Global, Page, Component scopes).
+- [x] Verify: Updating a bound state variable or database record propagates live updates to connected element properties; Undo reverts cleanly (`npm test` passes 18/18 tests, live browser verified with toggle controls).
+
+---
+
+### Sub-Phase 2.5: Visual UI Panels, Details Inspector Controls & Dedicated Database Studio ✅ COMPLETE
+**Goal:** Build the visual controls, inspector panels, and dedicated Database Studio as the outer UI wrapper over the validated core engines.
+- [x] Details Inspector Data Binding Section: `src/editor/panels/details/sections/DataBindingEditor.tsx` & `src/editor/panels/details/controls/StateVariablePicker.tsx` — Surfaces bindable properties and compatible database fields based on the access matrix.
+- [x] Details Inspector Animation Section: `src/editor/panels/details/sections/AnimationEditor.tsx`, `KeyframeTimeline.tsx`, `BezierCurveModal.tsx` — Preset cards, keyframe scrubbing, and cubic-bezier curve modal.
+- [x] Viewport Top Bar Cleanup: Removed the center tab bar clutter from the Viewport; placed a sleek, compact Project Settings button on the right side of the Viewport toolbar.
+- [x] Dedicated Database Studio Page (`/database` & `src/editor/panels/database/DatabaseStudio.tsx`):
+  - Top header `DataBase` button in `StudioHeader.tsx` between Window and Help.
+  - 2-Section Left Explorer (`DatabaseLeftExplorer.tsx`): Search + Indented Database Tree (`Database` ➔ `Tables` ➔ `Fields`) on top; Relational Hierarchy & Foreign Key Dependency Tree on bottom.
+  - Center Workspace (`DatabaseCenterStage.tsx`): Engine selector (PostgreSQL 16, SQLite 3, MySQL 8, MongoDB), Triple View Switcher (`ER Canvas`, `Mock Data Grid`, `SQL DDL / Prisma Migration`), and interactive draggable entity cards.
+  - Right Details Panel (`DatabaseDetailsPanel.tsx`): Deep table property inspector (display name, columns manager, inline "+ Add Column" creator, seed records, danger zone) and field property inspector (Prisma types, PK/Nullable/Unique flags, Foreign Key relation targets, cascade rules, check validation, and indexing).
+  - Bottom Status Bar (`DatabaseStatusBar.tsx`): Live engine active status, schema integrity validation badge (`Schema Valid • 0 Violations`), tables/records count, and Output Log console toggle.
+- [x] Verify: Full inside-out workflow verified with 25 passing unit tests (`npm test` 25/25 pass in 428ms) and comprehensive browser subagent recording verifying Viewport cleanup, top DataBase button, Database Studio 3-column layout, ER canvas, mock grid, and SQL DDL.
+
+---
+
+## 5. Phase 3: Logic Blueprint Engine & Visual Scripting System
+
+**Goal:** Visual node-and-wire scripting where logic graphs connect directly to element properties and database actions.
 
 ---
 
 ### Sub-Phase 3.1: Node Type Registry & Core Definitions
-- [ ] Create `src/core/types/node-registry.ts` — All built-in node definitions with pin schemas
-- [ ] Define Event nodes (OnClick, OnPageLoad, OnSubmit, OnHover, OnTimer, OnScroll)
-- [ ] Define Control Flow nodes (Branch, Switch, ForEach, Sequence, Delay)
-- [ ] Define Variable nodes (Get, Set, Compute)
-- [ ] Define Navigation nodes (NavigateTo, OpenModal, ShowToast, CloseModal)
-- [ ] Define Math nodes (Add, Subtract, Multiply, Divide, Compare, Concat)
-- [ ] Verify: Node registry is queryable by category; each node has typed input/output pins
+- [ ] Create `src/core/types/node-registry.ts` — Built-in node definitions with pin schemas (Events, Flow Control, Variables, Navigation, Math).
+- [ ] Define Event nodes (`onClick`, `onPageLoad`, `onSubmit`, `onHover`, `onTimer`).
+- [ ] Define Action nodes (`database/query`, `variables/set`, `api/request`, `navigation/push`).
+- [ ] Verify: Node registry is queryable by category; all pins have strict data types.
 
-### Sub-Phase 3.2: Type Checker & Wire Validation
-- [ ] Create `src/core/ast/TypeChecker.ts` — Real-time pin compatibility validation
-- [ ] Implement type compatibility matrix (String↔String ✓, String→Number ✗ unless converter)
-- [ ] Show red wire + block connection on type mismatch
-- [ ] Show compatible pin highlights when dragging a wire
-- [ ] Verify: Dragging a String pin near a Number input shows red; near a String input shows green
+### Sub-Phase 3.2: Type Checker & Pin Wire Validation
+- [ ] Create `src/core/ast/TypeChecker.ts` — Pin compatibility evaluator.
+- [ ] Enforce wire type rules (String ➔ String ✓, Array ➔ String ✗).
+- [ ] Reject illegal connections with red wire and dispatch `[PIN_TYPE_MISMATCH]` to Output Log.
+- [ ] Verify: Incompatible pins refuse attachment and log error.
 
-### Sub-Phase 3.3: DAG Sorter & Graph Validation
-- [ ] Create `src/core/ast/DAGSorter.ts` — Topological sort for execution order
-- [ ] Detect circular dependencies and emit error
-- [ ] Create `src/core/ast/ASTManager.ts` — Central graph CRUD operations
-- [ ] Verify: Circular connections are rejected with a visual error; acyclic graphs sort correctly
+### Sub-Phase 3.3: DAG Sorter & Graph AST Manager
+- [ ] Create `src/core/ast/DAGSorter.ts` — Topological sorting for execution order.
+- [ ] Detect circular execution cycles and emit errors.
+- [ ] Create `src/core/ast/ASTManager.ts` — Graph CRUD operations.
+- [ ] Verify: Cycles are trapped; acyclic graphs sort accurately.
 
 ### Sub-Phase 3.4: My Blueprint Panel & Variable System
-- [ ] Create Panel 17: `MyBlueprintPanel.tsx` — Variables, functions, event dispatchers
-- [ ] Implement variable creation: name, type, default value
-- [ ] Implement drag variable → canvas → auto-creates Get/Set node
-- [ ] Implement function creation with custom sub-graph
-- [ ] Verify: Creating a variable and dragging it onto the canvas creates a properly typed Get node
+- [ ] Create Panel 17: `MyBlueprintPanel.tsx` — Graph variables, functions, event dispatchers.
+- [ ] Implement drag variable ➔ canvas ➔ auto-creates Get/Set node.
+- [ ] Verify: Dragging variables creates typed accessor nodes.
 
-### Sub-Phase 3.5: Validation Panel & Graph Serialization
-- [ ] Create Panel 22: `ValidationPanel.tsx` — Real-time issue list
-- [ ] Implement `.bp.json` save/load (serialize/deserialize full graph state)
-- [ ] Implement click-to-navigate from validation issue to offending node
-- [ ] Verify: Saving a graph and reloading produces identical node positions and wire connections
+### Sub-Phase 3.5: Blueprint Validation & Serialization
+- [ ] Create Panel 22: `ValidationPanel.tsx` — Real-time issue list with click-to-navigate links.
+- [ ] Implement `.bp.json` save and load serialization.
+- [ ] Verify: Graph serializes to JSON and restores perfectly.
 
 ---
 
-## 6. Phase 4: Database, State & Data Binding
+## 6. Phase 4: C++ WebAssembly Physics Kernel & Blueprint Canvas
 
-**Goal:** Visual database modeling and reactive connections between data, state, and UI components.
-
-**Goal Alignment Check (PRD.md §4.4):** "Visual Entity-Relationship Modeling"
+**Goal:** 120 FPS high-performance curved wire rendering powered by C++ WebAssembly physics.
 
 ---
 
-### Sub-Phase 4.1: Database ER Modeler Canvas
-- [ ] Create Panel 10: `DatabaseDesigner.tsx` — Canvas with entity cards
-- [ ] Implement `EntityTableCard.tsx` with fields, types, and connection ports
-- [ ] Implement `FieldEditor.tsx` for type, constraints, defaults
-- [ ] Implement relationship wires between collection ports
-- [ ] Verify: User can create tables, add fields, and draw FK relationships visually
+### Sub-Phase 4.1: C++ Spline Mathematics Module
+- [ ] Implement `SplineSolver.hpp/.cpp` — Cubic Hermite interpolation, Bezier control point calculation.
+- [ ] Implement arc-length parameterization for uniform curve spacing.
+- [ ] Write unit tests (`SplineSolver.test.cpp`).
 
-### Sub-Phase 4.2: Database CRUD Nodes & Mock Data
-- [ ] Add CRUD nodes to node registry (Create, Query, Filter, Sort, Update, Delete)
-- [ ] Create `MockDataGrid.tsx` — Spreadsheet viewer for seed data
-- [ ] Implement seed data import (JSON/CSV)
-- [ ] Verify: CRUD nodes in blueprint connect to actual database collections
+### Sub-Phase 4.2: Verlet Cable Physics & Spatial Index
+- [ ] Implement `CablePhysics.hpp/.cpp` — Verlet integration for wire drape and spring tension.
+- [ ] Implement `SpatialIndex.hpp/.cpp` — Quadtree for fast node hit-testing.
+- [ ] Write unit tests.
 
-### Sub-Phase 4.3: State Management & Reactive Variables
-- [ ] Create Panel 13: `StateMatrixViewer.tsx` — Variable manager (Global, Page, Component scopes)
-- [ ] Implement computed/derived state expressions
-- [ ] Implement persistence toggles (localStorage, sessionStorage)
-- [ ] Verify: State variables are creatable with types, scopes, and defaults
+### Sub-Phase 4.3: WebAssembly Build Pipeline
+- [ ] Configure Emscripten build (`CMakeLists.txt` + `Makefile`).
+- [ ] Implement `WasmBindings.cpp` exporting C++ methods to JavaScript.
+- [ ] Build `.wasm` + `.js` artifacts into `wasm/dist/`.
+- [ ] Create TypeScript wrapper `src/core/wasm/WasmBridge.ts`.
 
-### Sub-Phase 4.4: Data Binding System & Viewport Components
-- [ ] Implement drag-to-bind: drag DB field or state variable onto UI component property
-- [ ] Create basic Viewport rendering of components (Button, Text, Container, Input, Image, Card)
-- [ ] Implement bidirectional Outliner ↔ Viewport selection sync
-- [ ] Verify: Dragging `product.name` onto a Text component shows a binding indicator
+### Sub-Phase 4.4: 120 FPS Canvas Wire Renderer
+- [ ] Create `src/editor/canvas/WasmCableCanvas.tsx` — Canvas overlay calling Wasm for spline coords.
+- [ ] Render Bezier wires using color taxonomy from `UI.md §2.2`.
+- [ ] Implement wire hover highlight and execution pulse streams.
 
----
-
-## 7. Phase 5: Motion Blueprint & GSAP Timeline
-
-**Goal:** Dedicated animation system for web micro-interactions and scroll-driven experiences.
-
-**Goal Alignment Check (PRD.md §4.5):** "GSAP-driven keyframe editor and preview system"
+### Sub-Phase 4.5: Interactive Node Canvas
+- [ ] Enhance `BlueprintCanvas.tsx` with pan/zoom and node placement.
+- [ ] Implement `NodeCard.tsx`, `PinHandle.tsx`, `CommentBox.tsx`, `RerouteNode.tsx`.
+- [ ] Implement `ActionPaletteModal.tsx` (Tab / Right-click node search catalog).
+- [ ] Verify: Dragging wires displays real-time cable sag and spring tension at 120 FPS.
 
 ---
 
-### Sub-Phase 5.1: Timeline Sequencer UI
-- [ ] Create Panel 06: `TimelineSequencer.tsx` — Multi-track container with time ruler
-- [ ] Implement `KeyframeTrack.tsx` — Horizontal property track
-- [ ] Implement `KeyframeDiamond.tsx` — Place, drag, delete keyframe markers
-- [ ] Implement `PlaybackControls.tsx` — Play, Pause, Loop, Reverse, Speed, Scrub
-- [ ] Verify: User can add keyframes to tracks and scrub the playhead
+## 7. Phase 5: Play Mode Interactive Runtime & Execution Trace
 
-### Sub-Phase 5.2: Easing Curve Editor
-- [ ] Create `BezierCurveEditor.tsx` — Visual curve editor with control point handles
-- [ ] Implement easing preset library (Power2, Power3, Elastic, Bounce, Back, Custom)
-- [ ] Verify: Selecting different easings visually changes the curve shape
-
-### Sub-Phase 5.3: GSAP Integration & Live Preview
-- [ ] Connect timeline data to GSAP runtime for live preview on Viewport components
-- [ ] Implement `ScrollTriggerOverlay.tsx` for scroll-based animation configuration
-- [ ] Verify: Playing the timeline animates components in the Viewport in real time
-
-### Sub-Phase 5.4: Motion Assets & API/Auth Studios
-- [ ] Implement saving timelines as reusable `.motion.json` assets
-- [ ] Create Panel 11: API Studio — Basic endpoint configuration and test runner
-- [ ] Create Panel 12: Auth Studio — Basic auth flow diagram and role matrix
-- [ ] Verify: Motion assets appear in Content Browser and can be attached to components
+**Goal:** Zero-build instant interactive simulation with live execution trace and animated wire pulses.
 
 ---
 
-## 8. Phase 6: Play Mode Runtime & Execution Trace
+### Sub-Phase 5.1: In-Memory Runtime Sandbox Host
+- [ ] Create `SandboxHost.tsx` — Isolated iframe runtime boundary.
+- [ ] Implement DOM reconciliation from active project AST.
+- [ ] Trap runtime exceptions and route them to Panel 07 (Output Log).
 
-**Goal:** Press ▶ Play and watch the application work. This is the "First Magic Moment" of the entire product.
+### Sub-Phase 5.2: Mock Database & Service Worker API Interceptor
+- [ ] Create `MockDatabase.ts` — In-memory IndexedDB / SQLite store.
+- [ ] Create `MockApiServer.ts` — Service Worker intercepting fetch calls.
+- [ ] Seed test data and verify CRUD operations in Play Mode.
 
-**Goal Alignment Check (PRD.md §1.3.4):** "Visual Execution Trace & Debugging"
+### Sub-Phase 5.3: Visual Execution Tracer & Wire Pulse Telemetry
+- [ ] Create `ExecutionTracer.ts` — Captures node-by-node execution events.
+- [ ] Create Panel 20: `ExecutionTracePanel.tsx` — Step-by-step trace list.
+- [ ] Render Wasm wire pulses showing data packets traversing connections in real time.
 
----
+### Sub-Phase 5.4: AI Co-Pilot Assistant Integration
+- [ ] Create Panel 18: `AiPromptBar.tsx` — Conversational assistant drawer.
+- [ ] Implement AI AST diagnostic mode suggesting fixes for failing nodes or bindings.
+- [ ] Require explicit user approval before applying AI AST diffs.
 
-### Sub-Phase 6.1: Blueprint Compiler (In-Memory)
-- [ ] Create `BlueprintCompiler.ts` — AST → executable JavaScript compilation
-- [ ] Implement `ValidationPass.ts` — Pre-compilation checks
-- [ ] Verify: A simple blueprint compiles into runnable JS without errors
-
-### Sub-Phase 6.2: Sandbox Runtime Environment
-- [ ] Create `SandboxHost.tsx` — Secure iframe sandbox
-- [ ] Create `MockDatabase.ts` — In-memory data store
-- [ ] Create `MockApiServer.ts` — Service Worker mock interceptor
-- [ ] Create `MockAuthProvider.ts` — Simulated sessions
-- [ ] Verify: The sandbox loads and renders compiled components with working interactions
-
-### Sub-Phase 6.3: Execution Trace System
-- [ ] Create `ExecutionTracer.ts` — Captures node-by-node execution events
-- [ ] Create Panel 20: `ExecutionTracePanel.tsx` — Step-by-step trace list
-- [ ] Implement `PulseAnimator` (C++ Wasm) — Animated light pulses along wires
-- [ ] Verify: Clicking a button in Play Mode shows checkmarks traveling along wires
-
-### Sub-Phase 6.4: AI Assistant Integration
-- [ ] Create Panel 18: `AiPromptBar.tsx` — Floating prompt input with streaming response
-- [ ] Create `AiDiagnosticDrawer.tsx` — Error analysis with "Fix Blueprint" suggestions
-- [ ] Verify: AI can diagnose a simple runtime error and suggest a wire fix
-
-### Sub-Phase 6.5: Hot Reload & Debug Breakpoints
-- [ ] Implement hot module replacement in sandbox (editor changes reflect without restart)
-- [ ] Implement breakpoint support (pause at node, step forward)
-- [ ] Verify: Setting a breakpoint pauses execution; user can inspect data payloads
+### Sub-Phase 5.5: Hot Reload & Breakpoint Debugger
+- [ ] Hot-swap updated blueprint nodes and element properties without full sandbox restart.
+- [ ] Implement breakpoint toggles on nodes to pause execution and inspect pin payloads.
 
 ---
 
-## 9. Phase 7: Blueprint Compiler & Code Generation
+## 8. Phase 6: Blueprint Compiler & Production Code Generation
 
-**Goal:** Export the visual application as clean, production-ready, human-readable source code.
-
-**Goal Alignment Check (PRD.md §4.8):** "Clean Code Generation: React 19 / Next.js with semantic HTML"
+**Goal:** Compile the visual project AST into clean, human-readable Next.js 15, React 19, and Prisma code.
 
 ---
 
-### Sub-Phase 7.1: Frontend Code Emitters
-- [ ] Create `ReactComponentEmitter.ts` — Generates React 19 JSX with hooks
-- [ ] Create `StyleEmitter.ts` — Generates CSS with design tokens
-- [ ] Create `GSAPAnimationEmitter.ts` — Generates GSAP timelines
-- [ ] Verify: Generated React components render identically to the Viewport
+### Sub-Phase 6.1: Frontend React 19 / JSX Code Emitters
+- [ ] Create `ReactComponentEmitter.ts` — Generates accessible JSX components with TypeScript types.
+- [ ] Create `StyleEmitter.ts` — Generates scoped CSS variables and rules from design tokens.
+- [ ] Create `GSAPAnimationEmitter.ts` — Generates production GSAP timelines.
 
-### Sub-Phase 7.2: Backend & Database Emitters
-- [ ] Create `LogicFlowEmitter.ts` — Generates async TypeScript business logic
-- [ ] Create `ApiRouteEmitter.ts` — Generates Next.js API handlers
-- [ ] Create `PrismaSchemaEmitter.ts` — Generates `schema.prisma` + SQL migrations
-- [ ] Create `AuthEmitter.ts` — Generates NextAuth configuration
-- [ ] Verify: Generated backend code handles CRUD operations correctly
+### Sub-Phase 6.2: Backend API & Prisma Schema Emitters
+- [ ] Create `LogicFlowEmitter.ts` — Generates async TypeScript business logic.
+- [ ] Create `ApiRouteEmitter.ts` — Generates Next.js API route handlers.
+- [ ] Create `PrismaSchemaEmitter.ts` — Generates `schema.prisma` + SQL migrations.
 
-### Sub-Phase 7.3: Code Inspector Panel
-- [ ] Create Panel 16: `LiveCodeInspector.tsx` — Split-pane code viewer
-- [ ] Implement AST-to-code bidirectional mapping (click code → highlight node, and vice-versa)
-- [ ] Verify: Clicking a line of generated code highlights the corresponding Blueprint Node
+### Sub-Phase 6.3: Live Code Inspector Panel
+- [ ] Create Panel 16: `LiveCodeInspector.tsx` — Split-pane code viewer.
+- [ ] Implement bidirectional AST-to-code mapping (click line ➔ highlight element, and vice-versa).
 
-### Sub-Phase 7.4: Build Pipeline & Export
-- [ ] Implement full build pipeline: Validate → Compile → Bundle → generate `build-manifest.json`
-- [ ] Create `GitExporter.ts` — Export as standalone Git repository
-- [ ] Create Panel 19: `DeploymentDashboard.tsx` — Build pipeline visualizer
-- [ ] Verify: Exported repository runs independently with `npm install && npm run dev`
+### Sub-Phase 6.4: Standalone Git Project Exporter
+- [ ] Create `GitExporter.ts` — Packages compiled files into a standard Next.js repository.
+- [ ] Verify: Exported repository boots independently with `npm install && npm run dev`.
 
-### Sub-Phase 7.5: Pages Manager & Remaining MVP Panels
-- [ ] Create Panel 30: `PagesManager.tsx` — Visual route tree
-- [ ] Create Panel 25: `GlobalSearchPanel.tsx` — Full-project search (Find in Blueprints)
-- [ ] Final integration testing across all panels
-- [ ] Verify: Complete end-to-end flow from project creation to code export works
+### Sub-Phase 6.5: Pages & Routing Manager
+- [ ] Create Panel 30: `PagesManager.tsx` — Visual sitemap tree and dynamic route configuration.
+
+---
+
+## 9. Phase 7: Cloud Deployment, Operations & Extensions
+
+**Goal:** Production cloud deployment, global search, keyboard commands, and plugin ecosystem.
+
+---
+
+### Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy
+- [ ] Create Panel 19: `DeploymentDashboard.tsx` — Build pipeline progress tracker.
+- [ ] Support deployment targets: Vercel, Docker, Cloudflare Pages.
+
+### Sub-Phase 7.2: Global Search Engine (Find in Blueprints)
+- [ ] Create Panel 25: `GlobalSearchPanel.tsx` — Inverted index search across all entities.
+
+### Sub-Phase 7.3: Keyboard Shortcuts & Command Palette
+- [ ] Create `CommandPalette.tsx` (`Ctrl+P`) with fuzzy search.
+- [ ] Register global shortcuts (`Ctrl+S`, `Ctrl+Z`, `Ctrl+Shift+F`, `Ctrl+Enter`).
+
+### Sub-Phase 7.4: Plugin Architecture & Extension Points
+- [ ] Create Panel 29: `PluginManager.tsx`.
+- [ ] Implement sandbox for custom node and element archetype plugins.
+
+### Sub-Phase 7.5: Final Integration Testing & Production Verification
+- [ ] Full end-to-end audit from blank canvas to deployed web application.
 
 ---
 
 ## 10. Post-MVP Phases (Future)
 
 | Phase | Name | Key Deliverables |
-|-------|------|-----------------|
-| **8** | Advanced Panels | Undo History (P23), Version Control (P24), Reference Viewer (P26), Design System (P27), Performance Profiler (P21) |
-| **9** | Collaboration | Real-time CRDT editing, Comments panel (P15), presence cursors |
-| **10** | Marketplace | Community marketplace (P28), Plugin SDK (P29), template publishing |
-| **11** | Localization & Accessibility | i18n manager (P31), WCAG audit (P32), RTL support |
-| **12** | Advanced Deployment | Docker export, AWS/Cloudflare, CI/CD pipelines |
-| **13** | Mobile Generation | React Native / Flutter emitters |
+|---|---|---|
+| **8** | Advanced History | Undo History (P23), Version Snapshots (P24), Reference Viewer (P26) |
+| **9** | Collaboration | Real-time multi-user presence, Comments Panel (P15) |
+| **10** | Marketplace | Community Marketplace (P28), Template Store |
+| **11** | Localization & A11y | Localization Dashboard (P31), WCAG 2.1 Audit (P32) |
+| **12** | Mobile Target | React Native / Flutter emitters |
 
 ---
 
@@ -422,10 +430,7 @@ The project is organized into **7 major phases**, each broken into **numbered su
 
 A sub-phase is considered **complete** when:
 1. All checklist items are checked off
-2. The verification test described at the end passes
-3. No critical bugs in the implemented features
-4. New panels integrate with the existing docking system
-5. Undo/redo works for all new editor actions (where applicable)
-6. The CHANGELOG.md is updated
-7. All CSS uses tokens from `tokens.css` — no hardcoded values
-8. All component files have header comments describing their purpose and which panel/screen they belong to
+2. The verification test passes
+3. No regressions in existing dock zones or inspector sections
+4. Full adherence to the **Inside-Out Engine Law** (Core contracts ➔ Engine validator ➔ Output Log diagnostics ➔ UI controls)
+5. All styling uses tokens from `tokens.css` without hardcoded values

@@ -100,7 +100,7 @@ export const ContentBrowser: React.FC<{
       if (activated) return;
       const dx = moveEvt.clientX - originX;
       const dy = moveEvt.clientY - originY;
-      if (Math.sqrt(dx * dx + dy * dy) >= 40) {
+      if (Math.sqrt(dx * dx + dy * dy) >= 24) {
         activated = true;
         // Map asset category to a panel-like ID for the tear-off system
         const panelId = asset.category === "blueprint" ? "blueprint" : asset.id;

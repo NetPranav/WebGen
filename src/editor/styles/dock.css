@@ -525,25 +525,25 @@ body.is-resizing .dock-corner-splitter {
   top: 0;
   left: 0;
   right: 0;
-  height: 80px;
+  height: 100px;
   background: transparent;
   border-bottom: 2px solid transparent;
-  transition: all 0.2s var(--ease-out-expo);
+  transition: all 0.18s var(--ease-out-expo);
   pointer-events: none;
 }
 
 .tearoff-header-dropzone--active {
   background: linear-gradient(
     180deg,
-    rgba(59, 130, 246, 0.08) 0%,
-    rgba(59, 130, 246, 0.02) 60%,
+    rgba(59, 130, 246, 0.10) 0%,
+    rgba(59, 130, 246, 0.03) 50%,
     transparent 100%
   );
   border-bottom-color: var(--accent-primary);
-  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 2px 16px rgba(59, 130, 246, 0.20);
 }
 
-/* Floating glassmorphic preview rectangle */
+/* Floating glassmorphic preview rectangle — GPU-accelerated */
 .tearoff-preview {
   position: absolute;
   top: 0;
@@ -561,14 +561,120 @@ body.is-resizing .dock-corner-splitter {
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   pointer-events: none;
-  animation: tearoff-appear 0.15s var(--ease-out-expo);
-  will-change: transform;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  animation: tearoff-appear 0.12s var(--ease-out-expo);
+  will-change: transform, opacity, border-color;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+/* Dock Full-Page highlight */
 .tearoff-preview--header-zone {
   border-color: var(--accent-primary);
   box-shadow: var(--shadow-lg), 0 0 16px rgba(59, 130, 246, 0.25), 0 0 0 1px var(--accent-primary);
+}
+
+/* Bottom Drawer Drop Zone — 50% opacity translucent connection preview */
+.tearoff-bottom-drawer-dropzone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 36px;
+  height: 240px;
+  background: rgba(99, 102, 241, 0.10);
+  border: 2px dashed rgba(99, 102, 241, 0.50);
+  border-bottom: none;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: tearoff-appear 0.15s var(--ease-out-expo);
+  backdrop-filter: blur(2px);
+}
+
+.tearoff-bottom-drawer-dropzone__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px;
+  background: rgba(15, 17, 26, 0.82);
+  border: 1px solid rgba(99, 102, 241, 0.40);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color: var(--text-primary);
+}
+
+.tearoff-bottom-drawer-dropzone__icon {
+  color: #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tearoff-bottom-drawer-dropzone__label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #c7d2fe;
+}
+
+.tearoff-bottom-drawer-dropzone__sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Bottom Bar Drop Zone — status bar highlight */
+.tearoff-bottom-bar-dropzone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36px;
+  background: rgba(99, 102, 241, 0.22);
+  border-top: 2px solid #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: tearoff-appear 0.12s var(--ease-out-expo);
+}
+
+.tearoff-bottom-bar-dropzone__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0e7ff;
+  letter-spacing: 0.02em;
+}
+
+/* Preview states for bottom targets */
+.tearoff-preview--bottom-drawer {
+  border-color: #818cf8;
+  box-shadow: var(--shadow-lg), 0 0 16px rgba(99, 102, 241, 0.25), 0 0 0 1px #818cf8;
+}
+
+.tearoff-preview--bottom-drawer .tearoff-preview__hint {
+  color: #a5b4fc;
+}
+
+.tearoff-preview--bottom-bar {
+  border-color: #a5b4fc;
+  box-shadow: var(--shadow-lg), 0 0 12px rgba(99, 102, 241, 0.20);
+}
+
+.tearoff-preview--bottom-bar .tearoff-preview__hint {
+  color: #c7d2fe;
+}
+
+/* Snap-back zone: dimmed + dashed border to signal cancel */
+.tearoff-preview--snapback {
+  opacity: 0.45;
+  border-style: dashed;
+  border-color: var(--text-tertiary);
+  box-shadow: none;
+}
+
+.tearoff-preview--snapback .tearoff-preview__hint {
+  color: var(--accent-warning);
 }
 
 .tearoff-preview__grip {
@@ -618,7 +724,7 @@ body.is-resizing .dock-corner-splitter {
 @keyframes tearoff-appear {
   from {
     opacity: 0;
-    transform: scale(0.92);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;

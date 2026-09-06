@@ -65,6 +65,7 @@ MyGame/
 7. **Reference Viewer & Size Map:** Unreal provides tools to visualize asset dependencies and memory usage. Our engine needs a Dependency Graph Viewer to understand how pages, components, blueprints, and database schemas reference each other.
 8. **Find in Blueprints (Global Search):** Unreal allows searching across ALL blueprints in a project for specific nodes, variables, or functions. Our global search must cover all graphs, pages, components, database fields, API endpoints, and state variables.
 9. **Undo History Panel:** Unreal provides a visible list of all recent actions with the ability to jump back to any point. Our engine needs this for all subsystems (viewport edits, blueprint wiring, database schema changes, animation keyframes).
+10. **The Inside-Out Engine Law (Core Settings ➔ Compatibility Evaluator ➔ Diagnostics ➔ UI Reflection):** In Unreal, Slate UI widgets never manipulate raw state without `UProperty` reflection and compile validation. In our engine, every single visual panel and control is strictly built from the inside out: **Innermost Type Contracts & Connection Settings** (`src/core/types/`) ➔ **Engine Compatibility Evaluator** (`src/core/engine/`) ➔ **Diagnostic Bus & Output Log** (`Panel 07`) ➔ **UI Presentation Layer** (`src/editor/panels/`). If an animation sample or property cannot attach to an element archetype, the engine traps the error and emits a diagnostic to the Output Log instead of crashing or corrupting DOM styles.
 
 ---
 
@@ -141,9 +142,14 @@ WebAPPBuilder/
 │   ├── core/                               # CORE PLATFORM LAYER
 │   │   │                                   # ═══ Unreal Equivalent: Core, CoreUObject, Engine
 │   │   │
-│   │   ├── types/                          # Master TypeScript Data Types & Schemas
+│   │   ├── types/                          # Master TypeScript Data Types & Schemas (TIER 1: INNERMOST CORE)
 │   │   │   ├── project.ts                  # Project manifest schema
 │   │   │   ├── component.ts                # UI component schema & properties
+│   │   │   ├── details.ts                  # Details Inspector property descriptor contracts
+│   │   │   ├── element-sections.ts         # Archetype-specific section mappings
+│   │   │   ├── animations.ts               # Animation track schemas & archetype compatibility matrix
+│   │   │   ├── data-binding.ts             # State/API to component property binding contracts
+│   │   │   ├── diagnostics.ts              # Diagnostic event schemas & Output Log channel definitions
 │   │   │   ├── graph.ts                    # Nodes, Pins, Wires, Dataflow schema
 │   │   │   ├── node-registry.ts            # All built-in node type definitions
 │   │   │   ├── database.ts                 # Collections, Fields, Relations schema
@@ -154,6 +160,12 @@ WebAPPBuilder/
 │   │   │   ├── plugin.ts                   # Plugin manifest & extension point schema
 │   │   │   ├── theme.ts                    # Design tokens, colors, typography schema
 │   │   │   └── workspace.ts                # Editor workspace layout schema
+│   │   │
+│   │   ├── engine/                         # RUNTIME COMPATIBILITY & VALIDATION LAYER (TIER 2: WRAPPER)
+│   │   │   ├── AnimationValidator.ts       # Evaluates track compatibility against target element archetype
+│   │   │   ├── PropertyValidator.ts        # Validates CSS metrics, layout modes, and archetype constraints
+│   │   │   ├── DataBindingValidator.ts     # Validates type safety between state/API payloads and element props
+│   │   │   └── DiagnosticBus.ts            # Traps invalid connections and routes errors to Panel 07 (Output Log)
 │   │   │
 │   │   ├── ast/                            # Abstract Syntax Tree Core
 │   │   │   ├── ASTManager.ts               # In-memory graph manager & validator

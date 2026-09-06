@@ -24,6 +24,7 @@ It is **NOT** a simple drag-and-drop website builder (e.g., Wix, Squarespace, or
 2. **Deterministic Blueprint AST as Single Source of Truth:** The visual node graph translates directly to a structured Abstract Syntax Tree (AST), which compiles into standard, clean, human-readable frontend and backend code.
 3. **AI as an AST Co-Pilot (Not a Black Box):** AI does not generate unmaintainable, opaque blobs of code. AI generates and modifies structured Blueprint Nodes. The user visually inspects the generated wires, tweaks logic visually, and recompiles.
 4. **Visual Execution Trace & Debugging:** Bugs, failing database constraints, and API errors light up directly on the node wires in real time with visual pulses, step-by-step traces, and AI diagnostics.
+5. **Inside-Out Engine Construction (Core ➔ Compatibility ➔ Diagnostics ➔ UI):** Unlike fragile visual editors that build UI forms first and patch backend connections later, this engine enforces strict inside-out architecture. Foundational property schemas and track registries (`src/core/types/`) are established first; runtime compatibility evaluators (`src/core/engine/`) validate every connection; invalid attempts are routed as structured diagnostics to the Output Log (`[ANIM_COMPAT]`, `[BIND_ERR]`, `[PROP_ERR]`); and UI panels strictly reflect and command the validated core.
 
 ---
 

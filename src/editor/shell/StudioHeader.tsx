@@ -25,6 +25,7 @@ import {
   Monitor,
   Tablet,
   Smartphone,
+  Database,
 } from "lucide-react";
 import { FileMenu } from "@/editor/menus/FileMenu";
 import { EditMenu } from "@/editor/menus/EditMenu";
@@ -60,6 +61,8 @@ interface StudioHeaderProps {
   onResetLayout?: () => void;
   onOpenPanel?: (zone: "left" | "right" | "bottom" | "center", tabId: string) => void;
   onOpenSettings?: () => void;
+  onOpenDatabase?: () => void;
+  activePage?: "editor" | "database";
 }
 
 export const StudioHeader: React.FC<StudioHeaderProps> = ({
@@ -88,6 +91,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onResetLayout,
   onOpenPanel,
   onOpenSettings,
+  onOpenDatabase,
+  activePage = "editor",
 }) => {
   const [openMenu, setOpenMenu] = useState<OpenMenuId>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -225,6 +230,20 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               onResetLayout={onResetLayout}
               onOpenPanel={onOpenPanel}
             />
+          </div>
+
+          {/* DataBase Studio Page Navigation Button */}
+          <div className="menu-bar__item-wrapper">
+            <button
+              type="button"
+              className={`menu-bar__trigger menu-bar__trigger--database ${activePage === "database" ? "menu-bar__trigger--active" : ""}`}
+              onClick={onOpenDatabase}
+              title="Open Database Schema Studio"
+              aria-label="Open Database Studio"
+            >
+              <Database size={12} />
+              <span>DataBase</span>
+            </button>
           </div>
 
           {/* Help Menu */}

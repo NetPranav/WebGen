@@ -44,6 +44,16 @@ Instead of the dark, dense, 1990s CAD-like aesthetic typical of traditional 3D g
 
 ---
 
+## 1.2 Inside-Out UI Architecture: Pure Reflection of Validated Core Settings
+
+A fundamental law of this platform's UI architecture is that **no UI control exists in isolation**:
+- **Inside-Out Direction**: Development and data flow move strictly from the **innermost connection settings and schemas** (`src/core/types/`) ➔ through the **engine compatibility validation wrapper** (`src/core/engine/`) ➔ out to the **visual UI controls** that connect to element properties (`src/editor/panels/`).
+- **Diagnostics First**: If an element property cannot accept an animation sample, a CSS rule, or a data binding, the engine's validation wrapper traps the error and emits a structured diagnostic event to the Output Log (`[ANIM_COMPAT]`, `[BIND_ERR]`, `[PROP_ERR]`) instead of crashing the UI or applying corrupt styles.
+- **Details Panel as Reflection**: The Details & Properties Inspector dynamically reflects only the validated properties permitted by the selected element's archetype schema.
+- **Timeline & Wire Binding**: When an animation track or wire is connected to an element property, the engine evaluates compatibility against the element's archetype before the UI wire or track diamond is locked in place.
+
+---
+
 ## 2. Visual Theme, Tokens & Styling Guidelines
 
 ### 2.1 Color Palette
@@ -139,6 +149,7 @@ The platform provides **17 dedicated screens/workspaces**, divided into:
   * **Typography:** Font family selector, Font weight slider, Size, Line height, Letter spacing, Text alignment, Text transform.
   * **Data Bindings:** Connect component properties to State Variables, Database Query outputs, or API response values via a visual dropdown picker.
   * **Behavior & Event Triggers:** Visual list of bound events (`onClick`, `onHover`, `onFormSubmit`) with a "Open Blueprint" button.
+* **Inside-Out Connection Pipeline:** Every inspector section maps to an innermost property descriptor in `src/core/types/details.ts`. When the user edits a value, the Engine Compatibility Evaluator checks bounds, units, and archetype constraints. If invalid, it traps the error, emits `[PROP_ERR]` to the Output Log, and displays an inline error indicator rather than applying corrupt styles.
 
 #### Screen 4: Content & Asset Browser (Unreal "Content Browser" Equivalent)
 * **Description:** The central repository for all project assets, modular components, and reusable templates.
@@ -147,6 +158,7 @@ The platform provides **17 dedicated screens/workspaces**, divided into:
   * **Asset Cards with Live Previews:** Hovering over a UI component asset shows its rendered state; hovering over an animation asset plays a 2-second preview.
   * **Drag-to-Stage:** Drag any component or graphic asset directly from the Content Browser onto the Viewport or Blueprint canvas.
   * **Asset Importer:** Support for drag-and-drop import of SVGs, PNGs, WebP, Lottie JSON, and custom Google Font packages.
+* **Inside-Out Connection Pipeline:** Assets dragged onto elements are validated against archetype compatibility contracts (e.g. video textures or animations onto incompatible element types emit `[ASSET_COMPAT]` to the Output Log).
 
 #### Screen 5: Logic Blueprint Editor (Unreal "Blueprint Visual Scripting" Equivalent)
 * **Description:** The full-scale visual scripting workspace where application behavior, data manipulation, and workflows are wired together.
@@ -156,6 +168,7 @@ The platform provides **17 dedicated screens/workspaces**, divided into:
   * **Pin Snapping & Cable Physics:** Dragging a pin simulates physical cable droop and spring tension; pins snap magnetically to compatible inputs.
   * **Type-Aware Wire Validation:** Wires turn red and disallow connection if types are incompatible (e.g., trying to plug a `String` into a `Boolean` port without a converter node).
   * **Comment Boxes:** Group related nodes inside resizable colored comment boxes (e.g., "Checkout Validation Flow").
+* **Inside-Out Connection Pipeline:** Blueprint wires connect node output pins to innermost element property pins. Type checking ensures pin compatibility; mismatches turn the wire red and dispatch a `[PIN_TYPE_MISMATCH]` error to the Output Log.
 
 #### Screen 6: Motion Blueprint & Sequencer (Unreal "Sequencer / Curve Editor" Equivalent)
 * **Description:** Keyframe animation timeline built on the GSAP engine for choreographing micro-interactions and scroll experiences.
@@ -165,13 +178,15 @@ The platform provides **17 dedicated screens/workspaces**, divided into:
   * **Cubic Bezier Easing Inspector:** Visual curve editor with interactive control handles (Power2, Power4, Elastic, Bounce, Custom Bezier).
   * **Playhead & Playback Controls:** Scrub bar with Play (▶), Pause (⏸), Loop (🔁), and Reverse (◀) buttons.
   * **ScrollTrigger Threshold Visualizer:** Mark Scroll start and end trigger points directly on the viewport canvas.
+* **Inside-Out Connection Pipeline:** Animation tracks are driven by the innermost track registry (`src/core/types/animations.ts`). The Engine Animation Compatibility Evaluator verifies if the target element's archetype supports that property track before attaching. Incompatible assignments trigger `[ANIM_COMPAT]` diagnostics in the Output Log.
 
 #### Screen 7: Output Log & Console (Unreal "Output Log" Equivalent)
 * **Description:** Developer terminal and event stream recording engine compilation, network activity, and runtime diagnostics.
 * **Core Capabilities:**
-  * **Filter Channels:** Toggle logs by category: `All`, `Blueprint Events`, `Database Queries`, `API Traffic`, `Compiler`, `Errors`.
+  * **Filter Channels:** Toggle logs by category: `All`, `Blueprint Events`, `Database Queries`, `API Traffic`, `Compiler`, `Errors`, `Compatibility Diagnostics`.
   * **Error Stack Traces:** Clicking an error jumps directly to the failing Blueprint Node or invalid component property.
   * **Query Timing Profiler:** Displays execution time for database queries and API calls (e.g., `DB: Query Products [12ms]`).
+* **Inside-Out Connection Pipeline:** Output Log acts as the primary diagnostic sink for all subsystem validators (`[ANIM_COMPAT]`, `[BIND_ERR]`, `[PROP_ERR]`), with one-click navigation links back to the offending element's property control in the Details Inspector.
 
 #### Screen 8: Play Mode / Preview Sandbox (Unreal "PIE - Play in Editor" Equivalent)
 * **Description:** Instant zero-build interactive simulation of the application.
@@ -236,6 +251,7 @@ The platform provides **17 dedicated screens/workspaces**, divided into:
   * **State Variable Manager:** Define Global State (`currentUser`, `cartItemsCount`, `themeMode`), Page State, and Local Component State.
   * **Binding Lines Visualizer:** View a diagram of how state flows: `State Variable` ➔ `Computed Transform` ➔ `Component Property`.
   * **Two-Way Binding Toggles:** Enable two-way binding on form inputs (e.g., `Input Text` ⟷ `State.userEmail`).
+* **Inside-Out Connection Pipeline:** State variables and computed selectors map to component property inputs via the innermost `DataBindingContract` (`src/core/types/data-binding.ts`). The Engine State Compatibility Evaluator validates data types, emitting `[BIND_ERR]` to the Output Log on type mismatches before any binding can be established.
 
 #### Screen 15: Live Code Inspector & Diff Synchronizer
 * **Description:** Side-by-side inspectable code view displaying the generated production code.
