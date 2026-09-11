@@ -39,9 +39,21 @@ import { AssetFileEditor } from "@/editor/panels/content-browser/AssetFileEditor
 import { StateMatrixViewer } from "@/editor/panels/state/StateMatrixViewer";
 import { DatabaseDesigner } from "@/editor/panels/database/DatabaseDesigner";
 import { DatabaseStudio } from "@/editor/panels/database/DatabaseStudio";
+import { ContentBlockShelf } from "@/editor/panels/content-browser/ContentBlockShelf";
 import { useTearOff, TearOffDragSource } from "@/core/events/useTearOff";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
-import { Save, Undo2, Redo2, Terminal, X, Database, Settings } from "lucide-react";
+import {
+  Save,
+  Undo2,
+  Redo2,
+  Terminal,
+  X,
+  Database,
+  Settings,
+  Monitor,
+  Network,
+  Sparkles,
+} from "lucide-react";
 import { PanelTab } from "@/core/types/workspace";
 
 interface EditorShellProps {
@@ -125,7 +137,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
    * -------------------------------------------------------------------------- */
   const [leftActiveTab, setLeftActiveTab] = useState("outliner");
   const [rightActiveTab, setRightActiveTab] = useState("details");
-  const [bottomActiveTab, setBottomActiveTab] = useState("blueprint");
+  const [bottomActiveTab, setBottomActiveTab] = useState("content-browser");
   const [centerActiveTab, setCenterActiveTab] = useState("viewport");
   const [isOutputLogOpen, setIsOutputLogOpen] = useState(false);
 
@@ -148,6 +160,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     Array<{ panelId: string; title: string; dragSource?: TearOffDragSource }>
   >([]);
   const [activeFullPageIndex, setActiveFullPageIndex] = useState<number>(0);
+  const [activeFullPageTabId, setActiveFullPageTabId] = useState<string | null>(null);
 
   /** Store tab state during drag for snap-back cancellation */
   const draggedFullPageTabRef = React.useRef<{
@@ -160,6 +173,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const currentFullPagePanel =
     fullPagePanels[activeFullPageIndex] ?? fullPagePanels[0] ?? null;
 
+  const currentTabId = activeFullPageTabId ?? currentFullPagePanel?.panelId ?? null;
+
   /** Store pre-full-page layout state for restoration on close */
   const preFullPageRef = React.useRef<{
     leftCollapsed: boolean;
@@ -169,12 +184,15 @@ export const EditorShell: React.FC<EditorShellProps> = ({
 
   /** All bottom-drawer panel definitions (before filtering) */
   const ALL_BOTTOM_TABS: PanelTab[] = [
-    { id: "blueprint", title: "Logic Blueprint", closable: false },
+    { id: "content-browser", title: "Content Browser", closable: false },
+    { id: "blocks", title: "Section Blocks", closable: false },
     { id: "sequencer", title: "Timeline Sequencer", closable: false },
   ];
 
   /** Map panel IDs to titles for tear-off (includes console for output log) */
   const PANEL_TITLES: Record<string, string> = {
+    "content-browser": "Content Browser",
+    blocks: "Section Blocks",
     blueprint: "Logic Blueprint",
     sequencer: "Timeline Sequencer",
     console: "Output Log",
@@ -184,6 +202,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const handleDockFullPage = useCallback(
     (panelId: string, panelTitle: string, dragSource?: TearOffDragSource) => {
       draggedFullPageTabRef.current = null;
+      setActiveFullPageTabId(panelId);
 
       // Save current layout state before going full-page (only on first full-page tab)
       if (fullPagePanels.length === 0) {
@@ -229,6 +248,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       const next = prev.filter((p) => p.panelId !== panelId);
 
       if (next.length === 0) {
+        setActiveFullPageTabId(null);
         // All full-page tabs closed! Restore pre-full-page layout
         if (preFullPageRef.current) {
           setLeftCollapsed(preFullPageRef.current.leftCollapsed);
@@ -237,15 +257,14 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           preFullPageRef.current = null;
         } else {
           setBottomCollapsed(false);
-          setBottomActiveTab(panelId);
+          setBottomActiveTab("content-browser");
         }
         setActiveFullPageIndex(0);
       } else {
         setActiveFullPageIndex((curIdx) => {
-          if (curIdx >= next.length) return next.length - 1;
-          if (curIdx === closeIdx) return Math.max(0, closeIdx - 1);
-          if (curIdx > closeIdx) return curIdx - 1;
-          return curIdx;
+          const newIdx = curIdx >= next.length ? next.length - 1 : curIdx === closeIdx ? Math.max(0, closeIdx - 1) : curIdx > closeIdx ? curIdx - 1 : curIdx;
+          setActiveFullPageTabId(next[newIdx]?.panelId ?? "viewport");
+          return newIdx;
         });
       }
       return next;
@@ -495,6 +514,10 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       setRightActiveTab(tabId);
       handleZoneClick("right");
     } else if (zone === "bottom") {
+      if (tabId === "blueprint") {
+        handleDockFullPage("blueprint", "Logic Blueprint");
+        return;
+      }
       if (tabId === "console") {
         setIsOutputLogOpen(true);
         return;
@@ -503,7 +526,19 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       setBottomActiveTab(tabId);
       handleZoneClick("bottom");
     } else if (zone === "center") {
-      setCenterActiveTab(tabId);
+      if (tabId === "blueprint") {
+        handleDockFullPage("blueprint", "Logic Blueprint");
+      } else if (tabId === "er-modeler") {
+        handleDockFullPage("er-modeler", "Database Schema");
+      } else if (tabId === "sequencer") {
+        handleDockFullPage("sequencer", "Timeline Sequencer");
+      } else if (tabId === "content-browser") {
+        handleDockFullPage("content-browser", "Content Browser");
+      } else if (tabId === "settings") {
+        setCenterActiveTab("settings");
+      } else {
+        setCenterActiveTab("viewport");
+      }
     }
   };
 
@@ -523,7 +558,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       setLeftWidth(300);
       setRightWidth(320);
       setBottomHeight(240);
-      setBottomActiveTab("blueprint");
+      setBottomActiveTab("content-browser");
+      setCenterActiveTab("viewport");
     } else if (preset === "design") {
       setLeftCollapsed(false);
       setRightCollapsed(false);
@@ -532,17 +568,17 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       setRightWidth(360);
       setLeftActiveTab("outliner");
       setRightActiveTab("details");
+      setCenterActiveTab("viewport");
     } else if (preset === "logic") {
       setLeftCollapsed(true);
-      setRightCollapsed(true);
-      setBottomCollapsed(false);
-      setBottomHeight(380);
-      setBottomActiveTab("blueprint");
+      setRightCollapsed(false);
+      setBottomCollapsed(true);
+      handleDockFullPage("blueprint", "Logic Blueprint");
     } else if (preset === "data") {
       setLeftCollapsed(false);
       setRightCollapsed(false);
       setBottomCollapsed(false);
-      setCenterActiveTab("er-modeler");
+      handleDockFullPage("er-modeler", "Database Schema");
     } else if (preset === "debug") {
       setLeftCollapsed(false);
       setRightCollapsed(false);
@@ -559,7 +595,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
    * -------------------------------------------------------------------------- */
   const leftTabs: PanelTab[] = [
     { id: "outliner", title: "Outliner", closable: false },
-    { id: "content-browser", title: "Content Browser", closable: false },
     { id: "state-matrix", title: "State Matrix", closable: false },
   ];
 
@@ -572,12 +607,11 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   // Bottom tabs now come from visibleBottomTabs (filtered by tear-off state)
   const bottomTabs = visibleBottomTabs;
 
-  const centerTabs: PanelTab[] = [
-    { id: "viewport", title: "Viewport (Desktop 1440px)", closable: false },
-    { id: "blueprint", title: "Logic Blueprint", closable: true },
-    { id: "settings", title: "Project Settings", closable: true },
-    { id: "whiteboard", title: "Whiteboard", closable: true },
-    { id: "er-modeler", title: "Database Schema", closable: true },
+  const centerTabs: { id: string; title: string; icon: React.ReactNode; badge?: string }[] = [
+    { id: "viewport", title: "Viewport (Design)", icon: <Monitor size={13} /> },
+    { id: "blueprint", title: "Logic Blueprint", icon: <Network size={13} />, badge: "Full Stage" },
+    { id: "er-modeler", title: "Database Studio", icon: <Database size={13} /> },
+    { id: "settings", title: "Project Settings", icon: <Settings size={13} /> },
   ];
 
   /* --------------------------------------------------------------------------
@@ -605,7 +639,24 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   return (
     <div className="dock-layout">
       {/* Top Header Slot: Single Streamlined StudioHeader */}
-      <div className="dock-layout__header">
+      <div
+        className="dock-layout__header"
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const rawData = e.dataTransfer.getData("application/json");
+          if (!rawData) return;
+          try {
+            const data = JSON.parse(rawData);
+            if (data.type === "asset") {
+              handleDockFullPage(data.id, data.name);
+            }
+          } catch {}
+        }}
+      >
         {headerSlot || (
           <StudioHeader
             isDirty={isDirty}
@@ -667,11 +718,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     onTearOffItem={handleGenericTearOffStart}
                     onOpenItem={(id, title) => handleDockFullPage(id, title)}
                   />
-                ) : leftActiveTab === "content-browser" ? (
-                  <ContentBrowser
-                    onTearOffItem={handleGenericTearOffStart}
-                    onOpenAsset={(id, title) => handleDockFullPage(id, title)}
-                  />
                 ) : (
                   <StateMatrixViewer />
                 )
@@ -698,8 +744,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                   dragSource: p.dragSource,
                   isDirty,
                 }))}
-                activeTabId={currentFullPagePanel.panelId}
+                activeTabId={currentTabId || currentFullPagePanel.panelId}
                 onSelectTab={(panelId) => {
+                  setActiveFullPageTabId(panelId);
                   const idx = fullPagePanels.findIndex((p) => p.panelId === panelId);
                   if (idx >= 0) setActiveFullPageIndex(idx);
                 }}
@@ -710,15 +757,39 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                 onUndo={() => {}}
                 onRedo={() => {}}
                 onCloseAll={handleCloseAllFullPage}
+                onOpenAsset={(id, title) => handleDockFullPage(id, title)}
               >
-                {currentFullPagePanel.panelId === "blueprint" ? (
+                {currentTabId === "viewport" ? (
+                  <WhiteboardCanvas
+                    deviceMode={deviceMode}
+                    zoomLevel={zoomLevel}
+                    onZoomChange={setZoomLevel}
+                    onDropAsset={(asset) => {
+                      setSelectedElement({ id: asset.id, name: asset.name });
+                    }}
+                  />
+                ) : currentFullPagePanel.panelId === "content-browser" ? (
+                  <ContentBrowser
+                    selectedFolderId={selectedElement.id}
+                    selectedFolderName={selectedElement.name}
+                    onSelectFolder={(folderId, folderName) => setSelectedElement({ id: folderId, name: folderName })}
+                    onOpenAsset={(id, title) => handleDockFullPage(id, title)}
+                    onTearOffItem={handleGenericTearOffStart}
+                  />
+                ) : currentFullPagePanel.panelId === "blueprint" ||
+                currentFullPagePanel.panelId.includes("bp") ||
+                currentFullPagePanel.title.toLowerCase().includes(".bp") ? (
                   <BlueprintCanvas />
-                ) : currentFullPagePanel.panelId === "sequencer" ? (
+                ) : currentFullPagePanel.panelId === "sequencer" ||
+                  currentFullPagePanel.panelId.includes("seq") ||
+                  currentFullPagePanel.title.toLowerCase().includes(".seq") ? (
                   <TimelineSequencer />
                 ) : currentFullPagePanel.panelId === "console" ? (
                   <OutputConsole />
-                ) : currentFullPagePanel.panelId === "er-modeler" ? (
-                  <DatabaseDesigner onClose={() => handleCloseFullPageTab("er-modeler")} />
+                ) : currentFullPagePanel.panelId === "er-modeler" ||
+                  currentFullPagePanel.panelId.includes("db") ||
+                  currentFullPagePanel.title.toLowerCase().includes(".db") ? (
+                  <DatabaseDesigner onClose={() => handleCloseFullPageTab(currentFullPagePanel.panelId)} />
                 ) : (
                   <AssetFileEditor
                     assetId={currentFullPagePanel.panelId}
@@ -742,17 +813,26 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               />
             )}
 
-            {/* Right Dock Zone displaying the Details OF THE OPENED FILE/TAB (Unreal Engine style) */}
+            {/* Right Dock Zone displaying Details */}
             <DockZone
               zoneId="right"
               size={rightWidth}
               isCollapsed={rightCollapsed}
-              tabs={[
-                { id: "asset-details", title: `${currentFullPagePanel.title} Details`, closable: false },
-                { id: "tokens", title: "Tokens", closable: true },
-              ]}
-              activeTabId="asset-details"
-              onSelectTab={() => {
+              tabs={
+                currentTabId === "viewport" || currentFullPagePanel.panelId === "content-browser"
+                  ? rightTabs
+                  : [
+                      { id: "asset-details", title: `${currentFullPagePanel.title} Details`, closable: false },
+                      { id: "tokens", title: "Tokens", closable: true },
+                    ]
+              }
+              activeTabId={
+                currentTabId === "viewport" || currentFullPagePanel.panelId === "content-browser"
+                  ? rightActiveTab
+                  : "asset-details"
+              }
+              onSelectTab={(tabId) => {
+                setRightActiveTab(tabId);
                 handleZoneClick("right");
               }}
               onToggleCollapse={() => setRightCollapsed((c) => !c)}
@@ -761,13 +841,29 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               onClick={() => handleZoneClick("right")}
               className={activeLayer === "right" ? "dock-zone--elevated" : ""}
             >
-              <AssetDetailsInspector
-                panelId={currentFullPagePanel.panelId}
-                panelTitle={currentFullPagePanel.title}
-                onOpenBlueprint={(_fnId) =>
-                  handleDockFullPage("blueprint", "Logic Blueprint")
-                }
-              />
+              {currentTabId === "viewport" || currentFullPagePanel.panelId === "content-browser" ? (
+                rightPanels[rightActiveTab] || (
+                  rightActiveTab === "details" ? (
+                    <DetailsInspector
+                      selectedElementId={selectedElement.id}
+                      selectedElementName={selectedElement.name}
+                      onOpenBlueprint={() => handleDockFullPage("blueprint", "Logic Blueprint")}
+                    />
+                  ) : rightActiveTab === "tokens" ? (
+                    <ProjectSettings />
+                  ) : (
+                    <OutputConsole />
+                  )
+                )
+              ) : (
+                <AssetDetailsInspector
+                  panelId={currentFullPagePanel.panelId}
+                  panelTitle={currentFullPagePanel.title}
+                  onOpenBlueprint={(_fnId) =>
+                    handleDockFullPage("blueprint", "Logic Blueprint")
+                  }
+                />
+              )}
             </DockZone>
           </>
         ) : (
@@ -801,11 +897,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     onTearOffItem={handleGenericTearOffStart}
                     onOpenItem={(id, title) => handleDockFullPage(id, title)}
                   />
-                ) : leftActiveTab === "content-browser" ? (
-                  <ContentBrowser
-                    onTearOffItem={handleGenericTearOffStart}
-                    onOpenAsset={(id, title) => handleDockFullPage(id, title)}
-                  />
                 ) : (
                   <StateMatrixViewer />
                 )
@@ -826,81 +917,74 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               className="dock-center-col"
               style={{ paddingBottom: bottomCollapsed ? 0 : `${bottomHeight}px` }}
             >
-              {/* Center Stage (Confluence Whiteboard Canvas) */}
-              <div className="dock-zone dock-zone--center confluence-grid" style={{ position: "relative" }}>
-                {/* Viewport Floating Action Pill (Save, Undo, Redo) in Top-Left Corner */}
-                <div className="viewport-floating-actions" role="toolbar" aria-label="Viewport History Actions">
-                  <button
-                    type="button"
-                    className="viewport-action-btn"
-                    onClick={() => setIsDirty(false)}
-                    title="Save Project (Ctrl+S)"
-                  >
-                    <Save size={14} style={{ color: isDirty ? "var(--accent-warning)" : "var(--text-secondary)" }} />
-                    {isDirty && <span className="viewport-action-btn__dirty-dot" />}
-                  </button>
+              {/* Center Stage (Confluence Whiteboard Canvas or Active Document) */}
+              <div className="dock-zone dock-zone--center confluence-grid" style={{ position: "relative", flex: 1, minHeight: 0 }}>
+                {/* Viewport Floating Action Pill (Save, Undo, Redo) in Top-Left Corner (only in Viewport mode) */}
+                {centerActiveTab === "viewport" && (
+                  <div className="viewport-floating-actions" role="toolbar" aria-label="Viewport History Actions">
+                    <button
+                      type="button"
+                      className="viewport-action-btn"
+                      onClick={() => setIsDirty(false)}
+                      title="Save Project (Ctrl+S)"
+                    >
+                      <Save size={14} style={{ color: isDirty ? "var(--accent-warning)" : "var(--text-secondary)" }} />
+                      {isDirty && <span className="viewport-action-btn__dirty-dot" />}
+                    </button>
 
-                  <div className="viewport-action-divider" />
+                    <div className="viewport-action-divider" />
 
-                  <button
-                    type="button"
-                    className="viewport-action-btn"
-                    onClick={() => {}}
-                    title="Undo (Ctrl+Z)"
-                  >
-                    <Undo2 size={14} />
-                  </button>
+                    <button
+                      type="button"
+                      className="viewport-action-btn"
+                      onClick={() => {}}
+                      title="Undo (Ctrl+Z)"
+                    >
+                      <Undo2 size={14} />
+                    </button>
 
-                  <button
-                    type="button"
-                    className="viewport-action-btn"
-                    onClick={() => {}}
-                    title="Redo (Ctrl+Shift+Z)"
-                  >
-                    <Redo2 size={14} />
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      className="viewport-action-btn"
+                      onClick={() => {}}
+                      title="Redo (Ctrl+Shift+Z)"
+                    >
+                      <Redo2 size={14} />
+                    </button>
+                  </div>
+                )}
 
                 {/* Viewport Floating Action Pill (Project Settings) in Top-Right Corner */}
-                <div
-                  className="viewport-floating-actions"
-                  style={{ left: "auto", right: 12 }}
-                  role="toolbar"
-                  aria-label="Viewport Settings Action"
-                >
-                  <button
-                    type="button"
-                    className="viewport-action-btn"
-                    onClick={() => {
-                      setCenterActiveTab((prev) => (prev === "settings" ? "viewport" : "settings"));
-                    }}
-                    title="Project Settings"
-                    style={{
-                      color: centerActiveTab === "settings" ? "var(--accent-primary)" : "var(--text-secondary)",
-                      background: centerActiveTab === "settings" ? "rgba(59, 130, 246, 0.15)" : undefined,
-                    }}
+                {centerActiveTab === "viewport" && (
+                  <div
+                    className="viewport-floating-actions"
+                    style={{ left: "auto", right: 12 }}
+                    role="toolbar"
+                    aria-label="Viewport Settings Action"
                   >
-                    <Settings size={14} />
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      className="viewport-action-btn"
+                      onClick={() => {
+                        setCenterActiveTab((prev) => (prev === "settings" ? "viewport" : "settings"));
+                      }}
+                      title="Project Settings"
+                    >
+                      <Settings size={14} />
+                    </button>
+                  </div>
+                )}
                 {centerPanels[centerActiveTab] || (
-                  centerActiveTab === "viewport" ? (
-                    <WhiteboardCanvas
-                      deviceMode={deviceMode}
-                      zoomLevel={zoomLevel}
-                      onZoomChange={setZoomLevel}
-                    />
-                  ) : centerActiveTab === "blueprint" ? (
-                    <BlueprintCanvas />
-                  ) : centerActiveTab === "settings" ? (
+                  centerActiveTab === "settings" ? (
                     <ProjectSettings />
-                  ) : centerActiveTab === "er-modeler" ? (
-                    <DatabaseDesigner onClose={() => setCenterActiveTab("viewport")} />
                   ) : (
                     <WhiteboardCanvas
                       deviceMode={deviceMode}
                       zoomLevel={zoomLevel}
                       onZoomChange={setZoomLevel}
+                      onDropAsset={(asset) => {
+                        setSelectedElement({ id: asset.id, name: asset.name });
+                      }}
                     />
                   )
                 )}
@@ -938,7 +1022,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                   <DetailsInspector
                     selectedElementId={selectedElement.id}
                     selectedElementName={selectedElement.name}
-                    onOpenBlueprint={() => handleOpenPanel("bottom", "blueprint")}
+                    onOpenBlueprint={() => handleDockFullPage("blueprint", "Logic Blueprint")}
                   />
                 ) : rightActiveTab === "tokens" ? (
                   <ProjectSettings />
@@ -950,86 +1034,110 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           </>
         )}
 
-        {/* Edge-to-Edge Bottom Horizontal Splitter */}
-        {!bottomCollapsed && (
-          <DockSplitter
-            orientation="horizontal"
-            onResize={handleBottomResize}
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: `${bottomHeight}px`,
-              zIndex: activeLayer === "left" || activeLayer === "right" ? 21 : 30,
-            }}
-          />
-        )}
+        {/* Bottom Drawer Horizontal Alignment:
+         * When Content Browser is selected in the bottom drawer, shift the drawer
+         * to start at `leftWidth` so the Outliner on the left remains 100% visible
+         * and accessible without obstruction.
+         */}
+        {(() => {
+          const isBottomShifted = bottomActiveTab === "content-browser" && !leftCollapsed;
+          const bottomShiftLeft = isBottomShifted ? leftWidth : 0;
 
-        {/* Edge-to-Edge Bottom Drawer Zone */}
-        <DockZone
-          zoneId="bottom"
-          size={bottomHeight}
-          isCollapsed={bottomCollapsed || visibleBottomTabs.length === 0}
-          tabs={bottomTabs}
-          activeTabId={bottomActiveTab}
-          onSelectTab={(tabId) => {
-            setBottomActiveTab(tabId);
-            handleZoneClick("bottom");
-          }}
-          onToggleCollapse={() => {
-            setBottomCollapsed((c) => {
-              if (c) handleZoneClick("bottom");
-              return !c;
-            });
-          }}
-          onMouseEnter={() => handleZoneMouseEnter("bottom")}
-          onMouseLeave={() => handleZoneMouseLeave("bottom")}
-          onClick={() => handleZoneClick("bottom")}
-          className={activeLayer === "bottom" ? "dock-zone--elevated" : ""}
-          onTearOffStart={handleBottomTearOffStart}
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100%",
-            height: `${bottomHeight}px`,
-            zIndex: activeLayer === "left" || activeLayer === "right" ? 22 : 29,
-          }}
-        >
-          {bottomPanels[bottomActiveTab] || (
-            bottomActiveTab === "blueprint" ? (
-              <BlueprintCanvas />
-            ) : (
-              <TimelineSequencer />
-            )
-          )}
-        </DockZone>
+          return (
+            <>
+              {/* Bottom Horizontal Splitter */}
+              {!bottomCollapsed && (
+                <DockSplitter
+                  orientation="horizontal"
+                  onResize={handleBottomResize}
+                  style={{
+                    position: "absolute",
+                    left: `${bottomShiftLeft}px`,
+                    right: 0,
+                    bottom: `${bottomHeight}px`,
+                    zIndex: activeLayer === "left" || activeLayer === "right" ? 21 : 30,
+                  }}
+                />
+              )}
 
-        {/* 2D Corner Splitters (Intersection points where side panels meet bottom drawer) */}
-        {!leftCollapsed && !bottomCollapsed && (
-          <DockCornerSplitter
-            corner="bottom-left"
-            left={leftWidth}
-            bottom={bottomHeight}
-            onResize={(deltaX, deltaY) => {
-              handleLeftResize(deltaX);
-              handleBottomResize(deltaY);
-            }}
-          />
-        )}
+              {/* Bottom Drawer Zone */}
+              <DockZone
+                zoneId="bottom"
+                size={bottomHeight}
+                isCollapsed={bottomCollapsed || visibleBottomTabs.length === 0}
+                tabs={bottomTabs}
+                activeTabId={bottomActiveTab}
+                onSelectTab={(tabId) => {
+                  setBottomActiveTab(tabId);
+                  handleZoneClick("bottom");
+                }}
+                onToggleCollapse={() => {
+                  setBottomCollapsed((c) => {
+                    if (c) handleZoneClick("bottom");
+                    return !c;
+                  });
+                }}
+                onMouseEnter={() => handleZoneMouseEnter("bottom")}
+                onMouseLeave={() => handleZoneMouseLeave("bottom")}
+                onClick={() => handleZoneClick("bottom")}
+                className={activeLayer === "bottom" ? "dock-zone--elevated" : ""}
+                onTearOffStart={handleBottomTearOffStart}
+                style={{
+                  position: "absolute",
+                  left: `${bottomShiftLeft}px`,
+                  right: 0,
+                  bottom: 0,
+                  width: isBottomShifted ? `calc(100% - ${bottomShiftLeft}px)` : "100%",
+                  height: `${bottomHeight}px`,
+                  zIndex: activeLayer === "left" || activeLayer === "right" ? 22 : 29,
+                }}
+              >
+                {bottomPanels[bottomActiveTab] || (
+                  bottomActiveTab === "content-browser" ? (
+                    <ContentBrowser
+                      selectedFolderId={selectedElement.id}
+                      selectedFolderName={selectedElement.name}
+                      onSelectFolder={(folderId, folderName) => setSelectedElement({ id: folderId, name: folderName })}
+                      onOpenAsset={(id, title) => handleDockFullPage(id, title)}
+                      onTearOffItem={handleGenericTearOffStart}
+                    />
+                  ) : bottomActiveTab === "blocks" ? (
+                    <ContentBlockShelf />
+                  ) : bottomActiveTab === "blueprint" ? (
+                    <BlueprintCanvas onBackToViewport={() => setBottomCollapsed(true)} />
+                  ) : (
+                    <TimelineSequencer />
+                  )
+                )}
+              </DockZone>
 
-        {!rightCollapsed && !bottomCollapsed && (
-          <DockCornerSplitter
-            corner="bottom-right"
-            right={rightWidth}
-            bottom={bottomHeight}
-            onResize={(deltaX, deltaY) => {
-              handleRightResize(deltaX);
-              handleBottomResize(deltaY);
-            }}
-          />
-        )}
+              {/* 2D Corner Splitters */}
+              {!leftCollapsed && !bottomCollapsed && !isBottomShifted && (
+                <DockCornerSplitter
+                  corner="bottom-left"
+                  left={leftWidth}
+                  bottom={bottomHeight}
+                  onResize={(deltaX, deltaY) => {
+                    handleLeftResize(deltaX);
+                    handleBottomResize(deltaY);
+                  }}
+                />
+              )}
+
+              {!rightCollapsed && !bottomCollapsed && (
+                <DockCornerSplitter
+                  corner="bottom-right"
+                  right={rightWidth}
+                  bottom={bottomHeight}
+                  onResize={(deltaX, deltaY) => {
+                    handleRightResize(deltaX);
+                    handleBottomResize(deltaY);
+                  }}
+                />
+              )}
+            </>
+          );
+        })()}
 
         {/* Unreal Engine-Style Slide-Up Output Log Drawer (draggable for tear-off) */}
         {isOutputLogOpen && (

@@ -73,8 +73,8 @@ export const AppearanceEditor: React.FC<AppearanceEditorProps> = ({
     type: "linear",
     angle: 135,
     stops: [
-      { id: "s1", color: appearance.backgroundColor || "#3B82F6", position: 0 },
-      { id: "s2", color: "#1D4ED8", position: 100 },
+      { id: "s1", color: appearance.backgroundColor || "#206859", position: 0 },
+      { id: "s2", color: "#174f43", position: 100 },
     ],
   };
 
@@ -109,7 +109,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorProps> = ({
       y: 2,
       blur: 8,
       spread: 0,
-      color: "rgba(59, 130, 246, 0.25)",
+      color: "rgba(32, 104, 89, 0.25)",
       inset: false,
       enabled: true,
     },

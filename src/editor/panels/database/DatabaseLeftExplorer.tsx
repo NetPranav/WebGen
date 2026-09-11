@@ -167,7 +167,7 @@ export const DatabaseLeftExplorer: React.FC<DatabaseLeftExplorerProps> = ({
               marginBottom: 4,
             }}
           >
-            <Database size={11} style={{ color: "#3b82f6" }} />
+            <Database size={11} style={{ color: "#206859" }} />
             <span>AppRelationalDB (PostgreSQL 16)</span>
           </div>
 
@@ -197,7 +197,7 @@ export const DatabaseLeftExplorer: React.FC<DatabaseLeftExplorerProps> = ({
                       >
                         {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                       </span>
-                      <Table size={12} style={{ color: isTableSelected ? "var(--accent-primary)" : "#60a5fa" }} />
+                      <Table size={12} style={{ color: isTableSelected ? "var(--accent-primary)" : "#206859" }} />
                       <span className="db-tree-item__name">{schema.name}</span>
                     </div>
 
@@ -341,9 +341,9 @@ export const DatabaseLeftExplorer: React.FC<DatabaseLeftExplorerProps> = ({
                   type="button"
                   onClick={() => onSelectTable(tbl)}
                   style={{
-                    background: selectedTableId === tbl ? "#EFF6FF" : "#F8FAFC",
-                    border: `1px solid ${selectedTableId === tbl ? "rgba(59, 130, 246, 0.4)" : "rgba(15, 23, 42, 0.08)"}`,
-                    color: selectedTableId === tbl ? "#2563EB" : "#475569",
+                    background: selectedTableId === tbl ? "#EBF5F3" : "#F8FAFC",
+                    border: `1px solid ${selectedTableId === tbl ? "rgba(32, 104, 89, 0.4)" : "rgba(15, 23, 42, 0.08)"}`,
+                    color: selectedTableId === tbl ? "#206859" : "#475569",
                     padding: "3px 7px",
                     borderRadius: "var(--radius-xs, 4px)",
                     fontSize: 10.5,

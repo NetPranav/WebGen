@@ -64,7 +64,7 @@ export const AssetReferencePicker: React.FC<AssetReferencePickerProps> = ({
   const getAssetIcon = (type: AssetReferenceOption["type"]) => {
     switch (type) {
       case "component":
-        return <Box size={11} style={{ color: "#3B82F6" }} />;
+        return <Box size={11} style={{ color: "#206859" }} />;
       case "blueprint":
         return <Workflow size={11} style={{ color: "#8B5CF6" }} />;
       case "icon":

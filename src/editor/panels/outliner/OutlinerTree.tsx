@@ -150,6 +150,19 @@ const INITIAL_TREE_DATA: TreeNode[] = [
       { id: "db_projects", label: "ProjectsCollection", type: "database", tag: "TABLE", depth: 1 },
     ],
   },
+  {
+    id: "sequencer_root",
+    label: "Timeline Sequences",
+    type: "section",
+    tag: "FOLDER",
+    depth: 0,
+    isOpenDefault: true,
+    children: [
+      { id: "seq_hero_entrance", label: "HeroEntrance (GSAP)", type: "component", tag: "ANIM", depth: 1 },
+      { id: "seq_nav_scroll", label: "NavbarScrollTrigger", type: "component", tag: "ANIM", depth: 1 },
+      { id: "seq_modal_fade", label: "ModalDialogAnimation", type: "component", tag: "ANIM", depth: 1 },
+    ],
+  },
 ];
 
 interface OutlinerTreeProps {

@@ -192,17 +192,142 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
 
   const currentTab = openTabs.find((t) => t.id === activeTabId) || openTabs[0];
 
-  const handleDragCard = (tableName: string, dx: number, dy: number) => {
-    setTablePositions((prev) => {
-      const current = prev[tableName] || { x: 100, y: 100 };
-      return {
-        ...prev,
-        [tableName]: {
-          x: Math.max(20, current.x + dx),
-          y: Math.max(20, current.y + dy),
-        },
+  // Canvas Viewport Panning, Boundaries, and Dragging State
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [draggingTable, setDraggingTable] = useState<string | null>(null);
+
+  // Compute dynamic bounding box of all database tables
+  const computeContentBounds = () => {
+    const schemas = Object.values(databaseSchemas);
+    if (schemas.length === 0) {
+      return { minX: 0, maxX: 600, minY: 0, maxY: 400 };
+    }
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    schemas.forEach((schema, index) => {
+      const pos = tablePositions[schema.name] || {
+        x: 60 + (index % 3) * 360,
+        y: 60 + Math.floor(index / 3) * 320,
       };
+      const cardWidth = 270;
+      const cardHeight = 320;
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
+      maxX = Math.max(maxX, pos.x + cardWidth);
+      maxY = Math.max(maxY, pos.y + cardHeight);
     });
+
+    return { minX, maxX, minY, maxY };
+  };
+
+  // Clamp viewport pan so user cannot drag canvas away from where things exist
+  const clampPan = (targetPan: { x: number; y: number }, scale: number) => {
+    const container = canvasContainerRef.current;
+    const viewW = container ? container.clientWidth : 900;
+    const viewH = container ? container.clientHeight : 600;
+    const { minX, maxX, minY, maxY } = computeContentBounds();
+    const BUFFER = 140; // Maintain content visibility inside the viewport
+
+    let minPanX = BUFFER - maxX * scale;
+    let maxPanX = viewW - BUFFER - minX * scale;
+    if (minPanX > maxPanX) {
+      const mid = (minPanX + maxPanX) / 2;
+      minPanX = mid - 100;
+      maxPanX = mid + 100;
+    }
+
+    let minPanY = BUFFER - maxY * scale;
+    let maxPanY = viewH - BUFFER - minY * scale;
+    if (minPanY > maxPanY) {
+      const mid = (minPanY + maxPanY) / 2;
+      minPanY = mid - 100;
+      maxPanY = mid + 100;
+    }
+
+    return {
+      x: Math.min(Math.max(targetPan.x, minPanX), maxPanX),
+      y: Math.min(Math.max(targetPan.y, minPanY), maxPanY),
+    };
+  };
+
+  // Viewport background pan handler
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const isInteractive = target.closest("button, input, select, textarea, .db-field-row, .db-view-btn, .db-tab-pill");
+    if (isInteractive) return;
+    if (e.button !== 0 && e.button !== 1) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initialPan = { ...panOffset };
+    setIsPanning(true);
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      setPanOffset(clampPan({ x: initialPan.x + dx, y: initialPan.y + dy }, zoomLevel / 100));
+    };
+
+    const onMouseUp = () => {
+      setIsPanning(false);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  };
+
+  // Mouse wheel zoom
+  const handleCanvasWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomStep = e.deltaY < 0 ? 8 : -8;
+    setZoomLevel((prev) => {
+      const nextZoom = Math.min(Math.max(prev + zoomStep, 40), 200);
+      setPanOffset((curPan) => clampPan(curPan, nextZoom / 100));
+      return nextZoom;
+    });
+  };
+
+  // Table Card header drag handler (with boundary clamping)
+  const handleStartDragCard = (e: React.MouseEvent, tableName: string) => {
+    e.stopPropagation();
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const currentPos = tablePositions[tableName] || { x: 60, y: 60 };
+    const initialPos = { ...currentPos };
+    setDraggingTable(tableName);
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const currentScale = zoomLevel / 100;
+      const dx = (moveEvent.clientX - startMouseX) / currentScale;
+      const dy = (moveEvent.clientY - startMouseY) / currentScale;
+
+      // Ensure card stays in positive coordinate boundary
+      const newX = Math.max(20, Math.round(initialPos.x + dx));
+      const newY = Math.max(20, Math.round(initialPos.y + dy));
+
+      setTablePositions((prev) => ({
+        ...prev,
+        [tableName]: { x: newX, y: newY },
+      }));
+    };
+
+    const onMouseUp = () => {
+      setDraggingTable(null);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      // Re-clamp pan if content boundary moved
+      setPanOffset((curPan) => clampPan(curPan, zoomLevel / 100));
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
   };
 
   // Generate live SQL DDL string based on current database schemas
@@ -312,8 +437,14 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
               <button
                 type="button"
                 className="viewport-action-btn"
-                onClick={() => setZoomLevel((z) => Math.max(z - 10, 40))}
-                title="Zoom Out"
+                onClick={() => {
+                  setZoomLevel((z) => {
+                    const next = Math.max(z - 10, 40);
+                    setPanOffset((cur) => clampPan(cur, next / 100));
+                    return next;
+                  });
+                }}
+                title="Zoom Out (Mouse Wheel Down)"
                 style={{ width: 24, height: 24 }}
               >
                 <ZoomOut size={12} />
@@ -324,8 +455,14 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
               <button
                 type="button"
                 className="viewport-action-btn"
-                onClick={() => setZoomLevel((z) => Math.min(z + 10, 160))}
-                title="Zoom In"
+                onClick={() => {
+                  setZoomLevel((z) => {
+                    const next = Math.min(z + 10, 200);
+                    setPanOffset((cur) => clampPan(cur, next / 100));
+                    return next;
+                  });
+                }}
+                title="Zoom In (Mouse Wheel Up)"
                 style={{ width: 24, height: 24 }}
               >
                 <ZoomIn size={12} />
@@ -333,8 +470,11 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
               <button
                 type="button"
                 className="viewport-action-btn"
-                onClick={() => setZoomLevel(100)}
-                title="Reset Zoom"
+                onClick={() => {
+                  setZoomLevel(100);
+                  setPanOffset({ x: 0, y: 0 });
+                }}
+                title="Reset View (100%, Origin)"
                 style={{ width: 24, height: 24 }}
               >
                 <Maximize2 size={12} />
@@ -461,7 +601,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTabId("root-canvas")}
-                    style={{ background: "none", border: "none", color: "#2563EB", cursor: "pointer", fontWeight: 600, fontSize: 12 }}
+                    style={{ background: "none", border: "none", color: "#206859", cursor: "pointer", fontWeight: 600, fontSize: 12 }}
                   >
                     Database ER Canvas
                   </button>
@@ -469,7 +609,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                   <button
                     type="button"
                     onClick={() => handleDoubleClickTable(schema.name)}
-                    style={{ background: "none", border: "none", color: "#2563EB", cursor: "pointer", fontWeight: 600, fontSize: 12 }}
+                    style={{ background: "none", border: "none", color: "#206859", cursor: "pointer", fontWeight: 600, fontSize: 12 }}
                   >
                     {schema.name}
                   </button>
@@ -497,11 +637,11 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                           width: 36,
                           height: 36,
                           borderRadius: 8,
-                          backgroundColor: "#EFF6FF",
+                          backgroundColor: "#EBF5F3",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: "#2563EB",
+                          color: "#206859",
                         }}
                       >
                         {field.isPrimaryKey ? <Key size={18} style={{ color: "#EAB308" }} /> : <FileCode size={18} />}
@@ -523,7 +663,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                         </span>
                       )}
                       {field.isUnique && (
-                        <span style={{ fontSize: 10, fontWeight: 700, background: "#EFF6FF", color: "#1D4ED8", padding: "2px 8px", borderRadius: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, background: "#EBF5F3", color: "#206859", padding: "2px 8px", borderRadius: 4 }}>
                           UNIQUE
                         </span>
                       )}
@@ -653,8 +793,8 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                             style={{
                               fontSize: 9.5,
                               fontFamily: "var(--font-mono)",
-                              color: fieldLatches.length > 0 ? "#2563EB" : "#64748B",
-                              background: fieldLatches.length > 0 ? "#EFF6FF" : "#FFFFFF",
+                              color: fieldLatches.length > 0 ? "#206859" : "#64748B",
+                              background: fieldLatches.length > 0 ? "#EBF5F3" : "#FFFFFF",
                               padding: "2px 8px",
                               borderRadius: 4,
                               border: "1px solid rgba(15, 23, 42, 0.08)",
@@ -687,7 +827,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                 }}
                               >
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                                  <Workflow size={13} style={{ color: "#2563EB", flexShrink: 0 }} />
+                                  <Workflow size={13} style={{ color: "#206859", flexShrink: 0 }} />
                                   <div style={{ minWidth: 0 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                       <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", fontFamily: "var(--font-mono)" }}>
@@ -701,7 +841,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                           borderRadius: 3,
                                           backgroundColor:
                                             latch.operation === "READ"
-                                              ? "#EFF6FF"
+                                              ? "#EBF5F3"
                                               : latch.operation === "CREATE"
                                               ? "#F0FDF4"
                                               : latch.operation === "DELETE"
@@ -709,7 +849,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                               : "#FEF3C7",
                                           color:
                                             latch.operation === "READ"
-                                              ? "#2563EB"
+                                              ? "#206859"
                                               : latch.operation === "CREATE"
                                               ? "#16A34A"
                                               : latch.operation === "DELETE"
@@ -733,7 +873,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                     style={{
                                       background: "none",
                                       border: "none",
-                                      color: "#2563EB",
+                                      color: "#206859",
                                       fontSize: 11,
                                       fontWeight: 600,
                                       cursor: "pointer",
@@ -742,7 +882,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                       gap: 4,
                                       padding: "4px 8px",
                                       borderRadius: 4,
-                                      backgroundColor: "#EFF6FF",
+                                      backgroundColor: "#EBF5F3",
                                     }}
                                   >
                                     <span>Visit Function</span>
@@ -882,7 +1022,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTabId("root-canvas")}
-                    style={{ background: "none", border: "none", color: "#2563EB", cursor: "pointer", fontWeight: 600, fontSize: 12 }}
+                    style={{ background: "none", border: "none", color: "#206859", cursor: "pointer", fontWeight: 600, fontSize: 12 }}
                   >
                     Database ER Canvas
                   </button>
@@ -910,11 +1050,11 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                           width: 36,
                           height: 36,
                           borderRadius: 8,
-                          backgroundColor: "#EFF6FF",
+                          backgroundColor: "#EBF5F3",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: "#2563EB",
+                          color: "#206859",
                         }}
                       >
                         <TableIcon size={18} />
@@ -930,7 +1070,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                     </div>
 
                     <div style={{ display: "flex", gap: 6 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, background: "#EFF6FF", color: "#1D4ED8", padding: "2px 8px", borderRadius: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, background: "#EBF5F3", color: "#206859", padding: "2px 8px", borderRadius: 4 }}>
                         {engineType.toUpperCase()}
                       </span>
                       <button
@@ -969,7 +1109,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                               <td style={{ padding: "6px 12px", fontWeight: 600, color: "#0F172A", fontFamily: "var(--font-mono)" }}>
                                 {col.name}
                               </td>
-                              <td style={{ padding: "6px 12px", color: "#2563EB", fontFamily: "var(--font-mono)" }}>
+                              <td style={{ padding: "6px 12px", color: "#206859", fontFamily: "var(--font-mono)" }}>
                                 {col.type}
                               </td>
                               <td style={{ padding: "6px 12px" }}>
@@ -980,7 +1120,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                     </span>
                                   )}
                                   {col.isUnique && (
-                                    <span style={{ fontSize: 9, fontWeight: 700, background: "#EFF6FF", color: "#1D4ED8", padding: "1px 5px", borderRadius: 3 }}>
+                                    <span style={{ fontSize: 9, fontWeight: 700, background: "#EBF5F3", color: "#206859", padding: "1px 5px", borderRadius: 3 }}>
                                       UNIQUE
                                     </span>
                                   )}
@@ -998,7 +1138,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                   style={{
                                     background: "none",
                                     border: "none",
-                                    color: "#2563EB",
+                                    color: "#206859",
                                     fontSize: 10.5,
                                     fontWeight: 600,
                                     cursor: "pointer",
@@ -1070,8 +1210,8 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                         style={{
                           fontSize: 9.5,
                           fontFamily: "var(--font-mono)",
-                          color: tableLatches.length > 0 ? "#2563EB" : "#64748B",
-                          background: tableLatches.length > 0 ? "#EFF6FF" : "#FFFFFF",
+                          color: tableLatches.length > 0 ? "#206859" : "#64748B",
+                          background: tableLatches.length > 0 ? "#EBF5F3" : "#FFFFFF",
                           padding: "2px 8px",
                           borderRadius: 4,
                           border: "1px solid rgba(15, 23, 42, 0.08)",
@@ -1104,7 +1244,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                             }}
                           >
                             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                              <Workflow size={13} style={{ color: "#2563EB", flexShrink: 0 }} />
+                              <Workflow size={13} style={{ color: "#206859", flexShrink: 0 }} />
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                   <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", fontFamily: "var(--font-mono)" }}>
@@ -1118,7 +1258,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                       borderRadius: 3,
                                       backgroundColor:
                                         latch.operation === "READ"
-                                          ? "#EFF6FF"
+                                          ? "#EBF5F3"
                                           : latch.operation === "CREATE"
                                           ? "#F0FDF4"
                                           : latch.operation === "DELETE"
@@ -1126,7 +1266,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                           : "#FEF3C7",
                                       color:
                                         latch.operation === "READ"
-                                          ? "#2563EB"
+                                          ? "#206859"
                                           : latch.operation === "CREATE"
                                           ? "#16A34A"
                                           : latch.operation === "DELETE"
@@ -1150,7 +1290,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                 style={{
                                   background: "none",
                                   border: "none",
-                                  color: "#2563EB",
+                                  color: "#206859",
                                   fontSize: 11,
                                   fontWeight: 600,
                                   cursor: "pointer",
@@ -1159,7 +1299,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
                                   gap: 4,
                                   padding: "4px 8px",
                                   borderRadius: 4,
-                                  backgroundColor: "#EFF6FF",
+                                  backgroundColor: "#EBF5F3",
                                 }}
                               >
                                 <span>Visit Function</span>
@@ -1257,48 +1397,101 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
          * =================================================================== */
         <>
           {viewMode === "canvas" && (
-            <div className="db-canvas-container" style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: "0 0" }}>
-              {/* Render All Entity Table Cards */}
-              {Object.values(databaseSchemas).map((schema, index) => {
-                const pos = tablePositions[schema.name] || {
-                  x: 60 + (index % 3) * 360,
-                  y: 60 + Math.floor(index / 3) * 320,
-                };
+            <div
+              ref={canvasContainerRef}
+              className="db-canvas-container"
+              onMouseDown={handleCanvasMouseDown}
+              onWheel={handleCanvasWheel}
+              style={{
+                cursor: isPanning ? "grabbing" : "default",
+                backgroundPosition: `${panOffset.x}px ${panOffset.y}px`,
+                backgroundSize: `${24 * (zoomLevel / 100)}px ${24 * (zoomLevel / 100)}px`,
+              }}
+            >
+              {/* Pan & Zoom Transformed World Layer */}
+              <div
+                className="db-canvas-world"
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel / 100})`,
+                  transformOrigin: "0 0",
+                  willChange: "transform",
+                }}
+              >
+                {/* Render All Entity Table Cards */}
+                {Object.values(databaseSchemas).map((schema, index) => {
+                  const pos = tablePositions[schema.name] || {
+                    x: 60 + (index % 3) * 360,
+                    y: 60 + Math.floor(index / 3) * 320,
+                  };
 
-                return (
-                  <div
-                    key={schema.id || schema.name}
-                    style={{
-                      position: "absolute",
-                      left: pos.x,
-                      top: pos.y,
-                      zIndex: selectedTableId === schema.name ? 10 : 1,
-                    }}
-                  >
-                    <EntityTableCard
-                      schema={schema}
-                      recordsCount={databaseRecords[schema.name]?.length || 0}
-                      isSelected={selectedTableId === schema.name}
-                      selectedFieldName={selectedTableId === schema.name ? selectedFieldName : null}
-                      onSelect={() => {
-                        onSelectTable(schema.name);
+                  return (
+                    <div
+                      key={schema.id || schema.name}
+                      style={{
+                        position: "absolute",
+                        left: pos.x,
+                        top: pos.y,
+                        zIndex: selectedTableId === schema.name ? 15 : 1,
+                        filter: draggingTable === schema.name ? "drop-shadow(0 15px 25px rgba(0,0,0,0.15))" : undefined,
+                        transition: draggingTable === schema.name ? "none" : "box-shadow 0.15s ease",
                       }}
-                      onSelectField={(fieldName) => {
-                        onSelectTable(schema.name);
-                        onSelectField(schema.name, fieldName);
-                      }}
-                      onDoubleClickField={(fieldName) => {
-                        handleDoubleClickField(schema.name, fieldName);
-                      }}
-                      onDoubleClickTable={() => {
-                        handleDoubleClickTable(schema.name);
-                      }}
-                      onAddField={() => onOpenFieldEditor?.(schema.name)}
-                      onEditField={(field) => onOpenFieldEditor?.(schema.name, field.name)}
-                    />
-                  </div>
-                );
-              })}
+                    >
+                      <EntityTableCard
+                        schema={schema}
+                        recordsCount={databaseRecords[schema.name]?.length || 0}
+                        isSelected={selectedTableId === schema.name}
+                        selectedFieldName={selectedTableId === schema.name ? selectedFieldName : null}
+                        onHeaderMouseDown={(e) => handleStartDragCard(e, schema.name)}
+                        onSelect={() => {
+                          onSelectTable(schema.name);
+                        }}
+                        onSelectField={(fieldName) => {
+                          onSelectTable(schema.name);
+                          onSelectField(schema.name, fieldName);
+                        }}
+                        onDoubleClickField={(fieldName) => {
+                          handleDoubleClickField(schema.name, fieldName);
+                        }}
+                        onDoubleClickTable={() => {
+                          handleDoubleClickTable(schema.name);
+                        }}
+                        onAddField={() => onOpenFieldEditor?.(schema.name)}
+                        onEditField={(field) => onOpenFieldEditor?.(schema.name, field.name)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Helpful Canvas HUD showing Zoom, Pan and Draggable hint */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 12,
+                  left: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  backgroundColor: "rgba(255, 255, 255, 0.85)",
+                  backdropFilter: "blur(4px)",
+                  border: "1px solid rgba(15, 23, 42, 0.08)",
+                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.04)",
+                  fontSize: 10.5,
+                  color: "#64748B",
+                  pointerEvents: "none",
+                  userSelect: "none",
+                  zIndex: 20,
+                }}
+              >
+                <span>🖱️ Click & drag canvas to pan • Drag card headers to move</span>
+                <span style={{ color: "#CBD5E1" }}>•</span>
+                <span>Wheel / Trackpad to zoom ({zoomLevel}%)</span>
+              </div>
             </div>
           )}
 

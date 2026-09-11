@@ -441,13 +441,13 @@ export const PropertyBlueprintBindingControl: React.FC<PropertyBlueprintBindingC
                       cursor: "pointer",
                       transition: "all 0.15s ease",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#EFF6FF")}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#EBF5F3")}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#F8FAFC")}
                   >
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "#0F172A" }}>
                       {p.label}
                     </span>
-                    <code style={{ fontSize: 9.5, color: "#2563EB", fontFamily: "var(--font-mono)" }}>
+                    <code style={{ fontSize: 9.5, color: "#206859", fontFamily: "var(--font-mono)" }}>
                       {p.expression}
                     </code>
                   </button>

@@ -118,13 +118,24 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
       <button
         type="button"
         className="menu-item"
-        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("bottom", "blueprint") : onToggleBottom?.())}
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("bottom", "blocks") : onToggleBottom?.())}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Sparkles size={13} /></span>
+          <span>Content & Block Shelf</span>
+        </span>
+        {bottomOpen && <Check size={13} className="menu-item__check" />}
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "blueprint") : undefined)}
       >
         <span className="menu-item__left">
           <span className="menu-item__icon"><Cpu size={13} /></span>
           <span>Logic Blueprint Canvas</span>
         </span>
-        {bottomOpen && <Check size={13} className="menu-item__check" />}
       </button>
 
       <button

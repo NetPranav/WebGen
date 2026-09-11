@@ -82,7 +82,7 @@ const CATEGORY_META: Record<
   AddPaletteCategory,
   { label: string; color: string; bg: string }
 > = {
-  component: { label: "Component", color: "#2563EB", bg: "#EFF6FF" },
+  component: { label: "Component", color: "#206859", bg: "#EBF5F3" },
   behavior: { label: "Behavior", color: "#7C3AED", bg: "#F5F3FF" },
   data: { label: "Data", color: "#059669", bg: "#ECFDF5" },
   animation: { label: "Animation", color: "#D97706", bg: "#FFFBEB" },

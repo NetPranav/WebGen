@@ -36,7 +36,7 @@ export default function Home() {
     { name: "Text Secondary", token: "var(--text-secondary)", hex: "#475569" },
     { name: "Text Muted", token: "var(--text-muted)", hex: "#64748B" },
     { name: "Border Subtle", token: "var(--border-subtle)", hex: "rgba(15,23,42,0.06)" },
-    { name: "Accent Primary", token: "var(--accent-primary)", hex: "#3B82F6" },
+    { name: "Accent Primary", token: "var(--accent-primary)", hex: "#206859" },
     { name: "Accent Success", token: "var(--accent-success)", hex: "#10B981" },
     { name: "Accent Warning", token: "var(--accent-warning)", hex: "#F59E0B" },
     { name: "Accent Danger", token: "var(--accent-danger)", hex: "#EF4444" },
@@ -51,7 +51,7 @@ export default function Home() {
     { type: "Array / List", token: "var(--wire-array)", hex: "#EAB308", desc: "Collections & rows" },
     { type: "Database Record", token: "var(--wire-database)", hex: "#10B981", desc: "Live schema entities" },
     { type: "Motion / Curve", token: "var(--wire-motion)", hex: "#8B5CF6", desc: "GSAP Keyframe tracks" },
-    { type: "Event Trigger", token: "var(--wire-event)", hex: "#3B82F6", desc: "Clicks & webhooks" },
+    { type: "Event Trigger", token: "var(--wire-event)", hex: "#206859", desc: "Clicks & webhooks" },
   ];
 
   const radiiTokens = [

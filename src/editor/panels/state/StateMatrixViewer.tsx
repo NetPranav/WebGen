@@ -125,7 +125,7 @@ export const StateMatrixViewer: React.FC = () => {
       case "array":
         return '["item1", "item2"]';
       case "color":
-        return "#3B82F6 or rgb(...)";
+        return "#206859 or rgb(...)";
       case "string":
       default:
         return "Initial text value...";

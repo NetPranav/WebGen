@@ -325,9 +325,9 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
   // Specific Configurations per Element Archetype
   const [buttonConfig, setButtonConfig] = useState<ButtonSpecificConfig>(
     defaultSchema.buttonConfig || {
-      hoverBgColor: "#2563EB",
-      activeBgColor: "#1D4ED8",
-      focusRingColor: "#93C5FD",
+      hoverBgColor: "#206859",
+      activeBgColor: "#174f43",
+      focusRingColor: "rgba(32, 104, 89, 0.4)",
       focusRingWidth: 2,
       disabledOpacity: 50,
       isLoading: false,
@@ -487,7 +487,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
         parsedDefault = {};
       }
     } else if (newVarDraft.type === "color") {
-      parsedDefault = newVarDraft.defaultValue || "#3b82f6";
+      parsedDefault = newVarDraft.defaultValue || "#206859";
     }
 
     const createdVar: ComponentVariable = {

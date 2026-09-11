@@ -294,7 +294,7 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
   const getOperationBadgeStyle = (op: "READ" | "CREATE" | "UPDATE" | "DELETE") => {
     switch (op) {
       case "READ":
-        return { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE" };
+        return { bg: "#EBF5F3", color: "#206859", border: "rgba(32, 104, 89, 0.3)" };
       case "CREATE":
         return { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" };
       case "UPDATE":
@@ -351,11 +351,11 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: "#EFF6FF",
+                backgroundColor: "#EBF5F3",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#2563EB",
+                color: "#206859",
               }}
             >
               <Workflow size={17} />
@@ -445,8 +445,8 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
                 padding: "3px 8px",
                 fontSize: 11,
                 fontWeight: selectedCategory === "all" ? 600 : 400,
-                backgroundColor: selectedCategory === "all" ? "#EFF6FF" : "transparent",
-                color: selectedCategory === "all" ? "#2563EB" : "#64748B",
+                backgroundColor: selectedCategory === "all" ? "#EBF5F3" : "transparent",
+                color: selectedCategory === "all" ? "#206859" : "#64748B",
               }}
             >
               All ({CANDIDATES.length})
@@ -459,8 +459,8 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
                 padding: "3px 8px",
                 fontSize: 11,
                 fontWeight: selectedCategory === "blueprint" ? 600 : 400,
-                backgroundColor: selectedCategory === "blueprint" ? "#EFF6FF" : "transparent",
-                color: selectedCategory === "blueprint" ? "#2563EB" : "#64748B",
+                backgroundColor: selectedCategory === "blueprint" ? "#EBF5F3" : "transparent",
+                color: selectedCategory === "blueprint" ? "#206859" : "#64748B",
               }}
             >
               <Workflow size={10} />
@@ -474,8 +474,8 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
                 padding: "3px 8px",
                 fontSize: 11,
                 fontWeight: selectedCategory === "api" ? 600 : 400,
-                backgroundColor: selectedCategory === "api" ? "#EFF6FF" : "transparent",
-                color: selectedCategory === "api" ? "#2563EB" : "#64748B",
+                backgroundColor: selectedCategory === "api" ? "#EBF5F3" : "transparent",
+                color: selectedCategory === "api" ? "#206859" : "#64748B",
               }}
             >
               <Server size={10} />
@@ -489,8 +489,8 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
                 padding: "3px 8px",
                 fontSize: 11,
                 fontWeight: selectedCategory === "component" ? 600 : 400,
-                backgroundColor: selectedCategory === "component" ? "#EFF6FF" : "transparent",
-                color: selectedCategory === "component" ? "#2563EB" : "#64748B",
+                backgroundColor: selectedCategory === "component" ? "#EBF5F3" : "transparent",
+                color: selectedCategory === "component" ? "#206859" : "#64748B",
               }}
             >
               <Layers size={10} />
@@ -511,9 +511,9 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
                   padding: "2px 6px",
                   borderRadius: 4,
                   border: "1px solid",
-                  borderColor: selectedOperation === op ? "#2563EB" : "rgba(15, 23, 42, 0.08)",
-                  backgroundColor: selectedOperation === op ? "#EFF6FF" : "transparent",
-                  color: selectedOperation === op ? "#2563EB" : "#64748B",
+                  borderColor: selectedOperation === op ? "#206859" : "rgba(15, 23, 42, 0.08)",
+                  backgroundColor: selectedOperation === op ? "#EBF5F3" : "transparent",
+                  color: selectedOperation === op ? "#206859" : "#64748B",
                   cursor: "pointer",
                 }}
               >
@@ -541,7 +541,7 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
                   key={candidate.id}
                   style={{
                     backgroundColor: latched ? "#F8FAFC" : "#FFFFFF",
-                    border: `1px solid ${latched ? "#BFDBFE" : "rgba(15, 23, 42, 0.08)"}`,
+                    border: `1px solid ${latched ? "rgba(32, 104, 89, 0.3)" : "rgba(15, 23, 42, 0.08)"}`,
                     borderRadius: "var(--radius-sm, 8px)",
                     padding: "10px 12px",
                     display: "flex",
@@ -552,7 +552,7 @@ export const DatabaseLatchPickerModal: React.FC<DatabaseLatchPickerModalProps> =
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      {candidate.category === "blueprint" && <Workflow size={13} style={{ color: "#2563EB" }} />}
+                      {candidate.category === "blueprint" && <Workflow size={13} style={{ color: "#206859" }} />}
                       {candidate.category === "api" && <Server size={13} style={{ color: "#D97706" }} />}
                       {candidate.category === "component" && <Layers size={13} style={{ color: "#16A34A" }} />}
 

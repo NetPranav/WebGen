@@ -26,7 +26,7 @@
   --surface-panel-solid: #FFFFFF;
   --surface-panel-hover: #F8FAFC;
   --surface-panel-active: #F1F5F9;
-  --surface-panel-selected: #EFF6FF;
+  --surface-panel-selected: #EBF5F3;
 
   --surface-dock-bar: rgba(255, 255, 255, 0.85);
   --surface-toolbar: rgba(255, 255, 255, 0.95);
@@ -41,8 +41,8 @@
   --border-subtle: rgba(15, 23, 42, 0.06);
   --border-default: rgba(15, 23, 42, 0.08);
   --border-strong: rgba(15, 23, 42, 0.14);
-  --border-focus: #3B82F6;
-  --border-active: rgba(59, 130, 246, 0.5);
+  --border-focus: #206859;
+  --border-active: rgba(32, 104, 89, 0.5);
 
   /* --------------------------------------------------------------------------
    * Typography & Text Colors
@@ -55,7 +55,7 @@
   --text-muted: #64748B;       /* Slate 500 */
   --text-tertiary: #94A3B8;    /* Slate 400 */
   --text-inverse: #FFFFFF;
-  --text-accent: #2563EB;
+  --text-accent: #206859;
 
   /* Font Sizes */
   --text-xs: 11px;
@@ -92,11 +92,11 @@
   --space-4xl: 64px;
 
   /* --------------------------------------------------------------------------
-   * Semantic Accent Colors
+   * Semantic Accent Colors (#206859 Primary Theme)
    * -------------------------------------------------------------------------- */
-  --accent-primary: #3B82F6;       /* Electric Blue */
-  --accent-primary-hover: #2563EB;
-  --accent-primary-light: #EFF6FF;
+  --accent-primary: #206859;       /* Deep Pine Green / Teal */
+  --accent-primary-hover: #174f43;
+  --accent-primary-light: #EBF5F3;
 
   --accent-success: #10B981;       /* Emerald */
   --accent-success-light: #ECFDF5;
@@ -121,7 +121,7 @@
   --wire-array: #EAB308;
   --wire-database: #10B981;
   --wire-motion: #8B5CF6;
-  --wire-event: #3B82F6;
+  --wire-event: #206859;
 
   /* --------------------------------------------------------------------------
    * Curvature & Border Radii (Refined Unreal Curvature)

@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { DatabaseLatchPickerModal, LatchCandidate } from "./DatabaseLatchPickerModal";
 import { DatabaseFunctionLatch } from "@/core/store/useProjectStore";
+import { PropertyBlueprintBindingControl } from "../common/PropertyBlueprintBindingControl";
 
 export type FunctionLatch = DatabaseFunctionLatch;
 
@@ -169,8 +170,8 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
             style={{
               fontSize: 9.5,
               fontFamily: "var(--font-mono)",
-              background: "rgba(59, 130, 246, 0.15)",
-              color: "#60a5fa",
+              background: "rgba(32, 104, 89, 0.15)",
+              color: "#206859",
               padding: "1px 6px",
               borderRadius: 3,
             }}
@@ -273,17 +274,51 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
               />
             </div>
 
-            <div className="db-form-row" style={{ marginTop: 6 }}>
-              <label>Default Value Expression</label>
-              <input
-                type="text"
-                className="db-input"
-                placeholder={field.isPrimaryKey ? "autoincrement()" : "e.g. 0, 'draft', NOW()"}
+            <div style={{ marginTop: 8 }}>
+              <PropertyBlueprintBindingControl
+                label="Default Value Expression"
                 value={field.defaultValue !== undefined ? String(field.defaultValue) : ""}
-                onChange={(e) => {
+                placeholder={field.isPrimaryKey ? "autoincrement()" : "e.g. 0, 'draft', NOW()"}
+                targetProperty={`defaultValue:${field.name}`}
+                collectionName={currentSchema.name}
+                formulaPresets={[
+                  { label: "autoincrement()", expression: "autoincrement()", description: "Auto-incrementing integer key sequence" },
+                  { label: "NOW()", expression: "NOW()", description: "Current timestamp ISO at row insertion" },
+                  { label: "UUIDv4()", expression: "UUIDv4()", description: "RFC4122 standard random v4 UUID string" },
+                  { label: "Conditional Order Status", expression: "orders.length > 0 ? 'Order Again' : 'Order Now'", description: "Dynamic order toggle formula" },
+                  { label: "Active User Session", expression: "currentUser ? currentUser.id : null", description: "Current authenticated session ID" },
+                ]}
+                onChange={(newVal) => {
                   const updated: DatabaseField = {
                     ...field,
-                    defaultValue: e.target.value,
+                    defaultValue: newVal,
+                  };
+                  addFieldToCollection(selectedTableId, updated);
+                }}
+                onBindBlueprint={(funcName, sourceFile) => {
+                  const targetKey = `${selectedTableId}.${field.name}`;
+                  addDatabaseLatch(
+                    {
+                      id: `latch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+                      targetKey,
+                      functionName: funcName,
+                      category: "blueprint",
+                      sourceFile,
+                      operation: "READ",
+                      description: `Bound to default value expression of ${field.name}`,
+                    },
+                    `Bound ${funcName} to ${targetKey}`
+                  );
+                  const updated: DatabaseField = {
+                    ...field,
+                    defaultValue: `[BP:${funcName}()]`,
+                  };
+                  addFieldToCollection(selectedTableId, updated);
+                }}
+                onUnbind={() => {
+                  const updated: DatabaseField = {
+                    ...field,
+                    defaultValue: "",
                   };
                   addFieldToCollection(selectedTableId, updated);
                 }}
@@ -385,7 +420,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
             <span className="db-section-title">Validation & Check Rules</span>
 
             {field.type === "Int" || field.type === "Float" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div className="db-grid-responsive">
                 <div className="db-form-row">
                   <label>Min Value</label>
                   <input type="number" className="db-input" placeholder="0" />
@@ -430,8 +465,8 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                       fontWeight: 600,
                       padding: "1px 6px",
                       borderRadius: "var(--radius-full, 9999px)",
-                      backgroundColor: fieldLatches.length > 0 ? "#EFF6FF" : "#F1F5F9",
-                      color: fieldLatches.length > 0 ? "#2563EB" : "#64748B",
+                      backgroundColor: fieldLatches.length > 0 ? "#EBF5F3" : "#F1F5F9",
+                      color: fieldLatches.length > 0 ? "#206859" : "#64748B",
                       border: "1px solid rgba(15, 23, 42, 0.08)",
                     }}
                   >
@@ -479,7 +514,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                       >
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <Workflow size={12} style={{ color: "#2563EB" }} />
+                            <Workflow size={12} style={{ color: "#206859" }} />
                             <span style={{ fontSize: 11, fontWeight: 600, color: "#0F172A" }}>
                               {latch.functionName}
                             </span>
@@ -492,7 +527,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                               borderRadius: 3,
                               backgroundColor:
                                 latch.operation === "READ"
-                                  ? "#EFF6FF"
+                                  ? "#EBF5F3"
                                   : latch.operation === "CREATE"
                                   ? "#F0FDF4"
                                   : latch.operation === "DELETE"
@@ -500,7 +535,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                                   : "#FEF3C7",
                               color:
                                 latch.operation === "READ"
-                                  ? "#2563EB"
+                                  ? "#206859"
                                   : latch.operation === "CREATE"
                                   ? "#16A34A"
                                   : latch.operation === "DELETE"
@@ -523,7 +558,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                             style={{
                               background: "none",
                               border: "none",
-                              color: "#2563EB",
+                              color: "#206859",
                               fontSize: 10.5,
                               fontWeight: 600,
                               cursor: "pointer",
@@ -562,17 +597,17 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                   <span style={{ fontSize: 9.5, fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                     Operation Permitted Matrix
                   </span>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                    <div style={{ padding: "4px 8px", background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)", borderRadius: 4, fontSize: 10 }}>
-                      <span style={{ color: "#2563EB", fontWeight: 600 }}>READ:</span> <span style={{ color: "#64748B" }}>{readCount} Callers</span>
+                  <div className="db-grid-responsive" style={{ gap: 4 }}>
+                    <div style={{ flex: "1 1 110px", minWidth: 0, padding: "4px 8px", background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)", borderRadius: 4, fontSize: 10 }}>
+                      <span style={{ color: "#206859", fontWeight: 600 }}>READ:</span> <span style={{ color: "#64748B" }}>{readCount} Callers</span>
                     </div>
-                    <div style={{ padding: "4px 8px", background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)", borderRadius: 4, fontSize: 10 }}>
+                    <div style={{ flex: "1 1 110px", minWidth: 0, padding: "4px 8px", background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)", borderRadius: 4, fontSize: 10 }}>
                       <span style={{ color: "#10B981", fontWeight: 600 }}>CREATE:</span> <span style={{ color: "#64748B" }}>{createCount} Callers</span>
                     </div>
-                    <div style={{ padding: "4px 8px", background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)", borderRadius: 4, fontSize: 10 }}>
+                    <div style={{ flex: "1 1 110px", minWidth: 0, padding: "4px 8px", background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)", borderRadius: 4, fontSize: 10 }}>
                       <span style={{ color: "#F59E0B", fontWeight: 600 }}>UPDATE:</span> <span style={{ color: "#64748B" }}>{updateCount} Callers</span>
                     </div>
-                    <div style={{ padding: "4px 8px", background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)", borderRadius: 4, fontSize: 10 }}>
+                    <div style={{ flex: "1 1 110px", minWidth: 0, padding: "4px 8px", background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)", borderRadius: 4, fontSize: 10 }}>
                       <span style={{ color: "#EF4444", fontWeight: 600 }}>DELETE:</span> <span style={{ color: "#64748B" }}>{deleteCount} Callers</span>
                     </div>
                   </div>
@@ -637,15 +672,15 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
       {/* Table Details Header */}
       <div className="db-details-header">
         <span className="db-details-header__title">
-          <Table size={13} style={{ color: "#60a5fa" }} />
+          <Table size={13} style={{ color: "#206859" }} />
           <span>{currentSchema.name}</span>
         </span>
 
         <span
           style={{
             fontSize: 10,
-            background: "rgba(96, 165, 250, 0.15)",
-            color: "#60a5fa",
+            background: "rgba(32, 104, 89, 0.15)",
+            color: "#206859",
             padding: "2px 6px",
             borderRadius: 3,
             fontWeight: 600,
@@ -858,8 +893,8 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                     fontWeight: 600,
                     padding: "1px 6px",
                     borderRadius: "var(--radius-full, 9999px)",
-                    backgroundColor: tableLatches.length > 0 ? "#EFF6FF" : "#F1F5F9",
-                    color: tableLatches.length > 0 ? "#2563EB" : "#64748B",
+                    backgroundColor: tableLatches.length > 0 ? "#EBF5F3" : "#F1F5F9",
+                    color: tableLatches.length > 0 ? "#206859" : "#64748B",
                     border: "1px solid rgba(15, 23, 42, 0.08)",
                   }}
                 >
@@ -906,7 +941,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                     >
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <Workflow size={12} style={{ color: "#2563EB" }} />
+                          <Workflow size={12} style={{ color: "#206859" }} />
                           <span style={{ fontSize: 11, fontWeight: 600, color: "#0F172A" }}>
                             {latch.functionName}
                           </span>
@@ -919,7 +954,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                             borderRadius: 3,
                             backgroundColor:
                               latch.operation === "READ"
-                                ? "#EFF6FF"
+                                ? "#EBF5F3"
                                 : latch.operation === "CREATE"
                                 ? "#F0FDF4"
                                 : latch.operation === "DELETE"
@@ -927,7 +962,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                                 : "#FEF3C7",
                             color:
                               latch.operation === "READ"
-                                ? "#2563EB"
+                                ? "#206859"
                                 : latch.operation === "CREATE"
                                 ? "#16A34A"
                                 : latch.operation === "DELETE"
@@ -950,7 +985,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
                           style={{
                             background: "none",
                             border: "none",
-                            color: "#2563EB",
+                            color: "#206859",
                             fontSize: 10.5,
                             fontWeight: 600,
                             cursor: "pointer",

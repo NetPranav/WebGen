@@ -18,7 +18,7 @@
  */
 
 import React from "react";
-import { Save, Undo2, Redo2, X, Workflow, Film, Terminal, FileCode, Database } from "lucide-react";
+import { Save, Undo2, Redo2, X, Workflow, Film, Terminal, FileCode, Database, Folder, Monitor } from "lucide-react";
 import type { TearOffDragSource } from "@/core/events/useTearOff";
 import "@/editor/styles/fullpage-dock.css";
 
@@ -34,6 +34,7 @@ interface FullPageDockProps {
   activeTabId: string;
   onSelectTab: (panelId: string) => void;
   onCloseTab: (panelId: string) => void;
+  onOpenAsset?: (assetId: string, assetTitle: string) => void;
   onTabDragStart?: (panelId: string, panelTitle: string, originX: number, originY: number) => void;
   isDirty?: boolean;
   onSave: () => void;
@@ -48,6 +49,7 @@ export const FullPageDock: React.FC<FullPageDockProps> = ({
   activeTabId,
   onSelectTab,
   onCloseTab,
+  onOpenAsset,
   onTabDragStart,
   isDirty = false,
   onSave,
@@ -56,11 +58,14 @@ export const FullPageDock: React.FC<FullPageDockProps> = ({
   onCloseAll,
   children,
 }) => {
-  const getTabIcon = (panelId: string) => {
-    if (panelId === "blueprint") return <Workflow size={13} />;
-    if (panelId === "sequencer") return <Film size={13} />;
-    if (panelId === "console") return <Terminal size={13} />;
-    if (panelId === "er-modeler" || panelId === "database") return <Database size={13} />;
+  const getTabIcon = (panelId: string, title?: string) => {
+    const check = (panelId + " " + (title || "")).toLowerCase();
+    if (check.includes("content-browser") || check.includes("content browser")) return <Folder size={13} />;
+    if (check.includes("viewport") || check.includes("design")) return <Monitor size={13} />;
+    if (check.includes("blueprint") || check.includes(".bp")) return <Workflow size={13} />;
+    if (check.includes("sequencer") || check.includes(".seq")) return <Film size={13} />;
+    if (check.includes("console")) return <Terminal size={13} />;
+    if (check.includes("er-modeler") || check.includes("database") || check.includes(".db")) return <Database size={13} />;
     return <FileCode size={13} />;
   };
 
@@ -142,8 +147,42 @@ export const FullPageDock: React.FC<FullPageDockProps> = ({
           <div className="fullpage-dock__filebar-divider" />
 
           {/* Browser-Style Multi-Tab Strip */}
-          <div className="fullpage-dock__tabs" role="tablist" aria-label="Open Full-Screen Files">
+          <div
+            className="fullpage-dock__tabs"
+            role="tablist"
+            aria-label="Open Full-Screen Files"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const rawData = e.dataTransfer.getData("application/json");
+              if (!rawData) return;
+              try {
+                const data = JSON.parse(rawData);
+                if (data.type === "asset" && onOpenAsset) {
+                  onOpenAsset(data.id, data.name);
+                }
+              } catch {}
+            }}
+          >
+            {/* Pinned Viewport (Website Design) Tab */}
+            <div
+              key="viewport"
+              role="tab"
+              aria-selected={activeTabId === "viewport"}
+              tabIndex={0}
+              className={`fullpage-dock__tab ${activeTabId === "viewport" ? "fullpage-dock__tab--active" : ""}`}
+              onClick={() => onSelectTab("viewport")}
+              title="Switch to Website Viewport"
+            >
+              <span className="fullpage-dock__tab-icon"><Monitor size={13} /></span>
+              <span className="fullpage-dock__tab-title">Viewport</span>
+            </div>
+
             {tabs.map((tab) => {
+              if (tab.panelId === "viewport") return null;
               const isActive = tab.panelId === activeTabId;
               return (
                 <div
@@ -156,7 +195,7 @@ export const FullPageDock: React.FC<FullPageDockProps> = ({
                   onPointerDown={(e) => handleTabPointerDown(e, tab)}
                   title={`${tab.panelTitle} (Drag tab title to detach)`}
                 >
-                  <span className="fullpage-dock__tab-icon">{getTabIcon(tab.panelId)}</span>
+                  <span className="fullpage-dock__tab-icon">{getTabIcon(tab.panelId, tab.panelTitle)}</span>
                   <span className="fullpage-dock__tab-title">{tab.panelTitle}</span>
                   <button
                     type="button"

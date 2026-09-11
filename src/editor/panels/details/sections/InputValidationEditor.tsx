@@ -28,6 +28,7 @@ import {
   Search,
 } from "lucide-react";
 import { InputSpecificConfig } from "@/core/types/element-sections";
+import { PropertyBlueprintBindingControl } from "../../common/PropertyBlueprintBindingControl";
 
 export interface InputValidationEditorProps {
   config: InputSpecificConfig;
@@ -142,15 +143,37 @@ export const InputValidationEditor: React.FC<InputValidationEditorProps> = ({
               </select>
             </div>
 
-            {/* Placeholder */}
-            <div className="detail-form-group">
-              <label className="detail-label">Placeholder Text</label>
-              <input
-                type="text"
-                className="detail-input-text"
+            {/* Placeholder Text with Blueprint / Expression Binding */}
+            <div style={{ marginBottom: 12 }}>
+              <PropertyBlueprintBindingControl
+                label="Placeholder Text"
+                value={config.placeholder || ""}
                 placeholder="Enter placeholder string..."
-                value={config.placeholder}
-                onChange={(e) => updateProp("placeholder", e.target.value)}
+                targetProperty="placeholder"
+                formulaPresets={[
+                  {
+                    label: "Order History Toggle",
+                    expression: "orders.length > 0 ? 'Order Again' : 'Order Now'",
+                    description: "Ternary condition based on customer order history",
+                  },
+                  {
+                    label: "Cart Active Count",
+                    expression: "cart.items.length > 0 ? `Checkout (${cart.items.length})` : 'Search products...'",
+                    description: "Dynamically reflects current cart item count",
+                  },
+                  {
+                    label: "User Greeting",
+                    expression: "currentUser ? `Welcome back, ${currentUser.name}` : 'Sign in to your account'",
+                    description: "Greets logged in users by profile name",
+                  },
+                ]}
+                onChange={(val) => updateProp("placeholder", val)}
+                onBindBlueprint={(funcName) => {
+                  updateProp("placeholder", `[BP:${funcName}()]`);
+                }}
+                onUnbind={() => {
+                  updateProp("placeholder", "");
+                }}
               />
             </div>
 

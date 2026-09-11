@@ -58,7 +58,7 @@ export const GradientEditor: React.FC<GradientEditorProps> = ({
     // Create a new stop at this position
     const newStop: GradientStop = {
       id: `stop_${Date.now()}`,
-      color: selectedStop ? selectedStop.color : "#3B82F6",
+      color: selectedStop ? selectedStop.color : "#206859",
       position,
     };
 

@@ -33,6 +33,7 @@ interface WhiteboardCanvasProps {
   deviceMode?: "desktop" | "tablet" | "mobile";
   zoomLevel: number;
   onZoomChange: (newZoom: number) => void;
+  onDropAsset?: (asset: { id: string; name: string; category: string }) => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -53,6 +54,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   deviceMode = "desktop",
   zoomLevel,
   onZoomChange,
+  onDropAsset,
   className,
   style,
 }) => {
@@ -339,6 +341,23 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       style={canvasStyle}
       onMouseDown={handleMouseDown}
       onClick={() => setSelectedElement(null)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        const rawData = e.dataTransfer.getData("application/json");
+        if (!rawData) return;
+        try {
+          const data = JSON.parse(rawData);
+          if (data.type === "asset" && onDropAsset) {
+            onDropAsset(data);
+          }
+        } catch {
+          // ignore
+        }
+      }}
       role="region"
       aria-label="Confluence Whiteboard Stage"
     >

@@ -22,9 +22,9 @@ The project is organized into **7 major phases**, each broken into **numbered su
 | Phase | Name | Sub-Phases | Key Deliverable | Status |
 |---|---|---|---|---|
 | **1** | Foundations & IDE Shell | 1.1 – 1.7 | Dockable IDE with Confluence canvas, panels, and UE5 Details Inspector | ✅ COMPLETE |
-| **2** | Inside-Out Database Logic, Connection & Animation Engine | 2.1 – 2.5 | Database schemas, property access matrix, diagnostic bus, animation samples & UI wrappers | 🚀 IN PROGRESS (ACTIVE TARGET) |
-| **3** | Logic Blueprint Engine & Node System | 3.1 – 3.5 | Functional node graphs with type-safe wiring & My Blueprint panel | 📋 PLANNED |
-| **4** | C++ Wasm Kernel & Physics Canvas | 4.1 – 4.5 | 120 FPS curved wire rendering with Verlet spring physics | 📋 PLANNED |
+| **2** | Inside-Out Database Logic, Connection & Animation Engine | 2.1 – 2.5 | Database schemas, property access matrix, diagnostic bus, animation samples & UI wrappers | ✅ COMPLETE |
+| **3** | Logic Blueprint Engine & Node System | 3.1 – 3.5 | Functional node graphs with type-safe wiring & My Blueprint panel | ✅ COMPLETE |
+| **4** | C++ Wasm Kernel & Physics Canvas | 4.1 – 4.5 | 120 FPS curved wire rendering with Verlet spring physics | 🚀 IN PROGRESS (ACTIVE TARGET) |
 | **5** | Play Mode Runtime & Execution Trace | 5.1 – 5.5 | Live sandbox preview with animated wire pulses & AI diagnostic | 📋 PLANNED |
 | **6** | Compiler & Production Code Generation | 6.1 – 6.5 | Exportable Next.js 15 + React 19 + Prisma production code | 📋 PLANNED |
 | **7** | Operations, Deployment & Extensions | 7.1 – 7.5 | Build pipelines, cloud deploy, plugins, command palette & global search | 📋 PLANNED (IN LAST) |
@@ -256,39 +256,40 @@ The project is organized into **7 major phases**, each broken into **numbered su
 
 ---
 
-## 5. Phase 3: Logic Blueprint Engine & Visual Scripting System
+## 5. Phase 3: Logic Blueprint Engine & Visual Scripting System ✅ COMPLETE
 
 **Goal:** Visual node-and-wire scripting where logic graphs connect directly to element properties and database actions.
 
 ---
 
-### Sub-Phase 3.1: Node Type Registry & Core Definitions
-- [ ] Create `src/core/types/node-registry.ts` — Built-in node definitions with pin schemas (Events, Flow Control, Variables, Navigation, Math).
-- [ ] Define Event nodes (`onClick`, `onPageLoad`, `onSubmit`, `onHover`, `onTimer`).
-- [ ] Define Action nodes (`database/query`, `variables/set`, `api/request`, `navigation/push`).
-- [ ] Verify: Node registry is queryable by category; all pins have strict data types.
+### Sub-Phase 3.1: Node Type Registry & Core Definitions ✅ COMPLETE
+- [x] Create `src/core/types/node-registry.ts` — Built-in node definitions with pin schemas (Events, Flow Control, Variables, Navigation, Math, Utility, Database, API).
+- [x] Define Event nodes (`onClick`, `onPageLoad`, `onSubmit`, `onHover`, `onTimer`).
+- [x] Define Action nodes (`database/query`, `database/insert`, `variables/set`, `variables/get`, `api/request`, `navigation/push`, `flow/branch`, `utility/printString`).
+- [x] Verify: Node registry is queryable by category; all pins have strict data types (`exec`, `boolean`, `number`, `string`, `object`, `array`, `any`) with color taxonomy mapping.
 
-### Sub-Phase 3.2: Type Checker & Pin Wire Validation
-- [ ] Create `src/core/ast/TypeChecker.ts` — Pin compatibility evaluator.
-- [ ] Enforce wire type rules (String ➔ String ✓, Array ➔ String ✗).
-- [ ] Reject illegal connections with red wire and dispatch `[PIN_TYPE_MISMATCH]` to Output Log.
-- [ ] Verify: Incompatible pins refuse attachment and log error.
+### Sub-Phase 3.2: Type Checker & Pin Wire Validation ✅ COMPLETE
+- [x] Create `src/core/ast/TypeChecker.ts` — Pin compatibility evaluator with direction enforcement (Output ➔ Input only) and self-loop rejection.
+- [x] Enforce wire type rules (String ➔ String ✓, Number/Boolean widening ➔ String ✓, Exec isolation ✓, Array ➔ String ✗).
+- [x] Reject illegal connections with red feedback and dispatch `[PIN_TYPE_MISMATCH]` to Output Log via `DiagnosticBus`.
+- [x] Verify: Incompatible pins refuse attachment and log structured diagnostics.
 
-### Sub-Phase 3.3: DAG Sorter & Graph AST Manager
-- [ ] Create `src/core/ast/DAGSorter.ts` — Topological sorting for execution order.
-- [ ] Detect circular execution cycles and emit errors.
-- [ ] Create `src/core/ast/ASTManager.ts` — Graph CRUD operations.
-- [ ] Verify: Cycles are trapped; acyclic graphs sort accurately.
+### Sub-Phase 3.3: DAG Sorter & Graph AST Manager ✅ COMPLETE
+- [x] Create `src/core/ast/DAGSorter.ts` — Topological sorting via Kahn's algorithm for layered execution order.
+- [x] Detect circular execution cycles via 3-color DFS cycle detector and emit `[GRAPH_CYCLE_ERR]`.
+- [x] Create `src/core/ast/ASTManager.ts` — Graph CRUD operations, wire connections, literal pin values, and graph validation.
+- [x] Verify: Cycles are trapped; acyclic graphs sort accurately into execution batches.
 
-### Sub-Phase 3.4: My Blueprint Panel & Variable System
-- [ ] Create Panel 17: `MyBlueprintPanel.tsx` — Graph variables, functions, event dispatchers.
-- [ ] Implement drag variable ➔ canvas ➔ auto-creates Get/Set node.
-- [ ] Verify: Dragging variables creates typed accessor nodes.
+### Sub-Phase 3.4: My Blueprint Panel & Variable System ✅ COMPLETE
+- [x] Create Panel 17: `MyBlueprintPanel.tsx` — Unreal-style hierarchy explorer with Graphs, Functions, Variables, and Event Hooks.
+- [x] Implement variable system: add/update/remove variables, with one-click `GET` and `SET` node generation onto the active canvas.
+- [x] Verify: Interacting with variables creates typed accessor nodes on canvas and updates store state seamlessly.
 
-### Sub-Phase 3.5: Blueprint Validation & Serialization
-- [ ] Create Panel 22: `ValidationPanel.tsx` — Real-time issue list with click-to-navigate links.
-- [ ] Implement `.bp.json` save and load serialization.
-- [ ] Verify: Graph serializes to JSON and restores perfectly.
+### Sub-Phase 3.5: Blueprint Validation & Serialization ✅ COMPLETE
+- [x] Create Panel 22: `ValidationPanel.tsx` — Real-time issue list with click-to-navigate links, compiler status badge, and AST verification.
+- [x] Implement `.bp.json` save, export, and load serialization (`serializeGraphToJson` / `deserializeJsonToGraph`).
+- [x] Create interactive `BlueprintCanvas.tsx` — Renders live AST nodes, dynamic cubic Bezier curves, interactive wire dragging, and contextual Tab search palette.
+- [x] Verify: All 38/38 unit tests pass (`npm test`), full TypeScript compilation clean (`npx tsc --noEmit`), and comprehensive browser subagent verification confirms live node rendering, wire dragging, compilation, and variable node spawning.
 
 ---
 
@@ -298,10 +299,11 @@ The project is organized into **7 major phases**, each broken into **numbered su
 
 ---
 
-### Sub-Phase 4.1: C++ Spline Mathematics Module
-- [ ] Implement `SplineSolver.hpp/.cpp` — Cubic Hermite interpolation, Bezier control point calculation.
-- [ ] Implement arc-length parameterization for uniform curve spacing.
-- [ ] Write unit tests (`SplineSolver.test.cpp`).
+### Sub-Phase 4.1: C++ Spline Mathematics Module ✅ COMPLETE
+- [x] Implement `SplineSolver.hpp/.cpp` — Cubic Hermite interpolation, Bezier control point calculation matching Unreal Engine's `FConnectionDrawingPolicy` (`tension = 0.5f`, `minTangent = 45.0f`, reverse-loop routing).
+- [x] Implement arc-length parameterization for uniform curve spacing: 64-step cumulative chord LUT with $O(\log N)$ binary search inversion (`getTForDistance`, `getTForNormalizedArcLength`, `evaluateUniformAt`, `sampleUniformPoints`).
+- [x] Write unit tests (`SplineSolver.test.cpp` and `SplineSolver.test.ts`).
+- [x] Verify: All C++ unit tests compiled with Apple `clang++ -std=c++17` pass 100% (forward splines, minTangent clamping, reverse loops, monotonic LUT, equidistant sampling); all 47/47 TypeScript tests pass cleanly (`npm test`).
 
 ### Sub-Phase 4.2: Verlet Cable Physics & Spatial Index
 - [ ] Implement `CablePhysics.hpp/.cpp` — Verlet integration for wire drape and spring tension.

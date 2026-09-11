@@ -44,6 +44,7 @@ interface EntityTableCardProps {
   onDeleteField?: (fieldName: string) => void;
   onDeleteTable?: () => void;
   onViewRecords?: () => void;
+  onHeaderMouseDown?: (e: React.MouseEvent) => void;
 }
 
 export const EntityTableCard: React.FC<EntityTableCardProps> = ({
@@ -60,6 +61,7 @@ export const EntityTableCard: React.FC<EntityTableCardProps> = ({
   onDeleteField,
   onDeleteTable,
   onViewRecords,
+  onHeaderMouseDown,
 }) => {
   const fields = Object.values(schema.fields);
   const [hoveredField, setHoveredField] = React.useState<{
@@ -100,33 +102,34 @@ export const EntityTableCard: React.FC<EntityTableCardProps> = ({
         style={{
           width: 270,
           backgroundColor: "#FFFFFF",
-          border: `1px solid ${isSelected ? "#3B82F6" : "rgba(15, 23, 42, 0.08)"}`,
+          border: `1px solid ${isSelected ? "#206859" : "rgba(15, 23, 42, 0.08)"}`,
           borderRadius: "var(--radius-md, 8px)",
           boxShadow: isSelected
-            ? "0 10px 25px -3px rgba(59, 130, 246, 0.2), 0 0 0 2px #3B82F6"
+            ? "0 10px 25px -3px rgba(32, 104, 89, 0.2), 0 0 0 2px #206859"
             : "0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04)",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           transition: "all 0.15s ease",
-          cursor: "pointer",
           userSelect: "none",
         }}
       >
-      {/* Table Card Header */}
+      {/* Table Card Header with Drag Handle */}
       <div
+        onMouseDown={onHeaderMouseDown}
         style={{
           padding: "9px 12px",
-          backgroundColor: isSelected ? "#EFF6FF" : "#F8FAFC",
+          backgroundColor: isSelected ? "#EBF5F3" : "#F8FAFC",
           borderBottom: "1px solid rgba(15, 23, 42, 0.06)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 6,
+          cursor: "grab",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-          <Database size={13} style={{ color: "#3B82F6", flexShrink: 0 }} />
+          <Database size={13} style={{ color: "#206859", flexShrink: 0 }} />
           <span
             style={{
               fontSize: 12,
@@ -146,8 +149,8 @@ export const EntityTableCard: React.FC<EntityTableCardProps> = ({
               fontWeight: 600,
               padding: "1px 6px",
               borderRadius: "var(--radius-full, 9999px)",
-              backgroundColor: isSelected ? "#DBEAFE" : "#F1F5F9",
-              color: isSelected ? "#1D4ED8" : "#475569",
+              backgroundColor: isSelected ? "rgba(32, 104, 89, 0.15)" : "#F1F5F9",
+              color: isSelected ? "#206859" : "#475569",
               border: "1px solid rgba(15, 23, 42, 0.06)",
               flexShrink: 0,
             }}
@@ -208,12 +211,18 @@ export const EntityTableCard: React.FC<EntityTableCardProps> = ({
                 e.stopPropagation();
                 onDoubleClickField?.(f.name);
               }}
-              onMouseEnter={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
+              onMouseMove={(e) => {
                 setHoveredField({
                   field: f,
-                  x: rect.right + 10,
-                  y: rect.top - 10,
+                  x: e.clientX + 8,
+                  y: e.clientY + 14,
+                });
+              }}
+              onMouseEnter={(e) => {
+                setHoveredField({
+                  field: f,
+                  x: e.clientX + 8,
+                  y: e.clientY + 14,
                 });
               }}
               onMouseLeave={() => {
@@ -225,8 +234,8 @@ export const EntityTableCard: React.FC<EntityTableCardProps> = ({
                 justifyContent: "space-between",
                 padding: "5px 10px",
                 borderBottom: "1px solid var(--border-subtle, rgba(15, 23, 42, 0.06))",
-                backgroundColor: isFieldSelected ? "#EFF6FF" : "transparent",
-                borderLeft: isFieldSelected ? "3px solid #3B82F6" : "3px solid transparent",
+                backgroundColor: isFieldSelected ? "#EBF5F3" : "transparent",
+                borderLeft: isFieldSelected ? "3px solid #206859" : "3px solid transparent",
                 fontSize: 11,
                 gap: 6,
                 cursor: "pointer",
@@ -252,7 +261,7 @@ export const EntityTableCard: React.FC<EntityTableCardProps> = ({
                   style={{
                     fontFamily: "var(--font-mono)",
                     fontWeight: f.isPrimaryKey || isFieldSelected ? 700 : 500,
-                    color: isFieldSelected ? "#1D4ED8" : f.isPrimaryKey ? "var(--text-primary)" : "var(--text-secondary)",
+                    color: isFieldSelected ? "#206859" : f.isPrimaryKey ? "var(--text-primary)" : "var(--text-secondary)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -339,8 +348,10 @@ export const EntityTableCard: React.FC<EntityTableCardProps> = ({
         className="db-field-hover-popover"
         style={{
           position: "fixed",
-          left: Math.min(hoveredField.x, window.innerWidth - 300),
-          top: Math.max(10, Math.min(hoveredField.y, window.innerHeight - 200)),
+          left: Math.min(Math.max(10, hoveredField.x), window.innerWidth - 300),
+          top: Math.min(Math.max(10, hoveredField.y), window.innerHeight - 200),
+          pointerEvents: "none",
+          zIndex: 9999,
         }}
       >
         <div className="db-field-hover-popover__header">

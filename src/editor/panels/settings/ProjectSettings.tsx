@@ -42,7 +42,7 @@ export const ProjectSettings: React.FC = () => {
   const [wasmOptimization, setWasmOptimization] = useState("aggressive");
 
   // Theme settings
-  const [primaryBrand, setPrimaryBrand] = useState("#3B82F6");
+  const [primaryBrand, setPrimaryBrand] = useState("#206859");
   const [defaultRadius, setDefaultRadius] = useState(8);
   const [defaultFont, setDefaultFont] = useState("Inter");
 

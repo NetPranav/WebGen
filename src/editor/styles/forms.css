@@ -142,8 +142,8 @@
 }
 
 .form-number-scrub__badge--w {
-  background-color: rgba(59, 130, 246, 0.12);
-  color: #2563EB;
+  background-color: rgba(32, 104, 89, 0.12);
+  color: #206859;
 }
 
 .form-number-scrub__badge--h {
@@ -322,7 +322,7 @@
 
 .form-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 0 1px var(--accent-primary), 0 0 6px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 1px var(--accent-primary), 0 0 6px rgba(32, 104, 89, 0.3);
 }
 
 .form-slider-val {
