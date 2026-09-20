@@ -139,6 +139,28 @@ public:
         const Point2D& p2,
         const Point2D& p3
     );
+
+    /**
+     * SIMD-Vectorized batch calculation: evaluates multiple cubic Bezier wires
+     * in parallel using 128-bit vector instructions (wasm_simd128 or SSE2).
+     */
+    static std::vector<SplineResult> calculateBatchSIMD(
+        const std::vector<Point2D>& starts,
+        const std::vector<Point2D>& ends,
+        const SplineConfig& config = SplineConfig()
+    );
+
+    /**
+     * SIMD-Vectorized 4-lane arc-length table generator: evaluates 4 samples of t
+     * simultaneously using fused multiply-adds and vector square roots.
+     */
+    static ArcLengthTable buildArcLengthTableSIMD(
+        const Point2D& p0,
+        const Point2D& p1,
+        const Point2D& p2,
+        const Point2D& p3,
+        int sampleCount = 64
+    );
 };
 
 } // namespace WebAppEngine

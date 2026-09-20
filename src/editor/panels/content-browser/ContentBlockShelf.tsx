@@ -186,7 +186,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
         },
         {
           id: card2Id,
-          name: "Database Studio Card",
+          name: "Motion Sequencer Card",
           archetype: "container",
           parentId: sectionId,
           properties: {

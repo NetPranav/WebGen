@@ -18,7 +18,7 @@
  */
 
 import React from "react";
-import { Save, Undo2, Redo2, X, Workflow, Film, Terminal, FileCode, Database, Folder, Monitor } from "lucide-react";
+import { Save, Undo2, Redo2, X, Workflow, Film, Terminal, FileCode, Folder, Monitor } from "lucide-react";
 import type { TearOffDragSource } from "@/core/events/useTearOff";
 import "@/editor/styles/fullpage-dock.css";
 
@@ -65,7 +65,6 @@ export const FullPageDock: React.FC<FullPageDockProps> = ({
     if (check.includes("blueprint") || check.includes(".bp")) return <Workflow size={13} />;
     if (check.includes("sequencer") || check.includes(".seq")) return <Film size={13} />;
     if (check.includes("console")) return <Terminal size={13} />;
-    if (check.includes("er-modeler") || check.includes("database") || check.includes(".db")) return <Database size={13} />;
     return <FileCode size={13} />;
   };
 

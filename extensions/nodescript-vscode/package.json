@@ -1,0 +1,35 @@
+{
+  "name": "nodescript-vscode",
+  "displayName": "NodeScript (.nls) Language Support",
+  "description": "Rich syntax highlighting and language configuration for NodeScript AI-native logic blueprint files",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "nodescript",
+        "aliases": [
+          "NodeScript",
+          "nodescript",
+          "nls"
+        ],
+        "extensions": [
+          ".nls"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "nodescript",
+        "scopeName": "source.nodescript",
+        "path": "./syntaxes/nodescript.tmLanguage.json"
+      }
+    ]
+  }
+}

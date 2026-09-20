@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx --test \"src/core/**/__tests__/*.test.ts\""
+    "test": "npx tsx --test \"src/**/__tests__/*.test.ts\"",
+    "build:wasm": "cd wasm && make release"
   },
   "dependencies": {
     "gsap": "^3.15.0",

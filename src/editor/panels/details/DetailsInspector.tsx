@@ -27,30 +27,54 @@ import {
   AlignCenter,
   AlignRight,
   ExternalLink,
+  Image as ImageIcon,
+  Minus,
+  Layers,
+  Feather,
+  Globe,
+  X,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { DataBindingEditor } from "./sections/DataBindingEditor";
 import { AnimationEditor } from "./sections/AnimationEditor";
+import { MediaSection } from "./sections/MediaSection";
+import { DividerSection } from "./sections/DividerSection";
+import { BackgroundSection } from "./sections/BackgroundSection";
+import { SvgVectorSection } from "./sections/SvgVectorSection";
+import { EnvironmentInspector } from "./EnvironmentInspector";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
 
 interface DetailsInspectorProps {
-  selectedElementId?: string;
+  selectedElementId?: string | null;
   selectedElementName?: string;
   onOpenBlueprint?: () => void;
+  onDeselect?: () => void;
 }
 
 export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
-  selectedElementId = "comp_hero",
-  selectedElementName = "Hero Section",
+  selectedElementId,
+  selectedElementName = "Element Details",
   onOpenBlueprint,
+  onDeselect,
 }) => {
   const { elements } = useProjectStore();
-  const currentElement = elements[selectedElementId];
+  const isElementSelected = Boolean(
+    selectedElementId &&
+    selectedElementId !== "" &&
+    selectedElementId !== "world_root" &&
+    selectedElementId !== "world"
+  );
+
+  const currentElement = isElementSelected && selectedElementId ? elements[selectedElementId] : undefined;
   const archetype = currentElement?.archetype || "button";
 
   // Collapsible accordion state
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({
+    media: true,
+    divider: true,
+    background: true,
+    svgVector: true,
     transform: true,
     layout: true,
     appearance: true,
@@ -98,8 +122,13 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
   // Data binding
   const [boundVariable, setBoundVariable] = useState("none");
 
+  // If no element is selected on canvas or outliner, render World Environment settings directly
+  if (!isElementSelected) {
+    return <EnvironmentInspector />;
+  }
+
   return (
-    <div className="panel-shell" role="region" aria-label="Properties & Details Inspector">
+    <div className="panel-shell details-inspector" role="region" aria-label="Properties & Details Inspector">
       {/* Panel Top Header Bar */}
       <div className="panel-header">
         <div className="panel-header__title">
@@ -115,6 +144,18 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
           <button type="button" className="panel-icon-btn" title="Delete Component">
             <Trash2 size={12} />
           </button>
+          {onDeselect && (
+            <button
+              type="button"
+              id="details-deselect-btn"
+              className="panel-icon-btn"
+              title="Deselect (Return to World Settings)"
+              onClick={onDeselect}
+              aria-label="Deselect Element"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -467,100 +508,220 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         </div>
 
         {/* ====================================================================
-         * SECTION 4: TYPOGRAPHY
+         * ARCHETYPE-SPECIFIC SECTION: MEDIA (Image)
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.typography ? "panel-section--open" : ""}`}>
-          <button
-            type="button"
-            className="panel-section__header"
-            onClick={() => toggleSection("typography")}
-          >
-            <div className="panel-section__title-group">
-              <ChevronRight size={13} className="panel-section__chevron" />
-              <span>Typography</span>
-            </div>
-          </button>
-
-          {sectionsOpen.typography && (
-            <div className="panel-section__content">
-              {/* Font Family */}
-              <div className="form-group">
-                <label className="form-label">Font Family</label>
-                <select
-                  className="form-select"
-                  value={fontFamily}
-                  onChange={(e) => setFontFamily(e.target.value)}
-                >
-                  <option value="Inter">Inter (System Sans)</option>
-                  <option value="Roboto">Roboto</option>
-                  <option value="JetBrains Mono">JetBrains Mono</option>
-                  <option value="Outfit">Outfit</option>
-                </select>
+        {archetype === "image" && (
+          <div className={`panel-section ${sectionsOpen.media ? "panel-section--open" : ""}`} data-testid="section-media">
+            <button
+              type="button"
+              className="panel-section__header"
+              onClick={() => toggleSection("media")}
+            >
+              <div className="panel-section__title-group">
+                <ChevronRight size={13} className="panel-section__chevron" />
+                <span>Media Details</span>
               </div>
+              <ImageIcon size={12} style={{ color: "var(--accent-primary)" }} />
+            </button>
 
-              {/* Size & Weight */}
-              <div className="form-row--2col">
+            {sectionsOpen.media && (
+              <div className="panel-section__content">
+                <MediaSection
+                  elementId={selectedElementId}
+                  elementName={selectedElementName}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+         * ARCHETYPE-SPECIFIC SECTION: DIVIDER
+         * ==================================================================== */}
+        {archetype === "divider" && (
+          <div className={`panel-section ${sectionsOpen.divider ? "panel-section--open" : ""}`} data-testid="section-divider">
+            <button
+              type="button"
+              className="panel-section__header"
+              onClick={() => toggleSection("divider")}
+            >
+              <div className="panel-section__title-group">
+                <ChevronRight size={13} className="panel-section__chevron" />
+                <span>Divider Properties</span>
+              </div>
+              <Minus size={12} style={{ color: "var(--accent-primary)" }} />
+            </button>
+
+            {sectionsOpen.divider && (
+              <div className="panel-section__content">
+                <DividerSection
+                  elementId={selectedElementId}
+                  elementName={selectedElementName}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+         * ARCHETYPE-SPECIFIC SECTION: BACKGROUND
+         * ==================================================================== */}
+        {archetype === "background" && (
+          <div className={`panel-section ${sectionsOpen.background ? "panel-section--open" : ""}`} data-testid="section-background">
+            <button
+              type="button"
+              className="panel-section__header"
+              onClick={() => toggleSection("background")}
+            >
+              <div className="panel-section__title-group">
+                <ChevronRight size={13} className="panel-section__chevron" />
+                <span>Background Properties</span>
+              </div>
+              <Layers size={12} style={{ color: "var(--accent-primary)" }} />
+            </button>
+
+            {sectionsOpen.background && (
+              <div className="panel-section__content">
+                <BackgroundSection
+                  elementId={selectedElementId}
+                  elementName={selectedElementName}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+         * ARCHETYPE-SPECIFIC SECTION: SVG VECTOR (Icon)
+         * ==================================================================== */}
+        {archetype === "icon" && (
+          <div className={`panel-section ${sectionsOpen.svgVector ? "panel-section--open" : ""}`} data-testid="section-svg-vector">
+            <button
+              type="button"
+              className="panel-section__header"
+              onClick={() => toggleSection("svgVector")}
+            >
+              <div className="panel-section__title-group">
+                <ChevronRight size={13} className="panel-section__chevron" />
+                <span>SVG Vector</span>
+              </div>
+              <Feather size={12} style={{ color: "var(--accent-primary)" }} />
+            </button>
+
+            {sectionsOpen.svgVector && (
+              <div className="panel-section__content">
+                <SvgVectorSection
+                  elementId={selectedElementId}
+                  elementName={selectedElementName}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+         * SECTION 4: TYPOGRAPHY (Interactive labels, Text)
+         * ==================================================================== */}
+        {(archetype === "text" ||
+          archetype === "button" ||
+          archetype === "badge" ||
+          archetype === "toggle" ||
+          archetype === "fab" ||
+          archetype === "generic" ||
+          archetype === "input") && (
+          <div className={`panel-section ${sectionsOpen.typography ? "panel-section--open" : ""}`} data-testid="section-typography">
+            <button
+              type="button"
+              className="panel-section__header"
+              onClick={() => toggleSection("typography")}
+            >
+              <div className="panel-section__title-group">
+                <ChevronRight size={13} className="panel-section__chevron" />
+                <span>Typography</span>
+              </div>
+            </button>
+
+            {sectionsOpen.typography && (
+              <div className="panel-section__content">
+                {/* Font Family */}
                 <div className="form-group">
-                  <label className="form-label">Font Size</label>
-                  <div className="form-number-scrub">
-                    <span className="form-number-scrub__badge form-number-scrub__badge--neutral">px</span>
-                    <input
-                      type="number"
-                      className="form-number-scrub__input"
-                      value={fontSize}
-                      onChange={(e) => setFontSize(Number(e.target.value))}
-                    />
+                  <label className="form-label">Font Family</label>
+                  <select
+                    className="form-select"
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value)}
+                  >
+                    <option value="Inter">Inter (System Sans)</option>
+                    <option value="Roboto">Roboto</option>
+                    <option value="JetBrains Mono">JetBrains Mono</option>
+                    <option value="Outfit">Outfit</option>
+                  </select>
+                </div>
+
+                {/* Size & Weight */}
+                <div className="form-row--2col">
+                  <div className="form-group">
+                    <label className="form-label">Font Size</label>
+                    <div className="form-number-scrub">
+                      <span className="form-number-scrub__badge form-number-scrub__badge--neutral">px</span>
+                      <input
+                        type="number"
+                        className="form-number-scrub__input"
+                        value={fontSize}
+                        onChange={(e) => setFontSize(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Weight</label>
+                    <select
+                      className="form-select"
+                      value={fontWeight}
+                      onChange={(e) => setFontWeight(e.target.value)}
+                    >
+                      <option value="400">Regular (400)</option>
+                      <option value="500">Medium (500)</option>
+                      <option value="600">SemiBold (600)</option>
+                      <option value="700">Bold (700)</option>
+                    </select>
                   </div>
                 </div>
 
+                {/* Text Alignment */}
                 <div className="form-group">
-                  <label className="form-label">Weight</label>
-                  <select
-                    className="form-select"
-                    value={fontWeight}
-                    onChange={(e) => setFontWeight(e.target.value)}
-                  >
-                    <option value="400">Regular (400)</option>
-                    <option value="500">Medium (500)</option>
-                    <option value="600">SemiBold (600)</option>
-                    <option value="700">Bold (700)</option>
-                  </select>
+                  <label className="form-label">Text Alignment</label>
+                  <div className="form-segmented">
+                    <button
+                      type="button"
+                      className={`form-segmented__btn ${textAlign === "left" ? "form-segmented__btn--active" : ""}`}
+                      onClick={() => setTextAlign("left")}
+                      title="Align Left"
+                    >
+                      <AlignLeft size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`form-segmented__btn ${textAlign === "center" ? "form-segmented__btn--active" : ""}`}
+                      onClick={() => setTextAlign("center")}
+                      title="Align Center"
+                    >
+                      <AlignCenter size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`form-segmented__btn ${textAlign === "right" ? "form-segmented__btn--active" : ""}`}
+                      onClick={() => setTextAlign("right")}
+                      title="Align Right"
+                    >
+                      <AlignRight size={12} />
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              {/* Text Alignment */}
-              <div className="form-group">
-                <label className="form-label">Text Alignment</label>
-                <div className="form-segmented">
-                  <button
-                    type="button"
-                    className={`form-segmented__btn ${textAlign === "left" ? "form-segmented__btn--active" : ""}`}
-                    onClick={() => setTextAlign("left")}
-                    title="Align Left"
-                  >
-                    <AlignLeft size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    className={`form-segmented__btn ${textAlign === "center" ? "form-segmented__btn--active" : ""}`}
-                    onClick={() => setTextAlign("center")}
-                    title="Align Center"
-                  >
-                    <AlignCenter size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    className={`form-segmented__btn ${textAlign === "right" ? "form-segmented__btn--active" : ""}`}
-                    onClick={() => setTextAlign("right")}
-                    title="Align Right"
-                  >
-                    <AlignRight size={12} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* ====================================================================
          * SECTION 5: DATA BINDINGS & BLUEPRINTS

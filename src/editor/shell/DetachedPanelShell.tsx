@@ -18,7 +18,7 @@
  */
 
 import React, { useEffect } from "react";
-import { ArrowLeft, Cpu, Film, Terminal, FileCode2, Box, Database, ImageIcon } from "lucide-react";
+import { ArrowLeft, Cpu, Film, Terminal, FileCode2, Box, ImageIcon } from "lucide-react";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
 import "@/editor/styles/detached.css";
 
@@ -34,7 +34,6 @@ const PANEL_ICONS: Record<string, React.ReactNode> = {
   console: <Terminal size={14} style={{ color: "var(--accent-warning)" }} />,
   component: <Box size={14} style={{ color: "var(--accent-primary)" }} />,
   page: <FileCode2 size={14} style={{ color: "var(--accent-primary)" }} />,
-  database: <Database size={14} style={{ color: "#059669" }} />,
   asset: <ImageIcon size={14} style={{ color: "var(--accent-info)" }} />,
 };
 

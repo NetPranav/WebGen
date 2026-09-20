@@ -79,7 +79,9 @@ export type DatabasePropertyCategory =
   | "TEMPORAL"             // DateTime (createdAt, updatedAt, expiryDate)
   | "MEDIA_URL"            // String with CDN/URL format (image src, video link, asset)
   | "STRUCTURED_DOCUMENT"  // JSON (unstructured configs, metadata blobs)
-  | "RELATIONAL_COLLECTION"; // Relation (1:1 profiles, 1:N items, N:M tags)
+  | "RELATIONAL_COLLECTION" // Relation (1:1 profiles, 1:N items, N:M tags)
+  | "PATH_DATA"            // SVG Path command definitions (M, L, C, Z commands)
+  | "STROKE_CONFIG";       // SVG Stroke styling definitions (width, dashes, caps)
 
 /**
  * Resolves the functional property category for a given database field.
@@ -219,6 +221,98 @@ export const ARCHETYPE_PROPERTY_BINDING_MATRIX: Record<
       allowedCategories: ["TEXTUAL_SCALAR", "NUMERIC", "BOOLEAN_FLAG", "TEMPORAL"],
       description: "Generic stringified value representation",
       safeFallback: "",
+    },
+  },
+  svgPath: {
+    d: {
+      propertyKey: "d",
+      allowedCategories: ["PATH_DATA", "TEXTUAL_SCALAR"],
+      description: "SVG Path definition data commands (d attribute)",
+      safeFallback: "M0,0 L10,10 Z",
+    },
+    fill: {
+      propertyKey: "fill",
+      allowedCategories: ["TEXTUAL_SCALAR"],
+      description: "SVG Path fill color or paint server",
+      safeFallback: "currentColor",
+    },
+    stroke: {
+      propertyKey: "stroke",
+      allowedCategories: ["TEXTUAL_SCALAR", "STROKE_CONFIG"],
+      description: "SVG Path stroke color or paint server",
+      safeFallback: "none",
+    },
+    strokeWidth: {
+      propertyKey: "strokeWidth",
+      allowedCategories: ["NUMERIC", "STROKE_CONFIG"],
+      description: "SVG Path stroke line width",
+      safeFallback: 1,
+    },
+    strokeDasharray: {
+      propertyKey: "strokeDasharray",
+      allowedCategories: ["TEXTUAL_SCALAR", "STROKE_CONFIG"],
+      description: "SVG Path stroke dash pattern",
+      safeFallback: "none",
+    },
+    strokeDashoffset: {
+      propertyKey: "strokeDashoffset",
+      allowedCategories: ["NUMERIC", "STROKE_CONFIG"],
+      description: "SVG Path stroke dash offset (used for line drawing)",
+      safeFallback: 0,
+    },
+  },
+  svgGroup: {
+    transform: {
+      propertyKey: "transform",
+      allowedCategories: ["TEXTUAL_SCALAR"],
+      description: "SVG transform matrix, translate, scale or rotate",
+      safeFallback: "",
+    },
+    opacity: {
+      propertyKey: "opacity",
+      allowedCategories: ["NUMERIC"],
+      description: "Group opacity factor (0.0 to 1.0)",
+      safeFallback: 1,
+    },
+  },
+  svgUse: {
+    href: {
+      propertyKey: "href",
+      allowedCategories: ["TEXTUAL_SCALAR", "MEDIA_URL"],
+      description: "Target element IRI or external SVG sprite symbol",
+      safeFallback: "",
+    },
+    x: {
+      propertyKey: "x",
+      allowedCategories: ["NUMERIC"],
+      description: "X coordinate offset",
+      safeFallback: 0,
+    },
+    y: {
+      propertyKey: "y",
+      allowedCategories: ["NUMERIC"],
+      description: "Y coordinate offset",
+      safeFallback: 0,
+    },
+  },
+  svgText: {
+    text: {
+      propertyKey: "text",
+      allowedCategories: ["TEXTUAL_SCALAR", "NUMERIC", "TEMPORAL"],
+      description: "Text content rendered inside SVG text element",
+      safeFallback: "",
+    },
+    fontSize: {
+      propertyKey: "fontSize",
+      allowedCategories: ["NUMERIC", "TEXTUAL_SCALAR"],
+      description: "Font size of the SVG text",
+      safeFallback: 14,
+    },
+    fill: {
+      propertyKey: "fill",
+      allowedCategories: ["TEXTUAL_SCALAR"],
+      description: "SVG text fill color",
+      safeFallback: "currentColor",
     },
   },
 };

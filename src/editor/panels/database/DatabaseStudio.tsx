@@ -115,8 +115,6 @@ export const DatabaseStudio: React.FC<DatabaseStudioProps> = ({ onBackToEditor }
        * 1ST BAR: STUDIO MASTER TOP MENU BAR (From Home Screen)
        * -------------------------------------------------------------------- */}
       <StudioHeader
-        activePage="database"
-        onOpenDatabase={() => {}}
         onOpenSettings={handleNavigateToEditor}
         onOpenPanel={handleNavigateToEditor}
         onSelectDeviceMode={() => {}}

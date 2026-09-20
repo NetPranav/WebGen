@@ -1,20 +1,14 @@
 /**
  * ============================================================================
- * DATABASE STUDIO MAIN PAGE
+ * DATABASE ROUTE ACCESS BLOCKED
  * ============================================================================
- * Route: /database
- * Role: Dedicated page for visual database schema modeling, relational hierarchy,
- *       and data record management.
+ * Role: Database is strictly disabled in the Animation Studio.
+ *       Any direct navigation or link to /database redirects immediately to /editor.
  * ============================================================================
  */
 
-import { DatabaseStudio } from "@/editor/panels/database/DatabaseStudio";
-
-export const metadata = {
-  title: "Database Studio | Visual Web Application Engine",
-  description: "Visual relational database schema modeler, ER designer, and mock data grid.",
-};
+import { redirect } from "next/navigation";
 
 export default function DatabasePage() {
-  return <DatabaseStudio />;
+  redirect("/editor");
 }

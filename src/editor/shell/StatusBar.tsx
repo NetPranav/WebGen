@@ -28,6 +28,7 @@ import {
   ChevronUp,
   ChevronDown,
   Terminal,
+  Sparkles,
 } from "lucide-react";
 
 interface StatusBarProps {
@@ -46,6 +47,8 @@ interface StatusBarProps {
   isOutputLogOpen?: boolean;
   onToggleOutputLog?: () => void;
   onTearOffLog?: (originX: number, originY: number) => void;
+  onToggleExecutionTrace?: () => void;
+  isExecutionTraceActive?: boolean;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -59,11 +62,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   fps = 120,
   memoryUsage = "38 MB",
   isBottomOpen = true,
-  bottomActiveTab = "blueprint",
+  bottomActiveTab = "content-browser",
   onToggleBottom,
   isOutputLogOpen = false,
   onToggleOutputLog,
   onTearOffLog,
+  onToggleExecutionTrace,
+  isExecutionTraceActive = false,
 }) => {
   return (
     <footer className="statusbar" role="contentinfo" aria-label="Engine Status Bar">
@@ -148,6 +153,34 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           <Terminal size={12} />
           <span>Output Log</span>
         </button>
+
+        {/* Sub-Phase 5.3: Visual Execution Trace (Panel 20) Button */}
+        {onToggleExecutionTrace && (
+          <button
+            type="button"
+            className={`statusbar__log-btn ${
+              isExecutionTraceActive ? "statusbar__log-btn--active" : ""
+            }`}
+            onClick={onToggleExecutionTrace}
+            title="Toggle Panel 20: Visual Execution Trace (Blueprint Debugger)"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "2px 8px",
+              borderRadius: 3,
+              fontSize: 11,
+              fontWeight: 500,
+              backgroundColor: isExecutionTraceActive ? "rgba(56, 189, 248, 0.2)" : "transparent",
+              border: isExecutionTraceActive ? "1px solid rgba(56, 189, 248, 0.4)" : "1px solid transparent",
+              color: isExecutionTraceActive ? "#38BDF8" : "var(--text-secondary)",
+              cursor: "pointer",
+            }}
+          >
+            <Activity size={12} style={{ color: isExecutionTraceActive ? "#38BDF8" : "inherit" }} />
+            <span>Execution Trace</span>
+          </button>
+        )}
       </div>
 
       {/* Center section: Performance & Diagnostics */}

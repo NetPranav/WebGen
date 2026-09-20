@@ -25,17 +25,23 @@ import {
   Monitor,
   Tablet,
   Smartphone,
-  Database,
+  Sparkles,
+  Hash,
+  Copy,
+  Check,
+  X,
 } from "lucide-react";
 import { FileMenu } from "@/editor/menus/FileMenu";
 import { EditMenu } from "@/editor/menus/EditMenu";
 import { ViewMenu } from "@/editor/menus/ViewMenu";
 import { WindowMenu } from "@/editor/menus/WindowMenu";
 import { HelpMenu } from "@/editor/menus/HelpMenu";
+import { LazyLayoutLogo } from "@/editor/panels/launcher/LazyLayoutLogo";
 
 type OpenMenuId = "file" | "edit" | "view" | "window" | "help" | null;
 
 interface StudioHeaderProps {
+  projectId?: string;
   projectName?: string;
   isDirty?: boolean;
   branchName?: string;
@@ -61,11 +67,16 @@ interface StudioHeaderProps {
   onResetLayout?: () => void;
   onOpenPanel?: (zone: "left" | "right" | "bottom" | "center", tabId: string) => void;
   onOpenSettings?: () => void;
-  onOpenDatabase?: () => void;
-  activePage?: "editor" | "database";
+  onCloseSettings?: () => void;
+  onToggleSettings?: () => void;
+  isSettingsOpen?: boolean;
+  onStartDragAI?: () => void;
+  onToggleAI?: () => void;
+  isAIOpen?: boolean;
 }
 
 export const StudioHeader: React.FC<StudioHeaderProps> = ({
+  projectId,
   projectName = "MyProject.uweb",
   isDirty = false,
   branchName = "main",
@@ -91,11 +102,27 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onResetLayout,
   onOpenPanel,
   onOpenSettings,
-  onOpenDatabase,
-  activePage = "editor",
+  onCloseSettings,
+  onToggleSettings,
+  isSettingsOpen = false,
+  onStartDragAI,
+  onToggleAI,
+  isAIOpen = false,
 }) => {
   const [openMenu, setOpenMenu] = useState<OpenMenuId>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
+  const [copiedId, setCopiedId] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  const handleCopyProjectLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (typeof window !== "undefined" && projectId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("projectId", projectId);
+      navigator.clipboard.writeText(url.toString()).catch(() => {});
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
 
   // Close menu when clicking outside or pressing Escape
   useEffect(() => {
@@ -134,14 +161,46 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     <header className="studio-header" ref={headerRef} role="banner">
       {/* Left: Brand Logo + Project File Tag + Menu Bar */}
       <div className="studio-header__left">
-        <div className="studio-header__brand" title="IDE Studio">
-          <span className="studio-header__logo">⚡</span>
+        <div className="studio-header__brand" title="LazyLayout Studio">
+          <LazyLayoutLogo size={18} />
+          <span className="studio-header__title">LazyLayout</span>
         </div>
 
         <div className="studio-header__project-tag" title="Active Project File">
           {isDirty && <span className="studio-header__project-dirty" title="Unsaved changes" />}
           <span>{projectName}</span>
         </div>
+
+        {projectId && (
+          <button
+            type="button"
+            className="studio-header__project-id-chip"
+            onClick={handleCopyProjectLink}
+            title={`Project ID: ${projectId} (Click to copy project link)`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              fontSize: 10.5,
+              fontFamily: "var(--font-mono, monospace)",
+              padding: "3px 8px",
+              borderRadius: 4,
+              backgroundColor: "rgba(99, 102, 241, 0.12)",
+              color: "#818CF8",
+              border: "1px solid rgba(99, 102, 241, 0.3)",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Hash size={10} style={{ opacity: 0.8 }} />
+            <span>{projectId}</span>
+            {copiedId ? (
+              <Check size={10} style={{ color: "#34D399" }} />
+            ) : (
+              <Copy size={10} style={{ opacity: 0.7 }} />
+            )}
+          </button>
+        )}
 
         {/* Desktop Menu Bar */}
         <nav className="menu-bar" aria-label="Engine Menus">
@@ -225,25 +284,14 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               onToggleLeft={onToggleLeft}
               onToggleRight={onToggleRight}
               onToggleBottom={onToggleBottom}
+              onStartDragAI={onStartDragAI}
+              onToggleAI={onToggleAI}
+              isAIOpen={isAIOpen}
               onSelectWorkspace={onSelectWorkspace}
               activeWorkspace={activeWorkspace}
               onResetLayout={onResetLayout}
               onOpenPanel={onOpenPanel}
             />
-          </div>
-
-          {/* DataBase Studio Page Navigation Button */}
-          <div className="menu-bar__item-wrapper">
-            <button
-              type="button"
-              className={`menu-bar__trigger menu-bar__trigger--database ${activePage === "database" ? "menu-bar__trigger--active" : ""}`}
-              onClick={onOpenDatabase}
-              title="Open Database Schema Studio"
-              aria-label="Open Database Studio"
-            >
-              <Database size={12} />
-              <span>DataBase</span>
-            </button>
           </div>
 
           {/* Help Menu */}
@@ -319,14 +367,32 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <HelpCircle size={14} />
         </button>
 
-        <button
-          type="button"
-          className="studio-header__icon-btn"
-          title="Project Settings & Preferences (Ctrl+,)"
-          onClick={onOpenSettings}
-        >
-          <Settings size={14} />
-        </button>
+        {isSettingsOpen ? (
+          <button
+            type="button"
+            className="studio-header__icon-btn studio-header__icon-btn--close-settings"
+            title="Close Settings & Return to Viewport (Esc)"
+            onClick={onCloseSettings || onToggleSettings || onOpenSettings}
+            id="studio-header-close-settings-btn"
+            style={{
+              color: "#F59E0B",
+              backgroundColor: "rgba(245, 158, 11, 0.15)",
+              border: "1px solid rgba(245, 158, 11, 0.35)",
+            }}
+          >
+            <X size={14} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="studio-header__icon-btn"
+            title="Project Settings & Preferences (Ctrl+,)"
+            onClick={onToggleSettings || onOpenSettings}
+            id="studio-header-settings-btn"
+          >
+            <Settings size={14} />
+          </button>
+        )}
       </div>
     </header>
   );

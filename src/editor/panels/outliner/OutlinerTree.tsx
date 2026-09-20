@@ -25,24 +25,23 @@ import {
   Box,
   Layers,
   Cpu,
-  Database,
   Plus,
   Filter,
 } from "lucide-react";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
 
-interface TreeNode {
+export interface TreeNode {
   id: string;
   label: string;
-  type: "page" | "section" | "component" | "blueprint" | "database";
+  type: "page" | "section" | "component" | "blueprint";
   tag: string;
   depth: number;
   children?: TreeNode[];
   isOpenDefault?: boolean;
 }
 
-const INITIAL_TREE_DATA: TreeNode[] = [
+export const INITIAL_TREE_DATA: TreeNode[] = [
   {
     id: "pages_root",
     label: "Pages",
@@ -139,18 +138,6 @@ const INITIAL_TREE_DATA: TreeNode[] = [
     ],
   },
   {
-    id: "database_root",
-    label: "Database Models",
-    type: "database",
-    tag: "FOLDER",
-    depth: 0,
-    isOpenDefault: true,
-    children: [
-      { id: "db_users", label: "UsersCollection (Auth)", type: "database", tag: "TABLE", depth: 1 },
-      { id: "db_projects", label: "ProjectsCollection", type: "database", tag: "TABLE", depth: 1 },
-    ],
-  },
-  {
     id: "sequencer_root",
     label: "Timeline Sequences",
     type: "section",
@@ -223,8 +210,6 @@ export const OutlinerTree: React.FC<OutlinerTreeProps> = ({
         return <Box size={13} className="tree-node__icon--component" />;
       case "blueprint":
         return <Cpu size={13} className="tree-node__icon--blueprint" />;
-      case "database":
-        return <Database size={13} className="tree-node__icon--database" />;
     }
   };
 

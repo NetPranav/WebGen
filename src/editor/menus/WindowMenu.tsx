@@ -24,7 +24,14 @@ import {
   LayoutTemplate,
   RotateCcw,
   Check,
-  Database,
+  Code,
+  Compass,
+  Rocket,
+  Search,
+  Boxes,
+  History,
+  GitBranch,
+  Network,
 } from "lucide-react";
 
 interface WindowMenuProps {
@@ -36,6 +43,9 @@ interface WindowMenuProps {
   onToggleLeft?: () => void;
   onToggleRight?: () => void;
   onToggleBottom?: () => void;
+  onStartDragAI?: () => void;
+  onToggleAI?: () => void;
+  isAIOpen?: boolean;
   onOpenPanel?: (zone: "left" | "right" | "bottom" | "center", tabId: string) => void;
   onSelectWorkspace?: (preset: string) => void;
   activeWorkspace?: string;
@@ -51,6 +61,9 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
   onToggleLeft,
   onToggleRight,
   onToggleBottom,
+  onStartDragAI,
+  onToggleAI,
+  isAIOpen = false,
   onOpenPanel,
   onSelectWorkspace,
   activeWorkspace = "full-studio",
@@ -66,6 +79,33 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
   return (
     <div className="menu-dropdown" role="menu" aria-label="Window Options">
       <span className="menu-header-label">Docked Panels</span>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() =>
+          handleAction(() => {
+            if (isAIOpen) {
+              onToggleAI?.();
+            } else {
+              onStartDragAI ? onStartDragAI() : onToggleAI?.();
+            }
+          })
+        }
+        title={
+          isAIOpen
+            ? "LayoutAI is currently docked. Click to remove from workspace."
+            : "Click to drag and attach LayoutAI into its designated right slot"
+        }
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon" style={{ color: "#206859" }}>
+            <Sparkles size={13} />
+          </span>
+          <span style={{ fontWeight: 600, color: "#206859" }}>LayoutAI Assistant</span>
+        </span>
+        {isAIOpen && <Check size={13} className="menu-item__check" style={{ color: "#206859" }} />}
+      </button>
 
       <button
         type="button"
@@ -164,12 +204,109 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
       <button
         type="button"
         className="menu-item"
-        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "er-modeler") : undefined)}
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "code") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><Database size={13} /></span>
-          <span>Database Schema (ER Modeler)</span>
+          <span className="menu-item__icon"><Code size={13} style={{ color: "#34D399" }} /></span>
+          <span>Live Code Inspector</span>
         </span>
+        <span className="menu-item__shortcut">Ctrl+Shift+G</span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "pages-manager") : undefined)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Compass size={13} style={{ color: "#38BDF8" }} /></span>
+          <span>Pages & Routing Manager</span>
+        </span>
+        <span className="menu-item__shortcut">Ctrl+Shift+P</span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "deploy") : undefined)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Rocket size={13} style={{ color: "#818CF8" }} /></span>
+          <span>Deployment & Cloud Studio</span>
+        </span>
+        <span className="menu-item__shortcut">Ctrl+Shift+D</span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "global-search") : undefined)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Search size={13} style={{ color: "#6366F1" }} /></span>
+          <span>Global Search (Find in Blueprints)</span>
+        </span>
+        <span className="menu-item__shortcut">Ctrl+Shift+F</span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "plugins") : undefined)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Boxes size={13} style={{ color: "#F59E0B" }} /></span>
+          <span>Plugin Manager</span>
+        </span>
+        <span className="menu-item__shortcut">Ctrl+Shift+X</span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "history") : undefined)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><History size={13} style={{ color: "#818CF8" }} /></span>
+          <span>Undo History</span>
+        </span>
+        <span className="menu-item__shortcut">Ctrl+Shift+H</span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "versioning") : undefined)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><GitBranch size={13} style={{ color: "#A78BFA" }} /></span>
+          <span>Version Control & Snapshots</span>
+        </span>
+        <span className="menu-item__shortcut">Ctrl+Shift+V</span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "dependencies") : undefined)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Network size={13} style={{ color: "#38BDF8" }} /></span>
+          <span>Reference Viewer & Dependency Graph</span>
+        </span>
+        <span className="menu-item__shortcut">Ctrl+Shift+R</span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => window.dispatchEvent(new CustomEvent("antigravity:open_command_palette")))}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Terminal size={13} style={{ color: "#34D399" }} /></span>
+          <span>Command Palette...</span>
+        </span>
+        <span className="menu-item__shortcut">Ctrl+P</span>
       </button>
 
       <div className="menu-separator" />

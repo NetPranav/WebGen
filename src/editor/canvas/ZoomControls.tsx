@@ -12,7 +12,7 @@
  */
 
 import React from "react";
-import { Plus, Minus, Maximize2 } from "lucide-react";
+import { Plus, Minus, Maximize2, Focus } from "lucide-react";
 
 interface ZoomControlsProps {
   zoomLevel: number; // e.g. 100 for 100%
@@ -20,6 +20,7 @@ interface ZoomControlsProps {
   onZoomOut: () => void;
   onResetZoom: () => void;
   onFitToScreen?: () => void;
+  onRecenter?: () => void;
   minZoom?: number;
   maxZoom?: number;
   className?: string;
@@ -32,6 +33,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
   onZoomOut,
   onResetZoom,
   onFitToScreen,
+  onRecenter,
   minZoom = 10,
   maxZoom = 400,
   className,
@@ -90,6 +92,21 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
             aria-label="Fit Viewport to Screen"
           >
             <Maximize2 size={12} />
+          </button>
+        </>
+      )}
+
+      {onRecenter && (
+        <>
+          <div className="zoom-controls__divider" />
+          <button
+            type="button"
+            className="zoom-controls__btn"
+            onClick={onRecenter}
+            title="Bring back to center (0, 0) [Ctrl+0]"
+            aria-label="Bring back to center (0, 0)"
+          >
+            <Focus size={13} />
           </button>
         </>
       )}

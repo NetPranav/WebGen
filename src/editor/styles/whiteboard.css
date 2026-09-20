@@ -64,6 +64,57 @@
   will-change: background-position, background-size;
 }
 
+.whiteboard-grid--lines {
+  background-image: 
+    linear-gradient(to right, var(--canvas-dot-color, rgba(148, 163, 184, 0.15)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--canvas-dot-color, rgba(148, 163, 184, 0.15)) 1px, transparent 1px);
+}
+
+.inspect-overlay-box {
+  position: absolute;
+  pointer-events: none;
+  z-index: 50;
+  border: 1px dashed #6366F1;
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.inspect-dimension-badge {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  background: rgba(15, 23, 42, 0.94);
+  color: #38BDF8;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  white-space: nowrap;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  backdrop-filter: blur(8px);
+}
+
+.inspect-archetype-tag {
+  color: #A5B4FC;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  padding-left: 4px;
+}
+
+.inspect-touch-warning {
+  color: #F59E0B;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+}
+
 /* ----------------------------------------------------------------------------
  * Transformed World Canvas (Houses Device Frame and Placed Elements)
  * ---------------------------------------------------------------------------- */
@@ -614,3 +665,104 @@
   background: var(--border-default);
   margin: 0 2px;
 }
+
+/* ----------------------------------------------------------------------------
+ * Blank Canvas Stage & Center Origin Reticle
+ * ---------------------------------------------------------------------------- */
+.canvas-blank-screen {
+  background-color: #0b0f19 !important;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(rgba(99, 102, 241, 0.07) 1.5px, transparent 1.5px) !important;
+  background-size: 24px 24px, 120px 120px !important;
+  background-position: 0 0, 0 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  min-height: 100% !important;
+  user-select: none;
+}
+
+.canvas-crosshair-axes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.canvas-axis-line {
+  position: absolute;
+  pointer-events: none;
+}
+
+.canvas-axis-line--x {
+  top: 0;
+  left: -50000px;
+  width: 100000px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(32, 104, 89, 0.04) 35%,
+    rgba(32, 104, 89, 0.22) 49.5%,
+    rgba(32, 104, 89, 0.45) 50%,
+    rgba(32, 104, 89, 0.22) 50.5%,
+    rgba(32, 104, 89, 0.04) 65%,
+    transparent 100%
+  );
+}
+
+.canvas-axis-line--y {
+  top: -50000px;
+  left: 0;
+  width: 1px;
+  height: 100000px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(32, 104, 89, 0.04) 35%,
+    rgba(32, 104, 89, 0.22) 49.5%,
+    rgba(32, 104, 89, 0.45) 50%,
+    rgba(32, 104, 89, 0.22) 50.5%,
+    rgba(32, 104, 89, 0.04) 65%,
+    transparent 100%
+  );
+}
+
+.canvas-center-origin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  user-select: none;
+  pointer-events: none;
+}
+
+.canvas-origin-reticle {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid rgba(32, 104, 89, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: none;
+  box-shadow: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.canvas-origin-icon {
+  color: #206859;
+  opacity: 0.75;
+  filter: none;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+

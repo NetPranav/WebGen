@@ -209,16 +209,53 @@ export class ASTManager {
       return { graph, error: "Source or Target node not found in graph." };
     }
 
+    const isSourceReroute = sourceNode.type === "flow/reroute" || sourceNode.type === "reroute";
+    const isTargetReroute = targetNode.type === "flow/reroute" || targetNode.type === "reroute";
+
     const sourceDef = getNodeDefinition(sourceNode.type);
     const targetDef = getNodeDefinition(targetNode.type);
     if (!sourceDef || !targetDef) {
       return { graph, error: "Node definition not found in registry." };
     }
 
-    const sourcePin = sourceDef.outputs.find((p) => p.id === sourcePinId);
-    const targetPin = targetDef.inputs.find((p) => p.id === targetPinId);
+    let sourcePin = sourceDef.outputs.find((p) => p.id === sourcePinId);
+    let targetPin = targetDef.inputs.find((p) => p.id === targetPinId);
+
+    // If source is a reroute knot, dynamically adapt its pin type
+    if (isSourceReroute && sourcePin) {
+      const knotType = (sourceNode.customParams?.pinType as PinDataType) || targetPin?.type || "any";
+      sourcePin = { ...sourcePin, type: knotType };
+    }
+
+    // If target is a reroute knot, dynamically adapt its pin type
+    if (isTargetReroute && targetPin) {
+      const knotType = (targetNode.customParams?.pinType as PinDataType) || sourcePin?.type || "any";
+      targetPin = { ...targetPin, type: knotType };
+    }
+
     if (!sourcePin || !targetPin) {
       return { graph, error: "Specified pin IDs not found on node definitions." };
+    }
+
+    // Update reroute knot customParams.pinType if needed
+    let updatedNodes = graph.nodes;
+    if (isSourceReroute && sourcePin.type !== "any" && sourceNode.customParams?.pinType !== sourcePin.type) {
+      updatedNodes = {
+        ...updatedNodes,
+        [sourceNodeId]: {
+          ...sourceNode,
+          customParams: { ...sourceNode.customParams, pinType: sourcePin.type },
+        },
+      };
+    }
+    if (isTargetReroute && targetPin.type !== "any" && targetNode.customParams?.pinType !== targetPin.type) {
+      updatedNodes = {
+        ...updatedNodes,
+        [targetNodeId]: {
+          ...targetNode,
+          customParams: { ...targetNode.customParams, pinType: targetPin.type },
+        },
+      };
     }
 
     // Perform strict type check
@@ -238,18 +275,21 @@ export class ASTManager {
       (w) => !(w.targetNodeId === targetNodeId && w.targetPinId === targetPinId)
     );
 
+    const wireType = sourcePin.type !== "any" ? sourcePin.type : targetPin.type !== "any" ? targetPin.type : "any";
+
     const newWire: BlueprintWire = {
       id: `wire_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       sourceNodeId,
       sourcePinId,
       targetNodeId,
       targetPinId,
-      pinType: sourcePin.type,
-      isExec: sourcePin.type === "exec",
+      pinType: wireType,
+      isExec: wireType === "exec",
     };
 
     const updatedGraph: BlueprintGraph = {
       ...graph,
+      nodes: updatedNodes,
       wires: [...filteredWires, newWire],
       metadata: {
         ...graph.metadata,

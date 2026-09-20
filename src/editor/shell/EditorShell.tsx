@@ -16,7 +16,7 @@
  * ============================================================================
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import "@/editor/styles/dock.css";
 import { DockZone } from "./DockZone";
 import { DockSplitter } from "./DockSplitter";
@@ -26,33 +26,57 @@ import { StatusBar } from "./StatusBar";
 import { StudioHeader } from "./StudioHeader";
 import { WhiteboardCanvas } from "@/editor/canvas/WhiteboardCanvas";
 import { OutlinerTree } from "@/editor/panels/outliner/OutlinerTree";
+import { ElementOutliner } from "@/editor/panels/outliner/ElementOutliner";
 import { DetailsInspector } from "@/editor/panels/details/DetailsInspector";
 import { ContentBrowser } from "@/editor/panels/content-browser/ContentBrowser";
 import { OutputConsole } from "@/editor/panels/console/OutputConsole";
 import { ProjectSettings } from "@/editor/panels/settings/ProjectSettings";
 import { BlueprintCanvas } from "@/editor/panels/blueprint/BlueprintCanvas";
 import { TimelineSequencer } from "@/editor/panels/sequencer/TimelineSequencer";
+import { CurveEditor } from "@/editor/panels/curves/CurveEditor";
+import { AnimationExportPreview } from "@/editor/panels/sequencer/AnimationExportPreview";
 import { FullPageDock } from "./FullPageDock";
 import { TearOffDragOverlay } from "./TearOffDragOverlay";
 import { AssetDetailsInspector } from "@/editor/panels/details/AssetDetailsInspector";
 import { AssetFileEditor } from "@/editor/panels/content-browser/AssetFileEditor";
 import { StateMatrixViewer } from "@/editor/panels/state/StateMatrixViewer";
-import { DatabaseDesigner } from "@/editor/panels/database/DatabaseDesigner";
-import { DatabaseStudio } from "@/editor/panels/database/DatabaseStudio";
 import { ContentBlockShelf } from "@/editor/panels/content-browser/ContentBlockShelf";
+import { ExecutionTracePanel } from "@/editor/panels/execution-trace/ExecutionTracePanel";
+import { LiveCodeInspector } from "@/editor/panels/code-view";
+import { PagesManager } from "@/editor/panels/pages-manager";
+import { DeploymentDashboard } from "@/editor/panels/deployment";
+import { GlobalSearchPanel } from "@/editor/panels/global-search";
+import { PluginManager } from "@/editor/panels/plugins";
+import { UndoHistoryPanel } from "@/editor/panels/history";
+import { VersionControlPanel } from "@/editor/panels/versioning";
+import { ReferenceViewerPanel } from "@/editor/panels/dependencies";
+import { CommandPalette } from "./CommandPalette";
+import { ShortcutRegistry } from "@/runtime/ShortcutRegistry";
+import { AiPromptBar } from "@/editor/panels/copilot/AiPromptBar";
+import { MotionAICoPilot } from "@/editor/panels/ai/MotionAICoPilot";
 import { useTearOff, TearOffDragSource } from "@/core/events/useTearOff";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
+import { useProjectStore } from "@/core/store/useProjectStore";
+import {
+  ProjectDatabase,
+  generateProjectId,
+  createDefaultBlankSnapshot,
+} from "@/core/storage/ProjectDatabase";
 import {
   Save,
   Undo2,
   Redo2,
   Terminal,
   X,
-  Database,
   Settings,
+  Focus,
   Monitor,
   Network,
   Sparkles,
+  Globe,
+  SlidersHorizontal,
+  ArrowUpRight,
+  Eye,
 } from "lucide-react";
 import { PanelTab } from "@/core/types/workspace";
 
@@ -62,7 +86,6 @@ interface EditorShellProps {
   rightPanels?: Record<string, React.ReactNode>;
   bottomPanels?: Record<string, React.ReactNode>;
   centerPanels?: Record<string, React.ReactNode>;
-  initialPage?: "editor" | "database";
 }
 
 export const EditorShell: React.FC<EditorShellProps> = ({
@@ -71,15 +94,15 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   rightPanels = {},
   bottomPanels = {},
   centerPanels = {},
-  initialPage = "editor",
 }) => {
-  const [isDatabaseStudioOpen, setIsDatabaseStudioOpen] = useState(initialPage === "database");
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   /* --------------------------------------------------------------------------
    * Dock Sizing State (with min/max boundaries)
    * -------------------------------------------------------------------------- */
   const [leftWidth, setLeftWidth] = useState(300);
   const [rightWidth, setRightWidth] = useState(320);
-  const [bottomHeight, setBottomHeight] = useState(240);
+  const [bottomHeight, setBottomHeight] = useState(290);
 
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -141,16 +164,254 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [centerActiveTab, setCenterActiveTab] = useState("viewport");
   const [isOutputLogOpen, setIsOutputLogOpen] = useState(false);
 
+  // World Environment & Viewport State
+  const environment = useProjectStore((s) => s.environment);
+  const updateEnvironment = useProjectStore((s) => s.updateEnvironment);
+  const toggleInspectMode = useProjectStore((s) => s.toggleInspectMode);
+  const [isWorldEnvPopoverOpen, setIsWorldEnvPopoverOpen] = useState(false);
+
+  // Sub-Phase 5.4 & Phase 7: AI Assistant State (MotionAI & LayoutAI)
+  const [isAiCoPilotOpen, setIsAiCoPilotOpen] = useState(false);
+  const [aiAssistantMode, setAiAssistantMode] = useState<"motion" | "layout">("motion");
+  const [aiDockMode, setAiDockMode] = useState<"replace" | "split-left">("split-left");
+  const [aiPanelWidth, setAiPanelWidth] = useState(340);
+  const [isDraggingAi, setIsDraggingAi] = useState(false);
+  const [dragCursorPos, setDragCursorPos] = useState({ x: 0, y: 0 });
+  const [aiDockSide, setAiDockSide] = useState<"left" | "right">("right");
+  const [activeHoverDropSide, setActiveHoverDropSide] = useState<"left" | "right" | null>(null);
+
+  const handleAiResize = useCallback((delta: number) => {
+    setAiPanelWidth((prev) => Math.max(260, Math.min(prev - delta, 600)));
+  }, []);
+
+  const handleStartDragAI = useCallback(() => {
+    if (isAiCoPilotOpen) {
+      // If already open, clicking removes / unplugs AI from the workspace!
+      setIsAiCoPilotOpen(false);
+      setIsDraggingAi(false);
+      setActiveHoverDropSide(null);
+      return;
+    }
+    setIsDraggingAi(true);
+    setDragCursorPos({
+      x: typeof window !== "undefined" ? window.innerWidth / 2 : 600,
+      y: typeof window !== "undefined" ? window.innerHeight / 3 : 250,
+    });
+    setActiveHoverDropSide(null);
+  }, [isAiCoPilotOpen]);
+
+  /** Start re-docking an already-docked LayoutAI panel (grip drag) */
+  const handleStartRedockAI = useCallback(() => {
+    setIsAiCoPilotOpen(false);
+    setIsDraggingAi(true);
+    setDragCursorPos({
+      x: typeof window !== "undefined" ? window.innerWidth / 2 : 600,
+      y: typeof window !== "undefined" ? window.innerHeight / 3 : 250,
+    });
+    setActiveHoverDropSide(null);
+  }, []);
+
+  const toggleAiCoPilot = useCallback(() => {
+    setIsDraggingAi(false);
+    setActiveHoverDropSide(null);
+    setIsAiCoPilotOpen((prev) => !prev);
+  }, []);
+
+  // Pointer tracking for dragging LayoutAI — proximity-based dual-side detection
+  useEffect(() => {
+    if (!isDraggingAi) return;
+
+    const detectSide = (clientX: number, clientY: number): "left" | "right" | null => {
+      const slotTop = 48;
+      const slotBottom = window.innerHeight - 26;
+      if (clientY < slotTop || clientY > slotBottom) return null;
+
+      // Left proximity: near the Outliner right edge
+      const leftEdge = leftCollapsed ? 32 : leftWidth + 4;
+      if (clientX <= leftEdge + aiPanelWidth + 40) return "left";
+
+      // Right proximity: near the Details left edge
+      const rightEdge = rightCollapsed ? window.innerWidth : window.innerWidth - rightWidth - 4;
+      if (clientX >= rightEdge - aiPanelWidth - 40) return "right";
+
+      return null;
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      setDragCursorPos({ x: e.clientX, y: e.clientY });
+      setActiveHoverDropSide(detectSide(e.clientX, e.clientY));
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      const side = detectSide(e.clientX, e.clientY);
+      if (side) {
+        setAiDockSide(side);
+        setAiDockMode("split-left");
+        setIsAiCoPilotOpen(true);
+      }
+      setIsDraggingAi(false);
+      setActiveHoverDropSide(null);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsDraggingAi(false);
+        setActiveHoverDropSide(null);
+      }
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDraggingAi, leftWidth, rightWidth, leftCollapsed, rightCollapsed, aiPanelWidth]);
+
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isDirty, setIsDirty] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState("full-studio");
   const [isPlaying, setIsPlaying] = useState(false);
   const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [projectId, setProjectId] = useState<string>("");
 
-  const [selectedElement, setSelectedElement] = useState<{ id: string; name: string }>({
-    id: "comp_hero",
-    name: "Hero Section",
-  });
+  const [selectedElement, setSelectedElement] = useState<{ id: string; name: string } | null>(null);
+  const [focusedBlueprintNodeId, setFocusedBlueprintNodeId] = useState<string | null>(null);
+
+  /* --------------------------------------------------------------------------
+   * Sub-Phase 2.4: Workspace Tailoring & Project Initialization from query params
+   * -------------------------------------------------------------------------- */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+
+    // Strictly disallow database in animation studio: strip any database query params
+    const panelParam = params.get("panel") || params.get("view") || params.get("tab");
+    if (
+      panelParam === "database" ||
+      panelParam === "er-modeler" ||
+      panelParam?.includes("database") ||
+      panelParam?.startsWith("db_")
+    ) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("panel");
+      cleanUrl.searchParams.delete("view");
+      cleanUrl.searchParams.delete("tab");
+      window.history.replaceState({}, "", cleanUrl.pathname + (cleanUrl.search ? cleanUrl.search : ""));
+    }
+
+    let currentId = params.get("projectId") || params.get("id") || "";
+    const archetype = params.get("archetype");
+    const name = params.get("name") ? decodeURIComponent(params.get("name")!) : "";
+    const framework = params.get("framework");
+    const styling = params.get("styling");
+    const animation = params.get("animation");
+    const lang = params.get("lang");
+    const template = params.get("template");
+
+    if (!currentId) {
+      // Auto-generate unique project ID and register into ProjectDatabase
+      currentId = generateProjectId();
+      const newBlankSnapshot = createDefaultBlankSnapshot(
+        currentId,
+        name || "Blank Project",
+        {
+          archetype: archetype || "container",
+          framework: framework || "nextjs-app",
+          styling: styling || "tailwind",
+          animation: animation || "gsap",
+          language: lang || "typescript",
+          template: template || "blank",
+        }
+      );
+
+      ProjectDatabase.registerProject({
+        id: currentId,
+        name: name || "Blank Project",
+        settings: {
+          archetype: archetype || "container",
+          framework: framework || "nextjs-app",
+          styling: styling || "tailwind",
+          animation: animation || "gsap",
+          language: lang || "typescript",
+          template: template || "blank",
+        },
+        snapshot: newBlankSnapshot,
+      });
+
+      // Update URL with unique project ID without page reload
+      const updatedUrl = new URL(window.location.href);
+      updatedUrl.searchParams.set("projectId", currentId);
+      window.history.replaceState({}, "", updatedUrl.pathname + (updatedUrl.search ? updatedUrl.search : ""));
+
+      setProjectId(currentId);
+      useProjectStore.getState().restoreSnapshot(newBlankSnapshot);
+      useProjectStore.getState().setProjectId(currentId);
+      if (name) useProjectStore.getState().setProjectName(name);
+    } else {
+      // Existing projectId provided in URL
+      setProjectId(currentId);
+      const existing = ProjectDatabase.getProject(currentId);
+      if (existing) {
+        useProjectStore.getState().restoreSnapshot(existing.snapshot);
+        useProjectStore.getState().setProjectId(currentId);
+        if (existing.name) useProjectStore.getState().setProjectName(existing.name);
+      } else {
+        // Register this project ID in the database with blank snapshot
+        const newBlankSnapshot = createDefaultBlankSnapshot(
+          currentId,
+          name || "Blank Project",
+          {
+            archetype: archetype || "container",
+            framework: framework || "nextjs-app",
+            styling: styling || "tailwind",
+            animation: animation || "gsap",
+            language: lang || "typescript",
+            template: template || "blank",
+          }
+        );
+        ProjectDatabase.registerProject({
+          id: currentId,
+          name: name || "Blank Project",
+          settings: {
+            archetype: archetype || "container",
+            framework: framework || "nextjs-app",
+            styling: styling || "tailwind",
+            animation: animation || "gsap",
+            language: lang || "typescript",
+            template: template || "blank",
+          },
+          snapshot: newBlankSnapshot,
+        });
+        useProjectStore.getState().restoreSnapshot(newBlankSnapshot);
+        useProjectStore.getState().setProjectId(currentId);
+        if (name) useProjectStore.getState().setProjectName(name);
+      }
+    }
+  }, []);
+
+  const handleSaveProject = useCallback(() => {
+    const currentId = projectId || useProjectStore.getState().projectId;
+    if (currentId) {
+      const snapshot = useProjectStore.getState().getSnapshot();
+      ProjectDatabase.saveProjectSnapshot(currentId, snapshot);
+    }
+    setIsDirty(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    const handleGlobalSaveShortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+        handleSaveProject();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalSaveShortcut);
+    return () => window.removeEventListener("keydown", handleGlobalSaveShortcut);
+  }, [handleSaveProject]);
 
   /* --------------------------------------------------------------------------
    * Tear-Off & Full-Page Dock State
@@ -185,22 +446,35 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   /** All bottom-drawer panel definitions (before filtering) */
   const ALL_BOTTOM_TABS: PanelTab[] = [
     { id: "content-browser", title: "Content Browser", closable: false },
-    { id: "blocks", title: "Section Blocks", closable: false },
-    { id: "sequencer", title: "Timeline Sequencer", closable: false },
+    { id: "sequencer", title: "Motion Sequencer", closable: false },
+    { id: "export-code", title: "Export Preview", closable: false },
   ];
 
   /** Map panel IDs to titles for tear-off (includes console for output log) */
   const PANEL_TITLES: Record<string, string> = {
     "content-browser": "Content Browser",
-    blocks: "Section Blocks",
+    sequencer: "Motion Sequencer",
+    "export-code": "Export Preview",
+    trace: "Execution Trace",
     blueprint: "Logic Blueprint",
-    sequencer: "Timeline Sequencer",
+    curves: "Curve Editor",
     console: "Output Log",
-    "er-modeler": "Database Schema",
   };
 
   const handleDockFullPage = useCallback(
     (panelId: string, panelTitle: string, dragSource?: TearOffDragSource) => {
+      // DATABASE STRICTLY DISALLOWED: block any database loading attempt
+      if (
+        panelId === "database" ||
+        panelId === "er-modeler" ||
+        panelId.includes("database") ||
+        panelId.startsWith("db_") ||
+        panelId.endsWith(".db") ||
+        panelTitle.toLowerCase().includes("database")
+      ) {
+        return;
+      }
+
       draggedFullPageTabRef.current = null;
       setActiveFullPageTabId(panelId);
 
@@ -283,6 +557,91 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       setBottomCollapsed(false);
     }
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command Palette: Ctrl+P or Ctrl+K (without Shift)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key.toLowerCase() === "p" || e.key.toLowerCase() === "k")) {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        toggleAiCoPilot();
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        handleDockFullPage("code", "Live Code Inspector");
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        handleDockFullPage("pages-manager", "Pages & Routing Manager");
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        handleDockFullPage("deploy", "Deployment & Cloud Studio");
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setIsGlobalSearchOpen((prev) => !prev);
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "x") {
+        e.preventDefault();
+        handleDockFullPage("plugins", "Plugin Manager");
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        handleDockFullPage("history", "Undo History");
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        handleDockFullPage("versioning", "Version Control & Snapshots");
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        handleDockFullPage("dependencies", "Reference Viewer & Dependency Graph");
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        setBottomCollapsed(false);
+        setBottomActiveTab("sequencer");
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setBottomCollapsed(false);
+        setBottomActiveTab("curves");
+      }
+    };
+
+    const handleOpenCommandPalette = () => setIsCommandPaletteOpen(true);
+    const handleOpenGlobalSearch = () => setIsGlobalSearchOpen(true);
+    const handleOpenDeployment = () => handleDockFullPage("deploy", "Deployment & Cloud Studio");
+    const handleOpenPagesManager = () => handleDockFullPage("pages-manager", "Pages & Routing Manager");
+    const handleOpenCodeInspector = () => handleDockFullPage("code", "Live Code Inspector");
+    const handleOpenCopilot = () => toggleAiCoPilot();
+    const handleOpenPlugins = () => handleDockFullPage("plugins", "Plugin Manager");
+    const handleOpenHistory = () => handleDockFullPage("history", "Undo History");
+    const handleOpenVersioning = () => handleDockFullPage("versioning", "Version Control & Snapshots");
+    const handleOpenDependencies = () => handleDockFullPage("dependencies", "Reference Viewer & Dependency Graph");
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("antigravity:open_command_palette", handleOpenCommandPalette);
+    window.addEventListener("antigravity:open_global_search", handleOpenGlobalSearch);
+    window.addEventListener("antigravity:open_deployment", handleOpenDeployment);
+    window.addEventListener("antigravity:open_pages_manager", handleOpenPagesManager);
+    window.addEventListener("antigravity:open_code_inspector", handleOpenCodeInspector);
+    window.addEventListener("antigravity:open_copilot", handleOpenCopilot);
+    window.addEventListener("antigravity:open_plugins", handleOpenPlugins);
+    window.addEventListener("antigravity:open_history", handleOpenHistory);
+    window.addEventListener("antigravity:open_versioning", handleOpenVersioning);
+    window.addEventListener("antigravity:open_dependencies", handleOpenDependencies);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("antigravity:open_command_palette", handleOpenCommandPalette);
+      window.removeEventListener("antigravity:open_global_search", handleOpenGlobalSearch);
+      window.removeEventListener("antigravity:open_deployment", handleOpenDeployment);
+      window.removeEventListener("antigravity:open_pages_manager", handleOpenPagesManager);
+      window.removeEventListener("antigravity:open_code_inspector", handleOpenCodeInspector);
+      window.removeEventListener("antigravity:open_copilot", handleOpenCopilot);
+      window.removeEventListener("antigravity:open_plugins", handleOpenPlugins);
+      window.removeEventListener("antigravity:open_history", handleOpenHistory);
+      window.removeEventListener("antigravity:open_versioning", handleOpenVersioning);
+      window.removeEventListener("antigravity:open_dependencies", handleOpenDependencies);
+    };
+  }, [toggleAiCoPilot, handleDockFullPage]);
 
   const startTearOffRef = React.useRef<
     (panelId: string, panelTitle: string, dragSource: TearOffDragSource, originX: number, originY: number) => void
@@ -528,12 +887,22 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     } else if (zone === "center") {
       if (tabId === "blueprint") {
         handleDockFullPage("blueprint", "Logic Blueprint");
-      } else if (tabId === "er-modeler") {
-        handleDockFullPage("er-modeler", "Database Schema");
       } else if (tabId === "sequencer") {
         handleDockFullPage("sequencer", "Timeline Sequencer");
       } else if (tabId === "content-browser") {
         handleDockFullPage("content-browser", "Content Browser");
+      } else if (tabId === "plugins" || tabId === "plugin-manager") {
+        handleDockFullPage("plugins", "Plugin Manager");
+      } else if (tabId === "history" || tabId === "undo-history") {
+        handleDockFullPage("history", "Undo History");
+      } else if (tabId === "code") {
+        handleDockFullPage("code", "Live Code Inspector");
+      } else if (tabId === "pages-manager") {
+        handleDockFullPage("pages-manager", "Pages & Routing Manager");
+      } else if (tabId === "deploy") {
+        handleDockFullPage("deploy", "Deployment & Cloud Studio");
+      } else if (tabId === "global-search" || tabId === "search") {
+        setIsGlobalSearchOpen(true);
       } else if (tabId === "settings") {
         setCenterActiveTab("settings");
       } else {
@@ -545,6 +914,31 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const handleOpenSettings = () => {
     setCenterActiveTab("settings");
   };
+
+  const handleCloseSettings = useCallback(() => {
+    setCenterActiveTab("viewport");
+  }, []);
+
+  const handleToggleSettings = useCallback(() => {
+    setCenterActiveTab((curr) => (curr === "settings" ? "viewport" : "settings"));
+  }, []);
+
+  const handleRecenterCanvas = useCallback(() => {
+    if (centerActiveTab === "settings") {
+      setCenterActiveTab("viewport");
+    }
+    window.dispatchEvent(new CustomEvent("antigravity:recenter_canvas"));
+  }, [centerActiveTab]);
+
+  useEffect(() => {
+    const handleEscapeSettings = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && centerActiveTab === "settings") {
+        handleCloseSettings();
+      }
+    };
+    window.addEventListener("keydown", handleEscapeSettings);
+    return () => window.removeEventListener("keydown", handleEscapeSettings);
+  }, [centerActiveTab, handleCloseSettings]);
 
   /* --------------------------------------------------------------------------
    * Workspace Preset Switcher (UI.md §5.2)
@@ -574,11 +968,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       setRightCollapsed(false);
       setBottomCollapsed(true);
       handleDockFullPage("blueprint", "Logic Blueprint");
-    } else if (preset === "data") {
-      setLeftCollapsed(false);
-      setRightCollapsed(false);
-      setBottomCollapsed(false);
-      handleDockFullPage("er-modeler", "Database Schema");
     } else if (preset === "debug") {
       setLeftCollapsed(false);
       setRightCollapsed(false);
@@ -604,13 +993,18 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     { id: "validation", title: "Errors (0)", closable: true },
   ];
 
-  // Bottom tabs now come from visibleBottomTabs (filtered by tear-off state)
-  const bottomTabs = visibleBottomTabs;
+  // Bottom tabs now come from visibleBottomTabs with optional debug tab
+  const bottomTabs = useMemo(() => {
+    const tabs = [...visibleBottomTabs];
+    if (bottomActiveTab === "trace" && !tabs.some((t) => t.id === "trace")) {
+      tabs.push({ id: "trace", title: "Execution Trace (Debug)", closable: true });
+    }
+    return tabs;
+  }, [visibleBottomTabs, bottomActiveTab]);
 
   const centerTabs: { id: string; title: string; icon: React.ReactNode; badge?: string }[] = [
     { id: "viewport", title: "Viewport (Design)", icon: <Monitor size={13} /> },
     { id: "blueprint", title: "Logic Blueprint", icon: <Network size={13} />, badge: "Full Stage" },
-    { id: "er-modeler", title: "Database Studio", icon: <Database size={13} /> },
     { id: "settings", title: "Project Settings", icon: <Settings size={13} /> },
   ];
 
@@ -632,9 +1026,65 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     setBottomHeight((prev) => Math.min(Math.max(prev - delta, 140), 480));
   };
 
-  if (isDatabaseStudioOpen) {
-    return <DatabaseStudio onBackToEditor={() => setIsDatabaseStudioOpen(false)} />;
-  }
+  const renderAiDockContent = () => (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", overflow: "hidden" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          background: "#0c1012",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+          padding: "4px 8px",
+          gap: "4px",
+        }}
+      >
+        <button
+          onClick={() => setAiAssistantMode("motion")}
+          style={{
+            flex: 1,
+            padding: "5px 8px",
+            fontSize: "11px",
+            fontWeight: aiAssistantMode === "motion" ? 700 : 500,
+            color: aiAssistantMode === "motion" ? "#34d399" : "#9ca3af",
+            background: aiAssistantMode === "motion" ? "rgba(32, 104, 89, 0.35)" : "transparent",
+            border: aiAssistantMode === "motion" ? "1px solid #206859" : "1px solid transparent",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          ⚡ MotionAI
+        </button>
+        <button
+          onClick={() => setAiAssistantMode("layout")}
+          style={{
+            flex: 1,
+            padding: "5px 8px",
+            fontSize: "11px",
+            fontWeight: aiAssistantMode === "layout" ? 700 : 500,
+            color: aiAssistantMode === "layout" ? "#34d399" : "#9ca3af",
+            background: aiAssistantMode === "layout" ? "rgba(32, 104, 89, 0.35)" : "transparent",
+            border: aiAssistantMode === "layout" ? "1px solid #206859" : "1px solid transparent",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          🧩 LayoutAI
+        </button>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {aiAssistantMode === "motion" ? (
+          <MotionAICoPilot onClose={() => setIsAiCoPilotOpen(false)} />
+        ) : (
+          <AiPromptBar
+            dockMode="split-left"
+            onToggleDockMode={setAiDockMode}
+            onClose={() => setIsAiCoPilotOpen(false)}
+            onStartDrag={handleStartRedockAI}
+          />
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="dock-layout">
@@ -659,6 +1109,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       >
         {headerSlot || (
           <StudioHeader
+            projectId={projectId}
             isDirty={isDirty}
             deviceMode={deviceMode}
             onSelectDeviceMode={(mode) => setDeviceMode(mode)}
@@ -670,7 +1121,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             onToggleBottom={() => setBottomCollapsed((c) => !c)}
             onSelectWorkspace={handleSelectWorkspace}
             activeWorkspace={activeWorkspace}
-            onSave={() => setIsDirty(false)}
+            onSave={handleSaveProject}
             onUndo={() => {}}
             onRedo={() => {}}
             onZoomIn={() => setZoomLevel((z) => Math.min(z + 10, 250))}
@@ -679,8 +1130,12 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             onResetLayout={handleResetLayout}
             onOpenPanel={handleOpenPanel}
             onOpenSettings={handleOpenSettings}
-            onOpenDatabase={() => setIsDatabaseStudioOpen(true)}
-            activePage={isDatabaseStudioOpen ? "database" : "editor"}
+            onCloseSettings={handleCloseSettings}
+            onToggleSettings={handleToggleSettings}
+            isSettingsOpen={centerActiveTab === "settings"}
+            onStartDragAI={handleStartDragAI}
+            onToggleAI={toggleAiCoPilot}
+            isAIOpen={isAiCoPilotOpen}
           />
         )}
       </div>
@@ -690,46 +1145,32 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         {/* Full-Page Dock Mode — takes over entire body, outliner minimizes on left, asset details on right */}
         {currentFullPagePanel ? (
           <>
-            {/* Minimized Left Outliner DockZone */}
-            <DockZone
-              zoneId="left"
-              size={leftWidth}
-              isCollapsed={leftCollapsed}
-              tabs={leftTabs}
-              activeTabId={leftActiveTab}
-              onSelectTab={(tabId) => {
-                setLeftActiveTab(tabId);
-                handleZoneClick("left");
-              }}
-              onToggleCollapse={() => setLeftCollapsed((c) => !c)}
-              onMouseEnter={() => handleZoneMouseEnter("left")}
-              onMouseLeave={() => handleZoneMouseLeave("left")}
-              onClick={() => handleZoneClick("left")}
-              className={activeLayer === "left" ? "dock-zone--elevated" : ""}
-              onTearOffStart={(tabId, tabTitle, ox, oy) =>
-                startTearOff(tabId, tabTitle, "outliner", ox, oy)
-              }
-            >
-              {leftPanels[leftActiveTab] || (
-                leftActiveTab === "outliner" ? (
-                  <OutlinerTree
-                    selectedId={selectedElement.id}
-                    onSelectElement={(id, name) => setSelectedElement({ id, name })}
-                    onTearOffItem={handleGenericTearOffStart}
-                    onOpenItem={(id, title) => handleDockFullPage(id, title)}
-                  />
-                ) : (
-                  <StateMatrixViewer />
-                )
-              )}
-            </DockZone>
+            {/* Full-page mode without left dock */}
 
-            {!leftCollapsed && (
-              <DockSplitter
-                orientation="vertical"
-                onResize={handleLeftResize}
-                style={{ zIndex: activeLayer === "left" ? 29 : 28 }}
-              />
+            {/* LayoutAI docked on LEFT (beside Outliner) — Full-Page Layout */}
+            {isAiCoPilotOpen && aiDockSide === "left" && (
+              <>
+                <DockSplitter
+                  orientation="vertical"
+                  onResize={handleAiResize}
+                  style={{ zIndex: activeLayer === "left" ? 29 : 28 }}
+                />
+                <div
+                  className="dock-zone ai-copilot-dock-col"
+                  style={{
+                    width: aiPanelWidth,
+                    flexShrink: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                    backgroundColor: "var(--surface-panel-solid, #FFFFFF)",
+                    borderLeft: "1px solid var(--border-default, rgba(15,23,42,0.08))",
+                    zIndex: 25,
+                  }}
+                >
+                  {renderAiDockContent()}
+                </div>
+              </>
             )}
 
             {/* Center fills wide workspace with browser-like multi-tab FullPageDock */}
@@ -764,32 +1205,86 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     deviceMode={deviceMode}
                     zoomLevel={zoomLevel}
                     onZoomChange={setZoomLevel}
+                    onSelectElement={setSelectedElement}
                     onDropAsset={(asset) => {
                       setSelectedElement({ id: asset.id, name: asset.name });
+                    }}
+                    onOpenExecutionTrace={() => {
+                      setBottomCollapsed(false);
+                      setBottomActiveTab("trace");
                     }}
                   />
                 ) : currentFullPagePanel.panelId === "content-browser" ? (
                   <ContentBrowser
-                    selectedFolderId={selectedElement.id}
-                    selectedFolderName={selectedElement.name}
+                    selectedFolderId={selectedElement?.id || ""}
+                    selectedFolderName={selectedElement?.name || ""}
                     onSelectFolder={(folderId, folderName) => setSelectedElement({ id: folderId, name: folderName })}
                     onOpenAsset={(id, title) => handleDockFullPage(id, title)}
                     onTearOffItem={handleGenericTearOffStart}
+                    onOpenCurveEditor={() => {
+                      setBottomCollapsed(false);
+                      setBottomActiveTab("sequencer");
+                    }}
+                    onOpenExportPreview={() => {
+                      setBottomCollapsed(false);
+                      setBottomActiveTab("export-code");
+                    }}
                   />
                 ) : currentFullPagePanel.panelId === "blueprint" ||
                 currentFullPagePanel.panelId.includes("bp") ||
                 currentFullPagePanel.title.toLowerCase().includes(".bp") ? (
-                  <BlueprintCanvas />
+                  <BlueprintCanvas focusedNodeId={focusedBlueprintNodeId} />
+                ) : currentFullPagePanel.panelId === "trace" ? (
+                  <ExecutionTracePanel
+                    onNavigateToNode={(nodeId) => {
+                      setFocusedBlueprintNodeId(nodeId);
+                      handleDockFullPage("blueprint", "Logic Blueprint");
+                    }}
+                  />
+                ) : currentFullPagePanel.panelId === "copilot" ? (
+                  <AiPromptBar />
+                ) : currentFullPagePanel.panelId === "curves" ? (
+                  <CurveEditor />
                 ) : currentFullPagePanel.panelId === "sequencer" ||
                   currentFullPagePanel.panelId.includes("seq") ||
                   currentFullPagePanel.title.toLowerCase().includes(".seq") ? (
                   <TimelineSequencer />
                 ) : currentFullPagePanel.panelId === "console" ? (
                   <OutputConsole />
-                ) : currentFullPagePanel.panelId === "er-modeler" ||
-                  currentFullPagePanel.panelId.includes("db") ||
-                  currentFullPagePanel.title.toLowerCase().includes(".db") ? (
-                  <DatabaseDesigner onClose={() => handleCloseFullPageTab(currentFullPagePanel.panelId)} />
+                ) : currentFullPagePanel.panelId === "code" ||
+                  currentFullPagePanel.panelId === "code-view" ||
+                  currentFullPagePanel.title.toLowerCase().includes("code") ? (
+                  <LiveCodeInspector />
+                ) : currentFullPagePanel.panelId === "pages-manager" ||
+                  currentFullPagePanel.panelId === "sitemap" ||
+                  currentFullPagePanel.panelId === "pages" ||
+                  currentFullPagePanel.title.toLowerCase().includes("pages") ? (
+                  <PagesManager />
+                ) : currentFullPagePanel.panelId === "deploy" ||
+                  currentFullPagePanel.panelId === "deployment" ||
+                  currentFullPagePanel.title.toLowerCase().includes("deploy") ? (
+                  <DeploymentDashboard />
+                ) : currentFullPagePanel.panelId === "search" ||
+                  currentFullPagePanel.panelId === "global-search" ||
+                  currentFullPagePanel.title.toLowerCase().includes("search") ? (
+                  <GlobalSearchPanel onNavigate={(id, title) => handleDockFullPage(id, title || id)} />
+                ) : currentFullPagePanel.panelId === "plugins" ||
+                  currentFullPagePanel.panelId === "plugin-manager" ||
+                  currentFullPagePanel.title.toLowerCase().includes("plugin") ? (
+                  <PluginManager />
+                ) : currentFullPagePanel.panelId === "history" ||
+                  currentFullPagePanel.panelId === "undo-history" ||
+                  currentFullPagePanel.title.toLowerCase().includes("history") ? (
+                  <UndoHistoryPanel />
+                ) : currentFullPagePanel.panelId === "versioning" ||
+                  currentFullPagePanel.panelId === "version-control" ||
+                  currentFullPagePanel.title.toLowerCase().includes("version") ? (
+                  <VersionControlPanel />
+                ) : currentFullPagePanel.panelId === "dependencies" ||
+                  currentFullPagePanel.panelId === "reference-viewer" ||
+                  currentFullPagePanel.title.toLowerCase().includes("depend") ||
+                  currentFullPagePanel.title.toLowerCase().includes("reference") ? (
+                  <ReferenceViewerPanel />
                 ) : (
                   <AssetFileEditor
                     assetId={currentFullPagePanel.panelId}
@@ -803,6 +1298,32 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                 )}
               </FullPageDock>
             </div>
+
+            {/* LayoutAI docked on RIGHT (beside Details) — Full-Page Layout */}
+            {isAiCoPilotOpen && aiDockSide === "right" && (
+              <>
+                <DockSplitter
+                  orientation="vertical"
+                  onResize={handleAiResize}
+                  style={{ zIndex: activeLayer === "right" ? 29 : 28 }}
+                />
+                <div
+                  className="dock-zone ai-copilot-dock-col"
+                  style={{
+                    width: aiPanelWidth,
+                    flexShrink: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                    backgroundColor: "var(--surface-panel-solid, #FFFFFF)",
+                    borderLeft: "1px solid var(--border-default, rgba(15,23,42,0.08))",
+                    zIndex: 25,
+                  }}
+                >
+                  {renderAiDockContent()}
+                </div>
+              </>
+            )}
 
             {/* Right vertical splitter */}
             {!rightCollapsed && (
@@ -845,9 +1366,10 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                 rightPanels[rightActiveTab] || (
                   rightActiveTab === "details" ? (
                     <DetailsInspector
-                      selectedElementId={selectedElement.id}
-                      selectedElementName={selectedElement.name}
+                      selectedElementId={selectedElement?.id || null}
+                      selectedElementName={selectedElement?.name || ""}
                       onOpenBlueprint={() => handleDockFullPage("blueprint", "Logic Blueprint")}
+                      onDeselect={() => setSelectedElement(null)}
                     />
                   ) : rightActiveTab === "tokens" ? (
                     <ProjectSettings />
@@ -868,48 +1390,32 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           </>
         ) : (
           <>
-            {/* Normal Layout: Left, Center, Right */}
-            {/* Left Dock Zone */}
-            <DockZone
-              zoneId="left"
-              size={leftWidth}
-              isCollapsed={leftCollapsed}
-              tabs={leftTabs}
-              activeTabId={leftActiveTab}
-              onSelectTab={(tabId) => {
-                setLeftActiveTab(tabId);
-                handleZoneClick("left");
-              }}
-              onToggleCollapse={() => setLeftCollapsed((c) => !c)}
-              onMouseEnter={() => handleZoneMouseEnter("left")}
-              onMouseLeave={() => handleZoneMouseLeave("left")}
-              onClick={() => handleZoneClick("left")}
-              className={activeLayer === "left" ? "dock-zone--elevated" : ""}
-              onTearOffStart={(tabId, tabTitle, ox, oy) =>
-                startTearOff(tabId, tabTitle, "outliner", ox, oy)
-              }
-            >
-              {leftPanels[leftActiveTab] || (
-                leftActiveTab === "outliner" ? (
-                  <OutlinerTree
-                    selectedId={selectedElement.id}
-                    onSelectElement={(id, name) => setSelectedElement({ id, name })}
-                    onTearOffItem={handleGenericTearOffStart}
-                    onOpenItem={(id, title) => handleDockFullPage(id, title)}
-                  />
-                ) : (
-                  <StateMatrixViewer />
-                )
-              )}
-            </DockZone>
+            {/* Center Column: Full-width Center Stage (Canvas begins from left edge) */}
 
-            {/* Left Vertical Splitter */}
-            {!leftCollapsed && (
-              <DockSplitter
-                orientation="vertical"
-                onResize={handleLeftResize}
-                style={{ zIndex: activeLayer === "left" ? 29 : 28 }}
-              />
+            {/* LayoutAI docked on LEFT (beside Outliner) — Normal Layout */}
+            {isAiCoPilotOpen && aiDockSide === "left" && (
+              <>
+                <DockSplitter
+                  orientation="vertical"
+                  onResize={handleAiResize}
+                  style={{ zIndex: activeLayer === "left" ? 29 : 28 }}
+                />
+                <div
+                  className="dock-zone ai-copilot-dock-col"
+                  style={{
+                    width: aiPanelWidth,
+                    flexShrink: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                    backgroundColor: "var(--surface-panel-solid, #FFFFFF)",
+                    borderLeft: "1px solid var(--border-default, rgba(15,23,42,0.08))",
+                    zIndex: 25,
+                  }}
+                >
+                  {renderAiDockContent()}
+                </div>
+              </>
             )}
 
             {/* Center Column: Center Stage */}
@@ -925,8 +1431,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     <button
                       type="button"
                       className="viewport-action-btn"
-                      onClick={() => setIsDirty(false)}
-                      title="Save Project (Ctrl+S)"
+                      onClick={handleSaveProject}
+                      title="Save Project (Ctrl+S / Cmd+S)"
                     >
                       <Save size={14} style={{ color: isDirty ? "var(--accent-warning)" : "var(--text-secondary)" }} />
                       {isDirty && <span className="viewport-action-btn__dirty-dot" />}
@@ -954,42 +1460,260 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                   </div>
                 )}
 
-                {/* Viewport Floating Action Pill (Project Settings) in Top-Right Corner */}
-                {centerActiveTab === "viewport" && (
-                  <div
-                    className="viewport-floating-actions"
-                    style={{ left: "auto", right: 12 }}
-                    role="toolbar"
-                    aria-label="Viewport Settings Action"
-                  >
+                {/* Viewport Floating Actions in Top-Right Corner: Settings + Recenter (just below settings) */}
+                <div
+                  className="viewport-floating-actions viewport-floating-actions--top-right"
+                  style={{ left: "auto", right: 12 }}
+                  role="toolbar"
+                  aria-label="Viewport Floating Actions"
+                >
+                  {centerActiveTab === "settings" ? (
                     <button
                       type="button"
                       className="viewport-action-btn"
-                      onClick={() => {
-                        setCenterActiveTab((prev) => (prev === "settings" ? "viewport" : "settings"));
-                      }}
-                      title="Project Settings"
+                      onClick={handleCloseSettings}
+                      title="Close Settings & Return to Viewport (Esc)"
+                      id="viewport-close-settings-btn"
+                      style={{ color: "#F59E0B" }}
+                    >
+                      <X size={14} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="viewport-action-btn"
+                      onClick={handleOpenSettings}
+                      title="Project Settings (Ctrl+,)"
+                      id="viewport-open-settings-btn"
                     >
                       <Settings size={14} />
                     </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="viewport-action-btn"
+                    onClick={handleRecenterCanvas}
+                    title="Bring back to center (0, 0) [Ctrl+0]"
+                    id="canvas-bring-back-to-center"
+                    aria-label="Bring back to center"
+                  >
+                    <Focus size={14} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`viewport-action-btn ${isWorldEnvPopoverOpen || environment.diagnostics.inspectMode ? "viewport-action-btn--active" : ""}`}
+                    onClick={() => setIsWorldEnvPopoverOpen((prev) => !prev)}
+                    title="World Environment & Viewport Settings"
+                    id="canvas-world-env-quick-btn"
+                    aria-label="World Environment Quick Settings"
+                    style={{
+                      color: environment.diagnostics.inspectMode ? "#10B981" : undefined,
+                      borderColor: environment.diagnostics.inspectMode ? "rgba(16, 185, 129, 0.4)" : undefined,
+                    }}
+                  >
+                    <Globe size={14} />
+                  </button>
+                </div>
+
+                {/* World Environment Quick Controls Popover */}
+                {isWorldEnvPopoverOpen && (
+                  <div
+                    className="viewport-env-quick-popover"
+                    id="world-env-quick-popover"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="viewport-env-popover-header">
+                      <span className="viewport-env-popover-title">
+                        <Globe size={13} style={{ color: "#6366F1" }} />
+                        World Quick Controls
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsWorldEnvPopoverOpen(false)}
+                        className="viewport-action-btn"
+                        style={{ width: 20, height: 20 }}
+                        title="Close popover"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+
+                    {/* DevTools Inspect Mode */}
+                    <div className="viewport-env-popover-row">
+                      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <Eye size={12} style={{ color: environment.diagnostics.inspectMode ? "#10B981" : "#A1A1AA" }} />
+                        Inspect Mode
+                      </span>
+                      <button
+                        type="button"
+                        className={`viewport-env-popover-seg-btn ${environment.diagnostics.inspectMode ? "viewport-env-popover-seg-btn--active" : ""}`}
+                        style={{
+                          background: environment.diagnostics.inspectMode ? "rgba(16, 185, 129, 0.2)" : undefined,
+                          color: environment.diagnostics.inspectMode ? "#10B981" : undefined,
+                          border: environment.diagnostics.inspectMode ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid var(--border-subtle)",
+                        }}
+                        onClick={toggleInspectMode}
+                        id="quick-toggle-inspect-mode"
+                      >
+                        {environment.diagnostics.inspectMode ? "ON" : "OFF"}
+                      </button>
+                    </div>
+
+                    {/* Element Dragging */}
+                    <div className="viewport-env-popover-row">
+                      <span>Element Drag</span>
+                      <button
+                        type="button"
+                        className={`viewport-env-popover-seg-btn ${environment.elements?.dragEnabled ? "viewport-env-popover-seg-btn--active" : ""}`}
+                        onClick={() =>
+                          updateEnvironment({
+                            elements: {
+                              ...environment.elements,
+                              dragEnabled: !environment.elements?.dragEnabled,
+                            },
+                          })
+                        }
+                        id="quick-toggle-element-dragging"
+                      >
+                        {environment.elements?.dragEnabled ? "Enabled" : "Locked"}
+                      </button>
+                    </div>
+
+                    {/* Grid Style */}
+                    <div className="viewport-env-popover-row">
+                      <span>Grid Style</span>
+                      <div className="viewport-env-popover-segmented">
+                        {(["dots", "lines", "none"] as const).map((style) => (
+                          <button
+                            key={style}
+                            type="button"
+                            className={`viewport-env-popover-seg-btn ${environment.viewport.grid.style === style ? "viewport-env-popover-seg-btn--active" : ""}`}
+                            onClick={() =>
+                              updateEnvironment({
+                                viewport: {
+                                  ...environment.viewport,
+                                  grid: { ...environment.viewport.grid, style },
+                                },
+                              })
+                            }
+                            id={`quick-grid-${style}`}
+                          >
+                            {style.charAt(0).toUpperCase() + style.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* World Axes */}
+                    <div className="viewport-env-popover-row">
+                      <span>World Axes</span>
+                      <button
+                        type="button"
+                        className={`viewport-env-popover-seg-btn ${environment.viewport.axes.enabled ? "viewport-env-popover-seg-btn--active" : ""}`}
+                        onClick={() =>
+                          updateEnvironment({
+                            viewport: {
+                              ...environment.viewport,
+                              axes: { ...environment.viewport.axes, enabled: !environment.viewport.axes.enabled },
+                            },
+                          })
+                        }
+                        id="quick-toggle-world-axes"
+                      >
+                        {environment.viewport.axes.enabled ? "Visible" : "Hidden"}
+                      </button>
+                    </div>
+
+                    {/* Motion Speed */}
+                    <div className="viewport-env-popover-row">
+                      <span>Motion Speed</span>
+                      <div className="viewport-env-popover-segmented">
+                        {([0.5, 1, 1.5] as const).map((speed) => (
+                          <button
+                            key={speed}
+                            type="button"
+                            className={`viewport-env-popover-seg-btn ${environment.motion?.timeScale === speed ? "viewport-env-popover-seg-btn--active" : ""}`}
+                            onClick={() =>
+                              updateEnvironment({
+                                motion: { ...environment.motion, timeScale: speed },
+                              })
+                            }
+                          >
+                            {speed}x
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Button to open Full World Settings in Right Inspector */}
+                    <button
+                      type="button"
+                      className="viewport-env-popover-btn"
+                      id="open-full-world-inspector-btn"
+                      onClick={() => {
+                        if (rightCollapsed) setRightCollapsed(false);
+                        setSelectedElement(null);
+                        setRightActiveTab("details");
+                        window.dispatchEvent(new CustomEvent("antigravity:open_world_env"));
+                        setIsWorldEnvPopoverOpen(false);
+                      }}
+                    >
+                      <SlidersHorizontal size={12} />
+                      Full World Inspector
+                      <ArrowUpRight size={12} />
+                    </button>
                   </div>
                 )}
+
                 {centerPanels[centerActiveTab] || (
                   centerActiveTab === "settings" ? (
-                    <ProjectSettings />
+                    <ProjectSettings onClose={handleCloseSettings} />
                   ) : (
                     <WhiteboardCanvas
                       deviceMode={deviceMode}
                       zoomLevel={zoomLevel}
                       onZoomChange={setZoomLevel}
+                      onSelectElement={setSelectedElement}
                       onDropAsset={(asset) => {
                         setSelectedElement({ id: asset.id, name: asset.name });
+                      }}
+                      onOpenExecutionTrace={() => {
+                        setBottomCollapsed(false);
+                        setBottomActiveTab("trace");
                       }}
                     />
                   )
                 )}
               </div>
             </div>
+
+            {/* LayoutAI docked on RIGHT (beside Details) — Normal Layout */}
+            {isAiCoPilotOpen && aiDockSide === "right" && (
+              <>
+                <DockSplitter
+                  orientation="vertical"
+                  onResize={handleAiResize}
+                  style={{ zIndex: activeLayer === "right" ? 29 : 28 }}
+                />
+                <div
+                  className="dock-zone ai-copilot-dock-col"
+                  style={{
+                    width: aiPanelWidth,
+                    flexShrink: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                    backgroundColor: "var(--surface-panel-solid, #FFFFFF)",
+                    borderLeft: "1px solid var(--border-default, rgba(15,23,42,0.08))",
+                    zIndex: 25,
+                  }}
+                >
+                  {renderAiDockContent()}
+                </div>
+              </>
+            )}
 
             {/* Right Vertical Splitter */}
             {!rightCollapsed && (
@@ -1020,9 +1744,10 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               {rightPanels[rightActiveTab] || (
                 rightActiveTab === "details" ? (
                   <DetailsInspector
-                    selectedElementId={selectedElement.id}
-                    selectedElementName={selectedElement.name}
+                    selectedElementId={selectedElement?.id || null}
+                    selectedElementName={selectedElement?.name || ""}
                     onOpenBlueprint={() => handleDockFullPage("blueprint", "Logic Blueprint")}
+                    onDeselect={() => setSelectedElement(null)}
                   />
                 ) : rightActiveTab === "tokens" ? (
                   <ProjectSettings />
@@ -1034,15 +1759,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           </>
         )}
 
-        {/* Bottom Drawer Horizontal Alignment:
-         * When Content Browser is selected in the bottom drawer, shift the drawer
-         * to start at `leftWidth` so the Outliner on the left remains 100% visible
-         * and accessible without obstruction.
-         */}
+        {/* Bottom Drawer Horizontal Alignment: Full-width edge-to-edge layout */}
         {(() => {
-          const isBottomShifted = bottomActiveTab === "content-browser" && !leftCollapsed;
-          const bottomShiftLeft = isBottomShifted ? leftWidth : 0;
-
           return (
             <>
               {/* Bottom Horizontal Splitter */}
@@ -1052,10 +1770,10 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                   onResize={handleBottomResize}
                   style={{
                     position: "absolute",
-                    left: `${bottomShiftLeft}px`,
+                    left: 0,
                     right: 0,
                     bottom: `${bottomHeight}px`,
-                    zIndex: activeLayer === "left" || activeLayer === "right" ? 21 : 30,
+                    zIndex: activeLayer === "right" ? 21 : 30,
                   }}
                 />
               )}
@@ -1084,46 +1802,56 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                 onTearOffStart={handleBottomTearOffStart}
                 style={{
                   position: "absolute",
-                  left: `${bottomShiftLeft}px`,
+                  left: 0,
                   right: 0,
                   bottom: 0,
-                  width: isBottomShifted ? `calc(100% - ${bottomShiftLeft}px)` : "100%",
+                  width: "100%",
                   height: `${bottomHeight}px`,
-                  zIndex: activeLayer === "left" || activeLayer === "right" ? 22 : 29,
+                  zIndex: activeLayer === "right" ? 22 : 29,
                 }}
               >
                 {bottomPanels[bottomActiveTab] || (
                   bottomActiveTab === "content-browser" ? (
                     <ContentBrowser
-                      selectedFolderId={selectedElement.id}
-                      selectedFolderName={selectedElement.name}
+                      selectedFolderId={selectedElement?.id || ""}
+                      selectedFolderName={selectedElement?.name || ""}
                       onSelectFolder={(folderId, folderName) => setSelectedElement({ id: folderId, name: folderName })}
                       onOpenAsset={(id, title) => handleDockFullPage(id, title)}
                       onTearOffItem={handleGenericTearOffStart}
+                      onSelectElement={setSelectedElement}
+                      onOpenCurveEditor={() => {
+                        setBottomActiveTab("sequencer");
+                      }}
+                      onOpenExportPreview={() => {
+                        setBottomActiveTab("export-code");
+                      }}
                     />
-                  ) : bottomActiveTab === "blocks" ? (
-                    <ContentBlockShelf />
+                  ) : bottomActiveTab === "export-code" ? (
+                    <AnimationExportPreview
+                      elementId={selectedElement?.id}
+                      elementName={selectedElement?.name}
+                    />
+                  ) : bottomActiveTab === "trace" ? (
+                    <ExecutionTracePanel
+                      onNavigateToNode={(nodeId) => {
+                        setFocusedBlueprintNodeId(nodeId);
+                        handleDockFullPage("blueprint", "Logic Blueprint");
+                      }}
+                    />
                   ) : bottomActiveTab === "blueprint" ? (
-                    <BlueprintCanvas onBackToViewport={() => setBottomCollapsed(true)} />
+                    <BlueprintCanvas
+                      focusedNodeId={focusedBlueprintNodeId}
+                      onBackToViewport={() => setBottomCollapsed(true)}
+                    />
+                  ) : bottomActiveTab === "curves" ? (
+                    <CurveEditor />
                   ) : (
                     <TimelineSequencer />
                   )
                 )}
               </DockZone>
 
-              {/* 2D Corner Splitters */}
-              {!leftCollapsed && !bottomCollapsed && !isBottomShifted && (
-                <DockCornerSplitter
-                  corner="bottom-left"
-                  left={leftWidth}
-                  bottom={bottomHeight}
-                  onResize={(deltaX, deltaY) => {
-                    handleLeftResize(deltaX);
-                    handleBottomResize(deltaY);
-                  }}
-                />
-              )}
-
+              {/* 2D Corner Splitter (Bottom-Right only, left dock is removed) */}
               {!rightCollapsed && !bottomCollapsed && (
                 <DockCornerSplitter
                   corner="bottom-right"
@@ -1202,7 +1930,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         <StatusBar
           status={isPlaying ? "Live Simulation Running (120 FPS Wasm)" : "Engine Ready"}
           isDirty={isDirty}
-          activeSelection={selectedElement.name}
+          activeSelection={selectedElement ? selectedElement.name : "World Environment"}
           zoomLevel={zoomLevel}
           onZoomIn={() => setZoomLevel((z) => Math.min(z + 10, 250))}
           onZoomOut={() => setZoomLevel((z) => Math.max(z - 10, 25))}
@@ -1217,6 +1945,18 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               return !prev;
             });
           }}
+          isExecutionTraceActive={!bottomCollapsed && bottomActiveTab === "trace"}
+          onToggleExecutionTrace={() => {
+            if (bottomCollapsed) {
+              setBottomCollapsed(false);
+              setBottomActiveTab("trace");
+              handleZoneClick("bottom");
+            } else if (bottomActiveTab === "trace") {
+              setBottomCollapsed(true);
+            } else {
+              setBottomActiveTab("trace");
+            }
+          }}
           isOutputLogOpen={isOutputLogOpen}
           onToggleOutputLog={() => setIsOutputLogOpen((prev) => !prev)}
           onTearOffLog={(originX, originY) => {
@@ -1225,6 +1965,117 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           }}
         />
       </div>
+
+      {/* LayoutAI Left Drop Slot Highlight (beside Outliner) — proximity-based */}
+      {isDraggingAi && activeHoverDropSide === "left" && (
+        <div
+          className="layoutai-drop-slot-highlight"
+          style={{
+            position: "fixed",
+            top: 48,
+            bottom: 26,
+            right: "auto",
+            left: leftCollapsed ? 32 : leftWidth + 4,
+            width: aiPanelWidth,
+            zIndex: 9000,
+            borderColor: "#2DD4BF",
+            backgroundColor: "rgba(32, 104, 89, 0.16)",
+          }}
+          onClick={() => {
+            setAiDockSide("left");
+            setAiDockMode("split-left");
+            setIsAiCoPilotOpen(true);
+            setIsDraggingAi(false);
+            setActiveHoverDropSide(null);
+          }}
+        >
+          <div className="layoutai-drop-slot-card">
+            <div className="layoutai-drop-slot-badge">
+              <Sparkles size={14} />
+              <span>Release to Dock LayoutAI</span>
+            </div>
+            <span className="layoutai-drop-slot-target-tag">Dock Beside Outliner</span>
+            <span className="layoutai-drop-slot-subtext">
+              Release here to anchor panel beside Outliner
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* LayoutAI Right Drop Slot Highlight (beside Details) — proximity-based */}
+      {isDraggingAi && activeHoverDropSide === "right" && (
+        <div
+          className="layoutai-drop-slot-highlight"
+          style={{
+            position: "fixed",
+            top: 48,
+            bottom: 26,
+            left: "auto",
+            right: rightCollapsed ? 0 : rightWidth + 4,
+            width: aiPanelWidth,
+            zIndex: 9000,
+            borderColor: "#2DD4BF",
+            backgroundColor: "rgba(32, 104, 89, 0.16)",
+          }}
+          onClick={() => {
+            setAiDockSide("right");
+            setAiDockMode("split-left");
+            setIsAiCoPilotOpen(true);
+            setIsDraggingAi(false);
+            setActiveHoverDropSide(null);
+          }}
+        >
+          <div className="layoutai-drop-slot-card">
+            <div className="layoutai-drop-slot-badge">
+              <Sparkles size={14} />
+              <span>Release to Dock LayoutAI</span>
+            </div>
+            <span className="layoutai-drop-slot-target-tag">Dock Beside Details</span>
+            <span className="layoutai-drop-slot-subtext">
+              Release here to anchor panel beside Details
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Drag Preview Thumbnail following the mouse cursor */}
+      {isDraggingAi && (
+        <div
+          className="layoutai-drag-preview"
+          style={{
+            left: dragCursorPos.x,
+            top: dragCursorPos.y,
+          }}
+        >
+          <div className="layoutai-drag-preview__logo">
+            <Sparkles size={14} color="#FFFFFF" />
+          </div>
+          <div className="layoutai-drag-preview__body">
+            <span className="layoutai-drag-preview__title">LayoutAI Assistant</span>
+            <span className="layoutai-drag-preview__hint">
+              {activeHoverDropSide === "left"
+                ? "Release to dock beside Outliner"
+                : activeHoverDropSide === "right"
+                ? "Release to dock beside Details"
+                : "Move left or right to choose dock location"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Global Search Modal Overlay (Ctrl+Shift+F) */}
+      <GlobalSearchPanel
+        isModal
+        isOpen={isGlobalSearchOpen}
+        onClose={() => setIsGlobalSearchOpen(false)}
+        onNavigate={(id, title) => handleDockFullPage(id, title || id)}
+      />
+
+      {/* Command Palette Modal Overlay (Ctrl+P / Ctrl+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
     </div>
   );
 };

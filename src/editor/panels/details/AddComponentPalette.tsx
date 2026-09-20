@@ -24,7 +24,6 @@ import {
   ImageIcon,
   Workflow,
   Eye,
-  Database,
   Cpu,
   ExternalLink,
   Terminal,
@@ -62,8 +61,6 @@ const renderPaletteIcon = (iconName: AddPaletteItem["iconName"], size = 14) => {
       return <Workflow size={size} />;
     case "Eye":
       return <Eye size={size} />;
-    case "Database":
-      return <Database size={size} />;
     case "Cpu":
       return <Cpu size={size} />;
     case "ExternalLink":

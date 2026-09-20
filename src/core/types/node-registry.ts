@@ -318,6 +318,33 @@ export const BUILTIN_NODES: Record<string, NodeDefinition> = {
     ],
   },
 
+  "flow/reroute": {
+    type: "flow/reroute",
+    title: "Reroute Knot",
+    category: "Flow Control",
+    subtitle: "Wire Passthrough",
+    description: "Lightweight passthrough waypoint for organizing, bending, and routing wires cleanly.",
+    headerColor: "#475569",
+    inputs: [
+      {
+        id: "in",
+        name: "in",
+        label: "In",
+        type: "any",
+        direction: "input",
+      },
+    ],
+    outputs: [
+      {
+        id: "out",
+        name: "out",
+        label: "Out",
+        type: "any",
+        direction: "output",
+      },
+    ],
+  },
+
   "flow/delay": {
     type: "flow/delay",
     title: "Delay",
@@ -938,12 +965,27 @@ export const BUILTIN_NODES: Record<string, NodeDefinition> = {
 // REGISTRY ACCESS & QUERY API
 // ============================================================================
 
+const CUSTOM_NODES: Record<string, NodeDefinition> = {};
+
+export const registerCustomNodeDefinition = (def: NodeDefinition): void => {
+  CUSTOM_NODES[def.type] = def;
+};
+
+export const unregisterCustomNodeDefinition = (type: string): void => {
+  delete CUSTOM_NODES[type];
+};
+
+export const getAllRegisteredNodes = (): Record<string, NodeDefinition> => {
+  return { ...BUILTIN_NODES, ...CUSTOM_NODES };
+};
+
 export const getNodeDefinition = (type: string): NodeDefinition | undefined => {
-  return BUILTIN_NODES[type];
+  if (type === "reroute") return BUILTIN_NODES["flow/reroute"];
+  return CUSTOM_NODES[type] || BUILTIN_NODES[type];
 };
 
 export const getNodesByCategory = (category: NodeCategory): NodeDefinition[] => {
-  return Object.values(BUILTIN_NODES).filter((n) => n.category === category);
+  return Object.values(getAllRegisteredNodes()).filter((n) => n.category === category);
 };
 
 export const getAllNodeCategories = (): NodeCategory[] => {
@@ -960,10 +1002,11 @@ export const getAllNodeCategories = (): NodeCategory[] => {
 };
 
 export const searchNodeDefinitions = (query: string): NodeDefinition[] => {
+  const allNodes = getAllRegisteredNodes();
   const normalized = query.trim().toLowerCase();
-  if (!normalized) return Object.values(BUILTIN_NODES);
+  if (!normalized) return Object.values(allNodes);
 
-  return Object.values(BUILTIN_NODES).filter(
+  return Object.values(allNodes).filter(
     (n) =>
       n.title.toLowerCase().includes(normalized) ||
       n.type.toLowerCase().includes(normalized) ||

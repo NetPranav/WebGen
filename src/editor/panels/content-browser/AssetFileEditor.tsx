@@ -22,7 +22,6 @@ import {
   RotateCw,
   Copy,
   Check,
-  Database,
   ImageIcon,
   Box,
   Table,
@@ -135,30 +134,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };`,
-
-  ast_db_users: `-- Schema Definition: UsersCollection (SQLite / WASM Embedded)
-CREATE TABLE users (
-  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-  email TEXT UNIQUE NOT NULL,
-  display_name TEXT NOT NULL,
-  role TEXT CHECK(role IN ('admin', 'editor', 'viewer')) DEFAULT 'viewer',
-  is_verified BOOLEAN DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role);`,
-
-  ast_db_projects: `-- Schema Definition: ProjectsCollection
-CREATE TABLE projects (
-  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  status TEXT DEFAULT 'draft',
-  ast_tree JSON NOT NULL DEFAULT '{}',
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);`,
 };
 
 type ElementState = "default" | "hover" | "active" | "disabled" | "loading";
@@ -180,8 +155,16 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
   // Responsive boundary preview
   const [devicePreview, setDevicePreview] = useState<DevicePreview>("desktop");
 
-  const isDb = assetId.includes("db") || assetTitle.endsWith(".db");
-  const isImage = assetId.includes("logo") || assetId.includes("banner") || assetTitle.endsWith(".svg") || assetTitle.endsWith(".webp");
+  const isImage = assetTitle.endsWith(".svg") || assetTitle.endsWith(".webp") || assetTitle.endsWith(".png");
+
+  // Database is strictly disallowed in studio: block render if encountered
+  if (assetId.includes("db") || assetTitle.endsWith(".db") || assetTitle.toLowerCase().includes("database")) {
+    return (
+      <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+        Asset preview not supported in studio.
+      </div>
+    );
+  }
 
   const codeSource =
     MOCK_CODES[assetId] ||
@@ -234,17 +217,6 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
             <Code2 size={13} />
             <span>Source Code (TSX)</span>
           </button>
-
-          {isDb && (
-            <button
-              type="button"
-              className={`asset-file-editor__mode-btn ${activeTab === "schema" ? "asset-file-editor__mode-btn--active" : ""}`}
-              onClick={() => setActiveTab("schema")}
-            >
-              <Table size={13} />
-              <span>Data Records</span>
-            </button>
-          )}
         </div>
 
         <div className="asset-file-editor__actions">
@@ -292,8 +264,8 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
         </div>
       </div>
 
-      {/* Secondary Bar: Interactive State Toggles & Device Boundary Selectors */}
-      {activeTab === "preview" && !isDb && !isImage && (
+      {/* Quick Interactive State Controls Bar (only for component preview) */}
+      {activeTab === "preview" && !isImage && (
         <div className="asset-viewport-header">
           {/* Element State Tester (Default, Hover, Active, Disabled, Loading) */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -379,62 +351,6 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
                   <span>{assetTitle}</span>
                   <span className="asset-badge">SVG / WebP Vector</span>
                 </div>
-              </div>
-            ) : isDb ? (
-              <div className="asset-db-table-card">
-                <div className="asset-db-table-header">
-                  <Database size={15} style={{ color: "#059669" }} />
-                  <span>Table: {assetTitle}</span>
-                  <span className="asset-badge">SQLite v3.45</span>
-                </div>
-                <table className="asset-table-view">
-                  <thead>
-                    <tr>
-                      <th>Column</th>
-                      <th>Type</th>
-                      <th>Key</th>
-                      <th>Default</th>
-                      <th>Nullable</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><code>id</code></td>
-                      <td>TEXT</td>
-                      <td><span className="pk-badge">PK</span></td>
-                      <td>UUIDv4()</td>
-                      <td>NO</td>
-                    </tr>
-                    <tr>
-                      <td><code>email</code></td>
-                      <td>TEXT</td>
-                      <td><span className="idx-badge">UNIQUE</span></td>
-                      <td>NULL</td>
-                      <td>NO</td>
-                    </tr>
-                    <tr>
-                      <td><code>display_name</code></td>
-                      <td>TEXT</td>
-                      <td>-</td>
-                      <td>NULL</td>
-                      <td>NO</td>
-                    </tr>
-                    <tr>
-                      <td><code>role</code></td>
-                      <td>ENUM</td>
-                      <td>-</td>
-                      <td>'viewer'</td>
-                      <td>NO</td>
-                    </tr>
-                    <tr>
-                      <td><code>created_at</code></td>
-                      <td>DATETIME</td>
-                      <td>-</td>
-                      <td>CURRENT_TIMESTAMP</td>
-                      <td>NO</td>
-                    </tr>
-                  </tbody>
-                </table>
               </div>
             ) : (
               /* Component Visual Preview Card with device frame */

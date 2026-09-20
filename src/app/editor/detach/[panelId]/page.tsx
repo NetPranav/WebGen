@@ -16,12 +16,12 @@
  */
 
 import React, { use } from "react";
+import { redirect } from "next/navigation";
 import { DetachedPanelShell } from "@/editor/shell/DetachedPanelShell";
 import { BlueprintCanvas } from "@/editor/panels/blueprint/BlueprintCanvas";
 import { TimelineSequencer } from "@/editor/panels/sequencer/TimelineSequencer";
 import { OutputConsole } from "@/editor/panels/console/OutputConsole";
 import { ContentBrowser } from "@/editor/panels/content-browser/ContentBrowser";
-import { DatabaseDesigner } from "@/editor/panels/database/DatabaseDesigner";
 import { AssetFileEditor } from "@/editor/panels/content-browser/AssetFileEditor";
 
 const PANEL_MAP: Record<string, { title: string; component: React.FC<any> }> = {
@@ -29,7 +29,6 @@ const PANEL_MAP: Record<string, { title: string; component: React.FC<any> }> = {
   sequencer: { title: "Timeline Sequencer", component: TimelineSequencer },
   console: { title: "Output Log", component: OutputConsole },
   "content-browser": { title: "Content Browser", component: ContentBrowser },
-  "er-modeler": { title: "Database Studio", component: DatabaseDesigner },
 };
 
 export default function DetachPage({
@@ -38,6 +37,18 @@ export default function DetachPage({
   params: Promise<{ panelId: string }>;
 }) {
   const { panelId } = use(params);
+
+  // DATABASE STRICTLY DISALLOWED: block any attempt to load database panels via link
+  if (
+    panelId === "database" ||
+    panelId === "er-modeler" ||
+    panelId.includes("database") ||
+    panelId.startsWith("db_") ||
+    panelId.endsWith(".db")
+  ) {
+    redirect("/editor");
+  }
+
   const panel = PANEL_MAP[panelId];
 
   if (panel) {

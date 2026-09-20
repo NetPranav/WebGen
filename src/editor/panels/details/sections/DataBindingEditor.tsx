@@ -16,7 +16,6 @@ import {
   Link,
   Plus,
   Trash2,
-  Database,
   Globe,
   CheckCircle2,
   AlertTriangle,
@@ -70,7 +69,7 @@ export const DataBindingEditor: React.FC<DataBindingEditorProps> = ({
 
   // New binding form state
   const [targetProperty, setTargetProperty] = useState("");
-  const [sourceType, setSourceType] = useState<BindingSourceType>("database");
+  const [sourceType, setSourceType] = useState<BindingSourceType>("state_variable");
   const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [selectedField, setSelectedField] = useState<string>("");
   const [selectedStateVar, setSelectedStateVar] = useState<string>("");
@@ -293,59 +292,12 @@ export const DataBindingEditor: React.FC<DataBindingEditorProps> = ({
                 onChange={(e) => setSourceType(e.target.value as BindingSourceType)}
                 style={{ height: 26, fontSize: 11, width: "100%" }}
               >
-                <option value="database">Database Field</option>
                 <option value="state_variable">State Variable</option>
                 <option value="url_param">URL Query Param</option>
                 <option value="local_storage">Local Storage</option>
               </select>
             </div>
           </div>
-
-          {/* Row 2: Source Selection based on Type */}
-          {sourceType === "database" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "var(--text-tertiary)", marginBottom: 3, textTransform: "uppercase" }}>
-                  Collection
-                </label>
-                <select
-                  className="form-select"
-                  value={effectiveCollection}
-                  onChange={(e) => {
-                    setSelectedCollection(e.target.value);
-                    const coll = databaseSchemas[e.target.value];
-                    const collFields = coll ? Object.values(coll.fields) : [];
-                    if (collFields[0]) setSelectedField(collFields[0].name);
-                  }}
-                  style={{ height: 26, fontSize: 11, width: "100%" }}
-                >
-                  {collectionNames.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "var(--text-tertiary)", marginBottom: 3, textTransform: "uppercase" }}>
-                  Field
-                </label>
-                <select
-                  className="form-select"
-                  value={effectiveField}
-                  onChange={(e) => setSelectedField(e.target.value)}
-                  style={{ height: 26, fontSize: 11, width: "100%" }}
-                >
-                  {fields.map((f) => (
-                    <option key={f.name} value={f.name}>
-                      {f.name} ({f.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
 
           {sourceType === "state_variable" && (
             <div>
@@ -499,7 +451,7 @@ export const DataBindingEditor: React.FC<DataBindingEditorProps> = ({
             fontSize: 10.5,
           }}
         >
-          No dynamic data bindings attached. Click <strong>+ Bind</strong> to connect to Database or State.
+          No dynamic data bindings attached. Click <strong>+ Bind</strong> to connect to State Variables or URL Parameters.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

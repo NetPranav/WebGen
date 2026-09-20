@@ -34,6 +34,9 @@
 
   --surface-overlay: rgba(15, 23, 42, 0.4);
   --surface-tooltip: #0F172A;
+  --surface-disabled: #F1F5F9;
+  --text-disabled: #94A3B8;
+  --border-disabled: rgba(15, 23, 42, 0.04);
 
   /* --------------------------------------------------------------------------
    * Borders & Separators (Ultra-refined Micro-borders)

@@ -20,7 +20,6 @@ import {
   Cpu,
   Film,
   Terminal,
-  Database,
   ImageIcon,
   Box,
   RotateCcw,
@@ -113,9 +112,8 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
   const isBlueprint = panelId === "blueprint" || panelId.includes("bp_") || panelTitle.endsWith(".graph");
   const isSequencer = panelId === "sequencer" || panelTitle.toLowerCase().includes("sequencer");
   const isConsole = panelId === "console" || panelTitle.toLowerCase().includes("output log");
-  const isDatabase = panelId.includes("db") || panelTitle.endsWith(".db");
   const isImage = panelId.includes("logo") || panelId.includes("banner") || panelTitle.endsWith(".svg") || panelTitle.endsWith(".webp");
-  const isComponent = !isBlueprint && !isSequencer && !isConsole && !isDatabase && !isImage;
+  const isComponent = !isBlueprint && !isSequencer && !isConsole && !isImage;
 
   // Retrieve base schema or create fallback for component
   const defaultSchema = SAMPLE_ASSET_SCHEMAS[panelId] || {
@@ -766,8 +764,6 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
             <Film size={14} style={{ color: "var(--accent-purple)" }} />
           ) : isConsole ? (
             <Terminal size={14} style={{ color: "var(--accent-primary)" }} />
-          ) : isDatabase ? (
-            <Database size={14} style={{ color: "#059669" }} />
           ) : isImage ? (
             <ImageIcon size={14} style={{ color: "var(--accent-info)" }} />
           ) : (
@@ -782,8 +778,6 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
             ? "Sequencer Asset"
             : isConsole
             ? "Console Config"
-            : isDatabase
-            ? "Table Schema"
             : isImage
             ? "Media Vector"
             : "React Component"}

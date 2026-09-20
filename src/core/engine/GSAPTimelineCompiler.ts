@@ -78,6 +78,19 @@ export class GSAPTimelineCompilerService {
         return { property: "color", value: String(value), isTransform: false };
       case "fontSize":
         return { property: "font-size", value: typeof value === "number" ? `${value}px` : String(value), isTransform: false };
+      case "feGaussianBlur":
+        return { property: "filter", value: `blur(${value}px)`, isTransform: false };
+      case "feColorMatrix":
+      case "feDisplacementMap":
+        return { property: "filter", value: typeof value === "string" && value.startsWith("url(") ? value : `url(#${value})`, isTransform: false };
+      case "gradientStopOffset":
+        return { property: "stop-opacity", value: String(value), isTransform: false };
+      case "gradientStopColor":
+        return { property: "stop-color", value: String(value), isTransform: false };
+      case "pathMorph":
+        return { property: "d", value: `path('${value}')`, isTransform: false };
+      case "strokeDashoffset":
+        return { property: "stroke-dashoffset", value: String(value), isTransform: false };
       default:
         return { property: trackId, value: String(value), isTransform: false };
     }

@@ -135,8 +135,10 @@ export const OutputConsole: React.FC = () => {
         String(d.getMilliseconds()).padStart(3, "0");
 
       let category: LogEntry["category"] = "all";
-      if (event.channel === "DB_SCHEMA_ERR" || event.channel === "BIND_ERR") {
+      if (event.channel === "DB_SCHEMA_ERR" || event.channel === "BIND_ERR" || event.channel === "MOCK_DB_ERR") {
         category = "database";
+      } else if (event.channel === "MOCK_API_INFO" || event.channel === "MOCK_API_ERR") {
+        category = "api";
       } else if (event.channel === "ANIM_COMPAT" || event.channel === "STATE_VAR_WARN") {
         category = "warning";
       } else if (event.channel === "BLUEPRINT_ERR") {
@@ -481,7 +483,7 @@ export const OutputConsole: React.FC = () => {
           {[
             { id: "all", label: `All (${logs.length})` },
             { id: "blueprint", label: "Blueprints" },
-            { id: "database", label: "Database" },
+            { id: "sequencer", label: "Sequencer" },
             { id: "api", label: "API" },
             { id: "compiler", label: "Compiler" },
             { id: "warnings", label: "Warnings" },

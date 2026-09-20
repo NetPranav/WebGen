@@ -38,7 +38,15 @@ export type AnimationTrackId =
   | "letterSpacing"
   | "lineHeight"
   | "color"
-  | "fontSize";
+  | "fontSize"
+  // SVG Vector & Filter tracks (Sub-Phase 7.2 & 7.3)
+  | "pathMorph"
+  | "strokeDashoffset"
+  | "feGaussianBlur"
+  | "feColorMatrix"
+  | "feDisplacementMap"
+  | "gradientStopOffset"
+  | "gradientStopColor";
 
 export type CubicBezierHandle = [number, number, number, number];
 
@@ -109,7 +117,18 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "lineHeight",
       "filterBlur",
     ],
-    disallowedTracks: {},
+    disallowedTracks: {
+      pathMorph: {
+        trackId: "pathMorph",
+        reason: "Text elements cannot execute SVG path morphing.",
+        alternativeSuggestion: "Convert text to SVG path glyphs or apply pathMorph to an svgPath element.",
+      },
+      strokeDashoffset: {
+        trackId: "strokeDashoffset",
+        reason: "Text elements do not possess SVG stroke geometry pipelines.",
+        alternativeSuggestion: "Use svgPath archetype for stroke drawing animation.",
+      },
+    },
   },
   image: {
     archetype: "image",
@@ -233,6 +252,96 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "backgroundColor",
       "borderRadius",
       "boxShadow",
+    ],
+    disallowedTracks: {},
+  },
+  svgPath: {
+    archetype: "svgPath",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "rotate",
+      "color",
+      "filterBlur",
+      "pathMorph",
+      "strokeDashoffset",
+      "feGaussianBlur",
+      "feColorMatrix",
+      "feDisplacementMap",
+      "gradientStopOffset",
+      "gradientStopColor",
+    ],
+    disallowedTracks: {
+      letterSpacing: {
+        trackId: "letterSpacing",
+        reason: "SVG path elements do not possess text rendering pipelines.",
+        alternativeSuggestion: "Use svgText element archetype instead.",
+      },
+      fontSize: {
+        trackId: "fontSize",
+        reason: "SVG path geometry is controlled via path coordinates or scale.",
+        alternativeSuggestion: "Use scale or scaleX/scaleY tracks.",
+      },
+    },
+  },
+  svgGroup: {
+    archetype: "svgGroup",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "scaleX",
+      "scaleY",
+      "rotate",
+      "filterBlur",
+      "feGaussianBlur",
+      "feColorMatrix",
+      "feDisplacementMap",
+    ],
+    disallowedTracks: {
+      letterSpacing: {
+        trackId: "letterSpacing",
+        reason: "SVG group containers do not directly render font glyphs.",
+        alternativeSuggestion: "Attach typography animation to child svgText elements.",
+      },
+    },
+  },
+  svgUse: {
+    archetype: "svgUse",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "rotate",
+      "filterBlur",
+      "feGaussianBlur",
+      "feColorMatrix",
+      "feDisplacementMap",
+    ],
+    disallowedTracks: {
+      letterSpacing: {
+        trackId: "letterSpacing",
+        reason: "SVG use elements reference existing definitions and do not render text directly.",
+        alternativeSuggestion: "Animate properties on the referenced symbol.",
+      },
+    },
+  },
+  svgText: {
+    archetype: "svgText",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "rotate",
+      "color",
+      "fontSize",
+      "letterSpacing",
+      "filterBlur",
     ],
     disallowedTracks: {},
   },

@@ -185,4 +185,151 @@ std::string SplineSolver::formatSvgPath(
     return ss.str();
 }
 
+ArcLengthTable SplineSolver::buildArcLengthTableSIMD(
+    const Point2D& p0,
+    const Point2D& p1,
+    const Point2D& p2,
+    const Point2D& p3,
+    int sampleCount
+) {
+    // 4-lane SIMD-optimized arc-length table evaluation
+    ArcLengthTable table;
+    const int count = std::max(sampleCount, 8);
+    table.tSamples.reserve(count + 1);
+    table.arcLengths.reserve(count + 1);
+
+    table.tSamples.push_back(0.0f);
+    table.arcLengths.push_back(0.0f);
+
+    Point2D prev = p0;
+    float cumulativeLength = 0.0f;
+
+    // Process 4 samples at a time
+    int i = 1;
+    for (; i + 3 <= count; i += 4) {
+        float t0 = static_cast<float>(i) / count;
+        float t1 = static_cast<float>(i + 1) / count;
+        float t2 = static_cast<float>(i + 2) / count;
+        float t3 = static_cast<float>(i + 3) / count;
+
+#if defined(__wasm_simd128__)
+        v128_t vt = wasm_f32x4_make(t0, t1, t2, t3);
+        v128_t v1 = wasm_f32x4_splat(1.0f);
+        v128_t vu = wasm_f32x4_sub(v1, vt);
+        v128_t vtt = wasm_f32x4_mul(vt, vt);
+        v128_t vuu = wasm_f32x4_mul(vu, vu);
+        v128_t vuuu = wasm_f32x4_mul(vuu, vu);
+        v128_t vttt = wasm_f32x4_mul(vtt, vt);
+        v128_t v3 = wasm_f32x4_splat(3.0f);
+        v128_t c1 = wasm_f32x4_mul(wasm_f32x4_mul(v3, vuu), vt);
+        v128_t c2 = wasm_f32x4_mul(wasm_f32x4_mul(v3, vu), vtt);
+
+        v128_t vx0 = wasm_f32x4_splat(p0.x);
+        v128_t vx1 = wasm_f32x4_splat(p1.x);
+        v128_t vx2 = wasm_f32x4_splat(p2.x);
+        v128_t vx3 = wasm_f32x4_splat(p3.x);
+        v128_t px = wasm_f32x4_add(
+            wasm_f32x4_add(wasm_f32x4_mul(vuuu, vx0), wasm_f32x4_mul(c1, vx1)),
+            wasm_f32x4_add(wasm_f32x4_mul(c2, vx2), wasm_f32x4_mul(vttt, vx3))
+        );
+
+        v128_t vy0 = wasm_f32x4_splat(p0.y);
+        v128_t vy1 = wasm_f32x4_splat(p1.y);
+        v128_t vy2 = wasm_f32x4_splat(p2.y);
+        v128_t vy3 = wasm_f32x4_splat(p3.y);
+        v128_t py = wasm_f32x4_add(
+            wasm_f32x4_add(wasm_f32x4_mul(vuuu, vy0), wasm_f32x4_mul(c1, vy1)),
+            wasm_f32x4_add(wasm_f32x4_mul(c2, vy2), wasm_f32x4_mul(vttt, vy3))
+        );
+
+        float ptsX[4], ptsY[4];
+        wasm_v128_store(ptsX, px);
+        wasm_v128_store(ptsY, py);
+
+        for (int lane = 0; lane < 4; ++lane) {
+            Point2D curr(ptsX[lane], ptsY[lane]);
+            cumulativeLength += std::hypot(curr.x - prev.x, curr.y - prev.y);
+            table.tSamples.push_back(static_cast<float>(i + lane) / count);
+            table.arcLengths.push_back(cumulativeLength);
+            prev = curr;
+        }
+#else
+        Point2D c0 = evaluateBezier(p0, p1, p2, p3, t0);
+        cumulativeLength += std::hypot(c0.x - prev.x, c0.y - prev.y);
+        table.tSamples.push_back(t0);
+        table.arcLengths.push_back(cumulativeLength);
+        prev = c0;
+
+        Point2D c1 = evaluateBezier(p0, p1, p2, p3, t1);
+        cumulativeLength += std::hypot(c1.x - prev.x, c1.y - prev.y);
+        table.tSamples.push_back(t1);
+        table.arcLengths.push_back(cumulativeLength);
+        prev = c1;
+
+        Point2D c2 = evaluateBezier(p0, p1, p2, p3, t2);
+        cumulativeLength += std::hypot(c2.x - prev.x, c2.y - prev.y);
+        table.tSamples.push_back(t2);
+        table.arcLengths.push_back(cumulativeLength);
+        prev = c2;
+
+        Point2D c3 = evaluateBezier(p0, p1, p2, p3, t3);
+        cumulativeLength += std::hypot(c3.x - prev.x, c3.y - prev.y);
+        table.tSamples.push_back(t3);
+        table.arcLengths.push_back(cumulativeLength);
+        prev = c3;
+#endif
+    }
+
+    // Remainder loop
+    for (; i <= count; ++i) {
+        float t = static_cast<float>(i) / count;
+        Point2D curr = evaluateBezier(p0, p1, p2, p3, t);
+        cumulativeLength += std::hypot(curr.x - prev.x, curr.y - prev.y);
+        table.tSamples.push_back(t);
+        table.arcLengths.push_back(cumulativeLength);
+        prev = curr;
+    }
+
+    table.totalLength = cumulativeLength;
+    return table;
+}
+
+std::vector<SplineResult> SplineSolver::calculateBatchSIMD(
+    const std::vector<Point2D>& starts,
+    const std::vector<Point2D>& ends,
+    const SplineConfig& config
+) {
+    const size_t count = std::min(starts.size(), ends.size());
+    std::vector<SplineResult> results;
+    results.reserve(count);
+
+    for (size_t i = 0; i < count; ++i) {
+        SplineResult res;
+        res.p0 = starts[i];
+        res.p3 = ends[i];
+
+        const float deltaX = res.p3.x - res.p0.x;
+        const float deltaY = res.p3.y - res.p0.y;
+
+        if (deltaX >= 0.0f) {
+            const float tangentX = std::max(deltaX * config.tension, config.minTangent);
+            res.p1 = Point2D(res.p0.x + tangentX, res.p0.y);
+            res.p2 = Point2D(res.p3.x - tangentX, res.p3.y);
+        } else {
+            const float backwardDistance = std::abs(deltaX);
+            const float tangentX = std::max(backwardDistance * config.tension, config.minTangent * 1.5f);
+            const float yOffset = (std::abs(deltaY) < 30.0f) ? ((deltaY >= 0.0f) ? config.loopOffset : -config.loopOffset) : 0.0f;
+            res.p1 = Point2D(res.p0.x + tangentX, res.p0.y + yOffset * 0.4f);
+            res.p2 = Point2D(res.p3.x - tangentX, res.p3.y - yOffset * 0.4f);
+        }
+
+        res.svgPath = formatSvgPath(res.p0, res.p1, res.p2, res.p3);
+        res.arcLengthTable = buildArcLengthTableSIMD(res.p0, res.p1, res.p2, res.p3, 64);
+        res.approximateLength = res.arcLengthTable.totalLength;
+        results.push_back(res);
+    }
+
+    return results;
+}
+
 } // namespace WebAppEngine

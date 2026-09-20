@@ -22,11 +22,16 @@ import {
   RotateCcw,
   Eye,
   EyeOff,
+  X,
 } from "lucide-react";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
 
-export const ProjectSettings: React.FC = () => {
+export interface ProjectSettingsProps {
+  onClose?: () => void;
+}
+
+export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ onClose }) => {
   const [activeCategory, setActiveCategory] = useState<"general" | "build" | "theme" | "env">("general");
 
   // General settings state
@@ -100,6 +105,37 @@ export const ProjectSettings: React.FC = () => {
 
       {/* Main Settings Body */}
       <div className="settings-main">
+        {onClose && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: 14,
+            }}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn--secondary"
+              title="Close Settings & Return to Viewport (Esc)"
+              id="project-settings-close-btn"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 12px",
+                fontSize: 11.5,
+                fontWeight: 600,
+                borderRadius: 4,
+                cursor: "pointer",
+              }}
+            >
+              <X size={13} />
+              <span>Return to Viewport</span>
+            </button>
+          </div>
+        )}
+
         {/* ====================================================================
          * CATEGORY 1: GENERAL
          * ==================================================================== */}

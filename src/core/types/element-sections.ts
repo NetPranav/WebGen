@@ -12,18 +12,33 @@
 
 export type ElementType =
   | "button"
+  | "toggle"
+  | "badge"
+  | "fab"
   | "image"
-  | "text"
+  | "icon"
+  | "divider"
+  | "background"
   | "container"
+  | "text"
   | "input"
   | "form"
-  | "generic";
+  | "generic"
+  | "svgPath"
+  | "svgGroup"
+  | "svgUse"
+  | "svgText";
 
 export type DetailSectionId =
   | "identity"
   | "attachments"
   | "button_states"
+  | "toggle_states"
   | "image_props"
+  | "media_props"
+  | "svg_vector"
+  | "divider_props"
+  | "background_props"
   | "text_content"
   | "container_layout"
   | "input_validation"
@@ -47,11 +62,56 @@ export const ELEMENT_SECTION_REGISTRY: Record<ElementType, DetailSectionId[]> = 
     "typography",
     "layout",
   ],
+  toggle: [
+    "identity",
+    "toggle_states",
+    "attachments",
+    "variables",
+    "events",
+    "appearance",
+    "layout",
+  ],
+  badge: [
+    "identity",
+    "attachments",
+    "appearance",
+    "typography",
+    "layout",
+  ],
+  fab: [
+    "identity",
+    "button_states",
+    "attachments",
+    "appearance",
+    "layout",
+  ],
   image: [
     "identity",
+    "media_props",
     "image_props",
     "attachments",
     "variables",
+    "appearance",
+    "layout",
+  ],
+  icon: [
+    "identity",
+    "svg_vector",
+    "attachments",
+    "appearance",
+    "layout",
+  ],
+  divider: [
+    "identity",
+    "divider_props",
+    "attachments",
+    "appearance",
+    "layout",
+  ],
+  background: [
+    "identity",
+    "background_props",
+    "attachments",
     "appearance",
     "layout",
   ],
@@ -98,6 +158,40 @@ export const ELEMENT_SECTION_REGISTRY: Record<ElementType, DetailSectionId[]> = 
     "events",
     "appearance",
     "typography",
+    "layout",
+  ],
+  svgPath: [
+    "identity",
+    "appearance",
+    "attachments",
+    "variables",
+    "events",
+    "layout",
+  ],
+  svgGroup: [
+    "identity",
+    "appearance",
+    "container_layout",
+    "attachments",
+    "variables",
+    "events",
+    "layout",
+  ],
+  svgUse: [
+    "identity",
+    "appearance",
+    "attachments",
+    "variables",
+    "events",
+    "layout",
+  ],
+  svgText: [
+    "identity",
+    "typography",
+    "appearance",
+    "attachments",
+    "variables",
+    "events",
     "layout",
   ],
 };

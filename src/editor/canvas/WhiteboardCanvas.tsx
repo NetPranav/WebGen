@@ -20,22 +20,34 @@ import { CanvasOverlay, SelectionRect } from "./CanvasOverlay";
 import {
   Sparkles,
   ArrowRight,
-  Database,
+  Film,
   Workflow,
   Zap,
   Layers,
   Smartphone,
   Tablet,
   Monitor,
+  Play,
+  Square,
+  Crosshair,
+  Focus,
+  ShieldAlert,
 } from "lucide-react";
+import { SandboxHost } from "@/editor/runtime/SandboxHost";
+import { useProjectStore } from "@/core/store/useProjectStore";
+import { THEME_PALETTES } from "@/core/types/environment";
 
 interface WhiteboardCanvasProps {
   deviceMode?: "desktop" | "tablet" | "mobile";
   zoomLevel: number;
   onZoomChange: (newZoom: number) => void;
   onDropAsset?: (asset: { id: string; name: string; category: string }) => void;
+  isPlaying?: boolean;
+  onTogglePlay?: (isPlaying: boolean) => void;
+  onOpenExecutionTrace?: () => void;
   className?: string;
   style?: React.CSSProperties;
+  onSelectElement?: (element: { id: string; name: string } | null) => void;
 }
 
 interface DeviceDimensions {
@@ -55,10 +67,32 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   zoomLevel,
   onZoomChange,
   onDropAsset,
+  isPlaying: isPlayingProp = false,
+  onTogglePlay,
+  onOpenExecutionTrace,
   className,
   style,
+  onSelectElement,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  /* --------------------------------------------------------------------------
+   * Play Mode State (Sandbox Host)
+   * -------------------------------------------------------------------------- */
+  const [isPlayMode, setIsPlayMode] = useState(isPlayingProp);
+
+  useEffect(() => {
+    setIsPlayMode(isPlayingProp);
+  }, [isPlayingProp]);
+
+  const handleTogglePlay = useCallback(
+    (nextState?: boolean) => {
+      const val = nextState !== undefined ? nextState : !isPlayMode;
+      setIsPlayMode(val);
+      if (onTogglePlay) onTogglePlay(val);
+    },
+    [isPlayMode, onTogglePlay]
+  );
 
   /* --------------------------------------------------------------------------
    * Pan & Zoom Coordinates
@@ -74,41 +108,38 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const [selectedElement, setSelectedElement] = useState<SelectionRect | null>(null);
   const [ctaCount, setCtaCount] = useState(0);
 
+  const environment = useProjectStore((state) => state.environment);
+  const palette = THEME_PALETTES[environment?.theme?.palette] || THEME_PALETTES.clean_light;
+
   const device = DEVICE_CONFIGS[deviceMode] || DEVICE_CONFIGS.desktop;
 
   /* --------------------------------------------------------------------------
-   * Initial Centering of the Device Frame on Mount or Resize
+   * Bring Back to Center: centers (0, 0) world coordinates in the viewport
    * -------------------------------------------------------------------------- */
-  const centerDeviceFrame = useCallback(() => {
+  const bringBackToCenter = useCallback(() => {
     if (!containerRef.current) return;
     const { clientWidth, clientHeight } = containerRef.current;
     if (clientWidth === 0 || clientHeight === 0) return;
 
-    const padding = 60;
-    const availW = Math.max(clientWidth - padding, 200);
-    const availH = Math.max(clientHeight - padding - 40, 200);
+    onZoomChange(100);
+    setPan({
+      x: clientWidth / 2,
+      y: clientHeight / 2,
+    });
+  }, [onZoomChange]);
 
-    const scaleW = availW / device.width;
-    const scaleH = availH / device.height;
-    const fitScale = Math.min(scaleW, scaleH, 1.0);
-    const targetZoom = Math.max(Math.round(fitScale * 100), 20);
-
-    onZoomChange(targetZoom);
-
-    const scale = targetZoom / 100;
-    const frameW = device.width * scale;
-    const frameH = device.height * scale;
-
-    const initialX = Math.max((clientWidth - frameW) / 2, 20);
-    const initialY = Math.max((clientHeight - frameH) / 2 - 20, 20);
-
-    setPan({ x: initialX, y: initialY });
-  }, [device.width, device.height, onZoomChange]);
-
-  // Center & auto-fit on mount and when deviceMode changes
+  // Center on mount and listen for recenter event
   useEffect(() => {
-    centerDeviceFrame();
-  }, [deviceMode, centerDeviceFrame]);
+    bringBackToCenter();
+
+    const handleRecenterEvent = () => {
+      bringBackToCenter();
+    };
+    window.addEventListener("antigravity:recenter_canvas", handleRecenterEvent);
+    return () => {
+      window.removeEventListener("antigravity:recenter_canvas", handleRecenterEvent);
+    };
+  }, [bringBackToCenter]);
 
   // Dynamically adapt selected element bounds when switching device dimensions
   useEffect(() => {
@@ -165,8 +196,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "0") {
         e.preventDefault();
-        onZoomChange(100);
-        centerDeviceFrame();
+        bringBackToCenter();
       }
     };
 
@@ -183,7 +213,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [zoomLevel, onZoomChange, centerDeviceFrame]);
+  }, [zoomLevel, onZoomChange, bringBackToCenter]);
 
   /* --------------------------------------------------------------------------
    * Native Non-Passive Wheel Listener: Viewport-Isolated Zoom & Pan
@@ -205,12 +235,17 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       const isZoom = e.ctrlKey || e.metaKey;
 
       if (isZoom) {
+        if (!environment.viewport.zoom.enabled) return;
+
         // macOS trackpad pinch uses fractional deltaY; standard mouse wheel uses larger steps
         const isSmallDelta = Math.abs(e.deltaY) < 50;
-        const zoomDelta = -e.deltaY * (isSmallDelta ? 0.015 : 0.0015);
+        const speedMult = environment.viewport.zoom.speed === "fast" ? 2.0 : 1.0;
+        const zoomDelta = -e.deltaY * (isSmallDelta ? 0.015 : 0.0015) * speedMult;
         const currentScale = zoomLevelRef.current / 100;
         const zoomFactor = 1 + Math.max(Math.min(zoomDelta, 0.25), -0.25);
-        const newScale = Math.min(Math.max(currentScale * zoomFactor, 0.1), 4.0);
+        const minScale = (environment.viewport.zoom.min || 10) / 100;
+        const maxScale = (environment.viewport.zoom.max || 400) / 100;
+        const newScale = Math.min(Math.max(currentScale * zoomFactor, minScale), maxScale);
         const newZoom = Math.round(newScale * 100);
 
         const rect = container.getBoundingClientRect();
@@ -225,6 +260,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
         onZoomChange(newZoom);
       } else {
+        if (!environment.viewport.pan.enabled) return;
         // Normal 2-finger scroll or wheel: pan the canvas only
         setPan((prev) => ({
           x: prev.x - e.deltaX,
@@ -254,8 +290,16 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Canvas Drag / Panning Engine
    * -------------------------------------------------------------------------- */
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (!environment.viewport.pan.enabled) return;
+
     const isMiddleClick = e.button === 1;
-    const canPan = isMiddleClick || isSpacePressed || activeTool === "pan";
+    const trigger = environment.viewport.pan.trigger;
+    const isBlankTarget = e.target === containerRef.current || (e.target as HTMLElement).classList.contains("whiteboard-grid");
+    const canPan =
+      isMiddleClick ||
+      isSpacePressed ||
+      activeTool === "pan" ||
+      (trigger === "any_blank" && isBlankTarget);
 
     if (canPan) {
       e.preventDefault();
@@ -299,6 +343,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     if (isSpacePressed || activeTool === "pan") return;
     e.stopPropagation();
     setSelectedElement({ id, label, ...box });
+    onSelectElement?.({ id, name: label });
   };
 
   /* --------------------------------------------------------------------------
@@ -307,7 +352,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Modulo octave folding keeps dot spacing strictly between 18px and 36px on screen.
    * -------------------------------------------------------------------------- */
   const currentScale = zoomLevel / 100;
-  let visualSpacing = 24 * currentScale;
+  const gridBase = environment.viewport.grid.size || 24;
+  let visualSpacing = gridBase * currentScale;
 
   while (visualSpacing < 18) {
     visualSpacing *= 2;
@@ -327,20 +373,23 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     "--canvas-grid-size": `${visualSpacing}px`,
     "--canvas-grid-pos-x": `${gridPosX}px`,
     "--canvas-grid-pos-y": `${gridPosY}px`,
+    "--canvas-dot-color": palette.gridDot,
+    backgroundColor: palette.bg,
     ...style,
   } as React.CSSProperties;
 
   return (
     <div
       ref={containerRef}
-      className={`whiteboard-stage ${
-        isSpacePressed || activeTool === "pan" ? "whiteboard-stage--panning" : ""
-      } ${isPanning ? "whiteboard-stage--is-dragging-pan" : ""} whiteboard-stage--tool-${activeTool} ${
-        className || ""
-      }`}
+      className={`whiteboard-stage ${isSpacePressed || activeTool === "pan" ? "whiteboard-stage--panning" : ""
+        } ${isPanning ? "whiteboard-stage--is-dragging-pan" : ""} whiteboard-stage--tool-${activeTool} ${className || ""
+        }`}
       style={canvasStyle}
       onMouseDown={handleMouseDown}
-      onClick={() => setSelectedElement(null)}
+      onClick={() => {
+        setSelectedElement(null);
+        onSelectElement?.(null);
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
@@ -361,187 +410,82 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       role="region"
       aria-label="Confluence Whiteboard Stage"
     >
-      {/* Infinite Scalable Dot-Grid Matrix */}
-      <div className="whiteboard-grid" aria-hidden="true" />
-
-      {/* Hardware-Accelerated Transformed World Canvas */}
-      <div className="whiteboard-world">
-        {/* Multi-Device Responsive Frame */}
+      {/* Infinite Scalable Grid Matrix (Dots, Lines, or None) */}
+      {environment.viewport.grid.style !== "none" && (
         <div
-          className={`device-frame-container device-frame--${deviceMode}`}
-          style={{ width: `${device.width}px` }}
-        >
-          {/* Frame Meta Header */}
-          <div className="device-frame-meta">
-            <div className="device-frame-meta__badge">
-              {deviceMode === "desktop" && <Monitor size={11} />}
-              {deviceMode === "tablet" && <Tablet size={11} />}
-              {deviceMode === "mobile" && <Smartphone size={11} />}
-              <span>{device.label}</span>
-            </div>
+          className={`whiteboard-grid ${environment.viewport.grid.style === "lines" ? "whiteboard-grid--lines" : ""}`}
+          aria-hidden="true"
+        />
+      )}
 
-            <div className="device-frame-meta__status">
-              <span className="device-frame-meta__dot" />
-              <span>Interactive Preview</span>
-            </div>
-          </div>
-
-          {/* Device Screen Body */}
+      {/* Hardware-Accelerated Transformed World Canvas (Infinite Blank Canvas) */}
+      <div className="whiteboard-world">
+        {/* Play Sandbox Mode: optional simulation preview */}
+        {isPlayMode ? (
           <div
-            className="device-frame"
-            style={{
-              width: `${device.width}px`,
-              height: `${device.height}px`,
-            }}
+            className={`device-frame-container device-frame--${deviceMode}`}
+            style={{ width: `${device.width}px` }}
           >
-            {/* Mobile Notch Indicator */}
-            {deviceMode === "mobile" && <div className="device-frame__notch" />}
-
-            {/* Application Live Interactive Stage */}
-            <div className="device-frame__screen">
-              <div className="app-preview">
-                {/* Navbar Component */}
-                <header
-                  className="app-preview__navbar"
-                  onClick={(e) =>
-                    handleSelectComponent(e, "comp_navbar", "Navbar (Sticky Header)", {
-                      x: 0,
-                      y: deviceMode === "mobile" ? 32 : 0,
-                      width: device.width,
-                      height: 56,
-                    })
-                  }
-                >
-                  <div className="app-preview__logo">
-                    <Zap size={18} style={{ color: "var(--accent-primary)" }} />
-                    <span>NovaSaaS</span>
-                  </div>
-
-                  {deviceMode !== "mobile" && (
-                    <nav className="app-preview__nav-links">
-                      <span className="app-preview__nav-item">Features</span>
-                      <span className="app-preview__nav-item">Architecture</span>
-                      <span className="app-preview__nav-item">Pricing</span>
-                      <span className="app-preview__nav-item">Documentation</span>
-                    </nav>
-                  )}
-
-                  <button
-                    type="button"
-                    className="app-preview__btn-primary"
-                    style={{ padding: "6px 14px", fontSize: "12px" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCtaCount((c) => c + 1);
-                    }}
-                  >
-                    <span>Get Started</span>
-                    <ArrowRight size={12} />
-                  </button>
-                </header>
-
-                {/* Hero Section Component */}
-                <section
-                  className="app-preview__hero"
-                  onClick={(e) =>
-                    handleSelectComponent(e, "comp_hero", "Hero Section", {
-                      x: 0,
-                      y: 56,
-                      width: device.width,
-                      height: 380,
-                    })
-                  }
-                >
-                  <div className="app-preview__tag">
-                    <Sparkles size={12} />
-                    <span>Engine v1.0 • Full-Stack Visual IDE</span>
-                  </div>
-
-                  <h1 className="app-preview__title">
-                    Build Production Web Apps with Unreal Engine Precision
-                  </h1>
-
-                  <p className="app-preview__subtitle">
-                    Construct UI components, wire visual logic blueprints, model databases,
-                    and choreograph GSAP motion timelines without leaving the visual stage.
-                  </p>
-
-                  <div className="app-preview__cta-group">
-                    <button
-                      type="button"
-                      className="app-preview__btn-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCtaCount((c) => c + 1);
-                      }}
-                    >
-                      <Sparkles size={14} />
-                      <span>Live Interaction Counter ({ctaCount})</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="app-preview__btn-secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        alert("Explore Architecture clicked!");
-                      }}
-                    >
-                      <Workflow size={14} />
-                      <span>Inspect Blueprints</span>
-                    </button>
-                  </div>
-                </section>
-
-                {/* Feature Grid Component */}
-                <section
-                  className="app-preview__grid"
-                  onClick={(e) =>
-                    handleSelectComponent(e, "comp_grid", "Feature Cards Grid", {
-                      x: (device.width - Math.min(device.width - 48, 1080)) / 2,
-                      y: 440,
-                      width: Math.min(device.width - 48, 1080),
-                      height: 240,
-                    })
-                  }
-                >
-                  <div className="app-preview__card">
-                    <div className="app-preview__card-icon">
-                      <Workflow size={18} />
-                    </div>
-                    <div className="app-preview__card-title">Logic Blueprints</div>
-                    <div className="app-preview__card-desc">
-                      Visual event graphs with typed pins, branching logic, and real-time wire pulse execution traces.
-                    </div>
-                  </div>
-
-                  <div className="app-preview__card">
-                    <div className="app-preview__card-icon">
-                      <Database size={18} />
-                    </div>
-                    <div className="app-preview__card-title">Database ER Modeler</div>
-                    <div className="app-preview__card-desc">
-                      Visual relational and document schemas that compile directly to Prisma models and SQL migrations.
-                    </div>
-                  </div>
-
-                  <div className="app-preview__card">
-                    <div className="app-preview__card-icon">
-                      <Layers size={18} />
-                    </div>
-                    <div className="app-preview__card-title">120 FPS Wasm Physics</div>
-                    <div className="app-preview__card-desc">
-                      High-performance C++ WebAssembly kernel rendering Hermite splines and Verlet cable tension dynamics.
-                    </div>
-                  </div>
-                </section>
-              </div>
-
-              {/* Selection Bounding Box Overlay */}
-              <CanvasOverlay selectedElement={selectedElement} />
+            <div className="device-frame" style={{ width: `${device.width}px`, height: `${device.height}px` }}>
+              <SandboxHost
+                width="100%"
+                height="100%"
+                deviceMode={deviceMode}
+                onStopPlay={() => handleTogglePlay(false)}
+                onOpenExecutionTrace={onOpenExecutionTrace}
+              />
             </div>
           </div>
-        </div>
+        ) : (
+          /* Pure Infinite Blank Canvas Stage with Center Origin at (0, 0) */
+          <>
+            {/* Infinite Coordinate Crosshair Axes Intersecting at (0, 0) */}
+            {environment.viewport.axes.enabled && (
+              <div className="canvas-crosshair-axes" aria-hidden="true">
+                <div className="canvas-axis-line canvas-axis-line--x" />
+                <div className="canvas-axis-line canvas-axis-line--y" />
+              </div>
+            )}
+
+            {/* Center Canvas Origin Marker at (0, 0) - Exactly Centered Reticle */}
+            {environment.viewport.axes.enabled && (
+              <div className="canvas-center-origin" role="region" aria-label="Canvas Center Origin">
+                <div className="canvas-origin-reticle" title="Center Origin (0, 0)">
+                  <Crosshair size={18} className="canvas-origin-icon" strokeWidth={1.5} />
+                </div>
+              </div>
+            )}
+
+            {/* Selection Bounding Box Overlay */}
+            <CanvasOverlay selectedElement={selectedElement} />
+
+            {/* Inspect Mode DevTools Overlay */}
+            {environment.diagnostics.inspectMode && selectedElement && (
+              <div
+                className="inspect-overlay-box"
+                style={{
+                  left: selectedElement.x,
+                  top: selectedElement.y,
+                  width: selectedElement.width,
+                  height: selectedElement.height,
+                }}
+              >
+                <div className="inspect-dimension-badge">
+                  <span>
+                    {Math.round(selectedElement.width)} × {Math.round(selectedElement.height)}px
+                  </span>
+                  <span className="inspect-archetype-tag">{selectedElement.label || "Element"}</span>
+                  {(selectedElement.width < 44 || selectedElement.height < 44) && (
+                    <span className="inspect-touch-warning" title="Less than 44px mobile touch target">
+                      <ShieldAlert size={10} />
+                      <span>&lt;44px</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Floating Atlassian-Style Bottom Dock */}
@@ -556,11 +500,9 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         zoomLevel={zoomLevel}
         onZoomIn={() => onZoomChange(Math.min(zoomLevel + 10, 400))}
         onZoomOut={() => onZoomChange(Math.max(zoomLevel - 10, 10))}
-        onResetZoom={() => {
-          onZoomChange(100);
-          centerDeviceFrame();
-        }}
-        onFitToScreen={centerDeviceFrame}
+        onResetZoom={bringBackToCenter}
+        onFitToScreen={bringBackToCenter}
+        onRecenter={bringBackToCenter}
       />
     </div>
   );

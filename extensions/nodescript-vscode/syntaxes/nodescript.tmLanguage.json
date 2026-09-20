@@ -1,0 +1,138 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "NodeScript",
+  "scopeName": "source.nodescript",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#directives" },
+    { "include": "#keywords" },
+    { "include": "#annotations" },
+    { "include": "#references" },
+    { "include": "#operators" },
+    { "include": "#strings" },
+    { "include": "#constants" },
+    { "include": "#types" },
+    { "include": "#node-types" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.nodescript",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.nodescript",
+          "begin": "/\\*",
+          "end": "\\*/"
+        },
+        {
+          "name": "comment.line.number-sign.nodescript",
+          "match": "#(?!nls-version:).*$"
+        }
+      ]
+    },
+    "directives": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.nodescript",
+          "match": "#nls-version:\\s*(\\d+(\\.\\d+)*)",
+          "captures": {
+            "1": { "name": "constant.numeric.version.nodescript" }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.nodescript",
+          "match": "\\b(graph|node|wire|variable|var|when|type)\\b"
+        }
+      ]
+    },
+    "annotations": {
+      "patterns": [
+        {
+          "name": "entity.name.function.decorator.nodescript",
+          "match": "@[a-zA-Z0-9_]+"
+        }
+      ]
+    },
+    "references": {
+      "patterns": [
+        {
+          "name": "variable.other.reference.nodescript",
+          "match": "\\$[a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.nodescript",
+          "match": "->"
+        },
+        {
+          "name": "keyword.operator.comparison.nodescript",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.assignment.nodescript",
+          "match": "="
+        },
+        {
+          "name": "punctuation.separator.nodescript",
+          "match": "[:.,]"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.nodescript",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.nodescript",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.nodescript",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "constant.language.null.nodescript",
+          "match": "\\b(null)\\b"
+        },
+        {
+          "name": "constant.numeric.nodescript",
+          "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.nodescript",
+          "match": "\\b(string|number|boolean|object|array|int|float)\\b"
+        }
+      ]
+    },
+    "node-types": {
+      "patterns": [
+        {
+          "name": "support.class.node.nodescript",
+          "match": "\\b[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+|\\b[a-zA-Z0-9_]+/[a-zA-Z0-9_]+\\b"
+        }
+      ]
+    }
+  }
+}
