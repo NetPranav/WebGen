@@ -327,3 +327,203 @@ test("Sub-Phase 7.5: All valid SVG tracks on svgPath archetype pass with isValid
   assert.equal(res.rejectedTracks.length, 0);
   assert.equal(DiagnosticBus.getHistoryByChannel("ANIM_COMPAT").length, 0);
 });
+
+test("Sub-Phase 8.6: Traps 3D-only tracks on standard 2D elements (button, container) with [ANIM_COMPAT]", () => {
+  DiagnosticBus.clearHistory();
+  const captured: DiagnosticEvent[] = [];
+  const unsubscribe = DiagnosticBus.subscribeChannel("ANIM_COMPAT", (ev) => {
+    captured.push(ev);
+  });
+
+  const sample3DOn2D: AnimationSample = {
+    id: "sample_3d_on_2d",
+    name: "3DTracksOn2DButton",
+    duration: 600,
+    easing: "power2.out",
+    iterations: 1,
+    direction: "normal",
+    fillMode: "forwards",
+    tracks: [
+      {
+        trackId: "opacity",
+        keyframes: [{ offset: 0, value: 0 }, { offset: 100, value: 1 }],
+      },
+      {
+        trackId: "position3D",
+        keyframes: [{ offset: 0, value: [0, 0, 0] }, { offset: 100, value: [10, 5, 2] }],
+      },
+      {
+        trackId: "rotation3D",
+        keyframes: [{ offset: 0, value: [0, 0, 0, 1] }, { offset: 100, value: [0, 1, 0, 0] }],
+      },
+      {
+        trackId: "cameraFov",
+        keyframes: [{ offset: 0, value: 60 }, { offset: 100, value: 45 }],
+      },
+    ],
+  };
+
+  const btnRes = AnimationValidator.validateSampleForElement(sample3DOn2D, {
+    elementId: "btn_action",
+    elementName: "ActionButton",
+    archetype: "button",
+  });
+
+  assert.equal(btnRes.isValid, false);
+  assert.equal(btnRes.allowedTracks.length, 1);
+  assert.equal(btnRes.allowedTracks[0].trackId, "opacity");
+  assert.equal(btnRes.rejectedTracks.length, 3);
+  assert.equal(captured.length, 3);
+  assert.match(captured[0].message, /cannot be attached to archetype 'button'/);
+
+  unsubscribe();
+});
+
+test("Sub-Phase 8.6: Traps 2D typography and SVG tracks on object3D with [ANIM_COMPAT]", () => {
+  DiagnosticBus.clearHistory();
+  const captured: DiagnosticEvent[] = [];
+  const unsubscribe = DiagnosticBus.subscribeChannel("ANIM_COMPAT", (ev) => {
+    captured.push(ev);
+  });
+
+  const sample2DOn3D: AnimationSample = {
+    id: "sample_2d_on_3d",
+    name: "2DTracksOnObject3D",
+    duration: 800,
+    easing: "ease-in-out",
+    iterations: 1,
+    direction: "normal",
+    fillMode: "forwards",
+    tracks: [
+      {
+        trackId: "position3D",
+        keyframes: [{ offset: 0, value: [0, 0, 0] }, { offset: 100, value: [5, 0, 0] }],
+      },
+      {
+        trackId: "letterSpacing",
+        keyframes: [{ offset: 0, value: 2 }, { offset: 100, value: 0 }],
+      },
+      {
+        trackId: "borderRadius",
+        keyframes: [{ offset: 0, value: 8 }, { offset: 100, value: 0 }],
+      },
+      {
+        trackId: "pathMorph",
+        keyframes: [{ offset: 0, value: "M 0 0 L 10 10" }],
+      },
+    ],
+  };
+
+  const res = AnimationValidator.validateSampleForElement(sample2DOn3D, {
+    elementId: "mesh_cube",
+    elementName: "HeroCubeMesh",
+    archetype: "object3D",
+  });
+
+  unsubscribe();
+
+  assert.equal(res.isValid, false);
+  assert.equal(res.allowedTracks.length, 1);
+  assert.equal(res.allowedTracks[0].trackId, "position3D");
+  assert.equal(res.rejectedTracks.length, 3);
+  assert.equal(captured.length, 3);
+  assert.match(captured[0].message, /cannot be attached to archetype 'object3D'/);
+});
+
+test("Sub-Phase 8.6: Valid 3D tracks pass on object3D, camera3D, and light3D archetypes", () => {
+  DiagnosticBus.clearHistory();
+
+  const object3DSample: AnimationSample = {
+    id: "sample_valid_obj3d",
+    name: "Object3DSpinAndFly",
+    duration: 1200,
+    easing: "power2.out",
+    iterations: 1,
+    direction: "normal",
+    fillMode: "forwards",
+    tracks: [
+      {
+        trackId: "position3D",
+        keyframes: [{ offset: 0, value: [0, 0, 0] }, { offset: 100, value: [0, 10, -5] }],
+      },
+      {
+        trackId: "rotation3D",
+        keyframes: [{ offset: 0, value: [0, 0, 0, 1] }, { offset: 100, value: [0, 0.707, 0, 0.707] }],
+      },
+      {
+        trackId: "scale3D",
+        keyframes: [{ offset: 0, value: [1, 1, 1] }, { offset: 100, value: [2, 2, 2] }],
+      },
+    ],
+  };
+
+  const objRes = AnimationValidator.validateSampleForElement(object3DSample, {
+    elementId: "mesh_torus",
+    elementName: "FloatingTorus",
+    archetype: "object3D",
+  });
+
+  assert.equal(objRes.isValid, true);
+  assert.equal(objRes.allowedTracks.length, 3);
+  assert.equal(objRes.rejectedTracks.length, 0);
+
+  const cameraSample: AnimationSample = {
+    id: "sample_valid_cam3d",
+    name: "CameraDollyZoom",
+    duration: 1500,
+    easing: "power4.inOut",
+    iterations: 1,
+    direction: "normal",
+    fillMode: "forwards",
+    tracks: [
+      {
+        trackId: "position3D",
+        keyframes: [{ offset: 0, value: [0, 5, 20] }, { offset: 100, value: [0, 2, 8] }],
+      },
+      {
+        trackId: "cameraFov",
+        keyframes: [{ offset: 0, value: 75 }, { offset: 100, value: 40 }],
+      },
+    ],
+  };
+
+  const camRes = AnimationValidator.validateSampleForElement(cameraSample, {
+    elementId: "cam_main",
+    elementName: "MainPerspectiveCamera",
+    archetype: "camera3D",
+  });
+
+  assert.equal(camRes.isValid, true);
+  assert.equal(camRes.allowedTracks.length, 2);
+
+  const lightSample: AnimationSample = {
+    id: "sample_valid_light3d",
+    name: "SunlightPulse",
+    duration: 1000,
+    easing: "power1.inOut",
+    iterations: "infinite",
+    direction: "alternate",
+    fillMode: "both",
+    tracks: [
+      {
+        trackId: "lightIntensity",
+        keyframes: [{ offset: 0, value: 0.5 }, { offset: 100, value: 2.0 }],
+      },
+      {
+        trackId: "lightColor",
+        keyframes: [{ offset: 0, value: "#ffffff" }, { offset: 100, value: "#f59e0b" }],
+      },
+    ],
+  };
+
+  const lightRes = AnimationValidator.validateSampleForElement(lightSample, {
+    elementId: "sun_dir",
+    elementName: "SunLight",
+    archetype: "light3D",
+  });
+
+  assert.equal(lightRes.isValid, true);
+  assert.equal(lightRes.allowedTracks.length, 2);
+  assert.equal(DiagnosticBus.getHistoryByChannel("ANIM_COMPAT").length, 0);
+});
+

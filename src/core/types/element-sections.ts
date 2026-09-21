@@ -27,7 +27,10 @@ export type ElementType =
   | "svgPath"
   | "svgGroup"
   | "svgUse"
-  | "svgText";
+  | "svgText"
+  | "object3D"
+  | "camera3D"
+  | "light3D";
 
 export type DetailSectionId =
   | "identity"
@@ -48,7 +51,11 @@ export type DetailSectionId =
   | "typography"
   | "layout"
   | "sequence"
-  | "console";
+  | "console"
+  | "scene3d_transform"
+  | "pbr_material"
+  | "camera_settings"
+  | "light_settings";
 
 /** Section Registry Definition per Element Type */
 export const ELEMENT_SECTION_REGISTRY: Record<ElementType, DetailSectionId[]> = {
@@ -193,6 +200,30 @@ export const ELEMENT_SECTION_REGISTRY: Record<ElementType, DetailSectionId[]> = 
     "variables",
     "events",
     "layout",
+  ],
+  object3D: [
+    "identity",
+    "scene3d_transform",
+    "pbr_material",
+    "attachments",
+    "variables",
+    "events",
+  ],
+  camera3D: [
+    "identity",
+    "scene3d_transform",
+    "camera_settings",
+    "attachments",
+    "variables",
+    "events",
+  ],
+  light3D: [
+    "identity",
+    "scene3d_transform",
+    "light_settings",
+    "attachments",
+    "variables",
+    "events",
   ],
 };
 

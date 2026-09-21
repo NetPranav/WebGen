@@ -33,6 +33,7 @@ import {
   Feather,
   Globe,
   X,
+  Box,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { DataBindingEditor } from "./sections/DataBindingEditor";
@@ -41,6 +42,7 @@ import { MediaSection } from "./sections/MediaSection";
 import { DividerSection } from "./sections/DividerSection";
 import { BackgroundSection } from "./sections/BackgroundSection";
 import { SvgVectorSection } from "./sections/SvgVectorSection";
+import { MaterialInspectorSection } from "./sections/MaterialInspectorSection";
 import { EnvironmentInspector } from "./EnvironmentInspector";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
@@ -75,6 +77,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
     divider: true,
     background: true,
     svgVector: true,
+    material: true,
     transform: true,
     layout: true,
     appearance: true,
@@ -611,6 +614,37 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
             {sectionsOpen.svgVector && (
               <div className="panel-section__content">
                 <SvgVectorSection
+                  elementId={selectedElementId}
+                  elementName={selectedElementName}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+         * SECTION 3.5: PBR MATERIAL (Object3D)
+         * ==================================================================== */}
+        {archetype === "object3D" && (
+          <div
+            className={`panel-section ${sectionsOpen.material ? "panel-section--open" : ""}`}
+            data-testid="pbr-material-accordion"
+          >
+            <button
+              type="button"
+              className="panel-section__header"
+              onClick={() => toggleSection("material")}
+            >
+              <div className="panel-section__title-group">
+                <ChevronRight size={13} className="panel-section__chevron" />
+                <span>PBR Material & 3D Geometry</span>
+              </div>
+              <Box size={12} style={{ color: "var(--accent-primary)" }} />
+            </button>
+
+            {sectionsOpen.material && (
+              <div className="panel-section__content">
+                <MaterialInspectorSection
                   elementId={selectedElementId}
                   elementName={selectedElementName}
                 />

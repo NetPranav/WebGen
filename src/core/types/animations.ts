@@ -47,13 +47,20 @@ export type AnimationTrackId =
   | "feColorMatrix"
   | "feDisplacementMap"
   | "gradientStopOffset"
-  | "gradientStopColor";
+  | "gradientStopColor"
+  // 3D Scene Graph & WebGL tracks (Sub-Phase 8.1, 8.4 & 8.6)
+  | "position3D"
+  | "rotation3D"
+  | "scale3D"
+  | "cameraFov"
+  | "lightIntensity"
+  | "lightColor";
 
 export type CubicBezierHandle = [number, number, number, number];
 
 export interface KeyframePoint {
   offset: number; // 0 to 100 percentage
-  value: number | string;
+  value: number | string | number[];
   easing?: string | CubicBezierHandle;
 }
 
@@ -119,6 +126,67 @@ const COMMON_SVG_DISALLOWED_TRACKS: Record<string, DisallowedTrackReason> = {
   },
 };
 
+const COMMON_3D_DISALLOWED_TRACKS: Record<string, DisallowedTrackReason> = {
+  position3D: {
+    trackId: "position3D",
+    reason: "2D DOM element cannot execute 3D scene graph position tracking.",
+    alternativeSuggestion: "Use translateX/translateY/translateZ or apply position3D to an object3D archetype.",
+  },
+  rotation3D: {
+    trackId: "rotation3D",
+    reason: "2D element cannot execute quaternion-based 3D rotation.",
+    alternativeSuggestion: "Use rotate/rotateX/rotateY or apply rotation3D to an object3D archetype.",
+  },
+  scale3D: {
+    trackId: "scale3D",
+    reason: "2D element cannot execute 3D volumetric scaling.",
+    alternativeSuggestion: "Use scale/scaleX/scaleY or apply scale3D to an object3D archetype.",
+  },
+  cameraFov: {
+    trackId: "cameraFov",
+    reason: "Element is not a 3D camera and cannot modulate perspective field of view.",
+    alternativeSuggestion: "Apply cameraFov track to a camera3D archetype.",
+  },
+  lightIntensity: {
+    trackId: "lightIntensity",
+    reason: "Element is not a 3D light source.",
+    alternativeSuggestion: "Apply lightIntensity track to a light3D archetype.",
+  },
+  lightColor: {
+    trackId: "lightColor",
+    reason: "Element is not a 3D light source.",
+    alternativeSuggestion: "Apply lightColor track to a light3D archetype.",
+  },
+};
+
+const COMMON_NON_3D_DISALLOWED_TRACKS: Record<string, DisallowedTrackReason> = {
+  letterSpacing: {
+    trackId: "letterSpacing",
+    reason: "3D scene graph objects do not possess 2D typography properties.",
+    alternativeSuggestion: "Apply letter spacing to 2D text elements or use 3D text geometry.",
+  },
+  borderRadius: {
+    trackId: "borderRadius",
+    reason: "3D meshes are parameterized by geometry vertices, not 2D CSS border-radius.",
+    alternativeSuggestion: "Use bevel or rounded geometry primitives.",
+  },
+  backgroundColor: {
+    trackId: "backgroundColor",
+    reason: "3D meshes use PBR materials and shaders rather than 2D CSS background color.",
+    alternativeSuggestion: "Animate material.color property on object3D.",
+  },
+  pathMorph: {
+    trackId: "pathMorph",
+    reason: "3D objects require blend shapes/morph targets, not 2D SVG path morphing.",
+    alternativeSuggestion: "Apply pathMorph track to an svgPath element.",
+  },
+  strokeDashoffset: {
+    trackId: "strokeDashoffset",
+    reason: "3D meshes do not possess 2D SVG vector stroke drawing pipelines.",
+    alternativeSuggestion: "Use svgPath archetype for stroke drawing animation.",
+  },
+};
+
 /**
  * Universal Archetype Animation Compatibility Matrix.
  * Specifies exactly which tracks are legally permitted on each element archetype.
@@ -144,6 +212,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
     ],
     disallowedTracks: {
       ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
       feColorMatrix: {
         trackId: "feColorMatrix",
         reason: "Text elements cannot execute complex SVG color matrix filters.",
@@ -178,6 +247,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
     ],
     disallowedTracks: {
       ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
       letterSpacing: {
         trackId: "letterSpacing",
         reason: "Image elements do not possess text rendering pipelines.",
@@ -218,6 +288,117 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
     ],
     disallowedTracks: {
       ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
+    },
+  },
+  toggle: {
+    archetype: "toggle",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "rotate",
+      "backgroundColor",
+      "borderRadius",
+      "boxShadow",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
+    },
+  },
+  badge: {
+    archetype: "badge",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "rotate",
+      "backgroundColor",
+      "borderRadius",
+      "boxShadow",
+      "color",
+      "letterSpacing",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
+    },
+  },
+  fab: {
+    archetype: "fab",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "rotate",
+      "backgroundColor",
+      "borderRadius",
+      "boxShadow",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
+    },
+  },
+  icon: {
+    archetype: "icon",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "rotate",
+      "color",
+      "filterBlur",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
+    },
+  },
+  divider: {
+    archetype: "divider",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "scaleX",
+      "scaleY",
+      "backgroundColor",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
+    },
+  },
+  background: {
+    archetype: "background",
+    allowedTracks: [
+      "opacity",
+      "translateX",
+      "translateY",
+      "scale",
+      "scaleX",
+      "scaleY",
+      "backgroundColor",
+      "filterBlur",
+      "filterBrightness",
+      "filterContrast",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
     },
   },
   input: {
@@ -236,6 +417,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
     ],
     disallowedTracks: {
       ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
     },
   },
   container: {
@@ -257,6 +439,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
     ],
     disallowedTracks: {
       ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
       letterSpacing: {
         trackId: "letterSpacing",
         reason: "Container layout elements do not render direct text glyphs.",
@@ -278,6 +461,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
     ],
     disallowedTracks: {
       ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
     },
   },
   generic: {
@@ -295,6 +479,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
     ],
     disallowedTracks: {
       ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
     },
   },
   svgPath: {
@@ -317,6 +502,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "gradientStopColor",
     ],
     disallowedTracks: {
+      ...COMMON_3D_DISALLOWED_TRACKS,
       letterSpacing: {
         trackId: "letterSpacing",
         reason: "SVG path elements do not possess text rendering pipelines.",
@@ -351,6 +537,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "feDisplacementMap",
     ],
     disallowedTracks: {
+      ...COMMON_3D_DISALLOWED_TRACKS,
       letterSpacing: {
         trackId: "letterSpacing",
         reason: "SVG group containers do not directly render font glyphs.",
@@ -378,6 +565,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "feDisplacementMap",
     ],
     disallowedTracks: {
+      ...COMMON_3D_DISALLOWED_TRACKS,
       letterSpacing: {
         trackId: "letterSpacing",
         reason: "SVG use elements reference existing definitions and do not render text directly.",
@@ -401,6 +589,85 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
     ],
     disallowedTracks: {
       ...COMMON_SVG_DISALLOWED_TRACKS,
+      ...COMMON_3D_DISALLOWED_TRACKS,
+    },
+  },
+  object3D: {
+    archetype: "object3D",
+    allowedTracks: [
+      "position3D",
+      "rotation3D",
+      "scale3D",
+      "opacity",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_NON_3D_DISALLOWED_TRACKS,
+      cameraFov: {
+        trackId: "cameraFov",
+        reason: "Object3D mesh elements do not possess camera optical fields of view.",
+        alternativeSuggestion: "Apply cameraFov to a camera3D archetype.",
+      },
+      lightIntensity: {
+        trackId: "lightIntensity",
+        reason: "Object3D mesh is not a light emitter.",
+        alternativeSuggestion: "Apply lightIntensity to a light3D archetype.",
+      },
+      lightColor: {
+        trackId: "lightColor",
+        reason: "Object3D mesh is not a light source.",
+        alternativeSuggestion: "Animate material properties or apply lightColor to light3D.",
+      },
+    },
+  },
+  camera3D: {
+    archetype: "camera3D",
+    allowedTracks: [
+      "position3D",
+      "rotation3D",
+      "cameraFov",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_NON_3D_DISALLOWED_TRACKS,
+      scale3D: {
+        trackId: "scale3D",
+        reason: "Camera projection frustums are non-volumetric and should not be scaled.",
+        alternativeSuggestion: "Modulate cameraFov for perspective or zoom for orthographic.",
+      },
+      lightIntensity: {
+        trackId: "lightIntensity",
+        reason: "Camera is an optical observer, not a light source.",
+        alternativeSuggestion: "Apply lightIntensity to a light3D archetype.",
+      },
+      lightColor: {
+        trackId: "lightColor",
+        reason: "Camera is an optical observer, not a light source.",
+        alternativeSuggestion: "Apply lightColor to a light3D archetype.",
+      },
+    },
+  },
+  light3D: {
+    archetype: "light3D",
+    allowedTracks: [
+      "position3D",
+      "rotation3D",
+      "lightIntensity",
+      "lightColor",
+      "motionPath",
+    ],
+    disallowedTracks: {
+      ...COMMON_NON_3D_DISALLOWED_TRACKS,
+      scale3D: {
+        trackId: "scale3D",
+        reason: "Light sources have point or directional geometry, not 3D volumetric scale.",
+        alternativeSuggestion: "Modulate lightIntensity or distance/decay parameters.",
+      },
+      cameraFov: {
+        trackId: "cameraFov",
+        reason: "Light sources do not possess perspective camera field of view.",
+        alternativeSuggestion: "Use penumbra or apply cameraFov to camera3D.",
+      },
     },
   },
 };

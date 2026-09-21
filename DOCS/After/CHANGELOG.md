@@ -234,3 +234,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Extended `animation-validator.test.ts` with SVG compatibility verification tests.
   - Full test suite passes at 505/505 tests across 162 suites.
 
+---
+
+## [1.7.0] — 2026-09-21
+
+### Phase 8: 3D Scene Graph & WebGL Animation Engine
+
+#### Added
+- **3D Scene Graph Data Contracts (`src/core/types/scene3d.ts`)**:
+  - Defined `Vector3D`, `Quaternion` ($[x, y, z, w]$ for gimbal-lock-free orientation), and 16-element column-major `Matrix4x4`.
+  - Added `Object3DProperties`, `Camera3DProperties` (perspective/orthographic, fov, near, far, lookAtTarget), and `Light3DProperties` (ambient, directional, point, spot).
+  - Registered `object3D`, `camera3D`, and `light3D` in `ElementType` and `ELEMENT_SECTION_REGISTRY`.
+- **3D Mathematical & Hierarchical Scene Graph Engine (`Scene3DEngine.ts`)**:
+  - Vector arithmetic (cross product, dot product, normalization).
+  - Quaternion SLERP with shortest-path antipodal inversion, axis-angle and Euler conversions.
+  - 4x4 matrix composition ($M = T \times R \times S$), matrix multiplication, and local-to-world transform propagation.
+  - Verified 3-level nested hierarchy world transform matching hand-calculated reference matrix ($[5, 0, 0]$).
+- **3D Animation & Camera Dolly Path Engine (`Scene3DAnimationEngine.ts`)**:
+  - Continuous keyframe interpolation for `position3D`, `rotation3D` (Quaternion SLERP), and volumetric `scale3D`.
+  - Multi-keyframe camera dolly path evaluation with continuous velocity and zero orientation snapping.
+- **3D-to-Production React-Three-Fiber Emitter (`ThreeSceneEmitter.ts`)**:
+  - Compiles visual 3D scene graphs into declarative R3F (`@react-three/fiber` & `@react-three/drei`) JSX.
+  - "Lite Mode" zero-bundle CSS 3D fallback (`transform-style: preserve-3d; transform: translate3d(...)`) avoiding heavy external dependencies.
+  - Tree-shaking verification: Projects with zero 3D content produce zero Three.js code in the emitted bundle.
+- **GLTF / GLB Asset Import Pipeline (`GLTFAssetPipeline.ts`)**:
+  - Binary GLB 2.0 container parser with chunk validation (JSON and BIN chunks).
+  - Auto-generated offscreen isometric vector SVG thumbnails.
+  - High-performance gate: 5MB `.glb` asset parsed and thumbnailed in 2.41ms (far exceeding the <3s benchmark).
+- **Details Panel & Viewport Integration (`MaterialInspectorSection.tsx`, `Scene3DViewport.tsx`)**:
+  - PBR Material Inspector section (base color, roughness, metalness, emissive, wireframe, transparent) integrated into `DetailsInspector.tsx`.
+  - WebGL sub-viewport canvas with orbit controls in edit mode, locked camera in play mode, and WebGL context loss recovery during dock tab switching.
+- **3D Compatibility Matrix & Diagnostics (`src/core/types/animations.ts`, `animation-validator.test.ts`)**:
+  - Extended `AnimationTrackId` with `position3D`, `rotation3D`, `scale3D`, `cameraFov`, `lightIntensity`, `lightColor`.
+  - Traps 3D tracks on 2D elements with `[ANIM_COMPAT]` diagnostics via `COMMON_3D_DISALLOWED_TRACKS`.
+  - Traps 2D typography, layout, and SVG tracks on 3D elements via `COMMON_NON_3D_DISALLOWED_TRACKS`.
+- **Testing & Verification**:
+  - Added 4 test suites: `Scene3DEngine.test.ts`, `Scene3DAnimationEngine.test.ts`, `ThreeSceneEmitter.test.ts`, `GLTFAssetPipeline.test.ts`.
+  - Full test suite passes at **521/521 tests** across 162 suites with zero failures.
+
+
