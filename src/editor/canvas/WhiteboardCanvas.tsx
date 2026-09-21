@@ -32,9 +32,14 @@ import {
   Crosshair,
   Focus,
   ShieldAlert,
+  Wand2,
+  CornerDownLeft,
+  X,
 } from "lucide-react";
 import { SandboxHost } from "@/editor/runtime/SandboxHost";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useSelectionStore } from "@/core/store/useSelectionStore";
+import { ComponentGenerator } from "@/ai/component/ComponentGenerator";
 import { THEME_PALETTES } from "@/core/types/environment";
 
 interface WhiteboardCanvasProps {
@@ -109,6 +114,36 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const [ctaCount, setCtaCount] = useState(0);
 
   const environment = useProjectStore((state) => state.environment);
+  const elements = useProjectStore((state) => state.elements);
+  const pages = useProjectStore((state) => state.pages);
+  const activePageId = useProjectStore((state) => state.activePageId);
+  const insertGeneratedComponent = useProjectStore((state) => state.insertGeneratedComponent);
+  const mountDemoProject = useProjectStore((state) => state.mountDemoProject);
+  const selectEntity = useSelectionStore((state) => state.select);
+
+  const activePage = pages[activePageId] || Object.values(pages)[0];
+  const rootContainer = activePage ? elements[activePage.rootElementId] : null;
+  const childCount = rootContainer?.children?.length || 0;
+
+  const [promptText, setPromptText] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showPromptModal, setShowPromptModal] = useState(false);
+
+  const handleGenerate = (customPrompt?: string) => {
+    const text = (customPrompt || promptText).trim();
+    if (!text) return;
+    setIsGenerating(true);
+    try {
+      const result = ComponentGenerator.generateComponent(text);
+      insertGeneratedComponent(result.elements, result.rootId, `Generate: ${result.name}`);
+      selectEntity(result.rootId, "element");
+      setPromptText("");
+      setShowPromptModal(false);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const palette = THEME_PALETTES[environment?.theme?.palette] || THEME_PALETTES.clean_light;
 
   const device = DEVICE_CONFIGS[deviceMode] || DEVICE_CONFIGS.desktop;
@@ -420,8 +455,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
       {/* Hardware-Accelerated Transformed World Canvas (Infinite Blank Canvas) */}
       <div className="whiteboard-world">
-        {/* Play Sandbox Mode: optional simulation preview */}
-        {isPlayMode ? (
+        {/* Play Sandbox Mode or Elements Present: render live device viewport */}
+        {isPlayMode || childCount > 0 ? (
           <div
             className={`device-frame-container device-frame--${deviceMode}`}
             style={{ width: `${device.width}px` }}
@@ -433,60 +468,319 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
                 deviceMode={deviceMode}
                 onStopPlay={() => handleTogglePlay(false)}
                 onOpenExecutionTrace={onOpenExecutionTrace}
+                onElementClick={(elId) => {
+                  selectEntity(elId, "element");
+                }}
               />
             </div>
           </div>
         ) : (
-          /* Pure Infinite Blank Canvas Stage with Center Origin at (0, 0) */
+          /* Blank Canvas State: Prompt AI Card at Center */
+          <div
+            className="canvas-prompt-card"
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "560px",
+              maxWidth: "90vw",
+              background: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(20px)",
+              border: "1px solid rgba(226, 232, 240, 0.9)",
+              borderRadius: "20px",
+              padding: "32px",
+              boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+              zIndex: 10,
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "10px",
+                  backgroundColor: "#ecfdf5",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#059669",
+                }}
+              >
+                <Wand2 size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 600, color: "#0f172a" }}>
+                  Prompt AI to Create Component
+                </h3>
+                <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>
+                  Describe a component in natural language, and the studio will generate the AST elements ready for animation.
+                </p>
+              </div>
+            </div>
+
+            {/* Prompt Input Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleGenerate();
+              }}
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                  placeholder="e.g. Create a glassmorphic pricing card with badge, price, and button..."
+                  autoFocus
+                  style={{
+                    width: "100%",
+                    padding: "14px 110px 14px 16px",
+                    borderRadius: "12px",
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: "14px",
+                    outline: "none",
+                    backgroundColor: "#f8fafc",
+                    color: "#0f172a",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={!promptText.trim() || isGenerating}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    backgroundColor: promptText.trim() ? "#059669" : "#94a3b8",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "8px 14px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: promptText.trim() ? "pointer" : "default",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span>Generate</span>
+                  <CornerDownLeft size={13} />
+                </button>
+              </div>
+
+              {/* Quick Prompt Pills */}
+              <div>
+                <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#94a3b8" }}>
+                  Quick Starts:
+                </span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
+                  {[
+                    { label: "💎 Pricing Tier Card", prompt: "Create a modern dark mode pricing card with badge and button" },
+                    { label: "⭐ Testimonial Review", prompt: "Create a testimonial review card with avatar and quote" },
+                    { label: "⚡ Dark Mode Toggle", prompt: "Create a dark mode toggle switch" },
+                    { label: "🚀 Hero Banner", prompt: "Create a hero banner with headline and CTA" },
+                    { label: "🖼️ Media Showcase", prompt: "Create a media showcase with image and caption" },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => handleGenerate(item.prompt)}
+                      style={{
+                        background: "#f1f5f9",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "9999px",
+                        padding: "4px 10px",
+                        fontSize: "12px",
+                        color: "#334155",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Or Load Stashed Demo */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "8px", borderTop: "1px solid #f1f5f9" }}>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>Want to inspect the existing demo?</span>
+                <button
+                  type="button"
+                  onClick={() => mountDemoProject()}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#059669",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <Sparkles size={12} />
+                  <span>Mount Showcase Demo</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Coordinate Crosshairs & Overlays when elements exist */}
+        {childCount > 0 && !isPlayMode && (
           <>
-            {/* Infinite Coordinate Crosshair Axes Intersecting at (0, 0) */}
             {environment.viewport.axes.enabled && (
               <div className="canvas-crosshair-axes" aria-hidden="true">
                 <div className="canvas-axis-line canvas-axis-line--x" />
                 <div className="canvas-axis-line canvas-axis-line--y" />
               </div>
             )}
-
-            {/* Center Canvas Origin Marker at (0, 0) - Exactly Centered Reticle */}
-            {environment.viewport.axes.enabled && (
-              <div className="canvas-center-origin" role="region" aria-label="Canvas Center Origin">
-                <div className="canvas-origin-reticle" title="Center Origin (0, 0)">
-                  <Crosshair size={18} className="canvas-origin-icon" strokeWidth={1.5} />
-                </div>
-              </div>
-            )}
-
-            {/* Selection Bounding Box Overlay */}
             <CanvasOverlay selectedElement={selectedElement} />
-
-            {/* Inspect Mode DevTools Overlay */}
-            {environment.diagnostics.inspectMode && selectedElement && (
-              <div
-                className="inspect-overlay-box"
-                style={{
-                  left: selectedElement.x,
-                  top: selectedElement.y,
-                  width: selectedElement.width,
-                  height: selectedElement.height,
-                }}
-              >
-                <div className="inspect-dimension-badge">
-                  <span>
-                    {Math.round(selectedElement.width)} × {Math.round(selectedElement.height)}px
-                  </span>
-                  <span className="inspect-archetype-tag">{selectedElement.label || "Element"}</span>
-                  {(selectedElement.width < 44 || selectedElement.height < 44) && (
-                    <span className="inspect-touch-warning" title="Less than 44px mobile touch target">
-                      <ShieldAlert size={10} />
-                      <span>&lt;44px</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
+
+      {/* Floating Prompt AI Component Trigger when canvas is active */}
+      {childCount > 0 && !isPlayMode && (
+        <button
+          type="button"
+          onClick={() => setShowPromptModal(true)}
+          title="Prompt AI to generate another component"
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            background: "#ffffff",
+            border: "1.5px solid #059669",
+            borderRadius: "9999px",
+            padding: "8px 16px",
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "#059669",
+            boxShadow: "0 4px 14px rgba(5, 150, 105, 0.15)",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            zIndex: 30,
+            transition: "all 0.15s ease",
+          }}
+        >
+          <Wand2 size={14} />
+          <span>+ Prompt Component</span>
+        </button>
+      )}
+
+      {/* Floating Prompt Modal Dialog */}
+      {showPromptModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowPromptModal(false)}
+        >
+          <div
+            style={{
+              width: "560px",
+              maxWidth: "90vw",
+              background: "#ffffff",
+              borderRadius: "20px",
+              padding: "28px",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Wand2 size={18} style={{ color: "#059669" }} />
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>Create New Component</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPromptModal(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleGenerate();
+              }}
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
+              <input
+                type="text"
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                placeholder="e.g. Create a dark mode testimonial card with avatar..."
+                autoFocus
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "14px",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPromptModal(false)}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!promptText.trim() || isGenerating}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "#059669",
+                    color: "#ffffff",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Generate & Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Floating Atlassian-Style Bottom Dock */}
       <FloatingDock

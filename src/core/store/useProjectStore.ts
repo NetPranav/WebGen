@@ -44,6 +44,10 @@ import {
   SPRING_PRESETS,
   SpringPresetName,
 } from "../types/environment";
+import {
+  createShowcaseSnapshot,
+  createBlankCanvasSnapshot,
+} from "../storage/DemoProjectSnapshot";
 
 export type StateVariableScope = "global" | "page" | "component";
 export type StateVariableType = "string" | "number" | "boolean" | "json" | "array" | "color";
@@ -158,6 +162,13 @@ export interface ProjectStoreState extends ProjectStateSnapshot {
   ) => void;
   addElement: (element: ProjectElement, actionLabel?: string) => void;
   removeElement: (elementId: string, actionLabel?: string) => void;
+  mountDemoProject: () => void;
+  clearToBlankCanvas: () => void;
+  insertGeneratedComponent: (
+    elements: ProjectElement[],
+    rootId: string,
+    actionLabel?: string
+  ) => void;
 
   // Actions: State Variable Management
   addStateVariable: (variable: StateVariable, actionLabel?: string) => void;
@@ -877,6 +888,45 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       const copy = { ...state.elements };
       delete copy[elementId];
       return { elements: copy };
+    });
+  },
+
+  mountDemoProject: () => {
+    const showcase = createShowcaseSnapshot();
+    get().restoreSnapshot(showcase);
+    useHistoryStore.getState().pushState("Mount Showcase Demo", showcase);
+  },
+
+  clearToBlankCanvas: () => {
+    const blank = createBlankCanvasSnapshot();
+    get().restoreSnapshot(blank);
+    useHistoryStore.getState().pushState("Clear Canvas", blank);
+  },
+
+  insertGeneratedComponent: (elements, rootId, actionLabel = "Insert AI Component") => {
+    const snapshot = get().getSnapshot();
+    useHistoryStore.getState().pushState(actionLabel, snapshot);
+
+    set((state) => {
+      const newElements = { ...state.elements };
+      for (const el of elements) {
+        newElements[el.id] = el;
+      }
+
+      const activePage = state.pages[state.activePageId];
+      if (activePage && newElements[activePage.rootElementId]) {
+        const rootContainer = newElements[activePage.rootElementId];
+        if (!rootContainer.children.includes(rootId)) {
+          newElements[activePage.rootElementId] = {
+            ...rootContainer,
+            children: [...rootContainer.children, rootId],
+          };
+        }
+      }
+
+      return {
+        elements: newElements,
+      };
     });
   },
 

@@ -37,6 +37,7 @@ import { ViewMenu } from "@/editor/menus/ViewMenu";
 import { WindowMenu } from "@/editor/menus/WindowMenu";
 import { HelpMenu } from "@/editor/menus/HelpMenu";
 import { LazyLayoutLogo } from "@/editor/panels/launcher/LazyLayoutLogo";
+import { useProjectStore } from "@/core/store/useProjectStore";
 
 type OpenMenuId = "file" | "edit" | "view" | "window" | "help" | null;
 
@@ -112,6 +113,11 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   const [openMenu, setOpenMenu] = useState<OpenMenuId>(null);
   const [copiedId, setCopiedId] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+
+  const elements = useProjectStore((s) => s.elements);
+  const mountDemoProject = useProjectStore((s) => s.mountDemoProject);
+  const clearToBlankCanvas = useProjectStore((s) => s.clearToBlankCanvas);
+  const isDemoMounted = Boolean(elements["el_hero_heading"] && elements["el_buy_button"]);
 
   const handleCopyProjectLink = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -357,6 +363,38 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <Activity size={12} style={{ color: "var(--accent-success)" }} />
           <span>Wasm 120 FPS</span>
         </div>
+
+        {/* Demo Stash / Canvas State Switcher */}
+        <button
+          type="button"
+          className="studio-header__badge"
+          id="header-toggle-demo-btn"
+          title={isDemoMounted ? "Clear canvas to blank for AI creation" : "Mount Showcase Demo to present features"}
+          onClick={() => {
+            if (isDemoMounted) {
+              clearToBlankCanvas();
+            } else {
+              mountDemoProject();
+            }
+          }}
+          style={{
+            cursor: "pointer",
+            backgroundColor: isDemoMounted ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
+            border: isDemoMounted ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(255, 255, 255, 0.1)",
+            color: isDemoMounted ? "#10b981" : "inherit",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "4px 10px",
+            borderRadius: "6px",
+            fontSize: "12px",
+            fontWeight: 500,
+            transition: "all 0.15s ease",
+          }}
+        >
+          <Sparkles size={12} style={{ color: isDemoMounted ? "#10b981" : "#94a3b8" }} />
+          <span>{isDemoMounted ? "Showcase Active (Click to Clear)" : "Mount Showcase Demo"}</span>
+        </button>
 
         <button
           type="button"
