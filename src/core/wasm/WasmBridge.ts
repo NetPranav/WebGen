@@ -20,6 +20,8 @@ import {
   SplineConfig,
   SplineResult,
   SplineSolver,
+  SvgPathArcLengthTable,
+  SvgPathSampleResult,
 } from "./SplineSolver";
 import {
   CableParticle,
@@ -65,6 +67,10 @@ export interface ISplineSolver {
   ): Point2D;
   getTForNormalizedArcLength(arcLengthTable: ArcLengthTable, s: number): number;
   sampleEquidistantPoints(spline: SplineResult, count: number): Point2D[];
+  buildSvgPathArcLengthTable(d: string, samplesPerSegment?: number): SvgPathArcLengthTable;
+  sampleSvgPathUniform(d: string, normalizedDistance: number): Point2D;
+  getSvgPathPointAndTangent(d: string, normalizedDistance: number): SvgPathSampleResult;
+  sampleSvgPathUniformPoints(d: string, pointCount: number): Point2D[];
 }
 
 export interface ICablePhysics {
@@ -306,6 +312,18 @@ export class WasmBridge {
           count,
           spline.arcLengthTable
         );
+      },
+      buildSvgPathArcLengthTable: (d: string, samplesPerSegment?: number): SvgPathArcLengthTable => {
+        return SplineSolver.buildSvgPathArcLengthTable(d, samplesPerSegment);
+      },
+      sampleSvgPathUniform: (d: string, normalizedDistance: number): Point2D => {
+        return SplineSolver.sampleSvgPathUniform(d, normalizedDistance);
+      },
+      getSvgPathPointAndTangent: (d: string, normalizedDistance: number): SvgPathSampleResult => {
+        return SplineSolver.getSvgPathPointAndTangent(d, normalizedDistance);
+      },
+      sampleSvgPathUniformPoints: (d: string, pointCount: number): Point2D[] => {
+        return SplineSolver.sampleSvgPathUniformPoints(d, pointCount);
       },
     };
   }

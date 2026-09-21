@@ -13,6 +13,8 @@
  * ============================================================================
  */
 
+import { normalizePathToCubics, NormalizedCubicSegment } from "../engine/PathMorphSolver";
+
 export interface Point2D {
   x: number;
   y: number;
@@ -40,7 +42,35 @@ export interface SplineResult {
   arcLengthTable: ArcLengthTable;
 }
 
+export interface SvgPathSegmentLut {
+  segmentIndex: number;
+  segment: NormalizedCubicSegment;
+  startArcLength: number;
+  endArcLength: number;
+  segmentLength: number;
+  arcLengthTable: ArcLengthTable;
+}
+
+export interface SvgPathArcLengthTable {
+  pathD: string;
+  totalLength: number;
+  isClosed: boolean;
+  segments: SvgPathSegmentLut[];
+  startPoint: Point2D;
+}
+
+export interface SvgPathSampleResult {
+  point: Point2D;
+  tangent: Point2D;
+  normal: Point2D;
+  angleDeg: number;
+  distance: number;
+  normalizedDistance: number;
+}
+
 export class SplineSolver {
+  private static svgPathLutCache = new Map<string, SvgPathArcLengthTable>();
+  private static maxSvgCacheSize = 250;
   /**
    * Calculates the cubic Bezier wire curve between two pins with arc-length parameterization.
    *
@@ -391,5 +421,197 @@ export class SplineSolver {
     }
 
     return results;
+  }
+
+  // ==========================================================================
+  // SVG PATH ARC-LENGTH PARAMETERIZATION & UNIFORM SAMPLING (Sub-Phase 7.4)
+  // ==========================================================================
+
+  /**
+   * Builds or retrieves from cache an arc-length lookup table for an arbitrary SVG path.
+   * Enables strictly uniform constant-speed motion across multi-segment curved and straight paths.
+   */
+  public static buildSvgPathArcLengthTable(
+    d: string,
+    samplesPerSegment = 32
+  ): SvgPathArcLengthTable {
+    const trimmed = (d || "").trim();
+    const cacheKey = `${trimmed}:::${samplesPerSegment}`;
+    const cached = this.svgPathLutCache.get(cacheKey);
+    if (cached) return cached;
+
+    const normalized = normalizePathToCubics(trimmed);
+    const segmentLuts: SvgPathSegmentLut[] = [];
+    let cumulative = 0;
+
+    for (let i = 0; i < normalized.segments.length; i++) {
+      const seg = normalized.segments[i];
+      const startArcLength = cumulative;
+      const segLut = this.buildArcLengthTable(
+        seg.p0,
+        seg.cp1,
+        seg.cp2,
+        seg.p1,
+        samplesPerSegment
+      );
+      const segLength = segLut.totalLength;
+      cumulative += segLength;
+      const endArcLength = cumulative;
+
+      segmentLuts.push({
+        segmentIndex: i,
+        segment: seg,
+        startArcLength,
+        endArcLength,
+        segmentLength: segLength,
+        arcLengthTable: segLut,
+      });
+    }
+
+    const table: SvgPathArcLengthTable = {
+      pathD: trimmed,
+      totalLength: cumulative,
+      isClosed: normalized.isClosed,
+      segments: segmentLuts,
+      startPoint: normalized.start,
+    };
+
+    if (this.svgPathLutCache.size >= this.maxSvgCacheSize) {
+      const first = this.svgPathLutCache.keys().next().value;
+      if (first) this.svgPathLutCache.delete(first);
+    }
+    this.svgPathLutCache.set(cacheKey, table);
+
+    return table;
+  }
+
+  /**
+   * Samples a point on an arbitrary SVG path at normalized distance s in [0, 1].
+   * Strictly guarantees constant perceived speed regardless of curvature variations.
+   */
+  public static sampleSvgPathUniform(
+    d: string,
+    normalizedDistance: number
+  ): Point2D {
+    return this.getSvgPathPointAndTangent(d, normalizedDistance).point;
+  }
+
+  /**
+   * Samples position, tangent vector, normal vector, and rotation angle in degrees
+   * for an element moving along an arbitrary SVG path at normalized distance s in [0, 1].
+   */
+  public static getSvgPathPointAndTangent(
+    d: string,
+    normalizedDistance: number
+  ): SvgPathSampleResult {
+    const table = this.buildSvgPathArcLengthTable(d);
+
+    if (table.segments.length === 0 || table.totalLength <= 1e-6) {
+      return {
+        point: { ...table.startPoint },
+        tangent: { x: 1, y: 0 },
+        normal: { x: 0, y: 1 },
+        angleDeg: 0,
+        distance: 0,
+        normalizedDistance: Math.max(0, Math.min(1, normalizedDistance)),
+      };
+    }
+
+    const clampedS = Math.max(0, Math.min(1, normalizedDistance));
+    const targetDist = clampedS * table.totalLength;
+
+    // Locate segment via binary search
+    let low = 0;
+    let high = table.segments.length - 1;
+    let targetSeg = table.segments[0];
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const seg = table.segments[mid];
+
+      if (targetDist < seg.startArcLength) {
+        high = mid - 1;
+      } else if (targetDist > seg.endArcLength) {
+        low = mid + 1;
+      } else {
+        targetSeg = seg;
+        break;
+      }
+    }
+
+    // Determine normalized distance within the chosen segment
+    const segLen = targetSeg.segmentLength;
+    const localDist = targetDist - targetSeg.startArcLength;
+    const localS = segLen > 1e-6 ? Math.max(0, Math.min(1, localDist / segLen)) : 0;
+
+    // Invert local arc length to local parameter t
+    const localT = this.getTForNormalizedArcLength(targetSeg.arcLengthTable, localS);
+
+    // Evaluate point on cubic Bezier at localT
+    const seg = targetSeg.segment;
+    const point = this.evaluateBezier(seg.p0, seg.cp1, seg.cp2, seg.p1, localT);
+
+    // Calculate derivative tangent vector
+    const u = 1 - localT;
+    let dx =
+      3 * u * u * (seg.cp1.x - seg.p0.x) +
+      6 * u * localT * (seg.cp2.x - seg.cp1.x) +
+      3 * localT * localT * (seg.p1.x - seg.cp2.x);
+    let dy =
+      3 * u * u * (seg.cp1.y - seg.p0.y) +
+      6 * u * localT * (seg.cp2.y - seg.cp1.y) +
+      3 * localT * localT * (seg.p1.y - seg.cp2.y);
+
+    let len = Math.hypot(dx, dy);
+    if (len < 1e-6) {
+      dx = seg.p1.x - seg.p0.x;
+      dy = seg.p1.y - seg.p0.y;
+      len = Math.hypot(dx, dy);
+      if (len < 1e-6) {
+        dx = 1;
+        dy = 0;
+        len = 1;
+      }
+    }
+
+    const tangent: Point2D = { x: dx / len, y: dy / len };
+    const normal: Point2D = { x: -tangent.y, y: tangent.x };
+    const angleDeg = (Math.atan2(tangent.y, tangent.x) * 180) / Math.PI;
+
+    return {
+      point,
+      tangent,
+      normal,
+      angleDeg,
+      distance: targetDist,
+      normalizedDistance: clampedS,
+    };
+  }
+
+  /**
+   * Generates N uniformly spaced points along an arbitrary multi-segment SVG path.
+   */
+  public static sampleSvgPathUniformPoints(
+    d: string,
+    pointCount: number
+  ): Point2D[] {
+    if (pointCount <= 0) return [];
+    if (pointCount === 1) {
+      return [this.sampleSvgPathUniform(d, 0.5)];
+    }
+
+    const points: Point2D[] = [];
+    for (let i = 0; i < pointCount; i++) {
+      const s = i / (pointCount - 1);
+      points.push(this.sampleSvgPathUniform(d, s));
+    }
+    return points;
+  }
+
+  /**
+   * Clears the cached SVG path arc length tables.
+   */
+  public static clearSvgPathCache(): void {
+    this.svgPathLutCache.clear();
   }
 }

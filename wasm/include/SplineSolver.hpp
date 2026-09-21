@@ -65,6 +65,15 @@ struct SplineResult {
     ArcLengthTable arcLengthTable;
 };
 
+struct SvgPathSampleResult {
+    Point2D point;
+    Point2D tangent;
+    Point2D normal;
+    float angleDeg{0.0f};
+    float distance{0.0f};
+    float normalizedDistance{0.0f};
+};
+
 class SplineSolver {
 public:
     /**
@@ -160,6 +169,24 @@ public:
         const Point2D& p2,
         const Point2D& p3,
         int sampleCount = 64
+    );
+
+    /**
+     * Samples an arbitrary multi-segment cubic path uniformly with constant perceived speed.
+     * @param controlPoints Array of points grouped by 4 (p0, cp1, cp2, p1 per segment)
+     * @param normalizedDistance Distance parameter s in [0, 1]
+     */
+    static Point2D samplePathUniform(
+        const std::vector<Point2D>& controlPoints,
+        float normalizedDistance
+    );
+
+    /**
+     * Evaluates position, tangent, normal, and orientation angle along a multi-segment path.
+     */
+    static SvgPathSampleResult getPathPointAndTangent(
+        const std::vector<Point2D>& controlPoints,
+        float normalizedDistance
     );
 };
 

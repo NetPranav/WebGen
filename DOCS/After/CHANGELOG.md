@@ -176,3 +176,61 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Ambient infinite-loop toggle (`repeat: -1`) for ambient tracks (e.g., Background gradient drift).
 - **Docking Integration (`EditorShell.tsx`)**:
   - Registered `Motion Sequencer` (`Ctrl+Shift+M`) and `Curve Editor` (`Ctrl+Shift+K`) in bottom drawer tabs and full-page panels.
+
+---
+
+## [1.5.0] — 2026-09-20
+
+### Phase 5: NodeScript — AI-Native Graph Language & Tooling
+- **NodeScript Lexer & Parser (`src/core/nodescript/`)**:
+  - Formal grammar definition, tokenizer, and recursive-descent parser for `.nls` textual intermediate representation.
+  - Round-trip property test suite verifying `serialize(parse(x)) === x` across 50 generated graphs with 0% drift.
+- **NodeScript Language Server (`LanguageServer.ts`)**:
+  - Autocomplete for node and pin types sourced directly from the Node Type Registry.
+  - Sub-100ms inline diagnostics leveraging `DiagnosticBus` and `TypeChecker`.
+- **NodeScript CLI & VS Code Extension**:
+  - `bin/nodescript-cli.ts` compiler and diff commands.
+  - TextMate grammar extension for syntax-highlighting in external editors.
+- **Standard Library Reference (`DOCS/NODESCRIPT_STDLIB.md`)**:
+  - Canonical naming reference across Events, Flow Control, Variables, Navigation, Math, Utility, Database, and API nodes.
+
+### Phase 6: AI Prompt-to-Graph Compiler & Scaffolding Engine
+- **Prompt Intent Parser (`IntentParser.ts`)**:
+  - Natural language intent extraction for entities, actions, pages, and auth with ambiguity clarification prompts.
+- **Grammar-Constrained Decoding (`ConstrainedDecoder.ts`)**:
+  - Token-level grammar enforcement preventing syntactically invalid NodeScript output.
+- **Graph Auto-Layout Engine (`ForceDirectedLayout.ts`)**:
+  - Overlap-free force-directed graph layout preserving user-positioned nodes.
+- **Project Scaffolder & Approval Gate (`ProjectScaffolder.ts`, `GraphDiffModal.tsx`)**:
+  - End-to-end scaffolding of pages, DB models, blueprints, and animation samples.
+  - Per-node diff inspection enforcing the *No Silent AI Writes Law*.
+
+---
+
+## [1.6.0] — 2026-09-21
+
+### Phase 7: SVG Vector Animation Engine & Uniform Path Sampler
+
+#### Added
+- **SVG Element Archetypes & Path Data Model (`src/core/types/svg.ts`)**:
+  - Support for `svgPath`, `svgGroup`, `svgUse`, and `svgText` archetypes with strict XML and CSS attribute schemas (`d`, `viewBox`, `stroke`, `fill`, `strokeDasharray`, `strokeDashoffset`).
+  - Integration with `ArchetypePropertyBindingMatrix` ensuring invalid bindings are trapped cleanly.
+- **Point-Normalized Path Morphing & Stroke-Draw (`PathMorphSolver.ts`)**:
+  - Point-count normalization and linear/cubic Bezier segment interpolation across arbitrary SVG path data.
+  - Animated `strokeDashoffset` line-drawing with cached path length calculation.
+- **SVG Filter & Gradient Keyframe Engine (`SvgFilterGradientEngine.ts`)**:
+  - Dynamic interpolation for `feGaussianBlur`, `feColorMatrix`, and `feDisplacementMap` filter parameters.
+  - Keyframing and multi-stop color/offset interpolation for `linearGradient` and `radialGradient`.
+- **SVG-to-Wasm Uniform Path Sampler (`SplineSolver.ts`, `WasmBridge.ts`, `SplineSolver.hpp/.cpp`)**:
+  - Multi-segment SVG path arc-length parameterization (`buildSvgPathArcLengthTable`, `sampleSvgPathUniform`, `getSvgPathPointAndTangent`, `sampleSvgPathUniformPoints`).
+  - True constant perceived velocity motion along hand-drawn paths by re-using the C++ Wasm arc-length LUT mathematical engine with TypeScript fallback parity.
+  - Calculates exact 2D position, distance deltas, tangent vector, and surface normal angle.
+- **SVG Compatibility Matrix & Diagnostics (`src/core/types/animations.ts`, `animation-validator.test.ts`)**:
+  - Extended `ARCHETYPE_ANIMATION_COMPATIBILITY` with `motionPath` track.
+  - Comprehensive `COMMON_SVG_DISALLOWED_TRACKS` trapping SVG-only tracks on non-SVG archetypes (`button`, `container`, `card`, `image`, `form`, `generic`) with clear `[ANIM_COMPAT]` diagnostics.
+  - Trapping CSS-only typography tracks on `svgPath` and `svgGroup`.
+- **Testing & Verification**:
+  - New test suite `src/core/wasm/__tests__/SvgPathSampler.test.ts` (7 tests: uniform speed, arc distance step consistency, tangent/normal orientation angles, edge cases, WasmBridge parity).
+  - Extended `animation-validator.test.ts` with SVG compatibility verification tests.
+  - Full test suite passes at 505/505 tests across 162 suites.
+

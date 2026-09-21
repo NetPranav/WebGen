@@ -332,4 +332,107 @@ std::vector<SplineResult> SplineSolver::calculateBatchSIMD(
     return results;
 }
 
+Point2D SplineSolver::samplePathUniform(
+    const std::vector<Point2D>& controlPoints,
+    float normalizedDistance
+) {
+    return getPathPointAndTangent(controlPoints, normalizedDistance).point;
+}
+
+SvgPathSampleResult SplineSolver::getPathPointAndTangent(
+    const std::vector<Point2D>& controlPoints,
+    float normalizedDistance
+) {
+    SvgPathSampleResult result;
+    const size_t segmentCount = controlPoints.size() / 4;
+    if (segmentCount == 0) {
+        if (!controlPoints.empty()) {
+            result.point = controlPoints[0];
+        }
+        result.tangent = Point2D(1.0f, 0.0f);
+        result.normal = Point2D(0.0f, 1.0f);
+        return result;
+    }
+
+    // Build arc-length tables for each segment
+    std::vector<ArcLengthTable> tables;
+    tables.reserve(segmentCount);
+    std::vector<float> startLengths;
+    startLengths.reserve(segmentCount);
+    float cumulative = 0.0f;
+
+    for (size_t i = 0; i < segmentCount; ++i) {
+        const size_t base = i * 4;
+        ArcLengthTable tbl = buildArcLengthTable(
+            controlPoints[base],
+            controlPoints[base + 1],
+            controlPoints[base + 2],
+            controlPoints[base + 3],
+            32
+        );
+        startLengths.push_back(cumulative);
+        cumulative += tbl.totalLength;
+        tables.push_back(tbl);
+    }
+
+    if (cumulative <= 1e-6f) {
+        result.point = controlPoints[0];
+        result.tangent = Point2D(1.0f, 0.0f);
+        result.normal = Point2D(0.0f, 1.0f);
+        return result;
+    }
+
+    const float clampedS = std::max(0.0f, std::min(1.0f, normalizedDistance));
+    const float targetDist = clampedS * cumulative;
+
+    // Locate target segment
+    size_t chosenIdx = 0;
+    for (size_t i = 0; i < segmentCount; ++i) {
+        const float startLen = startLengths[i];
+        const float endLen = startLen + tables[i].totalLength;
+        if (targetDist >= startLen && (targetDist <= endLen || i == segmentCount - 1)) {
+            chosenIdx = i;
+            break;
+        }
+    }
+
+    const size_t base = chosenIdx * 4;
+    const Point2D& p0 = controlPoints[base];
+    const Point2D& cp1 = controlPoints[base + 1];
+    const Point2D& cp2 = controlPoints[base + 2];
+    const Point2D& p1 = controlPoints[base + 3];
+
+    const float segLen = tables[chosenIdx].totalLength;
+    const float localDist = targetDist - startLengths[chosenIdx];
+    const float localS = (segLen > 1e-6f) ? std::max(0.0f, std::min(1.0f, localDist / segLen)) : 0.0f;
+    const float localT = tables[chosenIdx].getTForNormalizedArcLength(localS);
+
+    result.point = evaluateBezier(p0, cp1, cp2, p1, localT);
+
+    // Compute tangent derivative
+    const float u = 1.0f - localT;
+    float dx = 3.0f * u * u * (cp1.x - p0.x) + 6.0f * u * localT * (cp2.x - cp1.x) + 3.0f * localT * localT * (p1.x - cp2.x);
+    float dy = 3.0f * u * u * (cp1.y - p0.y) + 6.0f * u * localT * (cp2.y - cp1.y) + 3.0f * localT * localT * (p1.y - cp2.y);
+    float len = std::sqrt(dx * dx + dy * dy);
+
+    if (len < 1e-6f) {
+        dx = p1.x - p0.x;
+        dy = p1.y - p0.y;
+        len = std::sqrt(dx * dx + dy * dy);
+        if (len < 1e-6f) {
+            dx = 1.0f;
+            dy = 0.0f;
+            len = 1.0f;
+        }
+    }
+
+    result.tangent = Point2D(dx / len, dy / len);
+    result.normal = Point2D(-result.tangent.y, result.tangent.x);
+    result.angleDeg = std::atan2(result.tangent.y, result.tangent.x) * (180.0f / 3.141592653589793f);
+    result.distance = targetDist;
+    result.normalizedDistance = clampedS;
+
+    return result;
+}
+
 } // namespace WebAppEngine

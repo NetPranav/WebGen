@@ -39,9 +39,10 @@ export type AnimationTrackId =
   | "lineHeight"
   | "color"
   | "fontSize"
-  // SVG Vector & Filter tracks (Sub-Phase 7.2 & 7.3)
+  // SVG Vector & Filter tracks (Sub-Phase 7.2, 7.3 & 7.4)
   | "pathMorph"
   | "strokeDashoffset"
+  | "motionPath"
   | "feGaussianBlur"
   | "feColorMatrix"
   | "feDisplacementMap"
@@ -95,6 +96,29 @@ export interface ArchetypeAnimationCompatibilityRule {
   disallowedTracks: Record<string, DisallowedTrackReason>;
 }
 
+const COMMON_SVG_DISALLOWED_TRACKS: Record<string, DisallowedTrackReason> = {
+  pathMorph: {
+    trackId: "pathMorph",
+    reason: "Non-SVG elements cannot execute vector path morphing.",
+    alternativeSuggestion: "Apply pathMorph track to an svgPath element.",
+  },
+  strokeDashoffset: {
+    trackId: "strokeDashoffset",
+    reason: "Element does not possess SVG vector stroke drawing pipelines.",
+    alternativeSuggestion: "Use svgPath archetype for stroke drawing animation.",
+  },
+  gradientStopOffset: {
+    trackId: "gradientStopOffset",
+    reason: "Gradient stop keyframing is exclusive to SVG gradient definitions.",
+    alternativeSuggestion: "Apply gradient animation to an svgPath or SVG linearGradient definition.",
+  },
+  gradientStopColor: {
+    trackId: "gradientStopColor",
+    reason: "Gradient stop keyframing is exclusive to SVG gradient definitions.",
+    alternativeSuggestion: "Apply gradient stop animation to an svgPath element.",
+  },
+};
+
 /**
  * Universal Archetype Animation Compatibility Matrix.
  * Specifies exactly which tracks are legally permitted on each element archetype.
@@ -116,17 +140,19 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "letterSpacing",
       "lineHeight",
       "filterBlur",
+      "motionPath",
     ],
     disallowedTracks: {
-      pathMorph: {
-        trackId: "pathMorph",
-        reason: "Text elements cannot execute SVG path morphing.",
-        alternativeSuggestion: "Convert text to SVG path glyphs or apply pathMorph to an svgPath element.",
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+      feColorMatrix: {
+        trackId: "feColorMatrix",
+        reason: "Text elements cannot execute complex SVG color matrix filters.",
+        alternativeSuggestion: "Convert text to svgText or apply color matrix to an svgGroup.",
       },
-      strokeDashoffset: {
-        trackId: "strokeDashoffset",
-        reason: "Text elements do not possess SVG stroke geometry pipelines.",
-        alternativeSuggestion: "Use svgPath archetype for stroke drawing animation.",
+      feDisplacementMap: {
+        trackId: "feDisplacementMap",
+        reason: "Text elements do not support direct SVG displacement map filters.",
+        alternativeSuggestion: "Wrap text in an SVG container or use CSS transforms.",
       },
     },
   },
@@ -148,8 +174,10 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "filterContrast",
       "borderRadius",
       "boxShadow",
+      "motionPath",
     ],
     disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
       letterSpacing: {
         trackId: "letterSpacing",
         reason: "Image elements do not possess text rendering pipelines.",
@@ -186,8 +214,11 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "color",
       "letterSpacing",
       "filterBlur",
+      "motionPath",
     ],
-    disallowedTracks: {},
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+    },
   },
   input: {
     archetype: "input",
@@ -201,8 +232,11 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "boxShadow",
       "color",
       "letterSpacing",
+      "motionPath",
     ],
-    disallowedTracks: {},
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+    },
   },
   container: {
     archetype: "container",
@@ -219,8 +253,10 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "borderRadius",
       "boxShadow",
       "filterBlur",
+      "motionPath",
     ],
     disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
       letterSpacing: {
         trackId: "letterSpacing",
         reason: "Container layout elements do not render direct text glyphs.",
@@ -238,8 +274,11 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "backgroundColor",
       "borderRadius",
       "boxShadow",
+      "motionPath",
     ],
-    disallowedTracks: {},
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+    },
   },
   generic: {
     archetype: "generic",
@@ -252,8 +291,11 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "backgroundColor",
       "borderRadius",
       "boxShadow",
+      "motionPath",
     ],
-    disallowedTracks: {},
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+    },
   },
   svgPath: {
     archetype: "svgPath",
@@ -267,6 +309,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "filterBlur",
       "pathMorph",
       "strokeDashoffset",
+      "motionPath",
       "feGaussianBlur",
       "feColorMatrix",
       "feDisplacementMap",
@@ -284,6 +327,11 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
         reason: "SVG path geometry is controlled via path coordinates or scale.",
         alternativeSuggestion: "Use scale or scaleX/scaleY tracks.",
       },
+      lineHeight: {
+        trackId: "lineHeight",
+        reason: "SVG path elements do not support CSS typography line-height.",
+        alternativeSuggestion: "Use svgText element archetype instead.",
+      },
     },
   },
   svgGroup: {
@@ -297,6 +345,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "scaleY",
       "rotate",
       "filterBlur",
+      "motionPath",
       "feGaussianBlur",
       "feColorMatrix",
       "feDisplacementMap",
@@ -306,6 +355,11 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
         trackId: "letterSpacing",
         reason: "SVG group containers do not directly render font glyphs.",
         alternativeSuggestion: "Attach typography animation to child svgText elements.",
+      },
+      fontSize: {
+        trackId: "fontSize",
+        reason: "SVG group containers do not possess typography font sizing metrics.",
+        alternativeSuggestion: "Use scale or attach font sizing to child svgText elements.",
       },
     },
   },
@@ -318,6 +372,7 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "scale",
       "rotate",
       "filterBlur",
+      "motionPath",
       "feGaussianBlur",
       "feColorMatrix",
       "feDisplacementMap",
@@ -342,7 +397,10 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
       "fontSize",
       "letterSpacing",
       "filterBlur",
+      "motionPath",
     ],
-    disallowedTracks: {},
+    disallowedTracks: {
+      ...COMMON_SVG_DISALLOWED_TRACKS,
+    },
   },
 };
