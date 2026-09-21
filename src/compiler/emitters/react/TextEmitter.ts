@@ -44,7 +44,7 @@ export class TextEmitter {
     const refProp = options.useAnimationHook ? ` ref={textRef as any}` : "";
 
     const props = element.properties || {};
-    const content = String(props.content || props.text || element.name || "Heading Title");
+    const content = String(props.textContent || props.content || props.text || element.name || "Heading Title");
     const fontSize = Number(props.fontSize) || 16;
     const splitMode = options.splitTextMode || (props.splitText ? String(props.splitText) : "none");
 

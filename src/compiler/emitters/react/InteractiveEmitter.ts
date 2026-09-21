@@ -48,11 +48,14 @@ export class InteractiveEmitter {
     const label = String(props.label || props.text || element.name || "Click Me");
     const isToggle = element.archetype === "toggle" || element.type === "toggle";
     const isBadge = element.archetype === "badge" || element.type === "badge";
+    const isFab = element.archetype === "fab" || element.type === "fab";
 
     if (isToggle) {
       return this.emitToggle(componentName, label, props, styling, hookCall, refProp);
     } else if (isBadge) {
       return this.emitBadge(componentName, label, props, styling, hookCall, refProp);
+    } else if (isFab) {
+      return this.emitFab(componentName, label, props, styling, hookCall, refProp);
     } else {
       return this.emitButton(componentName, label, props, styling, hookCall, refProp);
     }
@@ -403,6 +406,96 @@ export default ${name};
   background-color: #f3f4f6;
   color: #374151;
   border: 1px solid #e5e7eb;
+}
+`
+      : undefined;
+
+    return {
+      componentName: name,
+      tsxCode,
+      cssCode,
+      requiredPackages: ["react"],
+    };
+  }
+
+  private static emitFab(
+    name: string,
+    label: string,
+    props: Record<string, any>,
+    styling: string,
+    hookCall: string,
+    refProp: string
+  ): EmittedInteractiveResult {
+    const isTailwind = styling === "tailwind";
+
+    const tailwindClasses =
+      "fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl hover:bg-emerald-500 hover:scale-105 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2";
+
+    const tsxCode = `"use client";
+
+import React from "react";
+${!isTailwind ? `import styles from "./${name}.module.css";\n` : ""}
+export interface ${name}Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  label?: string;
+  icon?: React.ReactNode;
+}
+
+export const ${name}: React.FC<${name}Props> = ({
+  label = "${label}",
+  icon,
+  className = "",
+  onClick,
+  disabled,
+  ...rest
+}) => {${hookCall}
+  return (
+    <button${refProp}
+      type="button"
+      className={${isTailwind ? `\`${tailwindClasses} \${className}\`.trim()` : `\`\${styles.fab} \${className}\`.trim()`}}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      {...rest}
+    >
+      {icon || <span className="${isTailwind ? "text-2xl font-bold" : "icon"}">+</span>}
+    </button>
+  );
+};
+
+export default ${name};
+`;
+
+    const cssCode = !isTailwind
+      ? `/* ${name}.module.css */
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 50;
+  display: flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: #059669;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 10px 25px rgba(5, 150, 105, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
+}
+.fab:hover {
+  background-color: #10b981;
+  transform: scale(1.06);
+}
+.fab:active {
+  transform: scale(0.96);
+}
+.icon {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
 }
 `
       : undefined;
