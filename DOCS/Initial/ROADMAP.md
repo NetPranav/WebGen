@@ -1,18 +1,20 @@
 # IMPLEMENTATION ROADMAP — INITIAL PHASE (v2)
 
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
-**Document Version:** 2.0.0
+**Document Version:** 2.1.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phases 1–2 ✅. Next: Phase 3 (Store, History & Persistence).
+**Status:** Active. Phases 1–2 ✅. Phase 3 gate passed locally in Chromium, Firefox and WebKit (✅ once CI is green on its PR). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then Phases 4 ∥ 5 ∥ 6 ∥ 42. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
+**v2.1 (2026-09-24):** Adds Track S (Phases 41–58), the studio architecture needed for a Figma / Wix Studio viewport with an After Effects timeline. The reasons are in §4.1.
 
 ---
 
 ## 1. How to Read This Roadmap
 
-- **40 phases in 8 tracks.** Tracks run roughly in order. Some phases inside a track can run in parallel (see §7).
+- **58 phases in 9 tracks.** Tracks run roughly in order. Some phases inside a track can run in parallel (see §7).
+- **Phase numbers are identifiers, not execution order.** Track S (Phases 41–58) was added in v2.1. Its phases slot in between existing ones (e.g. 41 runs before 3, 48 before 10). §5.1 gives the order to follow. Existing numbers were kept so audit IDs, commits and progress logs stay valid.
 - Every phase has: **Goal**, **Closes** (audit IDs), **Depends on**, numbered **sub-phases** with checklists, **Key files**, and a **Verification Gate**.
 - Checkboxes: `[ ]` not started, `[~]` exists in code but has not passed its gate, `[x]` gate passed.
 - A phase that reuses v1.1 code says so under **Reuse**, so nobody rebuilds what already works.
@@ -31,6 +33,10 @@ These are binding for every phase. A Verification Gate that passes while violati
 5. **Real-Environment Verification Law (new):** Gates run in real environments: `tsc`, a headless browser (Playwright), and real builds of the exported code. String-contains assertions may *support* a gate but never *be* the gate.
 6. **Simple-by-Default Law (new):** Every new capability ships with a Simple face (≤ 7 controls, no jargon) before or alongside its Pro face.
 7. **Licensing Gate Law (new):** A third-party engine or effect source may run inside the editor only after its license is recorded in `DOCS/Initial/LICENSES.md` (created in Phase 6) and cleared for the product's use.
+8. **One Clock Law (v2.1):** One transport owns time (Phase 45). The canvas, timeline, playground, AI previews and render queue read it. No panel keeps its own playhead.
+9. **Hot-Path Law (v2.1):** Per-frame values (the playhead, evaluated props, drag previews) never flow through React state or the document store. They go through the frame scheduler (Phase 45) and the renderer's node registry (Phase 48). The document changes only when an edit is committed.
+10. **Document-Space Law (v2.1):** Geometry lives in the MDM, in document coordinates (Phase 42). The renderer maps it to the screen. Editor code reads layout from the DOM only through the renderer's measurement API (Phase 48.4).
+11. **One Renderer Law (v2.1):** The stage and the exporters render layers from the same per-archetype render definitions (Phase 48.1). There is no second, hand-written preview markup.
 
 ---
 
@@ -61,13 +67,61 @@ A phase is **✅ COMPLETE** only when:
 
 ---
 
+## 4.1 Architecture Review v2.1 (2026-09-24, after Phase 2)
+
+**Target experience.** The canvas works like **Figma / Wix Studio**: an infinite canvas with frames, direct manipulation, auto-layout, constraints and breakpoints. The bottom panel works like the **After Effects timeline**: compositions, a bar per layer, twirl-down property lanes, a work area, markers, parenting, a graph editor, and a render queue.
+
+**Finding.** Phase 2 fixed the data model, but the layers above it can't support that target yet. The v2.0 phases (20 Stage, 23 Timeline) assumed a real renderer, a shared clock, geometry and a time model. None of these exist, and no phase built them. Track S adds them.
+
+| # | Area | Today (code evidence) | Why it blocks the target | Fix |
+|---|---|---|---|---|
+| 1 | **Stage rendering** | `SandboxHost.buildSandboxDocument()` builds an HTML **string** per archetype and passes it to `<iframe srcDoc>`. The string is re-memoised on `layers`, so **every edit reloads the whole iframe**. Hover effects are inline `onmouseover` strings. | Drags can't hold 60 fps, and nothing can be measured for handles. It is also a third renderer next to the emitters, so preview ≠ export. | 48 |
+| 2 | **Time** | The playhead is `useState` inside `MotionSequencer.tsx:222`. Its rAF loop calls `setCurrentTime` every frame, re-rendering the 966-line panel, and only the **selected layer's active clip** is previewed. | There is no global clock, so the canvas, timeline and playground can't share time. An AE timeline plays all layers together. | 45 |
+| 3 | **Evaluation** | `interpolateTrackValue()` (`MotionSequencer.tsx:137`) is **linear only**: it ignores `keyframe.ease`, re-sorts keyframes every frame and parses numbers out of strings. | Scrubbing doesn't match playback or export. | 9, 45 |
+| 4 | **Property vocabulary** | Three dialects: static props are flat keys (`backgroundColor`, `borderRadius`); tracks use dot-paths (`transform.y`, `appearance.background.color`); presets use a third form (`transform.translateY` ×9, `transform.translateX` ×6). The scrub hot-patch only knows `transform.x/y`, so **preset slide motion is invisible when scrubbed**. | Auto-key, the inspector↔timeline link and the AI can't address one property by one name. | 42 |
+| 5 | **Geometry** | Layers have no frame (x, y, width, height, rotation). Position emerges from flexbox in the generated HTML. There is one fixed artboard. | Figma-grade handles, snapping, constraints and breakpoints need geometry to edit. | 42, 49, 50 |
+| 6 | **Messaging** | Hot-patches go to **every iframe on the page** with target origin `"*"` (`MotionSequencer.tsx:292`, `HotReloadEngine.ts`). | Cross-talk between frames once there are several frames on the canvas, and an untyped, unscoped channel. | 48 |
+| 7 | **Store** | `useProjectStore.ts` is 1,539 lines and holds the document plus blueprints, databases, pages, redirects, environment and history. Undo snapshots the whole project. | Every change notifies everything. There are no transactions, so a drag can't be one undo step. | 41 |
+| 8 | **Shell** | `EditorShell.tsx` is 2,081 lines, with 22 `useState` calls for dock layout. Nothing is persisted, and the bottom tabs are hard-coded. | There's no model for a Design workspace vs an Animate workspace, and no lazy panels. | 44 |
+| 9 | **Tools & commands** | The Floating Dock, `ShortcutRegistry`, `CommandPalette` and the menus each dispatch actions their own way. Tools have no state machine. | Keys like Space, Delete and the arrows mean different things on the canvas and in the timeline. That needs a focus-aware command system. | 43 |
+| 10 | **Time model** | Clips are per-layer, trigger-started snippets. There's no composition (duration, fps, work area, markers), no layer in/out points and no nesting. | An AE timeline has nothing to draw. | 46 |
+| 11 | **Compositing** | No anchor point, blend mode, mask/matte, effect stack, or parenting independent of the DOM tree. | These are core AE tools. | 51 |
+| 12 | **Assets & output** | Images are hard-coded Unsplash URLs in registry defaults. There are no video or audio layers, and output is code only. | AE-style users expect footage, audio sync and video/GIF/Lottie output. | 54, 55 |
+
+**Target architecture (v2.1).**
+
+```
+ shortcuts · menus · palette · tools · AI ──► Command Bus (43) ──► typed document commands
+                                                                        │ transactions (41)
+                                                                        ▼
+  MDM: layers + geometry (42) + compositions (46) + clips/states/behaviours (7) + links (47) + assets (54)
+        │ patch stream                          ├──► History (3) · Autosave (3) · AI diffs (31)
+        ▼
+  Rules (8) ──► Evaluation Kernel (9) ◄── Transport / One Clock (45)
+                     │ ResolvedProps per frame (Hot-Path Law: not through React)
+                     ▼
+  Frame Scheduler (45) ──► Engine Adapters (10, 14–19) ──► Stage Renderer (48): MDM → live DOM
+                                                             │ LayerNodeRegistry · measure()
+                                                             ▼
+                          Viewport Engine (49): camera · multi-frame · hit-test · overlay
+                          (handles 20 · guides · breakpoints 50 · motion paths 53 · onion skin 53)
+
+  Workspace (44):  Layers │ Canvas │ Inspector (Design · Motion · Code)
+                   ───────┴────────┴──────────────────────────────────
+                   AE Timeline (52) + keyframes & graph editor (23)
+
+  Outputs, all from evaluate():  code export (27–28) · video / GIF / Lottie render queue (55)
+```
+
+---
+
 ## 5. Phase Overview
 
 | # | Track | Phase | Key deliverable | Depends on | Status |
 |---|---|---|---|---|---|
 | 1 | A · Solid Ground | Build Health & CI | 0 TS / 0 lint errors, CI, `next build` green | — | ✅ (enforcement by convention) |
 | 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | ✅ |
-| 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | 📋 |
+| 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | 🟡 gate passed locally; CI pending |
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | 📋 |
 | 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | 📋 |
 | 6 | A | Scope, Naming & Docs Cleanup | Initial bundle excludes After-track panels; one name; docs fixed | 1 | 📋 |
@@ -104,7 +158,40 @@ A phase is **✅ COMPLETE** only when:
 | 37 | G | Draw-to-Animate Gestures | Stroke → draw anim, line → motion path, circle → orbit | 36, 16 | 📋 |
 | 38 | G | Sketch-to-Element with AI | Rough UI sketch → proposed elements + motion | 36, 31 | 📋 |
 | 39 | G | Simple Mode & Guided Flow | Draw → Pick motion → Export in 3 steps; new onboarding | 22, 25, 37 | 📋 |
-| 40 | H · Release | Initial Phase v2 Release Gate | PRD §11 DoD proven end to end | all | 📋 |
+| 40 | H · Release | Initial Phase v2 Release Gate | PRD §11 DoD proven end to end | all (incl. 58) | 📋 |
+| 41 | S · Studio Architecture | Store Decomposition & Transaction API | Small document store, gesture transactions, per-layer subscriptions | 2 · *before 3* | 🚧 41.2 done (with Phase 3) |
+| 42 | S | Canonical Property Paths & Geometry Model | One property vocabulary; `frame` + sizing on every layer; schema v3 | 2 · *before 7, 20, 48* | 📋 |
+| 43 | S | Command Bus, Tool State Machine & Keymap | One command registry, focus-aware keys, tool state machines | 41 · *before 20* | 📋 |
+| 44 | S | Workspace Architecture & Layout Presets | Figma-style side panels + AE bottom timeline; Design / Animate / Code presets | 6, 43 · *before 20* | 📋 |
+| 45 | S | Transport, Global Clock & Frame Scheduler | One clock, one rAF loop, no per-frame React renders | 9, 41 · *before 10* | 📋 |
+| 46 | S | Compositions, Layer Time Bars & Nesting | AE time model in MDM: comps, in/out, markers, precomps, time remap | 7 · *before 8, 9* | 📋 |
+| 47 | S | Property Links, Expressions & Drivers | Pick-whip links, sandboxed expressions (`wiggle`, `loopOut`) | 9, 46 | 📋 |
+| 48 | S | Stage Renderer v2: Document → DOM Reconciler | Incremental live-DOM stage, shared render definitions, `measure()` | 41, 42 · *before 10* | 📋 |
+| 49 | S | Viewport Engine: Infinite Canvas, Hit-Testing & Overlay | Camera, multi-frame canvas, spatial hit-test, overlay layer, Design/Preview modes | 43, 48 · *before 20* | 📋 |
+| 50 | S | Auto-Layout, Constraints & Responsive Breakpoints | Stacks, grids, constraints, per-breakpoint props **and motion** (Wix Studio) | 20, 42 | 📋 |
+| 51 | S | Layer Compositing: Anchor, Parenting, Blend, Masks, Effect Stacks | AE layer toolkit mapped to web rendering | 46, 48 | 📋 |
+| 52 | S | After Effects–Style Timeline Workspace | Layer bars, switches, twirl-downs, work area, markers, J/K/L | 44, 45, 46 · *before 23* | 📋 |
+| 53 | S | On-Canvas Motion Editing | Motion paths with keyframe dots, spatial beziers, onion skin | 16, 49, 52 | 📋 |
+| 54 | S | Asset Pipeline & Media Layers | IndexedDB asset store; image, SVG, font, video and audio layers synced to time | 3, 45 | 📋 |
+| 55 | S | Render Queue: Video, GIF, Lottie & Image Sequences | Frame-accurate media output from `evaluate()` | 9, 45, 48 | 📋 |
+| 56 | S | Workers, Baking & Hot-Path Performance | Heavy math off the main thread, content-hash caches, frame telemetry | 5, 9, 45 | 📋 |
+| 57 | S | Legacy Runtime Retirement | One renderer, one clock, one evaluator; old paths deleted, grep-gated | 10, 20, 23, 27, 48, 52 | 📋 |
+| 58 | S | Studio Architecture Integration Gate | Design → Animate → Output journeys pass in 3 browsers | 41–57, 20–24 · *before 40* | 📋 |
+
+### 5.1 Execution Order (v2.1)
+
+Follow this order, not the phase numbers. Phases on the same line can run in parallel.
+
+| Stage | Order | Why this order |
+|---|---|---|
+| **1 · Foundation** | 41 → 3 · then 4 ∥ 5 ∥ 6 ∥ 42 · then 43 → 44 *(actual: 3 ran first and shipped 41.2 transactions; 41.1/41.3 follow)* | Transactions (41) must exist before undo is rebuilt on them (3). Geometry and property paths (42) must exist before the motion primitives (7) are written against them. |
+| **2 · Motion core** | 7 → 46 → (8 ∥ 9) → 45 ∥ 48 → 10 → (11 ∥ 12 ∥ 13) · 47 after 9 · 56 after 45 | The time model (46) is part of the document the rules and kernel read. The clock (45) and the renderer (48) are what the adapters (10) run on. |
+| **3 · Engines** | 14 ∥ 15 ∥ 16 ∥ 17 ∥ 18 ∥ 19 | Unchanged. |
+| **4 · Studio** | 49 → 20 → (21 ∥ 22 ∥ 50) · 52 → 23 → 53 · 51 · 24 → 25 → 26 · 54 any time after 3 | The viewport engine (49) replaces the stage foundation Phase 20 assumed. The AE workspace (52) is the container that the Phase 23 keyframing lives in. |
+| **5 · Output** | 27 → (28 ∥ 29) · 55 | The render queue (55) can start once 45 and 48 are done. |
+| **6 · AI** | 30 → 31 → (32 ∥ 33 ∥ 34) | Unchanged. |
+| **7 · Draw** | 35 → 36 → (37 ∥ 38) → 39 | Unchanged. 35 now draws on the Phase 49 overlay. |
+| **8 · Release** | 57 → 58 → 40 | Retire legacy paths, prove the studio journeys, then the release gate. |
 
 ---
 
@@ -217,23 +304,46 @@ Known gaps, deliberately left for their phases:
 ## Phase 3: Store, History & Persistence
 **Goal:** Every edit is undoable, nothing is lost on reload, and documents are portable files.
 **Closes:** AUD-05 (behaviour half), AUD-08 · **Depends on:** 2
+> **v2.1 amendment:** Undo (3.1) is built on transactions: one committed transaction is one history entry, and transient patches never reach history or autosave (3.2). *As built:* Phase 3 ran before Phase 41 and shipped 41.2 (transactions) itself; 41.1 and 41.3 remain.
 
 ### Sub-Phase 3.1: Correct History
-- [ ] Undo/redo is built on the Phase 2 patches (inverse patches), replacing full-snapshot history. Memory stays bounded for long sessions.
-- [ ] Gesture coalescing: a drag or scrub produces **one** history entry.
-- [ ] Regression test for AUD-05: add a keyframe in the Sequencer → it appears in the Sequencer, the Code view and the Playground → undo removes it everywhere.
+- [x] Undo/redo is built on the Phase 2 patches (inverse patches), replacing full-snapshot history. Memory stays bounded for long sessions. *Design:* a history entry is either a **document** entry (patches + inverse patches) or a **project** entry (a snapshot of the non-document After-track state such as pages, blueprints and databases, swapped on undo/redo; it carries the document only for the five actions that write layers outside the commands). The stack is capped at 200 entries. `historyCommands.undo / redo / jumpTo` live in `useDocumentStore.ts`.
+- [x] Gesture coalescing: a drag or scrub produces **one** history entry. *Design:* this shipped Phase 41.2's transaction API (`documentCommands.begin(label)` → `commit()` / `cancel()`), plus `installGestureCoalescing(window)`, which wraps every pointer press in a transaction, so every drag, scrub and slider in the app is one step with no per-component code. Repeated value edits to the same target within 1 s (typing) merge; structural edits (adding a keyframe or layer) never merge.
+- [x] Regression test for AUD-05: add a keyframe in the Sequencer → it appears in every surface that reads document clips (Sequencer, Outliner, the saved project, after reload) → undo removes it everywhere (`history.test.ts`, browser gate). *Re-scoped:* the Code view and the Playground don't read document clips at all today (AUD-40; the Playground doesn't exist yet). Those two checks moved to Phases 27 and 24, where those surfaces are built on the document.
 
 ### Sub-Phase 3.2: Autosave & Recovery
-- [ ] IndexedDB persistence (localStorage kept only for UI preferences), debounced autosave, crash recovery prompt.
-- [ ] Storage quota handling with a clear error.
+- [x] IndexedDB persistence (localStorage kept only for UI preferences), debounced autosave, crash recovery prompt. *Design:* `ProjectDatabase` stores projects, list summaries and the undo history in IndexedDB and moves pre-Phase-3 localStorage projects over once. `ProjectSession` autosaves 400 ms after the last change, never mid-gesture, and flushes on tab hide and Cmd+S. A small synchronous localStorage **journal** holds the patches since the last save; after a crash, the next load offers "Restore unsaved changes?". Undo history persists, so undo works across reloads.
+- [x] Storage quota handling with a clear error: a banner says storage is full and to export a `.lazy.json` file or delete old projects. When IndexedDB is unavailable, a banner says projects last only for this tab.
 
 ### Sub-Phase 3.3: Files
-- [ ] `.lazy.json` export/import (the document plus embedded or linked assets), with a schema-version check and migration on import.
-- [ ] Drag a `.lazy.json` file onto the window to open it.
+- [x] `.lazy.json` export/import (the document plus embedded or linked assets), with a schema-version check and migration on import. *Assets are linked* (their URLs are listed in the file) until Phase 54 can embed them. Files from a newer schema are refused with an "update LazyLayout" message. File → Export Project File / Import Project File.
+- [x] Drag a `.lazy.json` file onto the window to open it.
 
 **Verification Gate:** Playwright: create a document, edit 20 times, reload the tab, the state is identical, undo 20 times returns to blank. An exported `.lazy.json` imported in a fresh browser profile renders pixel-identically.
 
----
+### Phase 3 Progress Log
+**2026-09-24: gate passed locally in Chromium, Firefox and WebKit; ✅ once CI is green on the PR.** Gate script: `tests/e2e/phase3-persistence.mjs`, run against `next build && next start`. It drives the real UI and uses File → Export Project File as the oracle (the export serialises the live in-memory project):
+- **A.** A new project gets 20 Sequencer "+ Keyframe" edits, then a reload: the state is identical, and 20 × Cmd/Ctrl+Z returns exactly to the blank start (history persisted in IndexedDB).
+- **B.** The exported file, imported in a fresh browser profile, restores the same document, and the canvas and timeline render with **0 px** difference.
+- **C.** Dropping the file on the window opens it.
+- **D (Chromium).** An edit, then the renderer is killed (`Page.crash`) before autosave: the next load shows "Restore unsaved changes? … 1 change", Restore brings the edit back, and no prompt appears after that.
+- **E.** Dragging a keyframe in the Sequencer is exactly one undo step.
+- `typecheck` 0 · `lint` 0 errors / 463 warnings (no growth) · 654/654 unit tests (new: `history`, `diff` (500-run property test), `ProjectSession`, `ProjectDatabase`, `lazyFile`) · `next build` green · `run-editor` smoke 8/8.
+
+Bugs found and fixed along the way:
+- **Undo/redo did nothing in the editor.** Every undo/redo button in the shell was `() => {}`, and no global Cmd+Z handler existed (the shortcut registry is imported but never attached). Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Ctrl+Y now work everywhere except inside text fields, which keep native undo.
+- **Undo after "Mount Showcase Demo" or "Clear Canvas" restored the demo itself.** Both recorded the *new* snapshot as the "before" state.
+- **Every drag frame was a full-project snapshot** (a 1-second keyframe drag recorded ~60 undo steps, each a copy of the whole project).
+- **There was no autosave**: Cmd+S wrote to localStorage, and the "unsaved" dot never turned on. The dot now reflects real save state.
+- **The Project Hub navigated away before its save finished.** It now waits for the write.
+- The Co-pilot auto-fix made two writes (one unlabelled) for one action; it is now one transaction.
+
+New findings recorded in `AUDIT.md` (not fixed here): AUD-39 (the Content Browser's Animation panel keeps tracks in local React state, not the document) and AUD-40 (the Code view ignores document clips; Export Preview shows canned code per archetype).
+
+Known gaps:
+- Two tabs editing the same project both autosave, and the last write wins. There is no cross-tab lock yet.
+- Project-level (After-track) changes are not in the crash journal; autosave alone covers them.
+- The gate runs locally; Phase 4 moves it into CI.
 
 ## Phase 4: Real-Environment Verification Harness
 **Goal:** The test infrastructure every later gate relies on: browser tests, export builds and pixel parity.
@@ -308,6 +418,7 @@ Known gaps, deliberately left for their phases:
 ## Phase 7: Motion Primitives — Tracks, Clips, States, Triggers, Behaviours
 **Goal:** A formal, complete animation model inside MDM that can express every effect in PRD §5.2.
 **Depends on:** 2
+> **v2.1 amendment:** Also depends on 42. The 7.1 animatable property registry **is** Phase 42's registry, extended with animation metadata; there is no second registry. Sequences (7.2) are placed in compositions (Phase 46), which follows directly.
 
 ### Sub-Phase 7.1: Property Paths & Value Types
 - [ ] A canonical **animatable property registry**: each path (e.g. `transform.x`, `opacity`, `filter.blur`, `svg.pathD`, `text.charOpacity[i]`, `shader.uniforms.uSpeed`, `scene.camera.fov`) declares its value type (number+unit, colour, path, transform, vector3, quaternion, enum), interpolation method, compositing class (GPU / paint / layout) and default.
@@ -355,6 +466,7 @@ Known gaps, deliberately left for their phases:
 ## Phase 9: Deterministic Evaluation Kernel
 **Goal:** A pure function gives the exact value of any animated property at any time, for any inputs. It is the oracle for preview, export parity, AI verification and scrubbing.
 **Depends on:** 7
+> **v2.1 amendment:** Also depends on 46. The signature becomes `evaluate(doc, compositionId, layerId, t, inputs)`, and it honours composition time (in/out, stretch, remap, nesting). Links and expressions (47) and parenting (51.2) are added to the composition order as they land. It replaces `interpolateTrackValue` in `MotionSequencer.tsx`, which ignores easing.
 
 ### Sub-Phase 9.1: Easing & Physics Library
 - [ ] One library: cubic-bezier (with the solver from the v1.1 TS spline code), named eases (the GSAP-compatible set), `steps()`, CSS `linear()` curves, and **analytic springs** (under-, critically- and over-damped) with velocity handoff.
@@ -375,6 +487,7 @@ Known gaps, deliberately left for their phases:
 ## Phase 10: Live Preview Runtime & Engine Adapters
 **Goal:** The stage *runs* the chosen engines, and the timeline playhead seeks them. What you see is what you export.
 **Closes:** AUD-09 · **Depends on:** 8, 9
+> **v2.1 amendment:** Also depends on 45 and 48. Adapters are driven by the Phase 45 frame scheduler (not their own rAF loops) and write through the Phase 48 `LayerNodeRegistry` (not `postMessage`).
 
 ### Sub-Phase 10.1: Adapter Interface
 - [ ] `EngineAdapter { mount(layer, el), play(), pause(), seek(t), setInputs(inputs), dispose() }` plus capabilities (`canSeek`, `canReverse`, `supportsPaths`).
@@ -578,6 +691,7 @@ Known gaps, deliberately left for their phases:
 ## Phase 20: Figma-Grade Stage & Canvas
 **Goal:** Direct manipulation that feels like Figma: select, move, resize, rotate, snap, align. This is the foundation for drawing (Track G).
 **Closes:** AUD-19 (selection half), AUD-20 (Tier 1) · **Depends on:** 2, 8
+> **v2.1 amendment:** Also depends on 42, 43 and 49. Handles, guides and marquee draw on the Phase 49 overlay; tools are Phase 43 state machines; a manipulation edits `frame` (42.3) inside one Phase 41 transaction. 20.3's "one artboard" rule is superseded by multi-frame canvases (49.2).
 
 ### Sub-Phase 20.1: Selection & Transform
 - [ ] Click, shift-click and marquee selection. Transform handles for move, resize (with aspect lock) and rotate (15° snap with Shift), plus a transform origin handle. All of this writes MDM patches (one undo step per gesture).
@@ -612,6 +726,7 @@ Known gaps, deliberately left for their phases:
 ## Phase 22: Properties Panel — Simple / Pro
 **Goal:** Replace the dense Unreal-style inspector with progressive disclosure.
 **Closes:** AUD-20 (Tier 2), AUD-21 (panel half) · **Depends on:** 20
+> **v2.1 amendment:** The panel is the **Design** tab of the Phase 44 inspector (Design · Motion · Code). The Simple Motion card and state editing live in the **Motion** tab. Per-breakpoint overrides (50.3) show here.
 
 ### Sub-Phase 22.1: Simple Face
 - [ ] At most 7 controls per selection: position/size, fill, radius, text (if any), and **one Motion card** (current motion + Intensity + Speed + "Change motion…").
@@ -633,6 +748,7 @@ Known gaps, deliberately left for their phases:
 ## Phase 23: Timeline 2.0 & Graph Editor
 **Goal:** Sequencer-grade precision without the clutter.
 **Depends on:** 9, 21
+> **v2.1 amendment:** Also depends on 52. The timeline structure (23.1) moves to Phase 52, which builds the After Effects workspace. Phase 23 keeps keyframing (23.2), the graph editor (23.3) and input tracks (23.4), built inside that workspace. Spatial vs temporal interpolation comes from 53.1.
 
 ### Sub-Phase 23.1: Timeline Structure
 - [ ] Rows per layer → clips → tracks (collapsible). Clips can be moved, trimmed and duplicated; stagger groups are shown as fanned clips.
@@ -655,7 +771,9 @@ Known gaps, deliberately left for their phases:
 ## Phase 24: Animation Playground
 **Goal:** A focused place to play with, test and tune an animation, like a Storybook for motion.
 **Closes:** AUD-20 (Tiers 3–4) · **Depends on:** 10–13
+> **v2.1 amendment:** Time controls (24.2) are Phase 45 transport controls. The Playground can link to studio time or run its own isolated transport instance.
 
+- [ ] **24.0** *(moved from Phase 3.1, AUD-05 regression)* A keyframe added in the Sequencer appears in the Playground, and undo removes it there too.
 - [ ] **24.1** Full-screen isolated preview with a **props panel** (effect props and element props as live knobs), state buttons, and trigger buttons (replay mount, simulate hover or press).
 - [ ] **24.2** Time controls: global time scale (0.1×–2×), loop, and frame step. This is World Environment Tier 3 (properties 41–47: time scale, default curve, spring defaults, reduced-motion policy, frame snapping).
 - [ ] **24.3** Environment: device frames, backdrop, reduced-motion toggle, and overlays (World Environment Tier 4, properties 48–52: bounding wireframes, box model, dimensions HUD, archetype badges, touch-target guide).
@@ -713,6 +831,7 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 27: Verified Export Pipeline (React / Next / Vite)
 **Goal:** The PRD §10 export promise, proven by builds and pixels.
 **Closes:** AUD-15, AUD-16 · **Depends on:** 4, 10–19
+> **v2.1 amendment:** React output is generated from the Phase 48 render definitions (One Renderer Law), so the stage and the export render the same components. Responsive output (50.5) and compositing output (51) join the export matrix when those phases land.
 
 ### Sub-Phase 27.1: Export Architecture
 - [ ] Exporters consume **MDM + routing decisions** (not UI state). The per-engine code generators move here from the runtime (`MultiEngineAnimationRuntime` code-gen, `GSAPAnimationEmitter`, the React emitters).
@@ -727,6 +846,7 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 - [ ] Output formatted with Prettier. No `any`. No unused imports. Passes the fixture app's ESLint config.
 
 ### Sub-Phase 27.4: Gate Integration
+- [ ] *(moved from Phase 3.1, AUD-05 regression; AUD-40)* The Code view emits the document's clips: a keyframe added in the Sequencer appears in the Code view, and undo removes it there too. Export Preview shows the real export, not per-archetype sample code.
 - [ ] Every library effect × {Next, Vite} × {Tailwind, CSS Modules} goes through the Phase 4 harness: `tsc`, `build`, pixel parity at 5 times.
 
 **Verification Gate:** The full export matrix is green in nightly CI, and the PRD §11 criterion 5 is met.
@@ -848,6 +968,7 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 35: Drawing Tools Foundation
 **Goal:** High-quality pen and pencil input that produces clean, editable vectors.
 **Closes:** AUD-19 · **Depends on:** 20
+> **v2.1 amendment:** The pen and pencil are Phase 43 tools and draw their live stroke on the Phase 49 overlay, not in React state.
 
 - [ ] **35.1** Stroke capture with Pointer Events (`getCoalescedEvents` for high-rate input, pressure and tilt when available), timestamps kept per point (needed for draw-speed timing in Phase 37).
 - [ ] **35.2** Smoothing: a streamline/lag filter while drawing, then Ramer–Douglas–Peucker simplification and bezier curve fitting (Schneider's algorithm) to produce a compact SVG path.
@@ -940,6 +1061,361 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 
 ---
 
+# TRACK S — STUDIO ARCHITECTURE (Figma / Wix Studio Viewport + After Effects Timeline)
+
+> Added in v2.1 after the architecture review (§4.1). These phases build the layers between the document and the studio UI that v2.0 assumed but never scheduled: a real renderer, one clock, geometry, a composition time model, a command system and a workspace model. **Phase numbers are identifiers. Follow §5.1 for the order.** Several of these phases run *before* earlier-numbered ones (41 before 3, 48 before 10, 49 before 20, 52 before 23).
+
+---
+
+## Phase 41: Store Decomposition & Transaction API
+**Goal:** The document gets a small, fast store with transactions, so any gesture commits as one change.
+**Closes:** AUD-34 · **Depends on:** 2 · **Runs before:** 3
+
+### Sub-Phase 41.1: Split the Project Store
+- [ ] The document leaves `useProjectStore` (1,539 lines). `useDocumentStore` owns the `MotionDocument` directly and stays the only read/write API.
+- [ ] The UI preferences, World Environment and project meta each get a small store. The After-track slices (blueprints, databases, pages, redirects, state variables) move under `src/after/**` behind the Phase 6 edition flag.
+
+### Sub-Phase 41.2: Transactions
+- [x] `documentCommands.begin(label)` returns `{ commit(), cancel() }`. While a gesture runs, updates apply as **transient patches**: the stage shows them, but they don't enter history or autosave. `commit()` squashes them into one patch set plus its inverse. `cancel()` (Esc) reverts exactly. *Shipped with Phase 3 (needed for gesture coalescing).* The typed commands issued inside the transaction are the updates, so there is no separate `update(recipe)`.
+- [x] Every existing command runs through the same commit path: inside a transaction it is transient, outside it is a one-step entry.
+
+### Sub-Phase 41.3: Fine-Grained Subscriptions
+- [ ] Per-entity selectors (`useLayer(id)`, `useClip(id)`, `useComposition(id)`) re-render only when that entity changes (structural sharing from Immer).
+- [ ] The patch stream (`subscribeToDocumentChanges`) is the only change signal for the renderer, autosave, AI diffs and the timeline. Remove the duplicate `EventBus.emit("document:changed")` consumers.
+
+**Key files:** `src/core/store/useDocumentStore.ts`, `src/core/store/useProjectStore.ts`, new `src/core/store/transactions.ts`
+**Verification Gate:** A React Profiler test shows that editing layer A re-renders **0** components bound only to layer B. A 2-second scripted drag produces exactly **1** history entry and **1** autosave write, and Esc mid-drag restores the document byte-for-byte. `useProjectStore.ts` is under 400 lines and no longer holds the document.
+
+---
+
+## Phase 42: Canonical Property Paths & Geometry Model
+**Goal:** One name for every property (static, animated, state, exported), and explicit geometry on every visual layer.
+**Closes:** AUD-31, AUD-32 · **Depends on:** 2 · **Runs before:** 7, 20, 48
+
+### Sub-Phase 42.1: Property Registry
+- [ ] `src/core/document/properties.ts`: for each canonical path (`frame.x`, `transform.y`, `fill.color`, `corner.radius`, `text.fontSize`, …) it declares the value type, unit, default, CSS mapping, compositing class (GPU / paint / layout), whether it is animatable, and the archetypes that have it.
+- [ ] Static props, state snapshots, tracks, links and the inspector all address properties by these paths. The per-archetype prop validation left open in Phase 2 lands here.
+
+### Sub-Phase 42.2: Migration to Schema v3
+- [ ] An alias table (`transform.translateY → transform.y`, `backgroundColor → fill.color`, `borderRadius → corner.radius`, …) and a `v2 → v3` migration covering layer props, tracks, states and the 51 presets.
+- [ ] Unknown paths are a validation error with the closest valid path suggested.
+
+### Sub-Phase 42.3: Geometry
+- [ ] Every visual layer has `frame { x, y, width, height, rotation }` in parent space, `sizing { horizontal, vertical: "fixed" | "hug" | "fill" }` and `positioning: "absolute" | "flow"` (flow means it sits inside an auto-layout parent, Phase 50).
+- [ ] The artboard/frame is a layer with geometry, not a document-level special case, which prepares multi-frame canvases (Phase 49).
+
+### Sub-Phase 42.4: Layout vs Motion Transform (Decision Record)
+- [ ] `decisions/0003-geometry-vs-transform.md`: `frame` is **layout** (what Figma edits: moving a layer on the canvas changes `frame`). `transform.*` is **motion offset** (what the timeline animates, composed on top of `frame`, GPU-only). This keeps animation off layout properties by default, the web equivalent of AE's Position and Anchor. Animating `frame.*` is allowed only when the rules (Phase 8) accept the layout cost.
+
+**Key files:** `src/core/document/properties.ts`, `src/core/document/schema.ts`, `src/core/document/migrations/v2-to-v3.ts`, `src/core/motion/presets/*`
+**Verification Gate:** A test walks every preset, factory, fixture and emitter template and finds no property path outside the registry. 500 random v2 documents migrate to v3 and round-trip unchanged. A Playwright screenshot of the migrated demo project matches the pre-migration one. Scrubbing a preset that uses `translateY` now moves the layer (regression for §4.1 row 4).
+
+---
+
+## Phase 43: Command Bus, Tool State Machine & Keymap
+**Goal:** Every action (shortcut, menu, palette, toolbar, AI) goes through one command registry, and canvas tools are explicit state machines.
+**Depends on:** 41 · **Runs before:** 20, 35, 52
+
+### Sub-Phase 43.1: Commands & Context Keys
+- [ ] `src/core/commands/`: `defineCommand({ id, title, when, run })` plus context keys (`canvasFocus`, `timelineFocus`, `textEditing`, `selection.count`, `transport.playing`).
+- [ ] A keymap with `when` clauses (like VS Code), so one key can mean different things in different places: **Space** is pan on the canvas and play in the timeline, **Delete** removes layers on the canvas and keyframes in the timeline.
+- [ ] Merge `ShortcutRegistry.ts`, `CommandPalette.tsx`, `src/core/keybindings/` and the menu handlers onto this registry.
+
+### Sub-Phase 43.2: Tool State Machine
+- [ ] A tool is `{ id, cursor, onPointerDown/Move/Up, onKey, drawOverlay }` with pointer capture. Tools: select, direct-select, hand, frame, rectangle, ellipse, line, text, pen, pencil, motion-path.
+- [ ] Spring-loaded tools: holding Space gives the hand tool and holding Cmd/Ctrl gives direct-select; releasing the key returns to the previous tool.
+
+### Sub-Phase 43.3: Focus Model
+- [ ] Exactly one focused region. Panels declare focus scopes; the command bus reads them. Text inputs always win.
+
+**Key files:** new `src/core/commands/*`, `src/runtime/ShortcutRegistry.ts`, `src/editor/shell/CommandPalette.tsx`, `src/editor/canvas/FloatingDock.tsx`
+**Verification Gate:** A test asserts that every menu item, palette entry and shortcut resolves to a registered command. Playwright: holding Space over the canvas pans; Space in the timeline toggles play; Delete in the timeline deletes the selected keyframes and never a layer.
+
+---
+
+## Phase 44: Workspace Architecture & Layout Presets
+**Goal:** A Figma / Wix Studio layout (Layers on the left, canvas in the centre, inspector on the right) with an After Effects timeline docked at the bottom, all driven by a serialisable workspace model.
+**Closes:** AUD-35, AUD-21 (shell half) · **Depends on:** 6, 43 · **Runs before:** 20, 22, 52
+
+### Sub-Phase 44.1: Panel Registry & Layout Model
+- [ ] `registerPanel({ id, title, zone, load: () => import(…), edition, focusScope })`. The shell renders a `WorkspaceLayout` JSON (zones, sizes, tabs, collapsed state) instead of 22 local `useState` calls.
+- [ ] Split `EditorShell.tsx` (2,081 lines) into `Shell`, `DockTree` and `PanelHost`. Panels load lazily; a panel not in the layout costs zero bytes.
+
+### Sub-Phase 44.2: Presets
+- [ ] **Design:** Layers │ Canvas │ Design inspector. The timeline collapses to a slim transport bar.
+- [ ] **Animate:** Layers │ Canvas │ Motion inspector, with the timeline at ~40% height.
+- [ ] **Code:** Canvas │ Code panel.
+- [ ] Switch presets from the header. Users can save custom layouts (UI preferences, localStorage).
+
+### Sub-Phase 44.3: Inspector Tabs
+- [ ] The right inspector has **Design · Motion · Code** tabs (like Figma's Design / Prototype / Dev Mode). Phase 22 fills Design; states, triggers, behaviours and the Motion card live in Motion.
+
+### Sub-Phase 44.4: Resize Performance
+- [ ] Splitter drags update CSS variables only and re-render no panel. The canvas keeps its DOM node (no remount) across preset switches and resizes.
+
+**Key files:** `src/editor/shell/*`, new `src/editor/workspace/*`
+**Verification Gate:** The layout survives a reload. Switching presets takes under 100 ms and doesn't remount the stage (Playwright checks node identity). `EditorShell.tsx` is under 500 lines. The initial bundle excludes panels not in the active preset (bundle analyzer).
+
+---
+
+## Phase 45: Transport, Global Clock & Frame Scheduler
+**Goal:** One clock for the whole studio, with per-frame work outside React.
+**Closes:** AUD-30, AUD-38 · **Depends on:** 9, 41 · **Runs before:** 10, 23, 24, 52
+
+### Sub-Phase 45.1: Transport
+- [ ] `src/core/time/transport.ts`: `{ time, playing, rate, loop: "off" | "loop" | "ping-pong", workArea, fps, compositionId }`. Commands: play, pause, seek, step frame, shuttle (J/K/L), set work area.
+- [ ] It is an observable store outside React. UI text reads it through `useTransportTime({ maxHz: 10 })`; per-frame consumers subscribe from the scheduler.
+
+### Sub-Phase 45.2: Frame Scheduler
+- [ ] One rAF loop with ordered phases: **input → evaluate (kernel) → apply (adapters, renderer) → overlay draw → stats**. Panels register tasks in a phase.
+- [ ] A lint rule bans `requestAnimationFrame` outside `src/core/time/**` (short allowlist for third-party engines under their adapters).
+
+### Sub-Phase 45.3: Deterministic Mode
+- [ ] The Phase 4 test clock plugs in here. The render queue (Phase 55) drives it one frame at a time.
+
+### Sub-Phase 45.4: Migrate Consumers
+- [ ] The Sequencer, PlayheadControls, Playground and the canvas play button use the transport. Delete `MotionSequencer`'s local `currentTime` state, its rAF loop and the `SANDBOX_HOT_PATCH` broadcast.
+
+**Key files:** new `src/core/time/*`, `src/editor/panels/sequencer/*`
+**Verification Gate:** During playback the timeline panel makes ≤ 10 React commits per second (timecode text only), measured with the Profiler. The canvas, timeline and playground show the same time within 1 frame (Playwright). Frame stepping lands on exact frame times at 24, 30 and 60 fps.
+
+---
+
+## Phase 46: Compositions, Layer Time Bars & Nesting
+**Goal:** The After Effects time model inside MDM: compositions with a duration, fps, work area and markers; layers with in/out points; nested compositions.
+**Closes:** AUD-36 · **Depends on:** 7 · **Runs before:** 8, 9, 52
+
+### Sub-Phase 46.1: Composition Entity
+- [ ] `Composition { id, name, duration, fps, workArea, markers[], layers: Record<layerId, { start, in, out, stretch }> }`. Every document has a `main` composition (the mount / intro timeline).
+
+### Sub-Phase 46.2: One Model for Web Triggers and AE Timelines (Decision Record)
+- [ ] `decisions/0002-time-model.md`: a triggered clip (hover, press, inView, scroll) becomes an **interaction composition** that its trigger starts, seeks or scrubs. The main composition is the "always playing" one. The web trigger model and the AE model are then one model, not two.
+- [ ] Migrate every existing clip into a composition with no visible change.
+
+### Sub-Phase 46.3: Nesting (Precomps)
+- [ ] A composition can be placed as a layer inside another, with a time offset, stretch and time remapping. Effect instances (Phase 7.4) are compositions with exposed props.
+
+### Sub-Phase 46.4: Markers
+- [ ] Composition and layer markers with labels. A marker can fire a `custom` trigger, exported as timeline labels or callbacks.
+
+**Key files:** `src/core/document/schema.ts`, new `src/core/document/compositions.ts`
+**Verification Gate:** The 12 Phase 7 reference effects, plus a 3-scene intro sequence with one nested composition, are expressible and valid. Golden tests: `evaluate()` matches hand-computed values at in/out edges and under stretch and time remap. The migration leaves the demo project visually identical (Playwright).
+
+---
+
+## Phase 47: Property Links, Expressions & Drivers
+**Goal:** The equivalent of AE expressions and Rive data binding: properties that follow other properties, deterministically and safely.
+**Depends on:** 9, 46
+
+### Sub-Phase 47.1: Link Model
+- [ ] `Link { target: layer.path, source: layer.path | input | time, map: range | curve | expression }`.
+
+### Sub-Phase 47.2: Expression Language
+- [ ] A small, sandboxed, typed language (parser → AST → evaluator; **no `eval` or `Function`**): arithmetic, `time`, `value`, `wiggle(freq, amp, seed)`, `loopOut(type)`, `linear` / `ease(t, tMin, tMax, a, b)`, `clamp`, `valueAtTime`, and references to other layers' properties. Noise is seeded, so results are deterministic.
+
+### Sub-Phase 47.3: Ordering & Diagnostics
+- [ ] Topological evaluation order. Cycles are refused with `[LINK_CYCLE]` and the chain shown.
+
+### Sub-Phase 47.4: Pick-Whip & Export
+- [ ] Drag from a property to another (in the timeline or inspector) to create a link.
+- [ ] Export compiles expressions to plain TS functions per engine, or bakes them to keyframes when the target can't express them (CSS-only).
+
+**Verification Gate:** 20 expression golden tests, including `wiggle` determinism across runs and browsers. A cycle is refused with its reason. A linked animation passes export parity (Phase 4).
+
+---
+
+## Phase 48: Stage Renderer v2 — Document → DOM Reconciler
+**Goal:** Replace the HTML-string iframe with an incremental renderer that mounts the MDM as live DOM, applies changes without reloading, and shares render definitions with export.
+**Closes:** AUD-29, AUD-33 · **Depends on:** 41, 42 · **Runs before:** 10, 20, 49
+
+### Sub-Phase 48.1: Render Definitions
+- [ ] One React component per archetype in `src/core/render/archetypes/`, taking `(layer, resolvedProps)`. The React exporter (Phase 27) prints the same components (One Renderer Law). The inline `onmouseover` strings go away; hover and press come from states (Phase 11).
+
+### Sub-Phase 48.2: Host
+- [ ] The stage renders into a **same-origin iframe** per frame (isolates user CSS and fonts; the frame width is a real viewport, so media queries work). A React root is mounted into `iframe.contentDocument`; there is no `srcDoc` string.
+- [ ] A typed, per-frame bridge replaces `postMessage(…, "*")`.
+
+### Sub-Phase 48.3: Incremental Updates
+- [ ] Document patches re-render only the affected layers. Per-frame values from the scheduler are written straight to node styles through a `LayerNodeRegistry` (layer id → element), with no React render per frame (Hot-Path Law).
+
+### Sub-Phase 48.4: Measurement API
+- [ ] `renderer.measure(layerIds)` returns document-space rects, batched and backed by `ResizeObserver`. The viewport (49) uses it for handles, snapping and hit-testing.
+
+### Sub-Phase 48.5: Separate the Logic Sandbox
+- [ ] The After-track logic runtime (mock DB, mock API, execution tracer, hot reload) stays in `SandboxHost` behind the `full` edition flag. The design stage no longer depends on it.
+
+**Key files:** new `src/core/render/*`, new `src/editor/stage/*`, `src/editor/runtime/SandboxHost.tsx`
+**Verification Gate:** Editing a prop updates the stage in under 16 ms with no iframe reload (Playwright checks the iframe document stays the same object). A 500-layer document mounts in under 500 ms. For every archetype, the stage and the React export are pixel-identical (≤ 0.5%). `grep` finds zero `postMessage(…, "*")` in `src/editor`.
+
+---
+
+## Phase 49: Viewport Engine — Infinite Canvas, Camera, Hit-Testing & Overlay
+**Goal:** The Figma / Wix Studio canvas: an infinite space with several frames, precise hit-testing, and one overlay layer for all editor chrome.
+**Depends on:** 43, 48 · **Runs before:** 20, 35, 53
+
+### Sub-Phase 49.1: Camera
+- [ ] Document ↔ screen transform: pan, zoom (2%–6400%), zoom to fit / to selection, smooth wheel, trackpad pinch and keyboard zoom. The camera is stored per document in UI preferences. Reuses the `WhiteboardCanvas.tsx` pan/zoom math.
+
+### Sub-Phase 49.2: Multi-Frame Canvas
+- [ ] Several top-level frames side by side (device sizes, variants, or compositions), each a Phase 48 renderer host. This supersedes the one-artboard rule in 20.3.
+
+### Sub-Phase 49.3: Hit-Testing
+- [ ] A spatial index over measured rects (reuse the `SpatialIndex` R-tree, TS or Wasm per the Phase 5 decision): deepest hit first, Cmd/Ctrl for deep select, locked and hidden layers skipped.
+- [ ] In Design mode the overlay captures all pointer events and nothing reaches the iframe. In Preview mode events pass through, so interactions run live.
+
+### Sub-Phase 49.4: Overlay Layer
+- [ ] One canvas/SVG layer above the frames draws selection, handles, hover outlines, guides, distance labels, motion paths (53) and onion skins (53). The frame scheduler redraws it, not React.
+
+### Sub-Phase 49.5: Design / Preview Modes
+- [ ] A toggle like Wix Studio's Preview and Figma's prototype view: Design mode edits, Preview mode runs triggers and behaviours with the real pointer.
+
+**Key files:** new `src/editor/viewport/*`, `src/editor/canvas/WhiteboardCanvas.tsx`, `src/core/wasm/SpatialIndex.ts`
+**Verification Gate:** Hover highlight appears within 1 frame with 1,000 layers. Hit-test p95 is under 1 ms. Pan and zoom hold 60 fps with 5 frames × 200 layers. Playwright clicks at 20 known points select the expected layers at 3 zoom levels.
+
+---
+
+## Phase 50: Auto-Layout, Constraints & Responsive Breakpoints
+**Goal:** Wix Studio / Figma responsive design: stacks, grids, constraints, and per-breakpoint overrides, including per-breakpoint **motion**.
+**Depends on:** 20, 42
+
+### Sub-Phase 50.1: Auto-Layout
+- [ ] Stack layout (direction, gap, padding, alignment, wrap, hug / fill sizing), mapped 1:1 to CSS flex. Grid layout mapped to CSS grid.
+
+### Sub-Phase 50.2: Constraints
+- [ ] Constraints for absolutely positioned children (left, right, left-and-right, centre, scale), exported as CSS.
+
+### Sub-Phase 50.3: Breakpoints
+- [ ] A document-level breakpoint set (Desktop 1440, Tablet 768, Mobile 375, plus custom). Props and motion (clip on/off, durations, distances, behaviour params) can be overridden per breakpoint. The inspector marks overridden values and can reset them (Wix Studio's breakpoint bar).
+
+### Sub-Phase 50.4: Canvas
+- [ ] All breakpoints side by side (multi-frame from 49.2). Dragging a frame's edge reflows the layout live.
+
+### Sub-Phase 50.5: Export
+- [ ] Media or container queries for layout; `gsap.matchMedia` / Motion variants / CSS media blocks for motion.
+
+**Verification Gate:** A fixture page using stacks, grids and constraints reflows identically in the stage and the export at 5 widths (pixel parity). A per-breakpoint animation override plays only at its width, in both.
+
+---
+
+## Phase 51: Layer Compositing — Anchor, Parenting, Blend Modes, Masks & Effect Stacks
+**Goal:** The After Effects layer toolkit, mapped to what the web renders well.
+**Depends on:** 46, 48
+
+- [ ] **51.1 Anchor point** per layer (`transform-origin`), editable on the canvas.
+- [ ] **51.2 Parenting and null layers.** A layer can follow another layer's transform independently of the DOM tree (AE pick-whip parenting). `evaluate()` composes the transforms; export uses wrapper elements or computed transforms.
+- [ ] **51.3 Blend modes** (`mix-blend-mode`), isolated groups, and **adjustment layers** (`backdrop-filter`).
+- [ ] **51.4 Masks and track mattes.** Alpha and luma mattes through CSS/SVG masks. Mask paths are animatable (Phase 16 path editing).
+- [ ] **51.5 Effect stack.** An ordered per-layer list (blur, glow, drop shadow, colour adjust, displacement, noise) with keyframeable parameters. The rules (Phase 8) route each effect to CSS filter, SVG filter or shader by performance class.
+- [ ] **51.6 Motion blur (approximation).** Opt-in directional blur driven by transform velocity, with its performance class.
+
+**Verification Gate:** 10 compositing reference scenes (a 3-level parent chain, a luma-matte title, an adjustment layer, a blend-mode overlay, a 4-effect stack, …) match `evaluate()` in the stage and the export, in all three browsers.
+
+---
+
+## Phase 52: After Effects–Style Timeline Workspace
+**Goal:** The bottom timeline: every layer of the active composition as a bar, with switches, twirl-down property lanes, a work area, markers and shuttle controls.
+**Depends on:** 44, 45, 46 · **Runs before:** 23 (which then adds keyframing and the graph editor inside this workspace)
+
+### Sub-Phase 52.1: Layout
+- [ ] **Left:** the layer stack (same order and selection as the Layers panel) with switches: visible, solo, lock, shy, motion blur, blend mode, parent pick-whip.
+- [ ] **Right:** a time ruler (timecode or frames, fps from the composition), layer bars with in/out trimming, the work-area bar, composition and layer markers, and the current-time indicator.
+
+### Sub-Phase 52.2: Twirl-Downs
+- [ ] Layer → groups (Transform, Appearance, Effects, States, Behaviours, Links) → properties, each with a stopwatch toggle that enables keyframing.
+- [ ] `U` reveals only animated properties; `UU` reveals every modified one.
+
+### Sub-Phase 52.3: Navigation
+- [ ] Ruler scrubbing, zoom to work area, J/K/L shuttle, I/O to jump to in/out, B/N to set the work area, Page Up/Down to step one frame (Shift for 10). All are Phase 43 commands with timeline focus.
+
+### Sub-Phase 52.4: Scale
+- [ ] Keyframe lanes are canvas-rendered (not one DOM node per keyframe) and virtualised: 200 layers × 20 properties stay smooth. The scheduler draws the CTI.
+
+### Sub-Phase 52.5: Nested and Interaction Compositions
+- [ ] Double-clicking a nested composition bar opens it in a new timeline tab with breadcrumbs.
+- [ ] Interaction compositions (hover, press, scroll) appear as their own tabs, with the trigger shown in the tab header, so the web model stays visible.
+
+**Reuse:** `MotionSequencer.tsx`, `KeyframeTrack.tsx`, `TrackHeader.tsx`, `PlayheadControls.tsx`, `ScrollTriggerBar.tsx` (visuals; their state moves to the transport and the document).
+**Verification Gate:** A 25-step Playwright journey using AE-standard actions (trim bars, set the work area, twirl down, `U`, J/K/L, open a precomp) asserts the exact resulting state. A 200-layer composition scrubs at 60 fps. Timeline and Layers panel selection are always in sync.
+
+---
+
+## Phase 53: On-Canvas Motion Editing
+**Goal:** Edit motion where it happens: motion paths with keyframe dots on the stage, onion skinning, and live values while scrubbing.
+**Depends on:** 16, 49, 52
+
+- [ ] **53.1 Motion path overlay.** Position keyframes draw as a path with keyframe dots and per-frame ticks (tick spacing shows speed, as in AE). Drag a dot to change that keyframe's value; drag bezier handles for **spatial** interpolation (a new track field, separate from temporal easing).
+- [ ] **53.2 Auto-key on the stage.** In record mode, dragging a layer at the playhead writes keyframes (shared with 23.2).
+- [ ] **53.3 Onion skin.** N ghost frames before and after at adjustable opacity, drawn from `evaluate()` at offset times.
+- [ ] **53.4 Value HUD.** While scrubbing, x, y, rotation and opacity are shown next to the layer.
+
+**Verification Gate:** Dragging a motion-path dot changes exactly that keyframe (1 undo step). Sampled positions along a spatial-bezier path match `evaluate()` within 0.5 px. An onion skin with 5 ghosts keeps 60 fps.
+
+---
+
+## Phase 54: Asset Pipeline & Media Layers
+**Goal:** Real assets (images, SVG, fonts, GLTF, video, audio) stored locally, referenced by the document, and synced to time.
+**Closes:** AUD-37 · **Depends on:** 3, 45
+
+- [ ] **54.1 Asset store.** Content-hashed blobs in IndexedDB and a `document.assets` manifest (type, hash, name, size, duration). Import by drag-and-drop or paste. SVG and GLTF are sanitised; thumbnails render in a worker. The hard-coded Unsplash defaults in the registry are replaced by bundled sample assets.
+- [ ] **54.2 Files.** `.lazy.json` (Phase 3.3) embeds or links assets; export ZIPs include only referenced assets.
+- [ ] **54.3 Video layers.** `<video>` synced to the transport (seek on scrub, rate on play), trimmed by the Phase 46 in/out points.
+- [ ] **54.4 Audio layers.** A waveform lane in the timeline, audio scrubbing, and optional beat markers to sync motion to sound. Audio is included in video renders (Phase 55).
+
+**Verification Gate:** 200 MB of assets survive a reload. After 20 random seeks, a video layer shows the frame for time `t` within 1 frame. An export ZIP contains exactly the referenced assets.
+
+---
+
+## Phase 55: Render Queue — Video, GIF, Lottie & Image Sequences
+**Goal:** An After Effects-style render queue: motion out as media, not only as code.
+**Depends on:** 9, 45, 48 (54 for audio)
+
+- [ ] **55.1 Frame-accurate capture.** The transport runs in deterministic mode one frame at a time. Capture uses headless Chromium (the Phase 4 harness) on the server, or an in-browser path where it is faithful. Record the choice in `decisions/0004-render-capture.md`.
+- [ ] **55.2 Encoders.** MP4/WebM through WebCodecs plus a muxer, GIF with palette quantisation, PNG sequences and poster frames. Settings: resolution, fps, work area only, transparent background (WebM/PNG).
+- [ ] **55.3 Lottie export** for the subset that maps (transform, opacity, shape paths, trim paths). The rules decide eligibility and explain what can't be exported.
+- [ ] **55.4 Queue UI.** Several jobs, progress, cancel, and output presets.
+
+**Verification Gate:** A 5-second, 60 fps composition renders to MP4, and its frames match `evaluate()` screenshots above a PSNR threshold. GIF and PNG-sequence outputs are verified the same way. Lottie output of eligible reference effects plays in `lottie-web` with ≤ 2% pixel difference.
+
+---
+
+## Phase 56: Workers, Baking & Hot-Path Performance
+**Goal:** The main thread handles input and DOM writes; heavy math runs in workers.
+**Depends on:** 5, 9, 45
+
+- [ ] **56.1 Worker pool** (consolidating `WasmWorkerPool.ts` per the Phase 5 decision) for path-morph matching, arc-length tables, spring baking, spatial-index rebuilds, thumbnails and waveforms.
+- [ ] **56.2 Caches** keyed by content hash (baked curves, path tables), invalidated by document patches.
+- [ ] **56.3 Hot-path rules:** no per-frame `sort`, `JSON` round trips or string parsing in `evaluate()` (a benchmark test guards the common paths).
+- [ ] **56.4 Frame telemetry** in the status bar (frame time p95, dropped frames) from the scheduler.
+
+**Verification Gate:** A DevTools trace of a scripted 60-second editing session shows **0** main-thread long tasks ≥ 50 ms. Morphing a 500-node path while scrubbing drops no frames.
+
+---
+
+## Phase 57: Legacy Runtime Retirement
+**Goal:** Delete the parallel systems that Track S replaces: one renderer, one clock, one evaluator.
+**Depends on:** 10, 20, 23, 27, 48, 52
+
+- [ ] **57.1** Remove from the design path: `buildSandboxDocument` / `generateElementMarkup`, `interpolateTrackValue`, the `SANDBOX_HOT_PATCH` design messages, the code generation in `MultiEngineAnimationRuntime.ts` (moved to the exporters in Phase 27), `AnimationSample` (Phase 7), and duplicate transform synthesisers.
+- [ ] **57.2** Split `panels.css` (7,308 lines) per panel and delete unused selectors (Playwright CSS coverage).
+- [ ] **57.3** A CI grep gate with a list of forbidden identifiers and imports.
+
+**Verification Gate:** The grep gate is green, the bundle-size drop is recorded, and the full Playwright and parity suites pass.
+
+---
+
+## Phase 58: Studio Architecture Integration Gate
+**Goal:** Prove the Figma / Wix Studio viewport plus the After Effects timeline end to end, before the release gate.
+**Depends on:** 20–24, 41–57 · **Runs before:** 40
+
+- [ ] **58.1 Journey A (Design):** create two frames, build a card with auto-layout and constraints, override it at the Mobile breakpoint.
+- [ ] **58.2 Journey B (Animate):** a 3-scene intro in the AE timeline with a nested composition, a parent chain, a luma matte, a `wiggle` expression and markers; edit a motion path on the canvas; check the onion skin.
+- [ ] **58.3 Journey C (Output):** export React (parity passes), render MP4 (parity passes), save and reopen the `.lazy.json` file (identical).
+- [ ] **58.4** All three journeys stay inside the Phase 26 performance budgets.
+
+**Verification Gate:** The three journeys pass as Playwright scripts in CI on Chromium, WebKit and Firefox, plus one recorded manual run.
+
+---
+
 # TRACK H — RELEASE
 
 ---
@@ -947,6 +1423,7 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 40: Initial Phase v2 Release Gate
 **Goal:** Prove PRD §11 end to end and ship a public beta of the Initial Phase.
 **Depends on:** all
+> **v2.1 amendment:** Runs after Phase 58 (Studio Architecture Integration Gate). The 40.2 matrices also include the render queue (55) and breakpoint parity (50).
 
 - [ ] **40.1** Run all 8 PRD §11 Definition-of-Done scenarios as automated Playwright journeys plus a recorded manual run.
 - [ ] **40.2** Full matrices green: export parity (Phase 27/28), performance budgets (26), accessibility (29), AI evals (33), recognition accuracy (36).
@@ -962,13 +1439,14 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 
 | Milestone | After phase | What you can demo |
 |---|---|---|
-| **M1 · Solid Ground** | 6 | Same features as today, but it type-checks, builds, persists, and is verified in browsers |
-| **M2 · Real Motion Core** | 13 | Keyframes, states, pointer and scroll motion that actually run on stage and match the math |
+| **M1 · Solid Ground** | 6, 41–44 | Same features as today, but it type-checks, builds, persists and is verified in browsers. Gestures are single undo steps; one property vocabulary; Design / Animate / Code workspaces |
+| **M2 · Real Motion Core** | 13, 45–48 | Keyframes, states, pointer and scroll motion running on a live-DOM stage from one clock, matching the math; compositions with nesting and expressions |
 | **M3 · All Engines Live** | 19 | GSAP (or its cleared alternative), Motion, SVG, text, Three.js and shaders running in the editor |
-| **M4 · The Studio** | 26 | Figma-grade stage, Simple/Pro properties, Timeline 2.0, Playground, 40+ effects, measured performance |
-| **M5 · Trustworthy Export** | 29 | Every effect exports to React/Vue/vanilla/CSS, builds, and matches the preview; accessible |
+| **M4 · The Studio** | 26, 49–53, 56 | Figma / Wix Studio canvas (multi-frame, auto-layout, breakpoints), After Effects timeline (bars, twirl-downs, work area, precomps), on-canvas motion paths, Simple/Pro properties, Playground, 40+ effects, measured performance |
+| **M5 · Trustworthy Export** | 29, 54–55 | Every effect exports to React/Vue/vanilla/CSS, builds, and matches the preview; accessible. Assets and media layers; video, GIF and Lottie render queue |
 | **M6 · AI-Native** | 34 | Prompt → animation, co-pilot edits, reference-based generation, measured quality |
 | **M7 · Draw It** | 39 | Oval → ellipse, line → motion path, sketch → UI, three-step Simple mode |
+| **M7.5 · Studio Proven** | 57, 58 | Legacy runtime deleted; Design → Animate → Output journeys green in three browsers |
 | **M8 · Beta** | 40 | Public beta of the Initial Phase |
 
 ---
@@ -982,6 +1460,7 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 - **Track E:** 27 starts per engine as engines land; 28 and 29 follow.
 - **Track F:** 30 can start right after Phases 2 and 8 (it doesn't need the engines). 31 needs the library for good results.
 - **Track G:** 35–36 only need Phase 20 and can be built early by a separate owner. 37 needs 16; 38 needs 31; 39 comes last.
+- **Track S (v2.1):** see §5.1 for where each phase slots in. In short: 41 before 3; 42 in parallel with 3; 43 → 44 alongside 6; 46 right after 7; 45 and 48 before 10; 49 before 20; 52 before 23; 47, 51, 53–56 as their dependencies land; 57 → 58 just before 40. With two owners, one can take the **time stack** (45, 46, 47, 52, 55) while the other takes the **space stack** (42, 48, 49, 50, 51, 53).
 
 ---
 

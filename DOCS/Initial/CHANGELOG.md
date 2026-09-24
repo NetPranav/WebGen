@@ -9,6 +9,53 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.0] — 2026-09-24
+
+### Phase 3 (Store, History & Persistence): gate passed locally in 3 browsers, CI pending
+
+#### Added
+- **Patch-based undo/redo** (`historyCommands` in `useDocumentStore.ts`, `useHistoryStore.ts`): document entries are Immer patches; After-track actions keep project-state entries that no longer copy the document. The stack holds 200 entries, and a corrupt entry is dropped with `[UNDO_STACK_CORRUPT]`.
+- **Transactions and gesture coalescing** (Phase 41.2): `documentCommands.begin(label)` with `commit()` / `cancel()`, transient vs durable change events, and `installGestureCoalescing(window)` so every pointer press is one undo step. Repeated value edits within 1 s merge; structural edits don't.
+- **`diffPatches`** (`src/core/document/diff.ts`): a structural diff to Immer patches that squashes transactions and merges.
+- **IndexedDB storage** (`src/core/storage/idb.ts`, `ProjectDatabase.ts`): projects, summaries and undo history, a one-time move from localStorage, and an in-memory fallback.
+- **`ProjectSession`**: load, debounced autosave (never mid-gesture), flush on tab hide and Cmd+S, a crash-recovery journal with a "Restore unsaved changes?" prompt, save status, and storage-full errors.
+- **`.lazy.json` files** (`lazyFile.ts`): versioned export/import with migration and validation. File → Export Project File / Import Project File, and drag-and-drop onto the window.
+- Global Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Ctrl+Y.
+- `tests/e2e/phase3-persistence.mjs` (browser gate), and 5 new unit suites. Dev dependency: `fake-indexeddb`.
+
+#### Changed
+- `useProjectStore` no longer has `undo` / `redo` / `jumpToHistoryState`; use `historyCommands`. Commands without a label are recorded as "Edit" (every durable change is undoable).
+- `ProjectDatabase` is async.
+- The Project Hub waits for the new project to be saved before navigating.
+
+#### Fixed
+- The undo/redo buttons and Cmd+Z did nothing. Undoing "Mount Showcase Demo" or "Clear Canvas" restored the demo instead of the previous state. A drag recorded ~60 full-project snapshots. There was no autosave, and the unsaved indicator never lit. The Co-pilot auto-fix took two undo steps.
+
+#### Docs
+- ROADMAP: Phase 3 checklist and progress log; 41.2 marked done; the AUD-05 Code view and Playground checks moved to Phases 27 and 24. AUDIT: AUD-05 and AUD-08 closed (CI pending); new findings AUD-39 and AUD-40.
+
+---
+
+## [2.3.0] — 2026-09-24
+
+### Roadmap v2.1: Track S (Studio Architecture), Phases 41–58
+
+Docs only; no code changed.
+
+#### Added
+- **ROADMAP §4.1 Architecture Review v2.1:** what stands between today's code and a Figma / Wix Studio canvas with an After Effects timeline, with code evidence and a target architecture diagram.
+- **Laws 8–11:** One Clock, Hot-Path, Document-Space, One Renderer.
+- **Track S, 18 phases:** 41 Store Decomposition & Transactions · 42 Canonical Property Paths & Geometry · 43 Command Bus & Tool State Machine · 44 Workspace Architecture & Layout Presets · 45 Transport, Global Clock & Frame Scheduler · 46 Compositions, Layer Time Bars & Nesting · 47 Property Links & Expressions · 48 Stage Renderer v2 · 49 Viewport Engine · 50 Auto-Layout, Constraints & Breakpoints · 51 Layer Compositing · 52 After Effects–Style Timeline · 53 On-Canvas Motion Editing · 54 Asset Pipeline & Media Layers · 55 Render Queue (video/GIF/Lottie) · 56 Workers & Hot-Path Performance · 57 Legacy Runtime Retirement · 58 Studio Architecture Integration Gate.
+- **§5.1 Execution Order:** phase numbers stay stable; the new phases slot in between existing ones (41 before 3, 48 before 10, 49 before 20, 52 before 23, 58 before 40).
+- **AUDIT §2.I:** AUD-29 … AUD-38 (string-iframe stage, no global clock, no geometry, three property vocabularies, `postMessage("*")` broadcast, one store for everything, shell layout state, no composition model, no asset pipeline, linear-only scrubbing).
+
+#### Changed
+- Phases 3, 7, 9, 10, 20, 22, 23, 24, 27, 35 and 40 carry a "v2.1 amendment" note describing how Track S changes them. Phase 23's timeline structure moves to Phase 52.
+- Milestones M1, M2, M4 and M5 now include Track S phases. New milestone M7.5 (Studio Proven).
+- Next phase is now 41, then 3.
+
+---
+
 ## [2.2.0] — 2026-09-24
 
 ### Phase 2 (Unified Motion Document Model): complete (CI green on PR #6)
