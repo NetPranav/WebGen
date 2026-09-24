@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.0.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phase 1 (Build Health & CI) green locally; its gate waits on the first GitHub CI run and branch protection.
+**Status:** Active. Phase 1 ✅ (CI enforced by convention; see Phase 1 log). Next: Phase 2 (MDM v2).
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -65,7 +65,7 @@ A phase is **✅ COMPLETE** only when:
 
 | # | Track | Phase | Key deliverable | Depends on | Status |
 |---|---|---|---|---|---|
-| 1 | A · Solid Ground | Build Health & CI | 0 TS / 0 lint errors, CI, `next build` green | — | 🔶 CI green; branch protection blocked (plan) |
+| 1 | A · Solid Ground | Build Health & CI | 0 TS / 0 lint errors, CI, `next build` green | — | ✅ (enforcement by convention) |
 | 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | 📋 |
 | 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | 📋 |
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | 📋 |
@@ -135,12 +135,14 @@ A phase is **✅ COMPLETE** only when:
 
 ### Sub-Phase 1.4: Continuous Integration
 - [x] `.github/workflows/ci.yml`: install → typecheck → lint → test → build, on every push and PR. *(First GitHub run green on ubuntu-latest: run 35996342152.)*
-- [ ] Branch protection on `main` requiring CI green. *Blocked:* GitHub returns 403 for branch protection and rulesets on this private repo without GitHub Pro. Options: upgrade to Pro, make the repo public, or enforce by convention (merge to `main` only through PRs with a green `verify` check).
+- [x] Branch protection on `main` requiring CI green, **by convention** (decided 2026-09-24): merge to `main` only through PRs with a green `verify` check. *Technical enforcement blocked:* GitHub returns 403 for branch protection and rulesets on this private repo without GitHub Pro. Options: upgrade to Pro, make the repo public, or enforce by convention (merge to `main` only through PRs with a green `verify` check).
 
 **Key files:** `package.json`, `.github/workflows/ci.yml`, `tsconfig.json`, `eslint.config.mjs`
 **Verification Gate:** A fresh clone runs `npm ci && npm run typecheck && npm run lint && npm test && npm run build` with 0 errors on Linux CI. A PR that introduces a type error is blocked.
 
 ### Phase 1 Progress Log
+**2026-09-24: ✅ Phase 1 complete (enforcement by convention).** `main` now carries the studio (PR #3, merged with a green `verify`). The previous webgen site is preserved on `main-webgen-backup`. Caveat: nothing technically blocks a red PR until the repo gets GitHub Pro or goes public; add the required check then.
+
 **2026-09-24 (update): CI green on GitHub (Linux).** Branch protection is blocked by the GitHub plan (see 1.4). The gate still needs a blocked-PR demonstration, which requires enforcement.
 
 **2026-09-24: green locally, CI gate pending.** On macOS after a clean `npm ci`: `typecheck` 0 errors (was 162), `lint` 0 errors / 467 warnings (was 179 / 494), `npm test` 594/594, `next build` succeeds. The phase stays open until: (1) the workflow passes on GitHub (Linux), (2) branch protection is on for `main`, and (3) a PR with a deliberate type error is shown to be blocked.
