@@ -158,9 +158,9 @@ A finding is **Closed** only when the phase that owns it passes its Verification
 
 | ID | Status | Notes |
 |---|---|---|
-| AUD-01 | 🔶 Fixed locally | `tsc --noEmit`: 162 → 0 errors (baseline in `audit/tsc-baseline.txt`). `npm test` now runs `typecheck` first. Closes when Linux CI is green. |
-| AUD-02 | 🔶 Fixed locally | ESLint: 179 → 0 errors, 494 → 467 warnings. Warning budget enforced by `--max-warnings`. Closes when Linux CI is green. |
-| AUD-03 | 🔶 In progress | `.github/workflows/ci.yml` written, not yet run on GitHub. Branch protection on `main` not yet enabled. |
+| AUD-01 | 🔶 Fixed, CI green | `tsc --noEmit`: 162 → 0 errors (baseline in `audit/tsc-baseline.txt`). `npm test` now runs `typecheck` first. Closes when Linux CI is green. |
+| AUD-02 | 🔶 Fixed, CI green | ESLint: 179 → 0 errors, 494 → 467 warnings. Warning budget enforced by `--max-warnings`. Closes when Linux CI is green. |
+| AUD-03 | 🔶 In progress | CI workflow runs and passes on GitHub (Linux). Required-check enforcement on `main` is blocked: this private repo needs GitHub Pro for branch protection or rulesets. |
 | AUD-05 | Partial (read side) | Sequencer and Curve Editor now read `properties.animationStack`, where writes land (Phase 1). The model fix remains Phase 2; the undo regression test remains Phase 3. |
 | AUD-07 | Partial | `src/core/ids.ts` `createId()` implements the prefix + 8-hex rule. Used in a few editor handlers so far; full adoption is Phase 2.3. |
 

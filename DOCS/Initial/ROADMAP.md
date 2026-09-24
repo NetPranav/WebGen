@@ -65,7 +65,7 @@ A phase is **✅ COMPLETE** only when:
 
 | # | Track | Phase | Key deliverable | Depends on | Status |
 |---|---|---|---|---|---|
-| 1 | A · Solid Ground | Build Health & CI | 0 TS / 0 lint errors, CI, `next build` green | — | 🔶 Green locally; CI gate pending |
+| 1 | A · Solid Ground | Build Health & CI | 0 TS / 0 lint errors, CI, `next build` green | — | 🔶 CI green; branch protection blocked (plan) |
 | 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | 📋 |
 | 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | 📋 |
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | 📋 |
@@ -134,13 +134,15 @@ A phase is **✅ COMPLETE** only when:
 - [x] Commit the `@next/swc-darwin-arm64` devDependency decision (it is uncommitted as of the audit). Prefer letting Next resolve SWC per platform, so Linux CI doesn't break. *Decision:* removed; the lockfile already lists every platform's SWC binary as optional.
 
 ### Sub-Phase 1.4: Continuous Integration
-- [~] `.github/workflows/ci.yml`: install → typecheck → lint → test → build, on every push and PR. *(Written; not yet run on GitHub.)*
-- [ ] Branch protection on `main` requiring CI green.
+- [x] `.github/workflows/ci.yml`: install → typecheck → lint → test → build, on every push and PR. *(First GitHub run green on ubuntu-latest: run 35996342152.)*
+- [ ] Branch protection on `main` requiring CI green. *Blocked:* GitHub returns 403 for branch protection and rulesets on this private repo without GitHub Pro. Options: upgrade to Pro, make the repo public, or enforce by convention (merge to `main` only through PRs with a green `verify` check).
 
 **Key files:** `package.json`, `.github/workflows/ci.yml`, `tsconfig.json`, `eslint.config.mjs`
 **Verification Gate:** A fresh clone runs `npm ci && npm run typecheck && npm run lint && npm test && npm run build` with 0 errors on Linux CI. A PR that introduces a type error is blocked.
 
 ### Phase 1 Progress Log
+**2026-09-24 (update): CI green on GitHub (Linux).** Branch protection is blocked by the GitHub plan (see 1.4). The gate still needs a blocked-PR demonstration, which requires enforcement.
+
 **2026-09-24: green locally, CI gate pending.** On macOS after a clean `npm ci`: `typecheck` 0 errors (was 162), `lint` 0 errors / 467 warnings (was 179 / 494), `npm test` 594/594, `next build` succeeds. The phase stays open until: (1) the workflow passes on GitHub (Linux), (2) branch protection is on for `main`, and (3) a PR with a deliberate type error is shown to be blocked.
 
 Fixes that were real bugs, not just types:
