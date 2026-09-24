@@ -45,11 +45,11 @@ describe("Phase 4.3 & 4.4: ScrollTrigger & Stagger/Loop Manager", () => {
 
   describe("Ambient Infinite Loop Policy (Sub-Phase 4.4)", () => {
     it("should recognize repeat: -1 as continuous infinite ambient loop", () => {
-      const ambientRepeat = -1;
+      const ambientRepeat: number = -1;
       const isInfinite = ambientRepeat === -1;
       assert.strictEqual(isInfinite, true);
 
-      const playOnce = 0;
+      const playOnce: number = 0;
       assert.strictEqual(playOnce === -1, false);
     });
   });

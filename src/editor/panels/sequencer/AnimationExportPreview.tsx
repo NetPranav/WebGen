@@ -54,7 +54,7 @@ export const AnimationExportPreview: React.FC<AnimationExportPreviewProps> = ({
   const targetId = elementId || activePage?.rootElementId || Object.keys(elements)[0] || "comp_hero";
   const activeElement: ProjectElement | undefined = elements[targetId];
   const targetName = elementName || activeElement?.name || "Untitled";
-  const archetype = activeElement?.type || "button";
+  const archetype = activeElement?.archetype || "button";
   const cleanName = targetName.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
 
   // Generate deterministic code based on framework & lowering compiler
@@ -422,7 +422,7 @@ export function init${targetName.replace(/[^a-zA-Z0-9]/g, "")}Animation(targetEl
     const lines = output.split("\n").length;
     const bytes = new Blob([output]).size;
     return { code: output, lineCount: lines, sizeBytes: bytes, dependencyCount: depCount, targetLabel: label };
-  }, [framework, targetName, targetId]);
+  }, [framework, targetName, targetId, archetype, cleanName]);
 
   const handleCopy = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {

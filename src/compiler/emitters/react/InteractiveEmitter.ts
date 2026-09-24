@@ -46,9 +46,9 @@ export class InteractiveEmitter {
 
     const props = element.properties || {};
     const label = String(props.label || props.text || element.name || "Click Me");
-    const isToggle = element.archetype === "toggle" || element.type === "toggle";
-    const isBadge = element.archetype === "badge" || element.type === "badge";
-    const isFab = element.archetype === "fab" || element.type === "fab";
+    const isToggle = element.archetype === "toggle";
+    const isBadge = element.archetype === "badge";
+    const isFab = element.archetype === "fab";
 
     if (isToggle) {
       return this.emitToggle(componentName, label, props, styling, hookCall, refProp);
@@ -64,7 +64,7 @@ export class InteractiveEmitter {
   private static emitButton(
     name: string,
     label: string,
-    props: Record<string, any>,
+    props: Record<string, unknown>,
     styling: string,
     hookCall: string,
     refProp: string
@@ -178,7 +178,7 @@ export default ${name};
   private static emitToggle(
     name: string,
     label: string,
-    props: Record<string, any>,
+    props: Record<string, unknown>,
     styling: string,
     hookCall: string,
     refProp: string
@@ -326,7 +326,7 @@ export default ${name};
   private static emitBadge(
     name: string,
     label: string,
-    props: Record<string, any>,
+    props: Record<string, unknown>,
     styling: string,
     hookCall: string,
     refProp: string
@@ -421,7 +421,7 @@ export default ${name};
   private static emitFab(
     name: string,
     label: string,
-    props: Record<string, any>,
+    props: Record<string, unknown>,
     styling: string,
     hookCall: string,
     refProp: string

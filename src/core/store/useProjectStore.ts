@@ -511,6 +511,8 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
 
 export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   ...INITIAL_PROJECT_STATE,
+  // Snapshots keep `environment` optional for pre-environment saves; live state always has it.
+  environment: INITIAL_PROJECT_STATE.environment ?? DEFAULT_ENVIRONMENT_SETTINGS,
 
   getDataContext: (): DataContext => {
     const state = get();

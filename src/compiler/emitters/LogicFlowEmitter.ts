@@ -18,6 +18,10 @@ import {
 } from "@/core/ast/ASTManager";
 import { LogicFlowEmitterOptions, EmittedFile } from "@/core/types/compiler";
 
+/** Older saved graphs used `typeId` on nodes, array-shaped `nodes`, and `connections` for wires. */
+type LegacyBlueprintNode = BlueprintNodeInstance & { typeId?: string };
+type LegacyBlueprintGraph = BlueprintGraph & { connections?: BlueprintWire[] };
+
 export class LogicFlowEmitter {
   /**
    * Sanitizes graph name to a clean PascalCase or camelCase function name.
@@ -40,7 +44,7 @@ export class LogicFlowEmitter {
   public static getNode(graph: BlueprintGraph, nodeId: string): BlueprintNodeInstance | undefined {
     if (!graph || !graph.nodes) return undefined;
     if (Array.isArray(graph.nodes)) {
-      return (graph.nodes as any[]).find((n) => n?.id === nodeId);
+      return (graph.nodes as unknown as LegacyBlueprintNode[]).find((n) => n?.id === nodeId);
     }
     return graph.nodes[nodeId];
   }
@@ -51,7 +55,8 @@ export class LogicFlowEmitter {
   public static getWires(graph: BlueprintGraph): BlueprintWire[] {
     if (!graph) return [];
     if (Array.isArray(graph.wires)) return graph.wires;
-    if (Array.isArray((graph as any).connections)) return (graph as any).connections;
+    const { connections } = graph as LegacyBlueprintGraph;
+    if (Array.isArray(connections)) return connections;
     return [];
   }
 
@@ -59,7 +64,7 @@ export class LogicFlowEmitter {
    * Generates a safe variable name for a node's output.
    */
   public static getNodeVarName(node: BlueprintNodeInstance): string {
-    const rawType = node?.type || (node as any)?.typeId || "node";
+    const rawType = node?.type || (node as LegacyBlueprintNode)?.typeId || "node";
     const cleanType = rawType.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
     const shortId = (node?.id || "unknown").replace(/[^a-zA-Z0-9]/g, "").substring(0, 6);
     return `${cleanType}_${shortId}`;
@@ -142,7 +147,7 @@ export class LogicFlowEmitter {
     const varName = LogicFlowEmitter.getNodeVarName(node);
     nodeVarMap.set(node.id, varName);
 
-    const nodeType = (node.type || (node as any).typeId || "").toLowerCase();
+    const nodeType = (node.type || (node as LegacyBlueprintNode).typeId || "").toLowerCase();
 
     // 1. Branch / Condition Node
     if (nodeType.includes("branch") || nodeType === "flow/branch") {
@@ -302,14 +307,10 @@ export class LogicFlowEmitter {
     lines.push("");
 
     // Safely extract node list and wire list whether array or object map
-    const nodeList = Array.isArray(graph.nodes)
-      ? (graph.nodes as any[])
+    const nodeList: LegacyBlueprintNode[] = Array.isArray(graph.nodes)
+      ? (graph.nodes as unknown as LegacyBlueprintNode[])
       : Object.values(graph.nodes || {});
-    const wireList = Array.isArray(graph.wires)
-      ? graph.wires
-      : Array.isArray((graph as any).connections)
-      ? (graph as any).connections
-      : [];
+    const wireList = LogicFlowEmitter.getWires(graph);
 
     // Imports
     const hasDbNode = nodeList.some((n) => {
@@ -335,7 +336,7 @@ export class LogicFlowEmitter {
       const typeStr = (node?.type || node?.typeId || "").toLowerCase();
       if (typeStr.startsWith("event/")) return true;
       const hasIncomingExec = wireList.some(
-        (w: any) => w.targetNodeId === node.id && (w.isExec || w.targetPinId === "exec")
+        (w) => w.targetNodeId === node.id && (w.isExec || w.targetPinId === "exec")
       );
       return !hasIncomingExec;
     });

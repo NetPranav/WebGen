@@ -6,6 +6,7 @@ import {
   normalizeRouteSlug,
 } from "../../../../core/types/routing";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
+import type { DiagnosticEvent } from "../../../../core/types/diagnostics";
 
 describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
   describe("Route Slug & Parameter Extraction Utilities", () => {
@@ -154,7 +155,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
     });
 
     it("detects route collisions and dispatches [ROUTE_COLLISION] diagnostics", () => {
-      const diagnosticEvents: any[] = [];
+      const diagnosticEvents: DiagnosticEvent[] = [];
       const unsub = DiagnosticBus.subscribe((e) => {
         if (e.channel === "ROUTE_COLLISION") {
           diagnosticEvents.push(e);

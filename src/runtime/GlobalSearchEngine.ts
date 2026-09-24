@@ -22,11 +22,14 @@ import { useProjectStore } from "../core/store/useProjectStore";
 import { useSelectionStore } from "../core/store/useSelectionStore";
 import { DiagnosticBus } from "../core/engine/DiagnosticBus";
 import { getNodeDefinition } from "../core/types/node-registry";
+import { errorMessage } from "@/core/errors";
+import type { BlueprintVariable } from "@/core/ast/ASTManager";
 
 export class GlobalSearchEngineManager {
   private entries: SearchIndexEntry[] = [];
   private tokenIndex: Map<string, Set<number>> = new Map();
   private recentSearches: string[] = [];
+  private recentSearchListeners = new Set<() => void>();
   private lastIndexedTimestamp: number = 0;
 
   constructor() {
@@ -70,11 +73,24 @@ export class GlobalSearchEngineManager {
     return [...this.recentSearches];
   }
 
+  /** Stable snapshot for `useSyncExternalStore`; replaced (never mutated) on change. */
+  public getRecentSearchesSnapshot = (): readonly string[] => this.recentSearches;
+
+  public subscribeRecentSearches = (listener: () => void): (() => void) => {
+    this.recentSearchListeners.add(listener);
+    return () => this.recentSearchListeners.delete(listener);
+  };
+
+  private notifyRecentSearches(): void {
+    this.recentSearchListeners.forEach((listener) => listener());
+  }
+
   public addRecentSearch(query: string): void {
     const trimmed = query.trim();
     if (!trimmed || trimmed.length < 2) return;
     this.recentSearches = [trimmed, ...this.recentSearches.filter((q) => q.toLowerCase() !== trimmed.toLowerCase())].slice(0, 10);
     this.saveRecentSearches();
+    this.notifyRecentSearches();
   }
 
   public clearRecentSearches(): void {
@@ -82,6 +98,7 @@ export class GlobalSearchEngineManager {
     if (typeof window !== "undefined" && window.localStorage) {
       localStorage.removeItem("antigravity_recent_searches");
     }
+    this.notifyRecentSearches();
   }
 
   /**
@@ -183,7 +200,7 @@ export class GlobalSearchEngineManager {
           const nodeDef = getNodeDefinition(node.type);
           const category = nodeDef?.category || "General";
           const description = nodeDef?.description || "";
-          const pinNames = (nodeDef?.inputs || []).concat(nodeDef?.outputs || []).map((p: any) => p.name);
+          const pinNames = (nodeDef?.inputs || []).concat(nodeDef?.outputs || []).map((p) => p.name);
           addEntry(
             node.id,
             "blueprint_node",
@@ -196,8 +213,10 @@ export class GlobalSearchEngineManager {
         }
 
         // Blueprint Graph Variables
-        const rawVars = Array.isArray(graph.variables) ? graph.variables : Object.values(graph.variables || {});
-        for (const v of rawVars as any[]) {
+        const rawVars: BlueprintVariable[] = Array.isArray(graph.variables)
+          ? graph.variables
+          : Object.values(graph.variables || {});
+        for (const v of rawVars) {
           addEntry(
             v.id,
             "blueprint_variable",
@@ -268,12 +287,12 @@ export class GlobalSearchEngineManager {
       this.entries = newEntries;
       this.tokenIndex = newTokenIndex;
       this.lastIndexedTimestamp = Date.now();
-    } catch (err: any) {
+    } catch (err) {
       DiagnosticBus.emit({
         channel: "SEARCH_INDEX_DESYNC",
         severity: "warning",
         source: { panel: "Panel 25: Global Search", entityId: "search_index" },
-        message: `Inverted search index desync: ${err?.message || String(err)}`,
+        message: `Inverted search index desync: ${errorMessage(err)}`,
       });
     }
   }

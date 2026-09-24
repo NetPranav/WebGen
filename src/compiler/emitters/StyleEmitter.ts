@@ -11,8 +11,16 @@
  */
 
 import { ProjectElement } from "@/core/store/useProjectStore";
-import { ThemeConfig } from "@/core/types/theme";
+import { ColorTokens, WireColorTokens } from "@/core/types/theme";
 import { StyleEmitterOptions, EmittedFile } from "@/core/types/compiler";
+
+/** The part of a theme that `emitTokens` reads. Partial token maps are allowed. */
+export interface TokenThemeInput {
+  colors?: Partial<ColorTokens>;
+  wires?: Partial<WireColorTokens>;
+  /** Legacy name for `wires`. */
+  wireColors?: Partial<WireColorTokens>;
+}
 
 export class StyleEmitter {
   /**
@@ -74,7 +82,7 @@ export class StyleEmitter {
    * Compiles design tokens into `:root { --... }` CSS custom properties.
    */
   public static emitTokens(
-    theme: Partial<ThemeConfig>,
+    theme: TokenThemeInput,
     options?: StyleEmitterOptions
   ): EmittedFile {
     const indent = " ".repeat(options?.indent ?? 2);
@@ -99,7 +107,7 @@ export class StyleEmitter {
     }
 
     // 2. Wire & Data Type Colors
-    const wireTokens = theme.wires || (theme as any).wireColors;
+    const wireTokens = theme.wires || theme.wireColors;
     if (wireTokens) {
       lines.push("");
       lines.push(`${indent}/* --- Blueprint Wire & Data Type Colors --- */`);

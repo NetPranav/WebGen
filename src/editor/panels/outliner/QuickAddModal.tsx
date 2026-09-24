@@ -15,6 +15,7 @@ import React, { useState } from "react";
 import { Sparkles, X, Plus, Zap, Play, Eye } from "lucide-react";
 import { ArchetypeId, FamilyId } from "../launcher/archetypeData";
 import { AttachedAnimation } from "@/core/elements/types";
+import { createId } from "@/core/ids";
 
 export interface QuickAddModalProps {
   isOpen: boolean;
@@ -181,7 +182,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
   const handleSelect = (preset: PresetOption) => {
     const newAnim: AttachedAnimation = {
-      id: `anim_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      id: createId("anim"),
       name: preset.name,
       type: preset.type,
       trigger: preset.trigger,

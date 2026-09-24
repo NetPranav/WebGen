@@ -40,11 +40,14 @@ export const ScrubNumberInput: React.FC<ScrubNumberInputProps> = ({
   const startValRef = useRef(value);
 
   // Sync internal edit value when external value changes
-  useEffect(() => {
+  const syncKey = `${value}|${isEditing}`;
+  const [prevSyncKey, setPrevSyncKey] = useState(syncKey);
+  if (syncKey !== prevSyncKey) {
+    setPrevSyncKey(syncKey);
     if (!isEditing) {
       setEditValue(String(value));
     }
-  }, [value, isEditing]);
+  }
 
   const clampValue = (val: number): number => {
     let result = val;

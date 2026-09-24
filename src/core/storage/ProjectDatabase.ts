@@ -67,7 +67,7 @@ export function createDefaultBlankSnapshot(
   return {
     projectId,
     projectName,
-    scope: (settings?.scope as any) || "page",
+    scope: (settings?.scope as ProjectStateSnapshot["scope"]) || "page",
     rootArchetype: settings?.archetype || "container",
     target: {
       framework: settings?.framework || "nextjs-app",

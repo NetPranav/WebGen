@@ -79,6 +79,7 @@ import {
   Eye,
 } from "lucide-react";
 import { PanelTab } from "@/core/types/workspace";
+import { useLatestRef } from "@/core/hooks/useLatestRef";
 
 interface EditorShellProps {
   headerSlot?: React.ReactNode;
@@ -87,6 +88,12 @@ interface EditorShellProps {
   bottomPanels?: Record<string, React.ReactNode>;
   centerPanels?: Record<string, React.ReactNode>;
 }
+
+const ALL_BOTTOM_TABS: PanelTab[] = [
+  { id: "content-browser", title: "Content Browser", closable: false },
+  { id: "sequencer", title: "Motion Sequencer", closable: false },
+  { id: "export-code", title: "Export Preview", closable: false },
+];
 
 export const EditorShell: React.FC<EditorShellProps> = ({
   headerSlot,
@@ -109,8 +116,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
   type DockLayer = "left" | "right" | "bottom";
   const [activeLayer, setActiveLayer] = useState<DockLayer>("bottom");
-  const activeLayerRef = React.useRef<DockLayer>("bottom");
-  activeLayerRef.current = activeLayer;
+  const activeLayerRef = useLatestRef<DockLayer>(activeLayer);
   const layerTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
@@ -146,14 +152,14 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     }
   };
 
-  const handleZoneClick = (targetLayer: DockLayer) => {
+  const handleZoneClick = React.useCallback((targetLayer: DockLayer) => {
     // Immediate click bypasses dwell timer
     if (layerTimerRef.current) {
       clearTimeout(layerTimerRef.current);
       layerTimerRef.current = null;
     }
     setActiveLayer(targetLayer);
-  };
+  }, []);
 
   /* --------------------------------------------------------------------------
    * Active Tab State
@@ -276,7 +282,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [activeWorkspace, setActiveWorkspace] = useState("full-studio");
   const [isPlaying, setIsPlaying] = useState(false);
   const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [projectId, setProjectId] = useState<string>("");
+  const projectId = useProjectStore((s) => s.projectId) ?? "";
 
   const [selectedElement, setSelectedElement] = useState<{ id: string; name: string } | null>(null);
   const [focusedBlueprintNodeId, setFocusedBlueprintNodeId] = useState<string | null>(null);
@@ -347,13 +353,11 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       updatedUrl.searchParams.set("projectId", currentId);
       window.history.replaceState({}, "", updatedUrl.pathname + (updatedUrl.search ? updatedUrl.search : ""));
 
-      setProjectId(currentId);
       useProjectStore.getState().restoreSnapshot(newBlankSnapshot);
       useProjectStore.getState().setProjectId(currentId);
       if (name) useProjectStore.getState().setProjectName(name);
     } else {
       // Existing projectId provided in URL
-      setProjectId(currentId);
       const existing = ProjectDatabase.getProject(currentId);
       if (existing) {
         useProjectStore.getState().restoreSnapshot(existing.snapshot);
@@ -444,12 +448,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   } | null>(null);
 
   /** All bottom-drawer panel definitions (before filtering) */
-  const ALL_BOTTOM_TABS: PanelTab[] = [
-    { id: "content-browser", title: "Content Browser", closable: false },
-    { id: "sequencer", title: "Motion Sequencer", closable: false },
-    { id: "export-code", title: "Export Preview", closable: false },
-  ];
-
   /** Map panel IDs to titles for tear-off (includes console for output log) */
   const PANEL_TITLES: Record<string, string> = {
     "content-browser": "Content Browser",
@@ -713,7 +711,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         handleZoneClick("bottom");
       }
     },
-    []
+    [handleZoneClick]
   );
 
   /** Dropped on bottom bar: attach to original place but KEEP DRAWER CLOSED */
@@ -787,7 +785,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     onAttachBottomBar: handleAttachBottomBar,
     onCancelDrag: handleCancelDrag,
   });
-  startTearOffRef.current = startTearOff;
+  React.useLayoutEffect(() => {
+    startTearOffRef.current = startTearOff;
+  });
 
   // When in full-page mode, clicking outside the open bottom drawer / outliner auto-minimizes both
   React.useEffect(() => {

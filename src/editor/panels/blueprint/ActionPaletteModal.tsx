@@ -17,7 +17,7 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import {
   Search,
   Sparkles,
@@ -71,14 +71,21 @@ export const ActionPaletteModal: React.FC<ActionPaletteModalProps> = ({
   const listRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Reset search and selection whenever palette is opened
-  useEffect(() => {
+  // Reset search and selection whenever palette is opened (or re-targeted while open)
+  const [prevOpenState, setPrevOpenState] = useState({ isOpen, pendingWire });
+  if (prevOpenState.isOpen !== isOpen || prevOpenState.pendingWire !== pendingWire) {
+    setPrevOpenState({ isOpen, pendingWire });
     if (isOpen) {
       setSearchQuery("");
       setSelectedCategory("All");
       setSelectedIndex(0);
       setIsContextSensitive(true);
-      // Auto-focus input on open
+    }
+  }
+
+  // Auto-focus input on open
+  useEffect(() => {
+    if (isOpen) {
       setTimeout(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -163,10 +170,13 @@ export const ActionPaletteModal: React.FC<ActionPaletteModalProps> = ({
     return nodes;
   }, [searchQuery, selectedCategory, pendingWire, isContextSensitive, getCompatiblePinForNode]);
 
-  // Clamp selected index within range whenever filtered list changes
-  useEffect(() => {
+  // Reset selected index whenever the filtered list changes
+  const filterKey = `${filteredNodes.length}|${searchQuery}|${selectedCategory}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setSelectedIndex(0);
-  }, [filteredNodes.length, searchQuery, selectedCategory]);
+  }
 
   // Scroll active item into view
   useEffect(() => {
@@ -203,6 +213,14 @@ export const ActionPaletteModal: React.FC<ActionPaletteModalProps> = ({
     }
   };
 
+  // Measure the canvas container after layout so the modal can clamp to its edges
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!isOpen || !containerRef?.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setContainerSize({ width: rect.width, height: rect.height });
+  }, [isOpen, x, y, containerRef]);
+
   if (!isOpen) return null;
 
   // Compute exact viewport position starting directly at mouse cursor
@@ -216,8 +234,8 @@ export const ActionPaletteModal: React.FC<ActionPaletteModalProps> = ({
   let topPos = screenY;
   let computedMaxHeight = MODAL_MAX_HEIGHT;
 
-  if (containerRef?.current) {
-    const rect = containerRef.current.getBoundingClientRect();
+  if (containerSize) {
+    const rect = containerSize;
 
     // Horizontal clamping: if modal would overflow right canvas edge, shift left
     if (leftPos + MODAL_WIDTH > rect.width - 10) {

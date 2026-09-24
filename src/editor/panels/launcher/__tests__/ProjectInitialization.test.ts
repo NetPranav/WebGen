@@ -65,7 +65,7 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       assert.ok(rootId.startsWith("elem_img_"), `Expected id to start with elem_img_, got ${rootId}`);
 
       // Verify image default properties
-      const props = rootEl.properties as Record<string, any>;
+      const props = rootEl.properties;
       assert.ok(props.src, "Image must have a default source URL");
       assert.strictEqual(props.objectFit, "cover");
       assert.strictEqual(props.aspectRatio, "16:9");
@@ -228,9 +228,9 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       });
 
       // Invoke onClick for all three
-      elementCard.props.onClick();
-      componentCard.props.onClick();
-      pageCard.props.onClick();
+      elementCard.props.onClick?.();
+      componentCard.props.onClick?.();
+      pageCard.props.onClick?.();
 
       // Only element card can be activated
       assert.strictEqual(elementClicked, true);
@@ -260,10 +260,10 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       assert.strictEqual(state.projectName, projectName);
       assert.strictEqual(state.rootArchetype, "image");
       assert.strictEqual(state.scope, "element");
-      assert.strictEqual(state.target.framework, "nextjs-app");
-      assert.strictEqual(state.target.styling, "tailwind");
-      assert.strictEqual(state.target.animation, "gsap");
-      assert.strictEqual(state.target.language, "typescript");
+      assert.strictEqual(state.target?.framework, "nextjs-app");
+      assert.strictEqual(state.target?.styling, "tailwind");
+      assert.strictEqual(state.target?.animation, "gsap");
+      assert.strictEqual(state.target?.language, "typescript");
 
       // 3. Assert root element is created with id prefix elem_img_
       const rootEl = state.elements[rootId];

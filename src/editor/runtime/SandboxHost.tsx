@@ -515,6 +515,13 @@ export function buildSandboxDocument(
 </html>`;
 }
 
+const DEFAULT_PAGE: PageDefinition = {
+  id: "default_page",
+  name: "Home",
+  slug: "/",
+  rootElementId: "",
+};
+
 export const SandboxHost: React.FC<SandboxHostProps> = ({
   width = "100%",
   height = "100%",
@@ -561,23 +568,18 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
     });
   }, []);
 
-  const activePage =
-    pages[activePageId] ||
-    Object.values(pages)[0] || {
-      id: "default_page",
-      name: "Home",
-      slug: "/",
-      rootElementId: "",
-    };
+  const activePage = pages[activePageId] || Object.values(pages)[0] || DEFAULT_PAGE;
 
   // Seed MockDatabase with project schemas and records on mount or store change
   useEffect(() => {
     mockDatabase.seed(databaseSchemas, databaseRecords);
-    if (!databaseSchemas[selectedCollection]) {
-      const firstCol = Object.keys(databaseSchemas)[0];
-      if (firstCol) setSelectedCollection(firstCol);
-    }
-  }, [databaseSchemas, databaseRecords, selectedCollection]);
+  }, [databaseSchemas, databaseRecords]);
+
+  // Fall back to the first collection when the selected one no longer exists
+  if (!databaseSchemas[selectedCollection]) {
+    const firstCol = Object.keys(databaseSchemas)[0];
+    if (firstCol) setSelectedCollection(firstCol);
+  }
 
   // Subscribe to live MockDatabase mutations to update the local HUD table
   useEffect(() => {
@@ -602,10 +604,10 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
     mockApiServer.setLatency(ms);
   }, []);
 
-  // Compile full sandbox HTML document
+  // Compile full sandbox HTML document (a manual reload remounts the iframe via `key={reloadKey}`)
   const sandboxHtml = useMemo(() => {
     return buildSandboxDocument(activePage, elements, stateVariables);
-  }, [activePage, elements, stateVariables, reloadKey]);
+  }, [activePage, elements, stateVariables]);
 
   // Handle reload action
   const handleRestart = useCallback(() => {
@@ -805,7 +807,7 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [elements, onElementClick]);
+  }, [elements, onElementClick, activeBlueprintGraphId, blueprintGraphs]);
 
   // Derived DB stats
   const collectionNames = mockDatabase.getCollectionNames();

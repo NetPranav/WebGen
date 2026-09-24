@@ -4,6 +4,7 @@ import { PerformanceProfiler } from "../../../runtime/PerformanceProfiler";
 import { ExecutionTracer } from "../../../runtime/ExecutionTracer";
 import { DiagnosticBus } from "../../engine/DiagnosticBus";
 import { ExecutionRun, TraceStep } from "../../types/trace";
+import type { ProfilerReport } from "../../types/profiler";
 
 describe("Sub-Phase 5.6: Performance Profiler & Flame Graph", () => {
   let profiler: PerformanceProfiler;
@@ -319,7 +320,7 @@ describe("Sub-Phase 5.6: Performance Profiler & Flame Graph", () => {
   // 6. Reactive Subscription
   // --------------------------------------------------------------------------
   it("notifies listeners when a new report is generated", () => {
-    let notifiedReport: any = null;
+    let notifiedReport = null as ProfilerReport | null;
     const unsub = profiler.subscribe((rep) => {
       notifiedReport = rep;
     });

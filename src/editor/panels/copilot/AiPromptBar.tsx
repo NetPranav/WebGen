@@ -44,6 +44,7 @@ import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { DiagnosticEvent } from "@/core/types/diagnostics";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { executionTracer } from "@/runtime/ExecutionTracer";
+import { createId } from "@/core/ids";
 
 export interface AiPromptBarProps {
   onClose?: () => void;
@@ -52,6 +53,10 @@ export interface AiPromptBarProps {
   onStartDrag?: () => void;
   className?: string;
   style?: React.CSSProperties;
+}
+
+function createUserMessage(content: string): AiMessage {
+  return { id: createId("user"), role: "user", content, timestamp: Date.now() };
 }
 
 export const AiPromptBar: React.FC<AiPromptBarProps> = ({
@@ -114,12 +119,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
     const promptToSend = customPrompt || inputValue;
     if (!promptToSend.trim() || isThinking) return;
 
-    const userMessage: AiMessage = {
-      id: `user_${Date.now()}`,
-      role: "user",
-      content: promptToSend.trim(),
-      timestamp: Date.now(),
-    };
+    const userMessage = createUserMessage(promptToSend.trim());
 
     setMessages((prev) => [...prev, userMessage]);
     if (!customPrompt) setInputValue("");

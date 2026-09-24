@@ -461,7 +461,7 @@ export const MyBlueprintPanel: React.FC<MyBlueprintPanelProps> = ({
                   <div style={{ display: "flex", gap: 4 }}>
                     <select
                       value={newVarType}
-                      onChange={(e) => setNewVarType(e.target.value as any)}
+                      onChange={(e) => setNewVarType(e.target.value as typeof newVarType)}
                       style={{
                         flex: 1,
                         fontSize: 11,

@@ -13,7 +13,7 @@
  * ============================================================================
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { BlueprintGraph } from "@/core/ast/ASTManager";
 import {
   computeGraphDiff,
@@ -21,6 +21,18 @@ import {
   GraphDiffReport,
   NodeDiffItem,
 } from "./graph-diff";
+
+function defaultAcceptedNodeIds(diff: GraphDiffReport): Set<string> {
+  const accepted = new Set<string>();
+  for (const [nodeId, item] of Object.entries(diff.nodeDiffs)) {
+    if (item.status !== "unchanged") accepted.add(nodeId);
+  }
+  return accepted;
+}
+
+function firstChangedNodeId(diff: GraphDiffReport): string | null {
+  return Object.values(diff.nodeDiffs).find((n) => n.status !== "unchanged")?.nodeId ?? null;
+}
 
 export interface GraphDiffModalProps {
   isOpen: boolean;
@@ -56,25 +68,17 @@ export const GraphDiffModal: React.FC<GraphDiffModalProps> = ({
   }, [baselineGraph, proposedGraph]);
 
   // Set of accepted node IDs (default to all added, modified, removed accepted)
-  const [acceptedNodeIds, setAcceptedNodeIds] = useState<Set<string>>(new Set());
+  const [acceptedNodeIds, setAcceptedNodeIds] = useState<Set<string>>(() => defaultAcceptedNodeIds(diffReport));
   const [filter, setFilter] = useState<"all" | "added" | "modified" | "removed">("all");
-  const [inspectedNodeId, setInspectedNodeId] = useState<string | null>(null);
+  const [inspectedNodeId, setInspectedNodeId] = useState<string | null>(() => firstChangedNodeId(diffReport));
 
-  // Initialize accepted node IDs whenever diff changes
-  useEffect(() => {
-    const initialAccepted = new Set<string>();
-    for (const [nodeId, item] of Object.entries(diffReport.nodeDiffs)) {
-      if (item.status !== "unchanged") {
-        initialAccepted.add(nodeId);
-      }
-    }
-    setAcceptedNodeIds(initialAccepted);
-
-    const firstChangedNode = Object.values(diffReport.nodeDiffs).find(
-      (n) => n.status !== "unchanged"
-    );
-    setInspectedNodeId(firstChangedNode ? firstChangedNode.nodeId : null);
-  }, [diffReport]);
+  // Re-initialize selection whenever the diff changes (adjusting state during render, not in an effect)
+  const [prevDiffReport, setPrevDiffReport] = useState(diffReport);
+  if (diffReport !== prevDiffReport) {
+    setPrevDiffReport(diffReport);
+    setAcceptedNodeIds(defaultAcceptedNodeIds(diffReport));
+    setInspectedNodeId(firstChangedNodeId(diffReport));
+  }
 
   if (!isOpen) return null;
 

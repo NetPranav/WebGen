@@ -11,7 +11,7 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, useSyncExternalStore } from "react";
 import {
   SearchCategory,
   SearchResultItem,
@@ -25,7 +25,6 @@ import {
   Compass,
   Layers,
   Cpu,
-  Film,
   Variable,
   Globe,
   ArrowRight,
@@ -46,6 +45,9 @@ export interface GlobalSearchPanelProps {
   style?: React.CSSProperties;
 }
 
+const NO_RECENT_SEARCHES: readonly string[] = [];
+const getServerRecentSearches = () => NO_RECENT_SEARCHES;
+
 export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   isOpen = true,
   onClose,
@@ -58,40 +60,48 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   const [activeCategory, setActiveCategory] = useState<SearchCategory>("all");
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [exactMatch, setExactMatch] = useState(false);
-  const [results, setResults] = useState<SearchResultItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const recentSearches = useSyncExternalStore(
+    GlobalSearchEngine.subscribeRecentSearches,
+    GlobalSearchEngine.getRecentSearchesSnapshot,
+    getServerRecentSearches
+  );
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Load recent searches on mount
+  // Focus the search input on mount
   useEffect(() => {
-    setRecentSearches(GlobalSearchEngine.getRecentSearches());
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   }, []);
 
   // Execute search query
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      setSelectedIndex(0);
-      return;
-    }
-
-    const res = GlobalSearchEngine.search({
+  const results: SearchResultItem[] = useMemo(() => {
+    if (!query.trim()) return [];
+    return GlobalSearchEngine.search({
       query,
       category: activeCategory,
       caseSensitive,
       exactMatch,
       maxResults: 60,
     });
-
-    setResults(res);
-    setSelectedIndex(0);
   }, [query, activeCategory, caseSensitive, exactMatch]);
+
+  // Reset the highlighted row whenever the result list changes
+  const [prevResults, setPrevResults] = useState(results);
+  if (results !== prevResults) {
+    setPrevResults(results);
+    setSelectedIndex(0);
+  }
+
+  const handleSelectResult = useCallback(
+    (item: SearchResultItem) => {
+      GlobalSearchEngine.addRecentSearch(query);
+      GlobalSearchEngine.navigateTo(item, onNavigate);
+      onClose?.();
+    },
+    [query, onNavigate, onClose]
+  );
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -116,15 +126,8 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
         }
       }
     },
-    [results, selectedIndex, onClose]
+    [results, selectedIndex, onClose, handleSelectResult]
   );
-
-  const handleSelectResult = (item: SearchResultItem) => {
-    GlobalSearchEngine.addRecentSearch(query);
-    setRecentSearches(GlobalSearchEngine.getRecentSearches());
-    GlobalSearchEngine.navigateTo(item, onNavigate);
-    onClose?.();
-  };
 
   const handleSelectRecent = (q: string) => {
     setQuery(q);
@@ -135,7 +138,6 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
 
   const handleClearRecent = () => {
     GlobalSearchEngine.clearRecentSearches();
-    setRecentSearches([]);
   };
 
   const getEntityIcon = (type: SearchEntityType) => {
@@ -149,9 +151,6 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
       case "blueprint_variable":
       case "state_variable":
         return <Variable size={15} style={{ color: "#34D399" }} />;
-      case "animation_sequence":
-      case "animation_track":
-        return <Film size={15} style={{ color: "#EC4899" }} />;
       case "api_endpoint":
         return <Globe size={15} style={{ color: "#A78BFA" }} />;
       default:

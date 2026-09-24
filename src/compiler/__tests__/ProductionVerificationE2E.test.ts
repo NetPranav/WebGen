@@ -279,7 +279,7 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
       },
       {
         ...context,
-        stateVariables: { var_items_array: [{ id: 1 }, { id: 2 }] as any },
+        stateVariables: { var_items_array: [{ id: 1 }, { id: 2 }] },
       }
     );
     assert.strictEqual(illegalResult.isValid, false);

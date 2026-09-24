@@ -153,7 +153,7 @@ export class ThreeSceneEmitter {
     const far = camProps.far ?? 1000;
 
     const hasGltf = all3D.some((el) => {
-      const g = (el.properties?.geometry as any)?.type;
+      const g = (el.properties?.geometry as { type?: string } | undefined)?.type;
       return g === "gltf";
     });
 

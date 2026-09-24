@@ -29,13 +29,27 @@ export interface MediaSectionProps {
   elementName: string;
 }
 
+// TODO(MDM-P2): typed view over the untyped `ProjectElement.properties` bag;
+// MDM v2 gives each archetype a real props schema.
+interface MediaProps {
+  src?: string;
+  fallbackSrc?: string;
+  alt?: string;
+  objectFit?: string;
+  aspectRatio?: string;
+  focalPoint?: { x: number; y: number };
+  filter?: { grayscale: number; blur: number; brightness: number; contrast: number; saturate: number };
+  overlay?: { color: string; opacity: number; blendMode: string };
+  clipPath?: string;
+}
+
 export const MediaSection: React.FC<MediaSectionProps> = ({
   elementId,
   elementName,
 }) => {
   const { elements, setElementProperty } = useProjectStore();
   const currentElement = elements[elementId];
-  const props = (currentElement?.properties || {}) as Record<string, any>;
+  const props = (currentElement?.properties || {}) as MediaProps;
 
   // Subgroup open/collapsed states
   const [openSubgroups, setOpenSubgroups] = useState({
@@ -50,12 +64,12 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
     setOpenSubgroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const updateProp = (key: string, val: any) => {
+  const updateProp = (key: string, val: unknown) => {
     setElementProperty(elementId, key, val, `Update image ${key}`);
   };
 
-  const updateNested = (parentKey: string, childKey: string, val: any) => {
-    const parentObj = { ...(props[parentKey] || {}) };
+  const updateNested = (parentKey: "focalPoint" | "filter" | "overlay", childKey: string, val: unknown) => {
+    const parentObj: Record<string, unknown> = { ...(props[parentKey] || {}) };
     parentObj[childKey] = val;
     setElementProperty(elementId, parentKey, parentObj, `Update image ${parentKey}.${childKey}`);
   };

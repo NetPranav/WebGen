@@ -2,6 +2,8 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { SvgFilterGradientEngine } from "../SvgFilterGradientEngine";
 import {
+  FeColorMatrixEffect,
+  FeGaussianBlurEffect,
   SvgFilterDefinition,
   SvgLinearGradientDefinition,
   SvgRadialGradientDefinition,
@@ -211,10 +213,10 @@ describe("Sub-Phase 7.3: SvgFilterGradientEngine & Animation Pipeline", () => {
       assert.equal(interpolated.id, "interpFilter");
       assert.equal(interpolated.effects.length, 2);
 
-      const blur = interpolated.effects[0] as any;
+      const blur = interpolated.effects[0] as FeGaussianBlurEffect;
       assert.equal(blur.stdDeviation, 10);
 
-      const colorMat = interpolated.effects[1] as any;
+      const colorMat = interpolated.effects[1] as FeColorMatrixEffect;
       assert.equal(colorMat.values, 1);
 
       const xml = SvgFilterGradientEngine.serializeFilter(interpolated);

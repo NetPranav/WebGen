@@ -37,7 +37,7 @@ export class MediaEmitter {
     options: MediaEmitterOptions = {}
   ): EmittedMediaResult {
     const componentName = options.componentName || this.toPascalCase(element.name || "MediaElement");
-    const isIcon = element.archetype === "icon" || element.type === "icon" || element.archetype === "svgPath";
+    const isIcon = element.archetype === "icon" || element.archetype === "svgPath";
 
     if (isIcon) {
       return this.emitIcon(componentName, element, options);

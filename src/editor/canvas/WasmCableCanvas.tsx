@@ -106,9 +106,9 @@ export const WasmCableCanvas: React.FC<WasmCableCanvasProps> = ({
   const hoveredWireIdRef = useRef<string | null>(null);
 
   // Performance telemetry
-  const lastFrameTimeRef = useRef<number>(performance.now());
+  const lastFrameTimeRef = useRef<number>(0); // seeded when the render loop starts
   const frameDeltasRef = useRef<number[]>([]);
-  const fpsReportTimeRef = useRef<number>(performance.now());
+  const fpsReportTimeRef = useRef<number>(0);
 
   // Cached spline results to avoid per-frame allocations for stationary wires
   const splineCacheRef = useRef<Map<string, { spline: SplineResult; startKey: string; endKey: string }>>(
@@ -226,6 +226,9 @@ export const WasmCableCanvas: React.FC<WasmCableCanvasProps> = ({
     if (!ctx) return;
 
     let isRunning = true;
+    const loopStart = performance.now();
+    lastFrameTimeRef.current = loopStart;
+    fpsReportTimeRef.current = loopStart;
 
     const render = (currentTime: number) => {
       if (!isRunning) return;
@@ -416,7 +419,7 @@ export const WasmCableCanvas: React.FC<WasmCableCanvasProps> = ({
         cancelAnimationFrame(animFrameIdRef.current);
       }
     };
-  }, [wires, draggingWire, pan, zoom, solver, logFps, onFpsUpdate]);
+  }, [wires, draggingWire, pan, zoom, solver, logFps, onFpsUpdate, theme]);
 
   // Canvas size synchronization with high DPI and ResizeObserver
   useEffect(() => {

@@ -128,6 +128,8 @@ export type GrammarStateName =
   | "Error"
   | "Checked"
   | "Unchecked"
+  | "On"
+  | "Off"
   | "Indeterminate"
   | "Empty"
   | "Submitting"

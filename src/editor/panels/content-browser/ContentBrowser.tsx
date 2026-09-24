@@ -97,6 +97,7 @@ import {
   getPropertyRenderingTier,
   getCategoryPriorityInfo,
 } from "@/core/engine/grammarHelpers";
+import { createId } from "@/core/ids";
 
 export type AnimationTrigger = "load" | "hover" | "click" | "scroll" | "state";
 
@@ -348,6 +349,8 @@ export interface ContentBrowserProps {
   onOpenCurveEditor?: (property?: string) => void;
   onOpenExportPreview?: () => void;
 }
+
+const NO_TRACKS: ElementAnimationTrack[] = [];
 
 export const ContentBrowser: React.FC<ContentBrowserProps> = ({
   selectedFolderId,
@@ -851,11 +854,10 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
   // --------------------------------------------------------------------------
   const activeTargetName = stackName;
   const activeTargetId = stackName.toLowerCase().replace(/[^a-z0-9]/g, "_") || "untitled";
-  const activeTracks = elementTracks[activeTargetId] || [];
+  const activeTracks = elementTracks[activeTargetId] ?? NO_TRACKS;
 
   // Determine active element grammar type
   const activeElementType: GrammarElementType = useMemo(() => {
-    let tag: string | undefined;
     const findTag = (nodes: TreeNode[]): string | undefined => {
       for (const n of nodes) {
         if (n.id === selectedTreeNodeId) return n.tag;
@@ -866,7 +868,7 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
       }
       return undefined;
     };
-    tag = findTag(INITIAL_TREE_DATA);
+    const tag = findTag(INITIAL_TREE_DATA);
     return resolveGrammarElementType(selectedTreeNodeId, stackName, tag);
   }, [selectedTreeNodeId, stackName]);
 
@@ -909,7 +911,7 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
 
   const handleAddPreset = (preset: AnimationPreset) => {
     const newTrack: ElementAnimationTrack = {
-      id: `trk_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      id: createId("trk"),
       name: preset.name,
       trigger: preset.trigger,
       duration: preset.duration,
@@ -957,7 +959,7 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
     });
 
     const newTrack: ElementAnimationTrack = {
-      id: `trk_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      id: createId("trk"),
       name: `${candidate.category} Motion`,
       trigger,
       duration: candidate.category === "ScrollLinked" ? 1.0 : candidate.category === "Press" ? 0.2 : 0.5,
@@ -1011,10 +1013,10 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
     }));
   };
 
-  const handleUpdateTrackField = (
+  const handleUpdateTrackField = <K extends keyof ElementAnimationTrack>(
     trackId: string,
-    field: keyof ElementAnimationTrack,
-    val: any
+    field: K,
+    val: ElementAnimationTrack[K]
   ) => {
     setElementTracks((prev) => ({
       ...prev,
@@ -2127,9 +2129,7 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
                   className="asset-card__preview"
                   style={{
                     background:
-                      asset.category === "blueprint"
-                        ? "radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(20, 20, 28, 0.9) 100%)"
-                        : asset.category === "sequencer"
+                      asset.category === "sequencer"
                         ? "radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, rgba(20, 20, 28, 0.9) 100%)"
                         : undefined,
                   }}
@@ -2138,13 +2138,11 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
                     className="asset-card__type-badge"
                     style={{
                       background:
-                        asset.category === "blueprint"
-                          ? "rgba(67, 56, 202, 0.9)"
-                          : asset.category === "sequencer"
+                        asset.category === "sequencer"
                           ? "rgba(124, 58, 237, 0.9)"
                           : undefined,
                       color:
-                        asset.category === "blueprint" || asset.category === "sequencer"
+                        asset.category === "sequencer"
                           ? "#FFFFFF"
                           : undefined,
                     }}
@@ -2365,13 +2363,11 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
               style={{
                 position: "static",
                 background:
-                  hoveredAsset.category === "blueprint"
-                    ? "rgba(67, 56, 202, 0.9)"
-                    : hoveredAsset.category === "sequencer"
+                  hoveredAsset.category === "sequencer"
                     ? "rgba(124, 58, 237, 0.9)"
                     : undefined,
                 color:
-                  hoveredAsset.category === "blueprint" || hoveredAsset.category === "sequencer"
+                  hoveredAsset.category === "sequencer"
                     ? "#FFFFFF"
                     : undefined,
               }}

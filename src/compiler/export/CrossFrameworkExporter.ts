@@ -73,7 +73,7 @@ export class CrossFrameworkExporter {
       const isNext = framework === "nextjs-app" || framework === "nextjs-pages";
       const styleSystem = styling === "tailwind" ? "tailwind" : "css-modules";
 
-      let emitted: any;
+      let emitted: { componentName: string; tsxCode: string; cssCode?: string; requiredPackages: string[] };
       if (
         element.archetype === "button" ||
         element.archetype === "toggle" ||

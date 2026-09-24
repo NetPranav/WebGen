@@ -291,14 +291,14 @@ export const AnimationEditor: React.FC<AnimationEditorProps> = ({
                   <>
                     <CheckCircle2 size={13} style={{ color: "#22c55e", flexShrink: 0 }} />
                     <span style={{ fontWeight: 600, color: "#22c55e" }}>
-                      All tracks compatible with '{archetype}'
+                      All tracks compatible with &lsquo;{archetype}&rsquo;
                     </span>
                   </>
                 ) : (
                   <>
                     <AlertTriangle size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
                     <span style={{ fontWeight: 600, color: "#f59e0b" }}>
-                      {rejectedTrackNames.length} track(s) incompatible with '{archetype}'
+                      {rejectedTrackNames.length} track(s) incompatible with &lsquo;{archetype}&rsquo;
                     </span>
                   </>
                 )}

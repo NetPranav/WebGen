@@ -47,6 +47,7 @@ import {
   ChevronRight,
   Filter,
 } from "lucide-react";
+import { errorMessage } from "@/core/errors";
 
 export interface DeploymentDashboardProps {
   className?: string;
@@ -61,6 +62,8 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
 }) => {
   const projectName = useProjectStore((s) => s.projectName);
   const pages = useProjectStore((s) => s.pages);
+  const databaseSchemas = useProjectStore((s) => s.databaseSchemas);
+  const detectRouteCollisions = useProjectStore((s) => s.detectRouteCollisions);
 
   // Engine state subscriptions
   const [currentDeployment, setCurrentDeployment] = useState<DeploymentRecord | null>(
@@ -116,8 +119,8 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
     setIsDeploying(true);
     try {
       await DeploymentEngine.triggerDeploy(config);
-    } catch (err: any) {
-      setDeployError(err.message || String(err));
+    } catch (err) {
+      setDeployError(errorMessage(err));
     } finally {
       setIsDeploying(false);
     }
@@ -126,11 +129,11 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
   // Pre-flight check preview
   const preflight = useMemo(() => {
     try {
-      return DeploymentEngine.validatePreflight();
+      return DeploymentEngine.validatePreflight({ pages, databaseSchemas, detectRouteCollisions });
     } catch {
       return { valid: true, errors: [] };
     }
-  }, [pages]);
+  }, [pages, databaseSchemas, detectRouteCollisions]);
 
   // Aggregate logs
   const allLogs = useMemo(() => {

@@ -19,6 +19,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useLatestRef } from "@/core/hooks/useLatestRef";
 
 export type TearOffDragSource = "bottom-tab" | "content-browser" | "outliner" | "fullpage-tab";
 export type TearOffDropAction = "dock-fullpage" | "open-new-tab" | "attach-bottom-drawer" | "attach-bottom-bar" | null;
@@ -75,8 +76,7 @@ const INITIAL_STATE: TearOffState = {
 
 export function useTearOff(options: UseTearOffOptions) {
   const [state, setState] = useState<TearOffState>(INITIAL_STATE);
-  const optionsRef = useRef(options);
-  optionsRef.current = options;
+  const optionsRef = useLatestRef(options);
 
   // Track drag origin to measure threshold & snap-back
   const dragOriginRef = useRef<{ x: number; y: number } | null>(null);

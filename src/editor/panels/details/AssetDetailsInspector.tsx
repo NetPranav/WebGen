@@ -70,6 +70,7 @@ import { ScrubNumberInput } from "./controls/ScrubNumberInput";
 import { JsonObjectEditor } from "./controls/JsonObjectEditor";
 import { AssetReferencePicker } from "./controls/AssetReferencePicker";
 import { AssetLayoutSchema, AssetTypographySchema } from "@/core/types/details";
+import { createId } from "@/core/ids";
 
 export interface AssetDetailsInspectorProps {
   panelId: string;
@@ -315,10 +316,11 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
   }, [defaultSchema.elementType, panelTitle, panelId, isImage]);
 
   const [activeElementType, setActiveElementType] = useState<ElementType>(initialElementType);
-
-  useEffect(() => {
+  const [prevInitialElementType, setPrevInitialElementType] = useState(initialElementType);
+  if (initialElementType !== prevInitialElementType) {
+    setPrevInitialElementType(initialElementType);
     setActiveElementType(initialElementType);
-  }, [initialElementType]);
+  }
 
   // Specific Configurations per Element Archetype
   const [buttonConfig, setButtonConfig] = useState<ButtonSpecificConfig>(
@@ -473,7 +475,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
     if (!trimmed) return;
     const safeName = trimmed.replace(/\s+/g, "_");
 
-    let parsedDefault: any = newVarDraft.defaultValue;
+    let parsedDefault: unknown = newVarDraft.defaultValue;
     if (newVarDraft.type === "number") {
       parsedDefault = Number(newVarDraft.defaultValue) || 0;
     } else if (newVarDraft.type === "boolean") {
@@ -489,7 +491,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
     }
 
     const createdVar: ComponentVariable = {
-      id: `var_${Date.now().toString().slice(-6)}`,
+      id: createId("var"),
       name: safeName,
       type: newVarDraft.type,
       category: newVarDraft.isAdvanced ? "Advanced" : newVarDraft.category || "General",
@@ -563,7 +565,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
     setIsAddPaletteOpen(false);
 
     if (item.category === "component") {
-      const newVarId = `var_${item.id}_${Date.now().toString().slice(-4)}`;
+      const newVarId = createId(`var_${item.id}`);
       const newVar: ComponentVariable = {
         id: newVarId,
         name: `has${item.name.replace(/\s+/g, "")}`,
@@ -578,7 +580,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
       setVariables((prev) => [newVar, ...prev]);
       setSectionsOpen((prev) => ({ ...prev, variables: true }));
     } else if (item.category === "behavior") {
-      const newEventId = `evt_${item.id}_${Date.now().toString().slice(-4)}`;
+      const newEventId = createId(`evt_${item.id}`);
       const newEvent: ComponentEventBinding = {
         eventId: newEventId,
         eventName: `on${item.name.replace(/\s+/g, "")}`,
@@ -590,7 +592,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
       setEvents((prev) => [...prev, newEvent]);
       setSectionsOpen((prev) => ({ ...prev, events: true }));
     } else if (item.category === "data") {
-      const newVarId = `data_${item.id}_${Date.now().toString().slice(-4)}`;
+      const newVarId = createId(`data_${item.id}`);
       const newVar: ComponentVariable = {
         id: newVarId,
         name: `${item.name.toLowerCase().replace(/\s+/g, "_")}_source`,
@@ -605,7 +607,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
       setVariables((prev) => [...prev, newVar]);
       setSectionsOpen((prev) => ({ ...prev, variables: true }));
     } else if (item.category === "animation") {
-      const newVarId = `anim_${item.id}_${Date.now().toString().slice(-4)}`;
+      const newVarId = createId(`anim_${item.id}`);
       const newVar: ComponentVariable = {
         id: newVarId,
         name: `anim_${item.name.toLowerCase().replace(/\s+/g, "")}_active`,
@@ -1228,7 +1230,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
                           ...prev,
                           slotProperties: {
                             ...prev.slotProperties,
-                            alignSelf: e.target.value as any,
+                            alignSelf: e.target.value as ComponentAttachment["slotProperties"]["alignSelf"],
                           },
                         }))
                       }
@@ -1461,7 +1463,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
                 <div className="details-section__body" style={{ padding: "4px 8px 10px" }}>
                   {filteredVariables.length === 0 ? (
                     <div style={{ color: "var(--text-muted)", fontSize: 11, padding: "8px 0" }}>
-                      No properties match "{searchQuery}"
+                      No properties match &ldquo;{searchQuery}&rdquo;
                     </div>
                   ) : (
                     <>

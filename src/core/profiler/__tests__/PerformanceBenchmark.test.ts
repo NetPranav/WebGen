@@ -74,24 +74,27 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
   // ==========================================================================
   it("verifies zero memory leaks across 100 timeline generation and disposal cycles", () => {
     const sample: AnimationSample = {
-      elementId: "perf-element-1",
-      duration: 1.0,
+      id: "perf-element-1",
+      name: "Perf Float",
+      duration: 1000,
+      easing: "power2.out",
+      iterations: 1,
+      direction: "normal",
+      fillMode: "forwards",
       tracks: [
         {
-          id: "transform.y",
-          property: "transform.y",
+          trackId: "translateY",
           keyframes: [
-            { time: 0, value: 0, easing: "power2.out" },
-            { time: 0.5, value: -20, easing: "power2.inOut" },
-            { time: 1.0, value: 0, easing: "power2.out" },
+            { offset: 0, value: 0, easing: "power2.out" },
+            { offset: 50, value: -20, easing: "power2.inOut" },
+            { offset: 100, value: 0, easing: "power2.out" },
           ],
         },
         {
-          id: "opacity",
-          property: "opacity",
+          trackId: "opacity",
           keyframes: [
-            { time: 0, value: 0, easing: "linear" },
-            { time: 1.0, value: 1, easing: "linear" },
+            { offset: 0, value: 0, easing: "linear" },
+            { offset: 100, value: 1, easing: "linear" },
           ],
         },
       ],

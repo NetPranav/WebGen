@@ -17,6 +17,7 @@
 import { ProjectElement } from "@/core/store/useProjectStore";
 
 export interface StructuralEmitterOptions {
+  framework?: "nextjs" | "react";
   stylingSystem?: "tailwind" | "css-modules" | "vanilla";
   componentName?: string;
   useAnimationHook?: boolean;
@@ -36,8 +37,8 @@ export class StructuralEmitter {
     options: StructuralEmitterOptions = {}
   ): EmittedStructuralResult {
     const componentName = options.componentName || this.toPascalCase(element.name || "StructuralElement");
-    const isDivider = element.archetype === "divider" || element.type === "divider";
-    const isBackground = element.archetype === "background" || element.type === "background";
+    const isDivider = element.archetype === "divider";
+    const isBackground = element.archetype === "background";
 
     if (isDivider) {
       return this.emitDivider(componentName, element, options);

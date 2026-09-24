@@ -13,7 +13,7 @@
 export type EventHandler<T = unknown> = (payload: T) => void;
 
 class ApplicationEventBusManager {
-  private handlers: Map<string, Set<EventHandler<any>>> = new Map();
+  private handlers: Map<string, Set<EventHandler<unknown>>> = new Map();
 
   /**
    * Emit an event to all registered listeners.
@@ -39,10 +39,12 @@ class ApplicationEventBusManager {
       this.handlers.set(event, new Set());
     }
     const set = this.handlers.get(event)!;
-    set.add(handler);
+    // Callers pair each event name with its payload type; the map stores handlers type-erased.
+    const erased = handler as EventHandler<unknown>;
+    set.add(erased);
 
     return () => {
-      set.delete(handler);
+      set.delete(erased);
       if (set.size === 0) {
         this.handlers.delete(event);
       }

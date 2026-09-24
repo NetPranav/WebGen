@@ -185,11 +185,8 @@ export const DataBindingEditor: React.FC<DataBindingEditorProps> = ({
     setIsAdding(false);
   };
 
-  // Evaluate current element's bound property values live
-  const evaluatedProps = useMemo(() => {
-    const ctx = getDataContext();
-    return ConnectionPipeline.evaluateElementProperties(elementId, ctx);
-  }, [elementId, getDataContext, bindings]);
+  // Evaluate current element's bound property values live (re-renders on any store change)
+  const evaluatedProps = ConnectionPipeline.evaluateElementProperties(elementId, getDataContext());
 
   return (
     <div className="data-binding-section">

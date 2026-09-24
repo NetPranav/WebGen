@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { ProjectElement } from "../../../core/store/useProjectStore";
 import { multiEngineAnimationRuntime } from "../../../core/runtime/MultiEngineAnimationRuntime";
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
-import { AnimationSample } from "../../../core/types/animations";
+import { AnimationSample, AnimationTrackId } from "../../../core/types/animations";
+import { ElementType } from "../../../core/types/element-sections";
 
 /**
  * ============================================================================
@@ -21,12 +22,12 @@ import { AnimationSample } from "../../../core/types/animations";
  */
 
 interface ArchetypeDefinition {
-  archetype: string;
+  archetype: ElementType;
   name: string;
   family: "interactive" | "media" | "structural" | "text";
-  properties: Record<string, any>;
-  motionProperty: string;
-  motionKeyframes: { time: number; value: any }[];
+  properties: Record<string, unknown>;
+  motionProperty: AnimationTrackId;
+  motionKeyframes: { time: number; value: number | string }[]; // time in seconds
 }
 
 const ARCHETYPES: ArchetypeDefinition[] = [
@@ -36,7 +37,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "PrimaryButton",
     family: "interactive",
     properties: { label: "Click Me", variant: "primary", size: "md" },
-    motionProperty: "transform.scale",
+    motionProperty: "scale",
     motionKeyframes: [
       { time: 0, value: 1 },
       { time: 0.2, value: 0.95 },
@@ -49,7 +50,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "DarkModeToggle",
     family: "interactive",
     properties: { label: "Dark Mode", defaultChecked: true },
-    motionProperty: "transform.x",
+    motionProperty: "translateX",
     motionKeyframes: [
       { time: 0, value: 0 },
       { time: 0.3, value: 24 },
@@ -73,7 +74,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "AddActionFab",
     family: "interactive",
     properties: { label: "Create Task", size: "lg" },
-    motionProperty: "transform.scale",
+    motionProperty: "scale",
     motionKeyframes: [
       { time: 0, value: 0 },
       { time: 0.5, value: 1 },
@@ -92,7 +93,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
       objectFit: "cover",
       blur: 0,
     },
-    motionProperty: "transform.scale",
+    motionProperty: "scale",
     motionKeyframes: [
       { time: 0, value: 1 },
       { time: 2.0, value: 1.08 },
@@ -108,7 +109,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
       viewBox: "0 0 24 24",
       size: 24,
     },
-    motionProperty: "transform.rotate",
+    motionProperty: "rotate",
     motionKeyframes: [
       { time: 0, value: -45 },
       { time: 0.4, value: 0 },
@@ -124,7 +125,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
       thickness: 1,
       styleType: "solid",
     },
-    motionProperty: "transform.scaleX",
+    motionProperty: "scaleX",
     motionKeyframes: [
       { time: 0, value: 0 },
       { time: 0.6, value: 1 },
@@ -156,7 +157,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
       gap: 16,
       padding: 24,
     },
-    motionProperty: "transform.y",
+    motionProperty: "translateY",
     motionKeyframes: [
       { time: 0, value: 30 },
       { time: 0.5, value: 0 },
@@ -172,7 +173,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
       fontSize: 36,
       fontWeight: 700,
     },
-    motionProperty: "transform.y",
+    motionProperty: "translateY",
     motionKeyframes: [
       { time: 0, value: 20 },
       { time: 0.6, value: 0 },
@@ -189,7 +190,6 @@ describe("Sub-Phase 8.4: 10-Archetype × 5-Dimension Verification Matrix", () =>
         id: `el-${item.archetype}-001`,
         name: item.name,
         archetype: item.archetype,
-        type: item.archetype,
         properties: { ...item.properties },
         children: [],
         parentId: null,
@@ -210,7 +210,6 @@ describe("Sub-Phase 8.4: 10-Archetype × 5-Dimension Verification Matrix", () =>
         assert.ok(element.id.length > 0);
         assert.ok(element.name.length > 0);
         assert.equal(element.archetype, item.archetype);
-        assert.equal(element.type, item.archetype);
         assert.ok(element.properties && typeof element.properties === "object");
         assert.ok(Array.isArray(element.children));
 
@@ -248,15 +247,20 @@ describe("Sub-Phase 8.4: 10-Archetype × 5-Dimension Verification Matrix", () =>
       // DIMENSION 3: ANIMATION AUTHORING & RUNTIME COMPILATION
       // ----------------------------------------------------------------------
       it("Dimension 3: Successfully authors and compiles motion tracks via multi-engine runtime", () => {
+        const durationSec = 1.0;
         const sample: AnimationSample = {
-          elementId: element.id,
-          duration: 1.0,
+          id: `${element.id}-motion`,
+          name: `${item.name} Motion`,
+          duration: durationSec * 1000,
+          easing: "power2.out",
+          iterations: 1,
+          direction: "normal",
+          fillMode: "forwards",
           tracks: [
             {
-              id: item.motionProperty,
-              property: item.motionProperty,
+              trackId: item.motionProperty,
               keyframes: item.motionKeyframes.map((kf) => ({
-                time: kf.time,
+                offset: (kf.time / durationSec) * 100,
                 value: kf.value,
                 easing: "power2.out",
               })),
@@ -280,7 +284,7 @@ describe("Sub-Phase 8.4: 10-Archetype × 5-Dimension Verification Matrix", () =>
       // ----------------------------------------------------------------------
       it("Dimension 4: Computes visual preview state and styles without exception", () => {
         // Synthesize sandbox styles
-        const computedStyle: Record<string, any> = {
+        const computedStyle: Record<string, string | number> = {
           position: item.archetype === "background" ? "absolute" : "relative",
           display: item.archetype === "container" ? "flex" : "inline-flex",
           opacity: 1,

@@ -393,7 +393,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorProps> = ({
                         ...prev,
                         backgroundImage: {
                           ...bgImage,
-                          size: e.target.value as any,
+                          size: e.target.value as BackgroundImageConfig["size"],
                         },
                       }))
                     }
@@ -414,7 +414,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorProps> = ({
                         ...prev,
                         backgroundImage: {
                           ...bgImage,
-                          repeat: e.target.value as any,
+                          repeat: e.target.value as BackgroundImageConfig["repeat"],
                         },
                       }))
                     }
@@ -437,7 +437,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorProps> = ({
                 onChange={(e) =>
                   onChange((prev) => ({
                     ...prev,
-                    backgroundBlendMode: e.target.value as any,
+                    backgroundBlendMode: e.target.value as AssetAppearanceSchema["backgroundBlendMode"],
                   }))
                 }
               >
@@ -592,7 +592,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorProps> = ({
                 onChange={(e) =>
                   onChange((prev) => ({
                     ...prev,
-                    borderStyle: e.target.value as any,
+                    borderStyle: e.target.value as AssetAppearanceSchema["borderStyle"],
                   }))
                 }
               >
@@ -788,7 +788,7 @@ export const AppearanceEditor: React.FC<AppearanceEditorProps> = ({
                 onChange={(e) =>
                   onChange((prev) => ({
                     ...prev,
-                    mixBlendMode: e.target.value as any,
+                    mixBlendMode: e.target.value as AssetAppearanceSchema["mixBlendMode"],
                   }))
                 }
               >

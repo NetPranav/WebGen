@@ -20,15 +20,26 @@ export interface DividerSectionProps {
   elementName: string;
 }
 
+// TODO(MDM-P2): typed view over the untyped `ProjectElement.properties` bag;
+// MDM v2 gives each archetype a real props schema.
+interface DividerProps {
+  orientation?: string;
+  length?: number;
+  thickness?: number;
+  style?: string;
+  color?: string;
+  capStyle?: string;
+}
+
 export const DividerSection: React.FC<DividerSectionProps> = ({
   elementId,
   elementName,
 }) => {
   const { elements, setElementProperty } = useProjectStore();
   const currentElement = elements[elementId];
-  const props = (currentElement?.properties || {}) as Record<string, any>;
+  const props = (currentElement?.properties || {}) as DividerProps;
 
-  const updateProp = (key: string, val: any) => {
+  const updateProp = (key: string, val: unknown) => {
     setElementProperty(elementId, key, val, `Update divider ${key}`);
   };
 

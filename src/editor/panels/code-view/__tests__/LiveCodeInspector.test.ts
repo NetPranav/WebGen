@@ -93,8 +93,8 @@ describe("Sub-Phase 6.3: LiveCodeInspector Compilation & AST Mapping", () => {
 
     // 2. Scoped CSS & Tokens
     const tokenFile = StyleEmitter.emitTokens({
-      colors: { canvasBg: "#0F172A" } as any,
-      wires: { exec: "#FFFFFF" } as any,
+      colors: { canvasBg: "#0F172A" },
+      wires: { exec: "#FFFFFF" },
     });
     assert.equal(tokenFile.type, "styles");
     assert.match(tokenFile.content, /--color-canvas-bg/);

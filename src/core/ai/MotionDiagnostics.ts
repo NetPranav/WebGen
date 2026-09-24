@@ -176,7 +176,7 @@ export class MotionDiagnostics {
     const issues: MotionDiagnosticIssue[] = [];
     const props = element.properties as Record<string, unknown>;
 
-    let hasNoise = Boolean(props.noise || (props.background as Record<string, unknown>)?.noise);
+    const hasNoise = Boolean(props.noise || (props.background as Record<string, unknown>)?.noise);
     let blurRadius = 0;
 
     for (const anim of animations) {
@@ -233,7 +233,7 @@ export class MotionDiagnostics {
     const issues: MotionDiagnosticIssue[] = [];
     const hasTransformTracks = animations.some((a) => a.tracks?.some((t) => t.property.startsWith("transform.")));
 
-    if (hasTransformTracks && !element.appearance?.shadows?.length) {
+    if (hasTransformTracks && !element.appearance?.boxShadow) {
       issues.push({
         id: `gpu_will_change_${element.id}`,
         severity: "info",

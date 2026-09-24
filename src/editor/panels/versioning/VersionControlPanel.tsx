@@ -33,8 +33,10 @@ import {
   PageDiff,
   SchemaDiff,
 } from "../../../core/types/versioning";
+import { useNow } from "@/core/hooks/useNow";
 
 export const VersionControlPanel: React.FC = () => {
+  const now = useNow();
   const {
     branches,
     activeBranchId,
@@ -95,10 +97,8 @@ export const VersionControlPanel: React.FC = () => {
   }, [allSnapshots, searchQuery, selectedTag]);
 
   // Real-time diff report
-  const diffReport: SnapshotDiffReport | null = useMemo(() => {
-    if (activeTab !== "diff") return null;
-    return getDiffReport();
-  }, [activeTab, comparingSnapshotIds, getDiffReport]);
+  // Recomputed each render: the store's getDiffReport reads comparingSnapshotIds and snapshots itself.
+  const diffReport: SnapshotDiffReport | null = activeTab === "diff" ? getDiffReport() : null;
 
   const handleCreateSnapshotSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,7 +139,7 @@ export const VersionControlPanel: React.FC = () => {
   };
 
   const formatRelativeTime = (timestamp: number): string => {
-    const diff = Date.now() - timestamp;
+    const diff = now - timestamp;
     if (diff < 60000) return "Just now";
     const minutes = Math.floor(diff / 60000);
     if (minutes < 60) return `${minutes}m ago`;

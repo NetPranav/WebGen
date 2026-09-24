@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { ASTManager, BlueprintValidationIssue } from "@/core/ast/ASTManager";
+import { errorMessage } from "@/core/errors";
 
 interface ValidationPanelProps {
   isOpen: boolean;
@@ -86,8 +87,8 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
 
       setExportNotice("Exported successfully!");
       setTimeout(() => setExportNotice(null), 2500);
-    } catch (err: any) {
-      alert(`Export failed: ${err.message}`);
+    } catch (err) {
+      alert(`Export failed: ${errorMessage(err)}`);
     }
   };
 
@@ -105,8 +106,8 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
         setTimeout(() => setExportNotice(null), 2500);
         // Automatically compile after import
         setTimeout(handleCompile, 100);
-      } catch (err: any) {
-        alert(`Failed to import blueprint: ${err.message}`);
+      } catch (err) {
+        alert(`Failed to import blueprint: ${errorMessage(err)}`);
       }
     };
     reader.readAsText(file);

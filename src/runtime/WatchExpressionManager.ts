@@ -23,6 +23,7 @@ import {
   WatchListener,
 } from "@/core/types/watch";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
+import { errorMessage as messageOf } from "@/core/errors";
 
 const STORAGE_KEY = "webgen_watch_expressions";
 
@@ -182,9 +183,9 @@ export class WatchExpressionManager {
           safeRun,
           context
         );
-      } catch (err: any) {
+      } catch (err) {
         status = "error";
-        errorMessage = err?.message || String(err);
+        errorMessage = messageOf(err);
         value = undefined;
       }
 

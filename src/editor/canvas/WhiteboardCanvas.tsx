@@ -41,6 +41,7 @@ import { useProjectStore } from "@/core/store/useProjectStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { ComponentGenerator } from "@/ai/component/ComponentGenerator";
 import { THEME_PALETTES } from "@/core/types/environment";
+import { useLatestRef } from "@/core/hooks/useLatestRef";
 
 interface WhiteboardCanvasProps {
   deviceMode?: "desktop" | "tablet" | "mobile";
@@ -85,10 +86,11 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Play Mode State (Sandbox Host)
    * -------------------------------------------------------------------------- */
   const [isPlayMode, setIsPlayMode] = useState(isPlayingProp);
-
-  useEffect(() => {
+  const [prevIsPlayingProp, setPrevIsPlayingProp] = useState(isPlayingProp);
+  if (isPlayingProp !== prevIsPlayingProp) {
+    setPrevIsPlayingProp(isPlayingProp);
     setIsPlayMode(isPlayingProp);
-  }, [isPlayingProp]);
+  }
 
   const handleTogglePlay = useCallback(
     (nextState?: boolean) => {
@@ -177,7 +179,9 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   }, [bringBackToCenter]);
 
   // Dynamically adapt selected element bounds when switching device dimensions
-  useEffect(() => {
+  const [prevDeviceWidth, setPrevDeviceWidth] = useState(device.width);
+  if (device.width !== prevDeviceWidth) {
+    setPrevDeviceWidth(device.width);
     setSelectedElement((prev) => {
       if (!prev) return null;
       if (prev.id === "comp_navbar" || prev.id === "comp_hero") {
@@ -189,7 +193,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       }
       return prev;
     });
-  }, [device.width]);
+  }
 
   /* --------------------------------------------------------------------------
    * Spacebar & Keyboard Hotkeys
@@ -255,8 +259,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Prevents the browser from EVER zooming the entire website on trackpad
    * pinch or Ctrl+wheel. Only the Whiteboard Canvas zooms.
    * -------------------------------------------------------------------------- */
-  const zoomLevelRef = useRef(zoomLevel);
-  zoomLevelRef.current = zoomLevel;
+  const zoomLevelRef = useLatestRef(zoomLevel);
+  const viewportRef = useLatestRef(environment.viewport);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -270,16 +274,16 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       const isZoom = e.ctrlKey || e.metaKey;
 
       if (isZoom) {
-        if (!environment.viewport.zoom.enabled) return;
+        if (!viewportRef.current.zoom.enabled) return;
 
         // macOS trackpad pinch uses fractional deltaY; standard mouse wheel uses larger steps
         const isSmallDelta = Math.abs(e.deltaY) < 50;
-        const speedMult = environment.viewport.zoom.speed === "fast" ? 2.0 : 1.0;
+        const speedMult = viewportRef.current.zoom.speed === "fast" ? 2.0 : 1.0;
         const zoomDelta = -e.deltaY * (isSmallDelta ? 0.015 : 0.0015) * speedMult;
         const currentScale = zoomLevelRef.current / 100;
         const zoomFactor = 1 + Math.max(Math.min(zoomDelta, 0.25), -0.25);
-        const minScale = (environment.viewport.zoom.min || 10) / 100;
-        const maxScale = (environment.viewport.zoom.max || 400) / 100;
+        const minScale = (viewportRef.current.zoom.min || 10) / 100;
+        const maxScale = (viewportRef.current.zoom.max || 400) / 100;
         const newScale = Math.min(Math.max(currentScale * zoomFactor, minScale), maxScale);
         const newZoom = Math.round(newScale * 100);
 
@@ -295,7 +299,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
         onZoomChange(newZoom);
       } else {
-        if (!environment.viewport.pan.enabled) return;
+        if (!viewportRef.current.pan.enabled) return;
         // Normal 2-finger scroll or wheel: pan the canvas only
         setPan((prev) => ({
           x: prev.x - e.deltaX,
@@ -319,7 +323,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       container.removeEventListener("gesturechange", preventGesture);
       container.removeEventListener("gestureend", preventGesture);
     };
-  }, [onZoomChange]);
+  }, [onZoomChange, zoomLevelRef, viewportRef]);
 
   /* --------------------------------------------------------------------------
    * Canvas Drag / Panning Engine

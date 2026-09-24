@@ -111,7 +111,9 @@ export class GLTFAssetPipeline {
     };
 
     if (materials.length > 0 && typeof materials[0] === "object" && materials[0] !== null) {
-      const m = materials[0] as any;
+      const m = materials[0] as {
+        pbrMetallicRoughness?: { baseColorFactor?: number[]; roughnessFactor?: number; metallicFactor?: number };
+      };
       const pbr = m.pbrMetallicRoughness || {};
       const baseColor = pbr.baseColorFactor;
       let hexColor = defaultMaterial.color;

@@ -25,6 +25,7 @@ import {
   User,
   Zap,
 } from "lucide-react";
+import { errorMessage } from "@/core/errors";
 
 export interface DeploymentHistoryProps {
   history: DeploymentRecord[];
@@ -51,8 +52,8 @@ export const DeploymentHistory: React.FC<DeploymentHistoryProps> = ({
       if (onRollbackComplete) {
         onRollbackComplete(rollbackRecord);
       }
-    } catch (err: any) {
-      alert(`Rollback failed: ${err.message || String(err)}`);
+    } catch (err) {
+      alert(`Rollback failed: ${errorMessage(err)}`);
     } finally {
       setRollingBackId(null);
     }

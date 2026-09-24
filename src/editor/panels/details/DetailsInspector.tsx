@@ -126,7 +126,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
   const [boundVariable, setBoundVariable] = useState("none");
 
   // If no element is selected on canvas or outliner, render World Environment settings directly
-  if (!isElementSelected) {
+  if (!isElementSelected || !selectedElementId) {
     return <EnvironmentInspector />;
   }
 
@@ -351,7 +351,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
                     <select
                       className="form-select"
                       value={justify}
-                      onChange={(e) => setJustify(e.target.value as any)}
+                      onChange={(e) => setJustify(e.target.value as typeof justify)}
                     >
                       <option value="start">Flex Start</option>
                       <option value="center">Center</option>
@@ -365,7 +365,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
                     <select
                       className="form-select"
                       value={align}
-                      onChange={(e) => setAlign(e.target.value as any)}
+                      onChange={(e) => setAlign(e.target.value as typeof align)}
                     >
                       <option value="start">Flex Start</option>
                       <option value="center">Center</option>

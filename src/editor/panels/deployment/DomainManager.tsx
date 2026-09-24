@@ -163,7 +163,7 @@ export const DomainManager: React.FC<DomainManagerProps> = ({
           </h3>
         </div>
         <p style={{ fontSize: 12, color: "#9CA3AF", margin: "0 0 14px 0", lineHeight: 1.4 }}>
-          Add your branded apex domain or subdomain. Automatic SSL / TLS certificates with Let's Encrypt are provisioned instantly.
+          Add your branded apex domain or subdomain. Automatic SSL / TLS certificates with Let&apos;s Encrypt are provisioned instantly.
         </p>
 
         <form onSubmit={handleAddDomain} style={{ display: "flex", gap: 10 }}>

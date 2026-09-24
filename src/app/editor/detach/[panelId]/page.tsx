@@ -24,7 +24,7 @@ import { OutputConsole } from "@/editor/panels/console/OutputConsole";
 import { ContentBrowser } from "@/editor/panels/content-browser/ContentBrowser";
 import { AssetFileEditor } from "@/editor/panels/content-browser/AssetFileEditor";
 
-const PANEL_MAP: Record<string, { title: string; component: React.FC<any> }> = {
+const PANEL_MAP: Record<string, { title: string; component: React.ComponentType }> = {
   blueprint: { title: "Logic Blueprint", component: BlueprintCanvas },
   sequencer: { title: "Timeline Sequencer", component: TimelineSequencer },
   console: { title: "Output Log", component: OutputConsole },

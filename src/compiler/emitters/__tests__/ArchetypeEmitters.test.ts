@@ -16,7 +16,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "btn-1",
         name: "Primary Button",
         archetype: "button",
-        type: "button",
         properties: { label: "Get Started", variant: "primary", size: "md" },
         children: [],
         parentId: null,
@@ -40,7 +39,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "btn-2",
         name: "Secondary Button",
         archetype: "button",
-        type: "button",
         properties: { label: "Learn More", variant: "secondary", size: "sm" },
         children: [],
         parentId: null,
@@ -61,7 +59,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "toggle-1",
         name: "Theme Toggle",
         archetype: "toggle",
-        type: "toggle",
         properties: { label: "Dark Mode", defaultChecked: true },
         children: [],
         parentId: null,
@@ -81,7 +78,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "badge-1",
         name: "Status Pill",
         archetype: "badge",
-        type: "badge",
         properties: { label: "Active", variant: "success" },
         children: [],
         parentId: null,
@@ -102,7 +98,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "img-1",
         name: "Hero Cover",
         archetype: "image",
-        type: "image",
         properties: {
           src: "https://example.com/hero.jpg",
           alt: "Hero Banner",
@@ -131,7 +126,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "img-2",
         name: "Thumbnail Image",
         archetype: "image",
-        type: "image",
         properties: {
           src: "https://example.com/thumb.jpg",
           width: 300,
@@ -155,7 +149,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "icon-1",
         name: "Checkmark Icon",
         archetype: "icon",
-        type: "icon",
         properties: {
           d: "M5 13l4 4L19 7",
           viewBox: "0 0 24 24",
@@ -181,7 +174,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "div-1",
         name: "Section Divider",
         archetype: "divider",
-        type: "divider",
         properties: {
           orientation: "horizontal",
           styleType: "solid",
@@ -202,7 +194,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "div-2",
         name: "Glow Divider",
         archetype: "divider",
-        type: "divider",
         properties: {
           styleType: "gradient",
           thickness: 1,
@@ -221,7 +212,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "bg-1",
         name: "Ambient Backdrop",
         archetype: "background",
-        type: "background",
         properties: {
           blendMode: "overlay",
         },
@@ -244,7 +234,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "txt-1",
         name: "Main Title",
         archetype: "text",
-        type: "text",
         properties: {
           content: "Welcome to LazyLayout",
           fontSize: 36,
@@ -264,7 +253,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "txt-2",
         name: "Body Text",
         archetype: "text",
-        type: "text",
         properties: {
           content: "This is production-ready text.",
           fontSize: 16,
@@ -283,7 +271,6 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
         id: "txt-3",
         name: "Hero Reveal Heading",
         archetype: "text",
-        type: "text",
         properties: {
           content: "Hello World",
           fontSize: 32,
@@ -306,11 +293,11 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
   describe("Phase 6 Verification Gate: All 4 Element Families", () => {
     it("verifies clean drop-in output for Button, Image, Divider, Background, and Text", () => {
       const elements: ProjectElement[] = [
-        { id: "e1", name: "Primary Button", archetype: "button", properties: { label: "Submit" } },
-        { id: "e2", name: "Featured Image", archetype: "image", properties: { src: "/img.jpg" } },
-        { id: "e3", name: "Thin Divider", archetype: "divider", properties: { thickness: 1 } },
-        { id: "e4", name: "Dark Background", archetype: "background", properties: {} },
-        { id: "e5", name: "Section Title", archetype: "text", properties: { content: "Header", fontSize: 28 } },
+        { id: "e1", name: "Primary Button", archetype: "button", properties: { label: "Submit" }, parentId: null, children: [] },
+        { id: "e2", name: "Featured Image", archetype: "image", properties: { src: "/img.jpg" }, parentId: null, children: [] },
+        { id: "e3", name: "Thin Divider", archetype: "divider", properties: { thickness: 1 }, parentId: null, children: [] },
+        { id: "e4", name: "Dark Background", archetype: "background", properties: {}, parentId: null, children: [] },
+        { id: "e5", name: "Section Title", archetype: "text", properties: { content: "Header", fontSize: 28 }, parentId: null, children: [] },
       ];
 
       for (const el of elements) {

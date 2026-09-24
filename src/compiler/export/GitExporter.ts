@@ -580,13 +580,13 @@ export class GitExporter {
         accentPrimary: "#206859",
         textPrimary: "#F8FAFC",
         borderDefault: "#334155",
-      } as any,
+      },
       wires: {
         exec: "#FFFFFF",
         string: "#F59E0B",
         number: "#10B981",
         boolean: "#EF4444",
-      } as any,
+      },
     });
     files.push({
       path: "app/globals.css",

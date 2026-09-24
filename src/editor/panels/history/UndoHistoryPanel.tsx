@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useHistoryStore } from "@/core/store/useHistoryStore";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { HistoryActionCategory, HistoryTransaction } from "@/core/types/history";
@@ -31,6 +31,7 @@ import {
   Variable,
   Activity,
 } from "lucide-react";
+import { useNow } from "@/core/hooks/useNow";
 
 interface CategoryMeta {
   label: string;
@@ -100,6 +101,7 @@ const CATEGORY_MAP: Record<HistoryActionCategory, CategoryMeta> = {
 };
 
 export const UndoHistoryPanel: React.FC = () => {
+  const now = useNow();
   const past = useHistoryStore((s) => s.past);
   const future = useHistoryStore((s) => s.future);
   const canUndo = useHistoryStore((s) => s.canUndo());
@@ -116,8 +118,9 @@ export const UndoHistoryPanel: React.FC = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Filter transactions
-  const filterList = (list: HistoryTransaction[]) => {
-    return list.filter((t) => {
+  const filterList = useCallback(
+    (list: HistoryTransaction[]) =>
+      list.filter((t) => {
       if (selectedCategory !== "all" && t.actionCategory !== selectedCategory) {
         return false;
       }
@@ -129,18 +132,19 @@ export const UndoHistoryPanel: React.FC = () => {
         return matchLabel || matchEntity || matchDiff;
       }
       return true;
-    });
-  };
+      }),
+    [selectedCategory, searchQuery]
+  );
 
-  const filteredPast = useMemo(() => filterList(past), [past, selectedCategory, searchQuery]);
-  const filteredFuture = useMemo(() => filterList(future), [future, selectedCategory, searchQuery]);
+  const filteredPast = useMemo(() => filterList(past), [past, filterList]);
+  const filteredFuture = useMemo(() => filterList(future), [future, filterList]);
 
   const handleJump = (transactionId: string) => {
     jumpToHistoryState(transactionId);
   };
 
   const formatTimestamp = (ts: number): string => {
-    const elapsed = Date.now() - ts;
+    const elapsed = now - ts;
     if (elapsed < 3000) return "Just now";
     if (elapsed < 60000) return `${Math.floor(elapsed / 1000)}s ago`;
     if (elapsed < 3600000) return `${Math.floor(elapsed / 60000)}m ago`;

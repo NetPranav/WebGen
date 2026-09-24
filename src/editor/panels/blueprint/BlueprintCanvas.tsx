@@ -21,7 +21,7 @@
  * ============================================================================
  */
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import {
   Play,
   CheckCircle2,
@@ -48,6 +48,7 @@ import {
   getPinColor,
   PinDefinition,
   PinDirection,
+  PinDataType,
 } from "@/core/types/node-registry";
 import { BlueprintWire } from "@/core/ast/ASTManager";
 import { TypeChecker } from "@/core/ast/TypeChecker";
@@ -66,6 +67,7 @@ import { performanceProfiler } from "@/runtime/PerformanceProfiler";
 import { NodePerformanceMetric, ProfilerReport } from "@/core/types/profiler";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
+import { useLatestRef } from "@/core/hooks/useLatestRef";
 
 interface DraggingWireState {
   sourceNodeId: string;
@@ -98,6 +100,40 @@ interface BlueprintCanvasProps {
 }
 
 const SNAP_RADIUS = 44;
+
+interface PinGeometry {
+  pins: Record<string, { dx: number; dy: number }>;
+  nodeWidths: Record<string, number>;
+}
+
+const EMPTY_PIN_GEOMETRY: PinGeometry = { pins: {}, nodeWidths: {} };
+
+/** Measures each rendered pin's center relative to its node, in graph units. */
+function measurePinGeometry(root: HTMLElement, zoom: number): PinGeometry {
+  const round = (v: number) => Math.round(v * 100) / 100;
+  const geometry: PinGeometry = { pins: {}, nodeWidths: {} };
+  root.querySelectorAll<HTMLElement>("[data-node-id]").forEach((nodeEl) => {
+    const nodeId = nodeEl.dataset.nodeId;
+    if (nodeId && nodeEl.offsetWidth > 50) geometry.nodeWidths[nodeId] = nodeEl.offsetWidth;
+  });
+  root.querySelectorAll<HTMLElement>("[data-pin-dot-key]").forEach((pinEl) => {
+    const key = pinEl.dataset.pinDotKey;
+    const nodeEl = pinEl.closest<HTMLElement>("[data-node-id]");
+    if (!key || !nodeEl) return;
+    const pinRect = pinEl.getBoundingClientRect();
+    const nodeRect = nodeEl.getBoundingClientRect();
+    if (pinRect.width <= 0 || nodeRect.width <= 0) return;
+    geometry.pins[key] = {
+      dx: round((pinRect.left + pinRect.width / 2 - nodeRect.left) / zoom),
+      dy: round((pinRect.top + pinRect.height / 2 - nodeRect.top) / zoom),
+    };
+  });
+  return geometry;
+}
+
+function samePinGeometry(a: PinGeometry, b: PinGeometry): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
 export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   onBackToViewport,
@@ -193,10 +229,8 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Invariant refs for wheel/trackpad pan & zoom listener without listener churn
-  const panRef = useRef(pan);
-  panRef.current = pan;
-  const zoomRef = useRef(zoom);
-  zoomRef.current = zoom;
+  const panRef = useLatestRef(pan);
+  const zoomRef = useLatestRef(zoom);
 
   // Track right-click dragging vs stationary right-click context menu
   const rightClickStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -293,8 +327,11 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     }
   }, [compileActiveBlueprintGraph]);
 
-  // Ensure semantically correct wire between Query Collection Success and Branch Condition on initialization
+  // Ensure semantically correct wire between Query Collection Success and Branch Condition on initialization.
+  // Runs once per graph (not on every edit), so a user can still delete the wire afterwards.
+  const activeGraphRef = useLatestRef(activeGraph);
   useEffect(() => {
+    const activeGraph = activeGraphRef.current;
     if (!activeGraph) return;
     const dbNode = activeGraph.nodes["node_db_query"];
     const branchNode = activeGraph.nodes["node_flow_branch"];
@@ -317,7 +354,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
         );
       }
     }
-  }, [activeGraph?.id, connectBlueprintPins]);
+  }, [activeGraph?.id, connectBlueprintPins, activeGraphRef]);
 
   const handleSaveGraph = useCallback(() => {
     handleCompile();
@@ -333,7 +370,11 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     redo();
   }, [redo]);
 
-  // Pin geometry calculation (Pixel-perfect graph-space coordinates using live relative DOM measurement)
+  // Pin centers (graph units, relative to their node) and node widths, measured from the DOM after
+  // layout. Render reads only this state; see the measuring layout effect near `layoutTick`.
+  const [pinGeometry, setPinGeometry] = useState<PinGeometry>(EMPTY_PIN_GEOMETRY);
+
+  // Pin geometry calculation (graph-space coordinates from measured offsets, analytical fallback)
   const getPinCoordinate = useCallback(
     (nodeId: string, pinId: string, direction: "input" | "output") => {
       const node = activeGraph?.nodes[nodeId];
@@ -347,26 +388,11 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
         };
       }
 
-      // 1. Live DOM measurement: calculate pin center relative to node container
+      // 1. Measured pin center relative to its node
       // (Invariant to pan, zoom, scroll, container padding, or browser layout engine)
-      if (canvasRef.current) {
-        const pinEl = canvasRef.current.querySelector<HTMLElement>(
-          `[data-pin-dot-key="${nodeId}:${direction}:${pinId}"]`
-        );
-        const nodeEl = canvasRef.current.querySelector<HTMLElement>(
-          `[data-node-id="${nodeId}"]`
-        );
-
-        if (pinEl && nodeEl) {
-          const pinRect = pinEl.getBoundingClientRect();
-          const nodeRect = nodeEl.getBoundingClientRect();
-          if (pinRect.width > 0 && nodeRect.width > 0) {
-            return {
-              x: node.position.x + (pinRect.left + pinRect.width / 2 - nodeRect.left) / zoom,
-              y: node.position.y + (pinRect.top + pinRect.height / 2 - nodeRect.top) / zoom,
-            };
-          }
-        }
+      const offset = pinGeometry.pins[`${nodeId}:${direction}:${pinId}`];
+      if (offset) {
+        return { x: node.position.x + offset.dx, y: node.position.y + offset.dy };
       }
 
       // 2. High-precision analytical fallback matching NodeCard DOM layout
@@ -375,28 +401,21 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
       const pinIndex = pins.findIndex((p) => p.id === pinId);
       const safeIndex = pinIndex >= 0 ? pinIndex : 0;
 
-      let nodeWidth = Math.max(260, Math.min(340, (node.title?.length || 10) * 12 + 120));
-      if (canvasRef.current) {
-        const nodeEl = canvasRef.current.querySelector<HTMLElement>(
-          `[data-node-id="${nodeId}"]`
-        );
-        if (nodeEl && nodeEl.offsetWidth > 50) {
-          nodeWidth = nodeEl.offsetWidth;
-        }
-      }
+      const nodeWidth =
+        pinGeometry.nodeWidths[nodeId] ?? Math.max(260, Math.min(340, (node.title?.length || 10) * 12 + 120));
 
       const x = direction === "input" ? node.position.x + 20 : node.position.x + nodeWidth - 20;
       const y = node.position.y + 51 + safeIndex * 32;
 
       return { x, y };
     },
-    [activeGraph, zoom]
+    [activeGraph, pinGeometry]
   );
 
   // Add Comment Box action (Wraps selection, centers on screen, or places at custom position)
   const handleAddCommentBox = useCallback((pos?: { x: number; y: number } | React.MouseEvent) => {
     const id = `comment-${Date.now()}`;
-    const customPos = pos && "x" in pos && typeof (pos as any).x === "number" && !("nativeEvent" in pos)
+    const customPos = pos && "x" in pos && typeof (pos as { x?: unknown }).x === "number" && !("nativeEvent" in pos)
       ? (pos as { x: number; y: number })
       : undefined;
 
@@ -659,7 +678,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     return () => {
       el.removeEventListener("wheel", onWheelNative);
     };
-  }, []);
+  }, [panRef, zoomRef]);
 
   // --------------------------------------------------------------------------
   // Mouse Event Handlers (Canvas Panning, Node Dragging, Wire Dragging)
@@ -945,7 +964,8 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
       const isSourceOutput = draggingWire ? draggingWire.isSourceOutput : activeClickPin!.direction === "output";
       const targetDirection = isSourceOutput ? "input" : "output";
 
-      let closestCandidate: {
+      // Assigned inside callbacks, so assert the type to stop narrowing to `null`.
+      let closestCandidate = null as {
         nodeId: string;
         pinId: string;
         pin: PinDefinition;
@@ -953,7 +973,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
         error?: string;
         x: number;
         y: number;
-      } | null = null;
+      } | null;
       let minDistance = Infinity;
 
       if (activeGraph) {
@@ -972,7 +992,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
                 id: reroutePinId,
                 name: reroutePinId,
                 label: reroutePinId,
-                type: (otherNode.customParams?.pinType as any) || sourcePin.type,
+                type: (otherNode.customParams?.pinType as PinDataType) || sourcePin.type,
                 direction: targetDirection,
               };
               closestCandidate = {
@@ -1028,8 +1048,8 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
           prev
             ? {
                 ...prev,
-                currentX: closestCandidate && (closestCandidate as any).isValid ? (closestCandidate as any).x : canvasX,
-                currentY: closestCandidate && (closestCandidate as any).isValid ? (closestCandidate as any).y : canvasY,
+                currentX: closestCandidate?.isValid ? closestCandidate.x : canvasX,
+                currentY: closestCandidate?.isValid ? closestCandidate.y : canvasY,
               }
             : null
         );
@@ -1101,7 +1121,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
                 );
 
                 if (check.isValid) {
-                  const coord = getPinCoordinate(hitNodeId, hitPinId, hitDirection as any);
+                  const coord = getPinCoordinate(hitNodeId, hitPinId, hitDirection as "input" | "output");
                   targetToConnect = {
                     nodeId: hitNodeId,
                     pinId: hitPinId,
@@ -1211,6 +1231,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   };
 
   // Window-level mousemove & mouseup listeners ensure dragging, resizing, panning, wire creation, and marquee selection track smoothly across any window boundary
+  const mouseHandlersRef = useLatestRef({ handleMouseMove, handleMouseUp });
   useEffect(() => {
     if (
       !draggingWire &&
@@ -1224,11 +1245,11 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     }
 
     const handleWindowMouseMove = (e: MouseEvent) => {
-      handleMouseMove(e as unknown as React.MouseEvent);
+      mouseHandlersRef.current.handleMouseMove(e as unknown as React.MouseEvent);
     };
 
     const handleWindowMouseUp = (e: MouseEvent) => {
-      handleMouseUp(e as unknown as React.MouseEvent);
+      mouseHandlersRef.current.handleMouseUp(e as unknown as React.MouseEvent);
     };
 
     window.addEventListener("mousemove", handleWindowMouseMove);
@@ -1244,8 +1265,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     draggingNodeId,
     isPanning,
     isSelecting,
-    handleMouseMove,
-    handleMouseUp,
+    mouseHandlersRef,
   ]);
 
   // Global Right-Click Context Menu across the entire website
@@ -1454,6 +1474,19 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   // --------------------------------------------------------------------------
   // Node Drag Start & Group Multi-Selection Drag Init
   // --------------------------------------------------------------------------
+  // Reroute knots expose one untyped in/out pin; synthesize its definition from the knot's pin type.
+  const handleReroutePinMouseDown = (e: React.MouseEvent, nodeId: string, direction: "input" | "output") => {
+    const knot = activeGraph?.nodes[nodeId];
+    const pinDef: PinDefinition = {
+      id: direction === "input" ? "in" : "out",
+      name: direction === "input" ? "in" : "out",
+      label: direction === "input" ? "in" : "out",
+      type: (knot?.customParams?.pinType as PinDataType) || "exec",
+      direction,
+    };
+    handlePinMouseDown(e, nodeId, pinDef, direction);
+  };
+
   const handleNodeHeaderMouseDown = (e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
     if (!canvasRef.current || !activeGraph) return;
@@ -1622,23 +1655,24 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   };
 
   // Connected Pin Keys for NodeCard rendering
+  const activeWires = activeGraph?.wires;
   const connectedPinKeys = useMemo(() => {
     const keys = new Set<string>();
-    if (!activeGraph) return keys;
-    for (const wire of activeGraph.wires) {
+    if (!activeWires) return keys;
+    for (const wire of activeWires) {
       keys.add(`${wire.sourceNodeId}:output:${wire.sourcePinId}`);
       keys.add(`${wire.targetNodeId}:input:${wire.targetPinId}`);
     }
     return keys;
-  }, [activeGraph?.wires]);
+  }, [activeWires]);
 
   // --------------------------------------------------------------------------
   // 120 FPS Wasm Cable & Wire Coordinates Memo (Sub-Phase 4.4)
   // --------------------------------------------------------------------------
   const [layoutTick, setLayoutTick] = useState(0);
 
+  // Re-measure once fonts and late layout settle
   useEffect(() => {
-    setLayoutTick((t) => t + 1);
     const t1 = setTimeout(() => setLayoutTick((t) => t + 1), 60);
     const t2 = setTimeout(() => setLayoutTick((t) => t + 1), 250);
     return () => {
@@ -1646,6 +1680,13 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
       clearTimeout(t2);
     };
   }, [activeGraph?.id, activeGraph?.wires.length]);
+
+  useLayoutEffect(() => {
+    const root = canvasRef.current;
+    if (!root || !activeGraph) return;
+    const next = measurePinGeometry(root, zoom);
+    setPinGeometry((prev) => (samePinGeometry(prev, next) ? prev : next));
+  }, [activeGraph, zoom, layoutTick]);
 
   // Sub-Phase 5.3: Wire Pulse Telemetry from ExecutionTracer
   const [pulseTelemetryWires, setPulseTelemetryWires] = useState<Record<string, number>>({});
@@ -1660,19 +1701,22 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     });
   }, []);
 
-  // Sub-Phase 5.3: Focus and center node when navigated from ExecutionTracePanel
-  useEffect(() => {
-    if (!focusedNodeId || !activeGraph) return;
-    const node = activeGraph.nodes[focusedNodeId];
-    if (node) {
-      setSelectedNodeIds(new Set([focusedNodeId]));
-      setSelectedNodeId(focusedNodeId);
+  // Sub-Phase 5.3: Focus and center node when navigated from ExecutionTracePanel.
+  // Fires once per focus request (and once the node exists), not on every zoom or graph edit.
+  const focusedNode = focusedNodeId ? activeGraph?.nodes[focusedNodeId] : undefined;
+  const focusKey = focusedNode ? `${activeGraph?.id}:${focusedNode.id}` : null;
+  const [prevFocusKey, setPrevFocusKey] = useState<string | null>(null);
+  if (focusKey !== prevFocusKey) {
+    setPrevFocusKey(focusKey);
+    if (focusedNode) {
+      setSelectedNodeIds(new Set([focusedNode.id]));
+      setSelectedNodeId(focusedNode.id);
       setPan({
-        x: 420 - node.position.x * zoom,
-        y: 260 - node.position.y * zoom,
+        x: 420 - focusedNode.position.x * zoom,
+        y: 260 - focusedNode.position.y * zoom,
       });
     }
-  }, [focusedNodeId, activeGraph, zoom]);
+  }
 
   const canvasWires: CanvasWire[] = useMemo(() => {
     if (!activeGraph) return [];
@@ -1695,7 +1739,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
         pulseSpeed: pulseTelemetryWires[wire.id] || (isExec ? 0.0012 : 0.0016),
       };
     });
-  }, [activeGraph, getPinCoordinate, selectedWireId, selectedWireIds, layoutTick, pulseTelemetryWires]);
+  }, [activeGraph, getPinCoordinate, selectedWireId, selectedWireIds, pulseTelemetryWires]);
 
   const activeDraggingWire = useMemo(() => {
     if (!draggingWire) return null;
@@ -2420,7 +2464,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
                       node={{
                         id: node.id,
                         position: node.position,
-                        pinType: (node.customParams?.pinType as any) || "exec",
+                        pinType: (node.customParams?.pinType as PinDataType) || "exec",
                       }}
                       isSelected={selectedNodeIds.has(node.id) || selectedNodeId === node.id}
                       onSelect={(id) => {
@@ -2435,17 +2479,8 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
                         removeBlueprintNode(activeGraph.id, id, "Delete Reroute Knot");
                         handleCompile();
                       }}
-                      onMouseDown={(e) => handleNodeHeaderMouseDown(e, node.id)}
-                      onPinMouseDown={(e, id, direction) => {
-                        const pinDef: PinDefinition = {
-                          id: direction === "input" ? "in" : "out",
-                          name: direction === "input" ? "in" : "out",
-                          label: direction === "input" ? "in" : "out",
-                          type: (node.customParams?.pinType as any) || "exec",
-                          direction: direction,
-                        };
-                        handlePinMouseDown(e, id, pinDef, direction);
-                      }}
+                      onMouseDown={handleNodeHeaderMouseDown}
+                      onPinMouseDown={handleReroutePinMouseDown}
                     />
                   );
                 }

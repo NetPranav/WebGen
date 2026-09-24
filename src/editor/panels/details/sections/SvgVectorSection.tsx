@@ -20,15 +20,25 @@ export interface SvgVectorSectionProps {
   elementName: string;
 }
 
+// TODO(MDM-P2): typed view over the untyped `ProjectElement.properties` bag;
+// MDM v2 gives each archetype a real props schema.
+interface SvgVectorProps {
+  stroke?: string;
+  strokeWidth?: number;
+  fill?: string;
+  strokeDashoffset?: number;
+  path?: string;
+}
+
 export const SvgVectorSection: React.FC<SvgVectorSectionProps> = ({
   elementId,
   elementName,
 }) => {
   const { elements, setElementProperty } = useProjectStore();
   const currentElement = elements[elementId];
-  const props = (currentElement?.properties || {}) as Record<string, any>;
+  const props = (currentElement?.properties || {}) as SvgVectorProps;
 
-  const updateProp = (key: string, val: any) => {
+  const updateProp = (key: string, val: unknown) => {
     setElementProperty(elementId, key, val, `Update svg ${key}`);
   };
 

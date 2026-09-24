@@ -98,11 +98,19 @@ export const AddComponentPalette: React.FC<AddComponentPaletteProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Autofocus search and reset query on open
-  useEffect(() => {
+  // Reset query on open
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setSearchQuery("");
       setFocusedIndex(0);
+    }
+  }
+
+  // Autofocus search on open
+  useEffect(() => {
+    if (isOpen) {
       setTimeout(() => {
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
@@ -148,9 +156,11 @@ export const AddComponentPalette: React.FC<AddComponentPaletteProps> = ({
   }, [searchQuery, activeCategory]);
 
   // Reset focus index if filtered items change
-  useEffect(() => {
+  const [prevFilteredItems, setPrevFilteredItems] = useState(filteredItems);
+  if (filteredItems !== prevFilteredItems) {
+    setPrevFilteredItems(filteredItems);
     setFocusedIndex(0);
-  }, [filteredItems]);
+  }
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {

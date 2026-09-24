@@ -274,7 +274,7 @@ export const MockDataGrid: React.FC<MockDataGridProps> = ({
                     fontSize: 12,
                   }}
                 >
-                  No records in '{selectedCollection}'. Click <strong>+ Add Row</strong> to insert mock data.
+                  No records in &lsquo;{selectedCollection}&rsquo;. Click <strong>+ Add Row</strong> to insert mock data.
                 </td>
               </tr>
             ) : (

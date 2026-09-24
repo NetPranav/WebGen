@@ -64,6 +64,15 @@ export interface KeyframePoint {
   easing?: string | CubicBezierHandle;
 }
 
+/**
+ * Collapses a keyframe value to a scalar for emitters and interpolators that
+ * only handle `string | number`. Vector values (e.g. `position3D`) become a
+ * space-separated list.
+ */
+export function toScalarKeyframeValue(value: KeyframePoint["value"]): string | number {
+  return Array.isArray(value) ? value.join(" ") : value;
+}
+
 export interface AnimationTrack {
   trackId: AnimationTrackId;
   keyframes: KeyframePoint[];

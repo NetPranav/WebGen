@@ -43,7 +43,13 @@ export interface OptimizationRecommendation {
   type: "warning" | "optimization" | "pass";
   property: string;
   message: string;
-  autoFix?: Record<string, any>;
+  autoFix?: Record<string, string>;
+}
+
+/** Runs a GC pass when the host exposes one (Node with `--expose-gc`). */
+function forceGc(): void {
+  const host = globalThis as { gc?: () => void };
+  host.gc?.();
 }
 
 export class PerformanceProfiler {
@@ -153,9 +159,7 @@ export class PerformanceProfiler {
     iterations: number = 100
   ): MemoryProfileResult {
     // If running in Node environment, force GC if exposed, else check process heap
-    if (typeof global !== "undefined" && (global as any).gc) {
-      (global as any).gc();
-    }
+    forceGc();
 
     const initialHeap = typeof process !== "undefined" && process.memoryUsage
       ? process.memoryUsage().heapUsed
@@ -170,9 +174,7 @@ export class PerformanceProfiler {
       cleanedCount++;
     }
 
-    if (typeof global !== "undefined" && (global as any).gc) {
-      (global as any).gc();
-    }
+    forceGc();
 
     const finalHeap = typeof process !== "undefined" && process.memoryUsage
       ? process.memoryUsage().heapUsed
@@ -199,7 +201,7 @@ export class PerformanceProfiler {
    * Analyzes an element's motion properties and returns GPU-compositing optimizations.
    */
   public static analyzeMotionPerformance(
-    properties: Record<string, any>
+    properties: Record<string, unknown>
   ): OptimizationRecommendation[] {
     const recommendations: OptimizationRecommendation[] = [];
 

@@ -15,6 +15,7 @@ import {
   AnimationTrack,
   AnimationTrackId,
   KeyframePoint,
+  toScalarKeyframeValue,
 } from "../types/animations";
 
 export interface CompiledAnimation {
@@ -114,7 +115,7 @@ export class GSAPTimelineCompilerService {
           offsetMap.set(kf.offset, { transforms: [], styles: {} });
         }
         const bucket = offsetMap.get(kf.offset)!;
-        const formatted = this.formatCssValue(track.trackId, kf.value);
+        const formatted = this.formatCssValue(track.trackId, toScalarKeyframeValue(kf.value));
 
         if (formatted.isTransform) {
           bucket.transforms.push(formatted.value);

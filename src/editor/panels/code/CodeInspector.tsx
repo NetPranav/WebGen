@@ -49,6 +49,15 @@ export interface CodeInspectorProps {
 
 type ActiveTab = "component" | "animation" | "styles" | "readme";
 
+const FALLBACK_ELEMENT: ProjectElement = {
+  id: "elem_btn",
+  name: "Interactive Button",
+  archetype: "button",
+  properties: { label: "Click Me", variant: "primary", size: "md" },
+  children: [],
+  parentId: null,
+};
+
 export const CodeInspector: React.FC<CodeInspectorProps> = ({
   className = "",
   style,
@@ -75,17 +84,9 @@ export const CodeInspector: React.FC<CodeInspectorProps> = ({
     Object.keys(elements)[0] ||
     "elem_default";
 
-  const activeElement: ProjectElement = elements[resolvedElementId] || {
-    id: "elem_btn",
-    name: "Interactive Button",
-    archetype: "button",
-    type: "button",
-    properties: { label: "Click Me", variant: "primary", size: "md" },
-    children: [],
-    parentId: null,
-  };
+  const activeElement: ProjectElement = elements[resolvedElementId] || FALLBACK_ELEMENT;
 
-  const archetype = activeElement.archetype || activeElement.type || "button";
+  const archetype = activeElement.archetype || "button";
   const componentName = activeElement.name
     ? activeElement.name.replace(/[^a-zA-Z0-9]/g, " ").split(" ").filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("")
     : "CustomElement";
@@ -242,7 +243,11 @@ export default function Example() {
         files[`use${componentName}Animation.ts`] = animationCode;
       }
 
-      await ZipPacker.downloadZip(files, `${componentName}.zip`);
+      const packer = new ZipPacker();
+      for (const [path, content] of Object.entries(files)) {
+        packer.addFile(path, content);
+      }
+      packer.download(`${componentName}.zip`);
     } catch (e) {
       console.error("Failed to download ZIP package:", e);
     } finally {
@@ -313,7 +318,7 @@ export default function Example() {
           {/* Framework */}
           <select
             value={framework}
-            onChange={(e) => setFramework(e.target.value as any)}
+            onChange={(e) => setFramework(e.target.value as typeof framework)}
             className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="nextjs">Next.js 15</option>
@@ -323,7 +328,7 @@ export default function Example() {
           {/* Styling */}
           <select
             value={stylingSystem}
-            onChange={(e) => setStylingSystem(e.target.value as any)}
+            onChange={(e) => setStylingSystem(e.target.value as typeof stylingSystem)}
             className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="tailwind">Tailwind CSS</option>
@@ -333,7 +338,7 @@ export default function Example() {
           {/* Animation */}
           <select
             value={animationEngine}
-            onChange={(e) => setAnimationEngine(e.target.value as any)}
+            onChange={(e) => setAnimationEngine(e.target.value as typeof animationEngine)}
             className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="gsap">GSAP 3</option>

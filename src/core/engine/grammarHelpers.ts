@@ -15,11 +15,9 @@
 import {
   AnimationBinding,
   AnimationCategory,
-  CandidateBindingOffer,
   GrammarElementType,
   TriggerType,
   CATEGORY_PRIORITY_ORDER,
-  TYPE_REGISTRY,
 } from "../types/element-grammar";
 
 export interface GrammarPropertyTierInfo {
@@ -84,8 +82,9 @@ export function resolveGrammarElementType(
   if (name.includes("footer") || id.includes("footer")) return "Footer";
   if (name.includes("hero") || name.includes("section") || id.includes("hero") || id.includes("section"))
     return "Section";
-  if (name.includes("modal") || id.includes("modal")) return "Modal";
-  if (name.includes("drawer") || id.includes("drawer")) return "Drawer";
+  // Drawers are side-anchored Modals in the grammar (§3.B.6).
+  if (name.includes("modal") || id.includes("modal") || name.includes("drawer") || id.includes("drawer"))
+    return "Modal";
   if (name.includes("accordion") || id.includes("accordion")) return "Accordion";
   if (name.includes("tabs") || id.includes("tabs")) return "Tabs";
   if (name.includes("tooltip") || id.includes("tooltip")) return "Tooltip";

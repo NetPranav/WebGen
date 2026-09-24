@@ -20,8 +20,9 @@ import {
   DeploymentEnvironment,
   PipelineStepId,
 } from "../core/types/deployment";
-import { useProjectStore } from "../core/store/useProjectStore";
+import { useProjectStore, ProjectStoreState } from "../core/store/useProjectStore";
 import { DiagnosticBus } from "../core/engine/DiagnosticBus";
+import { errorMessage } from "@/core/errors";
 
 export type DeploymentListener = (record: DeploymentRecord) => void;
 
@@ -106,8 +107,9 @@ class DeploymentEngineManager {
    * Performs pre-flight validation against active project AST.
    * Checks for missing pages, route collisions, and broken database schemas.
    */
-  public validatePreflight(): { valid: boolean; errors: string[] } {
-    const storeState = useProjectStore.getState();
+  public validatePreflight(
+    storeState: Pick<ProjectStoreState, "pages" | "databaseSchemas" | "detectRouteCollisions"> = useProjectStore.getState()
+  ): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     // 1. Pages check
@@ -243,7 +245,7 @@ class DeploymentEngineManager {
       this.history.unshift({ ...record });
       this.notify();
       return record;
-    } catch (err: any) {
+    } catch (err) {
       record.status = "failed";
       record.durationMs = Math.round(performance.now() - t0);
       record.completedAt = new Date().toISOString();
@@ -252,7 +254,7 @@ class DeploymentEngineManager {
         channel: "BUILD_COMPILE_ERR",
         severity: "error",
         source: { panel: "Panel 19: Deployment", entityId: deployId },
-        message: `Deployment failed: ${err?.message || String(err)}`,
+        message: `Deployment failed: ${errorMessage(err)}`,
       });
 
       this.notify();

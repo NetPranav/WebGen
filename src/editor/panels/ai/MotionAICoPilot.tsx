@@ -31,6 +31,7 @@ import {
   Cpu,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { motionAiEngine, MotionAiResponse } from "@/core/ai/MotionAiEngine";
 import { ALL_PRESETS, getPresetsForArchetype, instantiatePreset, MotionPreset } from "@/core/motion/presets";
 import { motionDiagnostics, MotionDiagnosticIssue } from "@/core/ai/MotionDiagnostics";
@@ -43,8 +44,32 @@ export interface MotionAICoPilotProps {
 }
 
 export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style }) => {
-  const { elements, activeElementId, updateElement } = useProjectStore();
-  const activeElement = (activeElementId ? elements[activeElementId] : null) as unknown as BaseElementNode | null;
+  const elements = useProjectStore((s) => s.elements);
+  const setElementProperty = useProjectStore((s) => s.setElementProperty);
+  const activeElementId = useSelectionStore((s) => s.selectedId);
+  // TODO(MDM-P2): the co-pilot works on a BaseElementNode view of ProjectElement. The animation
+  // stack lives in `properties.animationStack` (where the Sequencer writes it) until MDM v2.
+  const activeElement = useMemo(() => {
+    const el = activeElementId ? elements[activeElementId] : undefined;
+    if (!el) return null;
+    const stack = el.properties.animationStack;
+    return {
+      ...el,
+      animationStack: Array.isArray(stack) ? stack : [],
+    } as unknown as BaseElementNode;
+  }, [elements, activeElementId]);
+
+  const updateElement = (
+    elementId: string,
+    patch: { animationStack: AttachedAnimation[]; properties?: Record<string, unknown> },
+    actionLabel: string
+  ) => {
+    const current = elements[elementId]?.properties ?? {};
+    for (const [key, value] of Object.entries(patch.properties ?? {})) {
+      if (current[key] !== value) setElementProperty(elementId, key, value);
+    }
+    setElementProperty(elementId, "animationStack", patch.animationStack, actionLabel);
+  };
 
   const [activeTab, setActiveTab] = useState<"choreography" | "presets" | "diagnostics">("choreography");
   const [promptInput, setPromptInput] = useState("");
@@ -115,9 +140,7 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
       activeDiff.ghostAnimation,
     ];
 
-    updateElement(activeElement.id, {
-      animationStack: updated,
-    } as any);
+    updateElement(activeElement.id, { animationStack: updated }, "AI: accept ghost motion");
 
     setNotification(`Accepted motion: "${activeDiff.ghostAnimation.name}" merged cleanly.`);
     setActiveDiff(null);
@@ -158,9 +181,7 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
     const existing = activeElement.animationStack || [];
     const updated = [...existing.filter((a) => a.trigger !== instantiated.trigger), instantiated];
 
-    updateElement(activeElement.id, {
-      animationStack: updated,
-    } as any);
+    updateElement(activeElement.id, { animationStack: updated }, `Apply preset: ${preset.name}`);
 
     setNotification(`Applied preset "${preset.name}" to ${activeElement.name}`);
     setTimeout(() => setNotification(null), 3000);
@@ -196,10 +217,11 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
   const handleAutoFix = (issue: MotionDiagnosticIssue) => {
     if (!issue.fixAction) return;
     const { updatedElement, updatedAnimations } = issue.fixAction();
-    updateElement(updatedElement.id, {
-      ...updatedElement,
-      animationStack: updatedAnimations,
-    } as any);
+    updateElement(
+      updatedElement.id,
+      { animationStack: updatedAnimations, properties: updatedElement.properties },
+      `Auto-fix: ${issue.title}`
+    );
     setNotification(`Resolved: ${issue.title}`);
     setTimeout(() => setNotification(null), 3000);
   };

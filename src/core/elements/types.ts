@@ -19,6 +19,8 @@ export interface ElementLayout {
   align?: "stretch" | "flex-start" | "center" | "flex-end" | "baseline";
   gap?: number;
   wrap?: boolean;
+  width?: number;
+  height?: number;
   padding?: {
     top: number;
     right: number;
@@ -102,7 +104,7 @@ export interface AttachedAnimation {
   tracks?: AnimationTrack[];
 }
 
-export interface BaseElementNode<TProps extends Record<string, unknown> = Record<string, unknown>> {
+export interface BaseElementNode<TProps extends object = Record<string, unknown>> {
   id: string;
   name: string;
   archetype: ArchetypeId;

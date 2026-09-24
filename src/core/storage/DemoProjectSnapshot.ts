@@ -75,9 +75,10 @@ export function createBlankCanvasSnapshot(): ProjectStateSnapshot {
       graph_main_event: {
         id: "graph_main_event",
         name: "Main Event Graph",
+        type: "event",
         nodes: {},
         wires: [],
-        variables: {},
+        variables: [],
       },
     },
     activeBlueprintGraphId: "graph_main_event",
@@ -198,16 +199,20 @@ export function createShowcaseSnapshot(): ProjectStateSnapshot {
     stateVariables,
     animationSamples: {
       sample_btn_pulse: {
-        elementId: "el_buy_button",
-        duration: 1.0,
+        id: "sample_btn_pulse",
+        name: "Buy Button Pulse",
+        duration: 1000,
+        easing: "power2.inOut",
+        iterations: 1,
+        direction: "normal",
+        fillMode: "forwards",
         tracks: [
           {
-            id: "transform.scale",
-            property: "transform.scale",
+            trackId: "scale",
             keyframes: [
-              { time: 0, value: 1, easing: "power2.out" },
-              { time: 0.5, value: 1.05, easing: "power2.inOut" },
-              { time: 1.0, value: 1, easing: "power2.out" },
+              { offset: 0, value: 1, easing: "power2.out" },
+              { offset: 50, value: 1.05, easing: "power2.inOut" },
+              { offset: 100, value: 1, easing: "power2.out" },
             ],
           },
         ],
@@ -219,9 +224,10 @@ export function createShowcaseSnapshot(): ProjectStateSnapshot {
       graph_main_event: {
         id: "graph_main_event",
         name: "Main Event Graph",
+        type: "event",
         nodes: {},
         wires: [],
-        variables: {},
+        variables: [],
       },
     },
     activeBlueprintGraphId: "graph_main_event",

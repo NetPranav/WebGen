@@ -41,9 +41,13 @@ export const BezierCurveModal: React.FC<BezierCurveModalProps> = ({
   const [previewKey, setPreviewKey] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  useEffect(() => {
+  // Re-sync from the prop when the modal opens or the incoming curve changes (by value)
+  const syncKey = `${isOpen}|${initialHandle.join(",")}`;
+  const [prevSyncKey, setPrevSyncKey] = useState(syncKey);
+  if (syncKey !== prevSyncKey) {
+    setPrevSyncKey(syncKey);
     setHandle(initialHandle);
-  }, [initialHandle, isOpen]);
+  }
 
   if (!isOpen) return null;
 

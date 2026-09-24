@@ -25,6 +25,7 @@ import {
   ArchetypeId,
   FamilyId,
 } from "@/core/elements/types";
+import { getArchetypeDefinition } from "@/editor/panels/launcher/archetypeData";
 import { PlayheadControls } from "./PlayheadControls";
 import { TrackHeader } from "./TrackHeader";
 import { KeyframeTrack } from "./KeyframeTrack";
@@ -33,6 +34,8 @@ import { StaggerManager } from "./StaggerManager";
 import { CurveEditor } from "@/editor/panels/curves/CurveEditor";
 import { Plus, ChevronDown, Trash2, Copy, Sliders, ChevronsLeftRight } from "lucide-react";
 import { synthesizeSingleTransformMatrix, TransformComponents } from "@/core/runtime/EngineAdapters";
+import { createId } from "@/core/ids";
+import { useLatestRef } from "@/core/hooks/useLatestRef";
 
 /**
  * Retrieves valid animatable property paths for a given archetype and family
@@ -165,6 +168,15 @@ export function interpolateTrackValue(track: AnimationTrack, time: number): unkn
   return sorted[sorted.length - 1].value;
 }
 
+function findKeyframe(tracks: AnimationTrack[], keyframeId: string | null) {
+  if (!keyframeId) return null;
+  for (const track of tracks) {
+    const keyframe = track.keyframes.find((k) => (k.id || `kf_${k.time}`) === keyframeId);
+    if (keyframe) return { track, keyframe };
+  }
+  return null;
+}
+
 export const MotionSequencer: React.FC = () => {
   const { elements, setElementProperty, pages, activePageId } = useProjectStore();
 
@@ -174,20 +186,23 @@ export const MotionSequencer: React.FC = () => {
   const activeElement: ProjectElement | undefined = elements[rootElementId];
 
   const archetype = activeElement?.archetype as ArchetypeId | undefined;
-  const family = activeElement?.family as FamilyId | undefined;
+  const family: FamilyId | undefined = archetype ? getArchetypeDefinition(archetype)?.family : undefined;
 
-  // Active animation from element's animation stack
+  // Active animation from element's animation stack.
+  // TODO(MDM-P2): the stack lives in `properties.animationStack` (where writes land, AUD-05) until MDM v2.
+  const storedStack = activeElement?.properties.animationStack;
   const animationStack: AttachedAnimation[] = useMemo(() => {
-    return (activeElement?.animationStack as AttachedAnimation[]) || [];
-  }, [activeElement?.animationStack]);
+    return Array.isArray(storedStack) ? (storedStack as AttachedAnimation[]) : [];
+  }, [storedStack]);
 
   const [activeAnimIndex, setActiveAnimIndex] = useState(0);
   const currentAnimation: AttachedAnimation | undefined = animationStack[activeAnimIndex] || animationStack[0];
 
   // Tracks for active animation
+  const currentTracks = currentAnimation?.tracks;
   const tracks: AnimationTrack[] = useMemo(() => {
-    if (currentAnimation?.tracks && currentAnimation.tracks.length > 0) {
-      return currentAnimation.tracks;
+    if (currentTracks && currentTracks.length > 0) {
+      return currentTracks;
     }
     // Default fallback tracks if none attached
     return [
@@ -208,7 +223,7 @@ export const MotionSequencer: React.FC = () => {
         ],
       },
     ];
-  }, [currentAnimation?.tracks]);
+  }, [currentTracks]);
 
   // Sequencer Playback State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -225,16 +240,7 @@ export const MotionSequencer: React.FC = () => {
   const pixelsPerSecond = 280; // 280px per second on timeline
 
   // Find currently selected keyframe object & track
-  const selectedKeyframeInfo = useMemo(() => {
-    if (!selectedKeyframeId) return null;
-    for (const tr of tracks) {
-      const kf = tr.keyframes.find((k) => (k.id || `kf_${k.time}`) === selectedKeyframeId);
-      if (kf) {
-        return { track: tr, keyframe: kf };
-      }
-    }
-    return null;
-  }, [tracks, selectedKeyframeId]);
+  const selectedKeyframeInfo = findKeyframe(tracks, selectedKeyframeId);
 
   // Live Stage DOM Hot-Patch: dispatch interpolated values on playhead update
   useEffect(() => {
@@ -513,11 +519,11 @@ export const MotionSequencer: React.FC = () => {
     if (tracks.some((t) => t.property === property)) return;
 
     const newTrack: AnimationTrack = {
-      id: `tr_${Date.now()}`,
+      id: createId("tr"),
       property,
       keyframes: [
-        { id: `kf_start_${Date.now()}`, time: 0.0, value: "0", ease: "power2.out" },
-        { id: `kf_end_${Date.now()}`, time: totalDuration, value: "1", ease: "power2.out" },
+        { id: createId("kf_start"), time: 0.0, value: "0", ease: "power2.out" },
+        { id: createId("kf_end"), time: totalDuration, value: "1", ease: "power2.out" },
       ],
     };
 
@@ -525,9 +531,12 @@ export const MotionSequencer: React.FC = () => {
     setActiveTrackId(newTrack.id!);
   };
 
-  // Keyboard Shortcuts (Space: Play/Pause, Delete: Delete KF, Ctrl+D: Duplicate KF)
+  // Keyboard Shortcuts (Space: Play/Pause, Delete: Delete KF, Ctrl+D: Duplicate KF).
+  // Subscribed once; reads the latest selection and handlers through a ref.
+  const shortcutStateRef = useLatestRef({ selectedKeyframeInfo, handleDeleteKeyframe, handleDuplicateKeyframe });
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const { selectedKeyframeInfo, handleDeleteKeyframe, handleDuplicateKeyframe } = shortcutStateRef.current;
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -563,7 +572,7 @@ export const MotionSequencer: React.FC = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedKeyframeInfo]);
+  }, [shortcutStateRef]);
 
   // ScrollTrigger & Stagger update handlers
   const handleUpdateScrollTrigger = (stConfig: ScrollTriggerConfig) => {

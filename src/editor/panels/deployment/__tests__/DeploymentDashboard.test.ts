@@ -85,7 +85,8 @@ describe("Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy (Panel 19)", (
       assert.strictEqual(initial?.target, "vercel");
       assert.strictEqual(initial?.environment, "production");
       assert.strictEqual(initial?.steps.length, 6);
-      assert.ok(initial?.health.uptimePct! >= 99);
+      assert.ok(initial);
+    assert.ok(initial.health.uptimePct >= 99);
     });
   });
 

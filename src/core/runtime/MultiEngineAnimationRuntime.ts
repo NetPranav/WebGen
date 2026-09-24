@@ -23,6 +23,7 @@ import {
   AnimationTrack,
   AnimationTrackId,
   KeyframePoint,
+  toScalarKeyframeValue,
 } from "../types/animations";
 import { synthesizeSingleTransformMatrix } from "./EngineAdapters";
 
@@ -304,7 +305,7 @@ export class MultiEngineAnimationRuntimeService {
         const kf = track.keyframes.find((k) => k.offset === currOffset);
         if (kf !== undefined) {
           const gsapProp = this.mapPropertyToGsap(track.trackId);
-          stepProps[gsapProp] = kf.value;
+          stepProps[gsapProp] = toScalarKeyframeValue(kf.value);
         }
       }
 
@@ -396,10 +397,10 @@ export function ${hookName}(containerRef: React.RefObject<HTMLElement>) {
       const propName = this.mapPropertyToFramer(track.trackId);
 
       if (firstKf !== undefined) {
-        initialProps[propName] = firstKf.value;
+        initialProps[propName] = toScalarKeyframeValue(firstKf.value);
       }
       if (lastKf !== undefined) {
-        animateProps[propName] = lastKf.value;
+        animateProps[propName] = toScalarKeyframeValue(lastKf.value);
       }
     }
 
@@ -700,7 +701,7 @@ export const ${varName}: Variants = {
           keyframeMap[kf.offset] = {};
         }
         const cssProp = this.mapPropertyToCss(track.trackId);
-        keyframeMap[kf.offset][cssProp] = kf.value;
+        keyframeMap[kf.offset][cssProp] = toScalarKeyframeValue(kf.value);
       }
     }
 
@@ -776,8 +777,11 @@ export const ${varName}: Variants = {
 
     for (const track of sample.tracks) {
       const val = this.interpolateTrackValue(track, progress);
+      // TODO(MDM-P2): legacy dotted paths (`transform.x`, `media.scale` …) still
+      // arrive from `properties.animationStack`; MDM v2 unifies the track IDs.
+      const trackId: string = track.trackId;
 
-      switch (track.trackId) {
+      switch (trackId) {
         case "translateX":
         case "transform.x":
           transformParts.x = typeof val === "number" ? `${val}px` : String(val);
@@ -872,12 +876,12 @@ export const ${varName}: Variants = {
 
   private interpolateTrackValue(track: AnimationTrack, progress: number): number | string {
     if (!track.keyframes || track.keyframes.length === 0) return 0;
-    if (track.keyframes.length === 1) return track.keyframes[0].value;
+    if (track.keyframes.length === 1) return toScalarKeyframeValue(track.keyframes[0].value);
 
     const sorted = [...track.keyframes].sort((a, b) => a.offset - b.offset);
 
-    if (progress <= sorted[0].offset / 100) return sorted[0].value;
-    if (progress >= sorted[sorted.length - 1].offset / 100) return sorted[sorted.length - 1].value;
+    if (progress <= sorted[0].offset / 100) return toScalarKeyframeValue(sorted[0].value);
+    if (progress >= sorted[sorted.length - 1].offset / 100) return toScalarKeyframeValue(sorted[sorted.length - 1].value);
 
     // Find bounding keyframes
     let kfA = sorted[0];
@@ -901,7 +905,7 @@ export const ${varName}: Variants = {
       return interpolated;
     }
 
-    return localProgress < 0.5 ? kfA.value : kfB.value;
+    return toScalarKeyframeValue(localProgress < 0.5 ? kfA.value : kfB.value);
   }
 }
 

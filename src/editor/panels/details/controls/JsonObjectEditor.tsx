@@ -14,6 +14,7 @@
 
 import React, { useState } from "react";
 import { Plus, Trash2, ChevronRight, Code, Eye, AlertCircle } from "lucide-react";
+import { errorMessage } from "@/core/errors";
 
 export interface JsonObjectEditorProps {
   value: unknown;
@@ -36,14 +37,14 @@ export const JsonObjectEditor: React.FC<JsonObjectEditorProps> = ({
   const [newValType, setNewValType] = useState<"string" | "number" | "boolean">("string");
 
   // Ensure object
-  const obj: Record<string, any> =
+  const obj: Record<string, unknown> =
     typeof value === "object" && value !== null && !Array.isArray(value)
-      ? (value as Record<string, any>)
+      ? (value as Record<string, unknown>)
       : {};
 
   const keys = Object.keys(obj);
 
-  const handleUpdateValue = (k: string, v: any) => {
+  const handleUpdateValue = (k: string, v: unknown) => {
     const next = { ...obj, [k]: v };
     onChange(next);
     setRawText(JSON.stringify(next, null, 2));
@@ -60,7 +61,7 @@ export const JsonObjectEditor: React.FC<JsonObjectEditorProps> = ({
     const trimmed = newKey.trim();
     if (!trimmed || trimmed in obj) return;
 
-    let defaultVal: any = "";
+    let defaultVal: string | number | boolean = "";
     if (newValType === "number") defaultVal = 0;
     if (newValType === "boolean") defaultVal = true;
 
@@ -76,12 +77,12 @@ export const JsonObjectEditor: React.FC<JsonObjectEditorProps> = ({
       const parsed = JSON.parse(text);
       setJsonError(null);
       onChange(parsed);
-    } catch (err: any) {
-      setJsonError(err.message || "Invalid JSON syntax");
+    } catch (err) {
+      setJsonError(errorMessage(err));
     }
   };
 
-  const getTypeLabel = (val: any): string => {
+  const getTypeLabel = (val: unknown): string => {
     if (typeof val === "boolean") return "bool";
     if (typeof val === "number") return "num";
     if (typeof val === "string") return "str";
@@ -222,7 +223,7 @@ export const JsonObjectEditor: React.FC<JsonObjectEditorProps> = ({
                   <select
                     className="form-select json-new-type-select"
                     value={newValType}
-                    onChange={(e) => setNewValType(e.target.value as any)}
+                    onChange={(e) => setNewValType(e.target.value as typeof newValType)}
                   >
                     <option value="string">str</option>
                     <option value="number">num</option>

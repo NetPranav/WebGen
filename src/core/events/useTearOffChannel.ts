@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef, useCallback } from "react";
+import { useLatestRef } from "@/core/hooks/useLatestRef";
 
 export type TearOffMessageType = "DETACH" | "REATTACH";
 
@@ -38,8 +39,7 @@ const CHANNEL_NAME = "ide-tearoff";
 
 export function useTearOffChannel(options: UseTearOffChannelOptions = {}) {
   const channelRef = useRef<BroadcastChannel | null>(null);
-  const optionsRef = useRef(options);
-  optionsRef.current = options;
+  const optionsRef = useLatestRef(options);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

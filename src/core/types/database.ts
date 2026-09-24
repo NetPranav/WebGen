@@ -315,4 +315,14 @@ export const ARCHETYPE_PROPERTY_BINDING_MATRIX: Record<
       safeFallback: "currentColor",
     },
   },
+  // Archetypes with no database-bindable properties yet.
+  toggle: {},
+  badge: {},
+  fab: {},
+  icon: {},
+  divider: {},
+  background: {},
+  object3D: {},
+  camera3D: {},
+  light3D: {},
 };

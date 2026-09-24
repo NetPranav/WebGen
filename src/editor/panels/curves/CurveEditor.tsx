@@ -174,7 +174,9 @@ export const CurveEditor: React.FC = () => {
     const activeElement = elements[rootElementId];
     if (!activeElement) return;
 
-    const stack: AttachedAnimation[] = [...(activeElement.animationStack || [])];
+    // TODO(MDM-P2): the stack lives in `properties.animationStack` until MDM v2.
+    const storedStack = activeElement.properties.animationStack;
+    const stack: AttachedAnimation[] = Array.isArray(storedStack) ? [...(storedStack as AttachedAnimation[])] : [];
     if (stack.length > 0) {
       stack[0] = {
         ...stack[0],
@@ -295,16 +297,18 @@ export const CurveEditor: React.FC = () => {
                 r={6}
                 className="curve-handle-p1"
                 onMouseDown={(e) => handleMouseDownHandle("p1", e)}
-                title={`Handle P1: (${controlPoints.p1.x.toFixed(2)}, ${controlPoints.p1.y.toFixed(2)})`}
-              />
+              >
+                <title>{`Handle P1: (${controlPoints.p1.x.toFixed(2)}, ${controlPoints.p1.y.toFixed(2)})`}</title>
+              </circle>
               <circle
                 cx={svgP2.x}
                 cy={svgP2.y}
                 r={6}
                 className="curve-handle-p2"
                 onMouseDown={(e) => handleMouseDownHandle("p2", e)}
-                title={`Handle P2: (${controlPoints.p2.x.toFixed(2)}, ${controlPoints.p2.y.toFixed(2)})`}
-              />
+              >
+                <title>{`Handle P2: (${controlPoints.p2.x.toFixed(2)}, ${controlPoints.p2.y.toFixed(2)})`}</title>
+              </circle>
             </svg>
           </div>
 

@@ -6,6 +6,7 @@ import { ExecutionTracer } from "../../../runtime/ExecutionTracer";
 import { DiagnosticBus } from "../../engine/DiagnosticBus";
 import { BlueprintGraph } from "../../ast/ASTManager";
 import { mockDatabase } from "../../../runtime/MockDatabase";
+import type { HotReloadPatchType } from "../../types/debugger";
 
 describe("Sub-Phase 5.5: Hot Reload & Breakpoint Debugger", () => {
   let bpManager: BreakpointManager;
@@ -365,7 +366,7 @@ describe("Sub-Phase 5.5: Hot Reload & Breakpoint Debugger", () => {
     // Fabricate an unsupported patch type to trigger failure & rollback
     const badPatch = {
       patchId: "bad_patch_1",
-      patchType: "unsupported_type" as any,
+      patchType: "unsupported_type" as unknown as HotReloadPatchType,
       targetId: "node_corrupt",
       delta: { invalid: true },
       timestamp: Date.now(),

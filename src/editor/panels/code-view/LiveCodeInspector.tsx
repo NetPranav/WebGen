@@ -31,7 +31,7 @@ import {
   Hash,
   FolderArchive,
 } from "lucide-react";
-import { useProjectStore, ProjectElement } from "@/core/store/useProjectStore";
+import { useProjectStore, ProjectElement, ProjectStoreState } from "@/core/store/useProjectStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { EmittedFile } from "@/core/types/compiler";
@@ -42,6 +42,92 @@ import { PrismaSchemaEmitter } from "@/compiler/emitters/PrismaSchemaEmitter";
 import { ApiRouteEmitter } from "@/compiler/emitters/ApiRouteEmitter";
 import { LogicFlowEmitter } from "@/compiler/emitters/LogicFlowEmitter";
 import { GitExporter } from "@/compiler/export/GitExporter";
+import { errorMessage } from "@/core/errors";
+
+/** Compiles the whole project into emitted files and reports how long it took. */
+function compileProjectFiles(project: {
+  pages: ProjectStoreState["pages"];
+  elements: ProjectStoreState["elements"];
+  databaseSchemas: ProjectStoreState["databaseSchemas"];
+  animationSamples: ProjectStoreState["animationSamples"];
+  blueprintGraphs: ProjectStoreState["blueprintGraphs"];
+}): { files: EmittedFile[]; durationMs: number } {
+  const { pages, elements, databaseSchemas, animationSamples, blueprintGraphs } = project;
+  const t0 = performance.now();
+  const files: EmittedFile[] = [];
+
+  try {
+    // 1. Pages
+    for (const page of Object.values(pages)) {
+      if (page.rootElementId && elements[page.rootElementId]) {
+        files.push(ReactComponentEmitter.emitPage(page, elements));
+      }
+    }
+
+    // 2. Standalone Key Components (e.g. root containers or distinct components)
+    for (const el of Object.values(elements)) {
+      if (el.parentId === null && el.children && el.children.length > 0) {
+        files.push(ReactComponentEmitter.emitComponent(el.id, elements));
+      }
+    }
+
+    // 3. Styles (Tokens + Elements)
+    files.push(
+      StyleEmitter.emitTokens({
+        colors: {
+          canvasBg: "#0F172A",
+          accentPrimary: "#206859",
+          textPrimary: "#F8FAFC",
+          borderDefault: "#334155",
+        },
+        wires: {
+          exec: "#FFFFFF",
+          string: "#F59E0B",
+          number: "#10B981",
+          boolean: "#EF4444",
+        },
+      })
+    );
+    files.push(StyleEmitter.emitProjectStyles(elements));
+
+    // 4. Animations
+    for (const sample of Object.values(animationSamples)) {
+      files.push(GSAPAnimationEmitter.emitHook(sample));
+    }
+
+    // 5. Database & Prisma
+    if (Object.keys(databaseSchemas).length > 0) {
+      files.push(PrismaSchemaEmitter.emitSchema(databaseSchemas));
+      files.push(PrismaSchemaEmitter.emitSqlMigration(databaseSchemas));
+    }
+
+    // 6. API Routes
+    for (const schema of Object.values(databaseSchemas)) {
+      files.push(ApiRouteEmitter.emitCollectionRoute(schema));
+      files.push(ApiRouteEmitter.emitItemRoute(schema));
+    }
+
+    // 7. Logic Flows
+    for (const graph of Object.values(blueprintGraphs)) {
+      files.push(LogicFlowEmitter.emitLogicFlow(graph));
+    }
+
+  } catch (err) {
+    DiagnosticBus.emit({
+      channel: "CODEGEN_INTEGRITY_ERR",
+      severity: "error",
+      source: {
+        panel: "Panel 16: Live Code Inspector",
+        entityId: "compiler_engine",
+      },
+      message: `[CODEGEN_INTEGRITY_ERR] Failed to compile visual project AST: ${errorMessage(err)}`,
+      suggestion: "Verify that all root elements, variables, and database schemas are properly defined.",
+      isFixable: false,
+    });
+  }
+
+  return { files, durationMs: Math.max(1, Math.round(performance.now() - t0)) };
+}
 
 export interface LiveCodeInspectorProps {
   className?: string;
@@ -67,89 +153,15 @@ export const LiveCodeInspector: React.FC<LiveCodeInspectorProps> = ({ className,
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [compileDurationMs, setCompileDurationMs] = useState<number>(0);
   const [highlightedLineIndex, setHighlightedLineIndex] = useState<number | null>(null);
 
   const codeContainerRef = useRef<HTMLDivElement>(null);
 
   // Compile entire project into EmittedFile collection
-  const emittedFiles: EmittedFile[] = useMemo(() => {
-    const t0 = performance.now();
-    const files: EmittedFile[] = [];
-
-    try {
-      // 1. Pages
-      for (const page of Object.values(pages)) {
-        if (page.rootElementId && elements[page.rootElementId]) {
-          files.push(ReactComponentEmitter.emitPage(page, elements));
-        }
-      }
-
-      // 2. Standalone Key Components (e.g. root containers or distinct components)
-      for (const el of Object.values(elements)) {
-        if (el.parentId === null && el.children && el.children.length > 0) {
-          files.push(ReactComponentEmitter.emitComponent(el.id, elements));
-        }
-      }
-
-      // 3. Styles (Tokens + Elements)
-      files.push(
-        StyleEmitter.emitTokens({
-          colors: {
-            canvasBg: "#0F172A",
-            accentPrimary: "#206859",
-            textPrimary: "#F8FAFC",
-            borderDefault: "#334155",
-          } as any,
-          wires: {
-            exec: "#FFFFFF",
-            string: "#F59E0B",
-            number: "#10B981",
-            boolean: "#EF4444",
-          } as any,
-        })
-      );
-      files.push(StyleEmitter.emitProjectStyles(elements));
-
-      // 4. Animations
-      for (const sample of Object.values(animationSamples)) {
-        files.push(GSAPAnimationEmitter.emitHook(sample));
-      }
-
-      // 5. Database & Prisma
-      if (Object.keys(databaseSchemas).length > 0) {
-        files.push(PrismaSchemaEmitter.emitSchema(databaseSchemas));
-        files.push(PrismaSchemaEmitter.emitSqlMigration(databaseSchemas));
-      }
-
-      // 6. API Routes
-      for (const schema of Object.values(databaseSchemas)) {
-        files.push(ApiRouteEmitter.emitCollectionRoute(schema));
-        files.push(ApiRouteEmitter.emitItemRoute(schema));
-      }
-
-      // 7. Logic Flows
-      for (const graph of Object.values(blueprintGraphs)) {
-        files.push(LogicFlowEmitter.emitLogicFlow(graph));
-      }
-
-      setCompileDurationMs(Math.max(1, Math.round(performance.now() - t0)));
-    } catch (err: any) {
-      DiagnosticBus.emit({
-        channel: "CODEGEN_INTEGRITY_ERR",
-        severity: "error",
-        source: {
-          panel: "Panel 16: Live Code Inspector",
-          entityId: "compiler_engine",
-        },
-        message: `[CODEGEN_INTEGRITY_ERR] Failed to compile visual project AST: ${err?.message}`,
-        suggestion: "Verify that all root elements, variables, and database schemas are properly defined.",
-        isFixable: false,
-      });
-    }
-
-    return files;
-  }, [pages, elements, databaseSchemas, animationSamples, blueprintGraphs]);
+  const { files: emittedFiles, durationMs: compileDurationMs } = useMemo(
+    () => compileProjectFiles({ pages, elements, databaseSchemas, animationSamples, blueprintGraphs }),
+    [pages, elements, databaseSchemas, animationSamples, blueprintGraphs]
+  );
 
   // Filtered files based on category and search query
   const filteredFiles = useMemo(() => {
@@ -182,11 +194,11 @@ export const LiveCodeInspector: React.FC<LiveCodeInspectorProps> = ({ className,
   }, [activeFile]);
 
   // Bidirectional AST Sync: When selectedElementId changes in canvas, find matching line in code
-  useEffect(() => {
-    if (!selectedElementId || !activeFile) return;
+  const selectionMatch = useMemo((): { lineIndex: number | null } | null => {
+    if (!selectedElementId || !activeFile) return null;
 
     const el = elements[selectedElementId];
-    if (!el) return;
+    if (!el) return null;
 
     const cleanName = el.name.toLowerCase();
     const shortId = el.id.replace(/^el_/, "").toLowerCase();
@@ -202,22 +214,24 @@ export const LiveCodeInspector: React.FC<LiveCodeInspectorProps> = ({ className,
       );
     });
 
-    if (matchingIdx !== -1) {
-      setHighlightedLineIndex(matchingIdx);
-
-      // Scroll line into view
-      if (codeContainerRef.current) {
-        const lineEl = codeContainerRef.current.querySelector(
-          `[data-line-index="${matchingIdx}"]`
-        ) as HTMLElement;
-        if (lineEl) {
-          lineEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }
-    } else {
-      setHighlightedLineIndex(null);
-    }
+    return { lineIndex: matchingIdx === -1 ? null : matchingIdx };
   }, [selectedElementId, activeFile, codeLines, elements]);
+
+  const [prevSelectionMatch, setPrevSelectionMatch] = useState<typeof selectionMatch>(null);
+  if (selectionMatch !== prevSelectionMatch) {
+    setPrevSelectionMatch(selectionMatch);
+    if (selectionMatch) setHighlightedLineIndex(selectionMatch.lineIndex);
+  }
+
+  // Scroll the selection-matched line into view
+  useEffect(() => {
+    const lineIndex = selectionMatch?.lineIndex;
+    if (lineIndex == null || !codeContainerRef.current) return;
+    const lineEl = codeContainerRef.current.querySelector(`[data-line-index="${lineIndex}"]`);
+    if (lineEl instanceof HTMLElement) {
+      lineEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectionMatch]);
 
   // Handle line click: Bidirectional Code-to-AST selection
   const handleLineClick = useCallback(
@@ -274,7 +288,7 @@ export const LiveCodeInspector: React.FC<LiveCodeInspectorProps> = ({ className,
       );
       bundle.downloadZip();
       setTimeout(() => setIsExporting(false), 1200);
-    } catch (err: any) {
+    } catch (err) {
       setIsExporting(false);
       DiagnosticBus.emit({
         channel: "CODEGEN_INTEGRITY_ERR",
@@ -283,7 +297,7 @@ export const LiveCodeInspector: React.FC<LiveCodeInspectorProps> = ({ className,
           panel: "Panel 16: Live Code Inspector",
           entityId: "git_exporter",
         },
-        message: `Failed to package Git repository: ${err?.message || String(err)}`,
+        message: `Failed to package Git repository: ${errorMessage(err)}`,
       });
     }
   }, [pages, elements, databaseSchemas, blueprintGraphs, animationSamples, projectName]);

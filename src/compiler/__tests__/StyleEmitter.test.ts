@@ -1,26 +1,25 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { StyleEmitter } from "../emitters/StyleEmitter";
+import { StyleEmitter, TokenThemeInput } from "../emitters/StyleEmitter";
 import { ProjectElement } from "../../core/store/useProjectStore";
-import { ThemeConfig } from "../../core/types/theme";
 
 describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
   // --------------------------------------------------------------------------
   // 1. Design Token Emission
   // --------------------------------------------------------------------------
   it("compiles design tokens into :root CSS custom properties", () => {
-    const mockTheme: Partial<ThemeConfig> = {
+    const mockTheme: TokenThemeInput = {
       colors: {
         canvasBg: "#0F172A",
         accentPrimary: "#206859",
         textPrimary: "#F8FAFC",
         borderDefault: "#334155",
-      } as any,
+      },
       wires: {
         exec: "#FFFFFF",
         string: "#F59E0B",
         number: "#10B981",
-      } as any,
+      },
     };
 
     const tokenFile = StyleEmitter.emitTokens(mockTheme);

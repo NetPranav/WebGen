@@ -164,7 +164,10 @@ export const ProjectHub: React.FC<ProjectHubProps> = ({
   const handleToggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement) {
-        const root = document.documentElement as any;
+        const root = document.documentElement as HTMLElement & {
+          webkitRequestFullscreen?: () => Promise<void>;
+          msRequestFullscreen?: () => Promise<void>;
+        };
         if (root.requestFullscreen) {
           await root.requestFullscreen();
         } else if (root.webkitRequestFullscreen) {
@@ -176,8 +179,8 @@ export const ProjectHub: React.FC<ProjectHubProps> = ({
       } else {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen();
+        } else {
+          await (document as Document & { webkitExitFullscreen?: () => Promise<void> }).webkitExitFullscreen?.();
         }
         setIsFullscreen(false);
       }
@@ -203,7 +206,7 @@ export const ProjectHub: React.FC<ProjectHubProps> = ({
       projectId: newProjectId,
       projectName: name,
       archetype: arch,
-      targetConfig: techConfig,
+      target: techConfig,
     });
 
     // Register project into storage database
@@ -573,7 +576,7 @@ export const ProjectHub: React.FC<ProjectHubProps> = ({
                   <div className="hub-card__title-group">
                     <h2 className="hub-card__title">Technology Stack</h2>
                     <p className="hub-card__subtitle">
-                      Tailor the emitted code to your project's framework, styling, and motion library.
+                      Tailor the emitted code to your project&apos;s framework, styling, and motion library.
                     </p>
                   </div>
                 </div>

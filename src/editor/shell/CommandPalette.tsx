@@ -53,19 +53,28 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Focus input when opened
-  useEffect(() => {
+  // Reset search when opened
+  // The registry is mutable; snapshot its commands each time the palette opens.
+  const [allCommands, setAllCommands] = useState(() => ShortcutRegistry.getAllCommands());
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setQuery("");
       setActiveCategory("All");
       setSelectedIndex(0);
+      setAllCommands(ShortcutRegistry.getAllCommands());
+    }
+  }
+
+  // Focus input when opened
+  useEffect(() => {
+    if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
-  const allCommands = useMemo(() => {
-    return ShortcutRegistry.getAllCommands();
-  }, [isOpen]);
+
 
   // Filter commands based on query and category
   const filteredCommands = useMemo(() => {

@@ -106,7 +106,7 @@ export class MockApiServer {
 
     // Parse URL and Query parameters
     let path = urlStr;
-    let queryParams: Record<string, string> = {};
+    const queryParams: Record<string, string> = {};
 
     try {
       // Handles both absolute ("http://.../api/products") and relative ("/api/products")

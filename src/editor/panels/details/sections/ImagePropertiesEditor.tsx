@@ -138,7 +138,7 @@ export const ImagePropertiesEditor: React.FC<ImagePropertiesEditorProps> = ({
               <select
                 className="form-select"
                 value={config.objectFit}
-                onChange={(e) => updateProp("objectFit", e.target.value as any)}
+                onChange={(e) => updateProp("objectFit", e.target.value as ImageSpecificConfig["objectFit"])}
               >
                 <option value="cover">cover (Crop to fill)</option>
                 <option value="contain">contain (Letterbox / preserve aspect)</option>

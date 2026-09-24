@@ -191,7 +191,7 @@ export class ZipPacker {
    */
   public toBlob(): Blob {
     const buffer = this.build();
-    return new Blob([buffer as any], { type: "application/zip" });
+    return new Blob([buffer as Uint8Array<ArrayBuffer>], { type: "application/zip" });
   }
 
   /**

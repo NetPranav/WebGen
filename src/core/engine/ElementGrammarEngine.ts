@@ -493,8 +493,8 @@ export interface CandidateBindingOffer {
 }
 
 export type PlusIconDecision =
-  | { visible: false; reason: string }
-  | { visible: true; candidates: CandidateBindingOffer[] };
+  | { visible: false; reason: string; candidates?: undefined }
+  | { visible: true; candidates: CandidateBindingOffer[]; reason?: undefined };
 
 export interface EvaluatedElement {
   id: string;

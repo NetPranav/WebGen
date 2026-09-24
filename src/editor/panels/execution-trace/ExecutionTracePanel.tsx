@@ -53,7 +53,7 @@ import { WatchExpression, WatchEvaluationResult, WatchEvaluationContext } from "
 import { DebuggerState, BreakpointHitEvent } from "@/core/types/debugger";
 import { ExecutionRun, TraceStep, TracePinSnapshot } from "@/core/types/trace";
 import { useProjectStore } from "@/core/store/useProjectStore";
-import { getPinColor } from "@/core/types/node-registry";
+import { getPinColor, PinDataType } from "@/core/types/node-registry";
 
 export interface ExecutionTracePanelProps {
   onNavigateToNode?: (nodeId: string) => void;
@@ -626,8 +626,8 @@ export const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({
         : undefined,
     };
 
-    const evaluated = watchExpressionManager.evaluateAll(ctx, selectedStepIndex);
-    setWatchResults(evaluated);
+    // Results reach `watchResults` through the manager subscription above.
+    watchExpressionManager.evaluateAll(ctx, selectedStepIndex);
   }, [activeStep, selectedStepIndex, activeRun, stateVariables, activeGraph]);
 
   const hasMutatedWatch = useMemo(() => {
@@ -1226,7 +1226,7 @@ export const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({
                 No Execution Traces Recorded
               </div>
               <div style={{ fontSize: 10, maxWidth: 260 }}>
-                Interact with elements in Play Mode or click <strong>'Run Test Trace'</strong> above to simulate logic execution and visualize Wasm wire pulses.
+                Interact with elements in Play Mode or click <strong>&lsquo;Run Test Trace&rsquo;</strong> above to simulate logic execution and visualize Wasm wire pulses.
               </div>
             </div>
           ) : (
@@ -1842,7 +1842,7 @@ export const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({
                                     padding: "1px 5px",
                                     borderRadius: 3,
                                     backgroundColor: "rgba(255,255,255,0.05)",
-                                    color: getPinColor(pin.type as any) || "#38BDF8",
+                                    color: getPinColor(pin.type as PinDataType) || "#38BDF8",
                                   }}
                                 >
                                   {pin.type}
@@ -1937,7 +1937,7 @@ export const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({
                                     padding: "1px 5px",
                                     borderRadius: 3,
                                     backgroundColor: "rgba(255,255,255,0.05)",
-                                    color: getPinColor(pin.type as any) || "#34D399",
+                                    color: getPinColor(pin.type as PinDataType) || "#34D399",
                                   }}
                                 >
                                   {pin.type}
