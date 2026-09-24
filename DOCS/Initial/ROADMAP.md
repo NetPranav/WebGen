@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.0.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phase 1 ✅. Phase 2 (MDM v2) green locally and in the browser; closes when its PR's CI run is green. Next: Phase 3.
+**Status:** Active. Phases 1–2 ✅. Next: Phase 3 (Store, History & Persistence).
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -66,7 +66,7 @@ A phase is **✅ COMPLETE** only when:
 | # | Track | Phase | Key deliverable | Depends on | Status |
 |---|---|---|---|---|---|
 | 1 | A · Solid Ground | Build Health & CI | 0 TS / 0 lint errors, CI, `next build` green | — | ✅ (enforcement by convention) |
-| 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | 🔶 Gate passed locally; CI pending |
+| 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | ✅ |
 | 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | 📋 |
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | 📋 |
 | 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | 📋 |
@@ -191,7 +191,7 @@ Not verified in a browser: the React-hooks refactors (state-sync effects moved t
 **Verification Gate:** `grep` finds zero imports of the removed types. Every v1.1 demo project in localStorage migrates and renders identically (Playwright screenshot before and after). A property-based test round-trips 500 random documents through validate → serialise → parse without change.
 
 ### Phase 2 Progress Log
-**2026-09-24: gate passed locally and in the browser; CI pending.**
+**2026-09-24: ✅ Phase 2 complete.** CI green on PR #6 (Linux). Gate evidence below.
 - **Removed types:** a unit test (`documentStore.test.ts`, "Phase 2 gate") scans all source, comments excluded, and finds no `ProjectElement`, `BaseElementNode`, `AttachedAnimation` or `ElementType`. `src/core/elements/` is deleted.
 - **Migration parity (Playwright):** the pre-Phase-2 build (`5d7a934`, :3001) saved a real v1 project with two co-pilot presets in `properties.animationStack`. The new build (:3000) loaded the same localStorage and rendered it with a **0 px** difference (live FPS/memory counters masked). Re-saving produced a v2 document with the same two animations as clips on `el_buy_button` (triggers `onHover→hover`, `onClick→press`, track counts equal), and no `elements` key.
 - **Property test:** 500 random documents round-trip validate → serialise → parse unchanged (`schema.test.ts`, fast-check).

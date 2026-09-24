@@ -161,8 +161,8 @@ A finding is **Closed** only when the phase that owns it passes its Verification
 | AUD-01 | ✅ Closed | `tsc --noEmit`: 162 → 0 errors (baseline in `audit/tsc-baseline.txt`). `npm test` now runs `typecheck` first. Closes when Linux CI is green. |
 | AUD-02 | ✅ Closed | ESLint: 179 → 0 errors, 494 → 467 warnings. Warning budget enforced by `--max-warnings`. Closes when Linux CI is green. |
 | AUD-03 | ✅ Closed (by convention) | CI runs on every push/PR. `main` merges only through PRs with a green `verify` check. Technical enforcement needs GitHub Pro (private repo); add the required check when available. |
-| AUD-04 | 🔶 Fixed (Phase 2), CI pending | One model: the MDM v2 `MotionDocument` (`src/core/document/`). `ProjectElement`, `BaseElementNode`, `AttachedAnimation` and `ElementType` are deleted; a test enforces it. |
-| AUD-05 | 🔶 Model half fixed (Phase 2) | Animations live in `document.clips`; the Sequencer reads and writes the same clips (browser-verified: keyframe edits persist). The behaviour half (undo regression test) is Phase 3. |
+| AUD-04 | ✅ Closed (Phase 2) | One model: the MDM v2 `MotionDocument` (`src/core/document/`). `ProjectElement`, `BaseElementNode`, `AttachedAnimation` and `ElementType` are deleted; a test enforces it. |
+| AUD-05 | Model half closed (Phase 2); behaviour half open (Phase 3) | Animations live in `document.clips`; the Sequencer reads and writes the same clips (browser-verified: keyframe edits persist). The behaviour half (undo regression test) is Phase 3. |
 | AUD-06 | Partial | The registry now links every archetype to its grammar type and derives legal states from it. Enforcing the grammar in the editor remains Phase 8. |
-| AUD-07 | 🔶 Fixed for document entities (Phase 2) | All layers, clips, tracks, keyframes and states use `createId()` (prefix + 8 hex, `crypto.getRandomValues`), including both cited sites. Non-document runtime records (history, diagnostics, runs, pages) still use ad-hoc ids. |
+| AUD-07 | ✅ Closed for document entities (Phase 2) | All layers, clips, tracks, keyframes and states use `createId()` (prefix + 8 hex, `crypto.getRandomValues`), including both cited sites. Non-document runtime records (history, diagnostics, runs, pages) still use ad-hoc ids. |
 

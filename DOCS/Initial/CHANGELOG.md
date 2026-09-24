@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.2.0] — 2026-09-24
 
-### Phase 2 (Unified Motion Document Model): gate passed locally, CI pending
+### Phase 2 (Unified Motion Document Model): complete (CI green on PR #6)
 
 #### Added
 - **MDM v2** (`src/core/document/`): Zod schema with three outputs (types, validator with referential integrity, JSON Schema); archetype registry (20 archetypes → kind, family, id prefix, export tag, grammar type/legal states, Details sections, default props); `v1 → v2` migrations with tree repair; typed prop views.
