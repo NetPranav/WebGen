@@ -11,7 +11,10 @@
  */
 
 import { create } from "zustand";
-import { ElementType } from "../types/element-sections";
+import { type MotionDocument, type Layer } from "../document/schema";
+import { createLayer, createDocumentFromLayers } from "../document/factories";
+import { getDefaultProps, isArchetypeId, getArchetype } from "../document/registry";
+import { upgradeSnapshot, type DocumentSource } from "../document/migrations";
 import { CollectionSchema, DatabaseField } from "../types/database";
 import { AnimationSample } from "../types/animations";
 import {
@@ -74,15 +77,6 @@ export interface DatabaseFunctionLatch {
   description: string;
 }
 
-export interface ProjectElement {
-  id: string;
-  name: string;
-  archetype: ElementType;
-  parentId: string | null;
-  properties: Record<string, unknown>;
-  children: string[];
-}
-
 export interface PageDefinition {
   id: string;
   name: string;
@@ -110,10 +104,10 @@ export interface ProjectStateSnapshot {
   projectName: string;
   scope?: "element" | "component" | "page";
   rootArchetype?: string;
-  target?: ProjectTargetConfig;
   activePageId: string;
   pages: Record<string, PageDefinition>;
-  elements: Record<string, ProjectElement>;
+  /** The Motion Document (MDM v2): layers, clips, states, tokens, export settings. */
+  document: MotionDocument;
   databaseSchemas: Record<string, CollectionSchema>;
   databaseRecords: Record<string, Record<string, unknown>[]>;
   stateVariables: Record<string, StateVariable>;
@@ -125,6 +119,9 @@ export interface ProjectStateSnapshot {
   redirectRules: Record<string, RedirectRule>;
   environment?: WorldEnvironmentSettings;
 }
+
+/** A stored snapshot from any schema version (v1 kept an `elements` map and `target`). */
+export type LegacyProjectSnapshot = Omit<ProjectStateSnapshot, "document"> & DocumentSource;
 
 export interface ProjectStoreState extends ProjectStateSnapshot {
   environment: WorldEnvironmentSettings;
@@ -153,22 +150,11 @@ export interface ProjectStoreState extends ProjectStateSnapshot {
     actionLabel?: string;
   }) => string;
 
-  // Actions: Element Management
-  setElementProperty: (
-    elementId: string,
-    propertyKey: string,
-    value: unknown,
-    actionLabel?: string
-  ) => void;
-  addElement: (element: ProjectElement, actionLabel?: string) => void;
-  removeElement: (elementId: string, actionLabel?: string) => void;
+  // Layer edits go through `documentCommands` (useDocumentStore.ts).
   mountDemoProject: () => void;
   clearToBlankCanvas: () => void;
-  insertGeneratedComponent: (
-    elements: ProjectElement[],
-    rootId: string,
-    actionLabel?: string
-  ) => void;
+  /** Inserts generated layers and attaches `rootId` to the active page's root layer. */
+  insertGeneratedComponent: (layers: Layer[], rootId: string, actionLabel?: string) => void;
 
   // Actions: State Variable Management
   addStateVariable: (variable: StateVariable, actionLabel?: string) => void;
@@ -262,7 +248,7 @@ export interface ProjectStoreState extends ProjectStateSnapshot {
   setActivePage: (pageId: string) => void;
   addPage: (
     page: Omit<PageDefinition, "id" | "rootElementId"> & { id?: string; rootElementId?: string },
-    rootElement?: ProjectElement,
+    rootElement?: Layer,
     actionLabel?: string
   ) => string;
   updatePage: (pageId: string, updates: Partial<PageDefinition>, actionLabel?: string) => void;
@@ -278,7 +264,8 @@ export interface ProjectStoreState extends ProjectStateSnapshot {
   // System Helpers
   getDataContext: () => DataContext;
   getSnapshot: () => ProjectStateSnapshot;
-  restoreSnapshot: (snapshot: ProjectStateSnapshot) => void;
+  /** Restores a snapshot; v1 snapshots (with `elements`) are migrated on the way in. */
+  restoreSnapshot: (snapshot: ProjectStateSnapshot | LegacyProjectSnapshot) => void;
   undo: () => void;
   redo: () => void;
   jumpToHistoryState: (transactionId: string) => void;
@@ -288,12 +275,6 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
   projectName: "Visual Web App",
   scope: "element",
   rootArchetype: "button",
-  target: {
-    framework: "nextjs-app",
-    styling: "tailwind",
-    animation: "gsap",
-    language: "typescript",
-  },
   activePageId: "page_home",
   pages: {
     page_home: {
@@ -303,24 +284,18 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
       rootElementId: "el_root_container",
     },
   },
-  elements: {
-    el_root_container: {
+  document: createDocumentFromLayers([
+    createLayer({
       id: "el_root_container",
-      name: "RootContainer",
       archetype: "container",
-      parentId: null,
-      properties: {
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-        padding: 24,
-      },
+      name: "RootContainer",
       children: ["el_hero_heading", "el_buy_button"],
-    },
-    el_hero_heading: {
+      properties: { display: "flex", flexDirection: "column", gap: 16, padding: 24 },
+    }),
+    createLayer({
       id: "el_hero_heading",
-      name: "HeroHeading",
       archetype: "text",
+      name: "HeroHeading",
       parentId: "el_root_container",
       properties: {
         textContent: "Unreal Engine for Web Applications",
@@ -328,21 +303,15 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
         fontWeight: 700,
         color: "#ffffff",
       },
-      children: [],
-    },
-    el_buy_button: {
+    }),
+    createLayer({
       id: "el_buy_button",
-      name: "BuyButton",
       archetype: "button",
+      name: "BuyButton",
       parentId: "el_root_container",
-      properties: {
-        label: "Get Started Free",
-        disabled: false,
-        backgroundColor: "#206859",
-      },
-      children: [],
-    },
-  },
+      properties: { label: "Get Started Free", disabled: false, backgroundColor: "#206859" },
+    }),
+  ]),
   databaseSchemas: {
     Products: {
       id: "col_products",
@@ -537,15 +506,9 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       projectName: s.projectName,
       scope: s.scope || "element",
       rootArchetype: s.rootArchetype || "button",
-      target: s.target || {
-        framework: "nextjs-app",
-        styling: "tailwind",
-        animation: "gsap",
-        language: "typescript",
-      },
       activePageId: s.activePageId,
       pages: s.pages,
-      elements: s.elements,
+      document: s.document,
       databaseSchemas: s.databaseSchemas,
       databaseRecords: s.databaseRecords,
       stateVariables: s.stateVariables,
@@ -559,9 +522,10 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     };
   },
 
-  restoreSnapshot: (snapshot: ProjectStateSnapshot) => {
+  restoreSnapshot: (snapshot) => {
+    // Accepts snapshots of any schema version: v1 `elements` are migrated to the v2 document.
     set({
-      ...snapshot,
+      ...upgradeSnapshot(snapshot as LegacyProjectSnapshot),
       environment: snapshot.environment || DEFAULT_ENVIRONMENT_SETTINGS,
     });
     // Sync connection pipeline
@@ -669,143 +633,16 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   setProjectName: (name: string) => set({ projectName: name }),
 
   initElementProject: (params) => {
-    const arch = params.archetype || "button";
-    const prefixMap: Record<string, string> = {
-      button: "elem_btn_",
-      toggle: "elem_toggle_",
-      badge: "elem_badge_",
-      fab: "elem_fab_",
-      image: "elem_img_",
-      icon: "elem_icon_",
-      divider: "elem_divider_",
-      background: "elem_bg_",
-      container: "elem_container_",
-      text: "elem_text_",
-    };
-    const prefix = prefixMap[arch] || "elem_";
-    const rootElementId = `${prefix}root`;
+    const arch = isArchetypeId(params.archetype) ? params.archetype : "button";
+    const rootElementId = `${getArchetype(arch).idPrefix}_root`;
 
-    // Generate archetype-specific default properties
-    let rootProperties: Record<string, unknown> = {};
-    if (arch === "image") {
-      rootProperties = {
-        src: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&q=80",
-        fallbackSrc: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=400&q=50",
-        alt: params.projectName || "Hero Image",
-        objectFit: "cover",
-        objectPosition: "center",
-        aspectRatio: "16:9",
-        width: 600,
-        height: 338,
-        loadingMode: "lazy",
-        placeholder: "blur",
-        borderRadius: 12,
-        opacity: 100,
-        filter: { grayscale: 0, blur: 0, brightness: 1, contrast: 1, saturate: 1 },
-        overlay: { color: "#000000", opacity: 0, blendMode: "normal" },
-        clipPath: "none",
-      };
-    } else if (arch === "button") {
-      rootProperties = {
-        label: params.projectName || "Primary Action",
-        variant: "primary",
-        backgroundColor: "#206859",
-        color: "#ffffff",
-        borderRadius: 8,
-        paddingX: 20,
-        paddingY: 10,
-        fontSize: 14,
-        fontWeight: "600",
-        disabled: false,
-      };
-    } else if (arch === "toggle") {
-      rootProperties = {
-        checked: false,
-        activeColor: "#206859",
-        inactiveColor: "#e2e8f0",
-        size: "md",
-        disabled: false,
-      };
-    } else if (arch === "badge") {
-      rootProperties = {
-        label: params.projectName || "Status Badge",
-        variant: "filled",
-        backgroundColor: "#e6f4f1",
-        color: "#206859",
-        borderRadius: 16,
-        paddingX: 12,
-        paddingY: 4,
-        fontSize: 12,
-      };
-    } else if (arch === "fab") {
-      rootProperties = {
-        icon: "plus",
-        backgroundColor: "#206859",
-        color: "#ffffff",
-        size: 56,
-        elevation: "lg",
-      };
-    } else if (arch === "icon") {
-      rootProperties = {
-        iconName: "Sparkles",
-        size: 24,
-        stroke: "currentColor",
-        strokeWidth: 2,
-        fill: "none",
-        strokeDasharray: "none",
-        strokeDashoffset: 0,
-        path: "M12 2L2 7l10 5 10-5-10-5z",
-      };
-    } else if (arch === "divider") {
-      rootProperties = {
-        orientation: "horizontal",
-        length: 100,
-        thickness: 1,
-        style: "solid",
-        color: "#e2e8f0",
-        capStyle: "round",
-      };
-    } else if (arch === "background") {
-      rootProperties = {
-        type: "gradient",
-        color: "#0f172a",
-        gradientStops: [
-          { color: "#0f172a", offset: 0 },
-          { color: "#1e293b", offset: 100 },
-        ],
-        gradientAngle: 135,
-        parallaxSpeed: 0.2,
-        blendMode: "normal",
-        noiseOpacity: 0.05,
-      };
-    } else if (arch === "text") {
-      rootProperties = {
-        textContent: params.projectName || "Dynamic Typography",
-        fontSize: 24,
-        fontWeight: "600",
-        fontFamily: "Inter",
-        color: "#0f172a",
-        textAlign: "left",
-      };
-    } else {
-      rootProperties = {
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-        padding: 24,
-        borderRadius: 8,
-        backgroundColor: "transparent",
-      };
+    // Registry defaults, with the project name used as the element's visible text.
+    const rootProperties = getDefaultProps(arch);
+    if (params.projectName) {
+      if (arch === "button" || arch === "badge") rootProperties.label = params.projectName;
+      else if (arch === "image") rootProperties.alt = params.projectName;
+      else if (arch === "text") rootProperties.textContent = params.projectName;
     }
-
-    const rootElement: ProjectElement = {
-      id: rootElementId,
-      name: params.projectName || "Root Element",
-      archetype: arch as ElementType,
-      parentId: null,
-      properties: rootProperties,
-      children: [],
-    };
 
     const newPage: PageDefinition = {
       id: "page_stage",
@@ -814,11 +651,13 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       rootElementId: rootElementId,
     };
 
-    const targetConfig = params.target || {
-      framework: "nextjs-app",
-      styling: "tailwind",
-      animation: "gsap",
-      language: "typescript",
+    const document = createDocumentFromLayers([
+      createLayer({ id: rootElementId, archetype: arch, name: params.projectName || "Root Element", properties: rootProperties }),
+    ]);
+    const target = params.target ?? {};
+    document.exportSettings = {
+      ...document.exportSettings,
+      ...Object.fromEntries(Object.entries(target).filter(([, v]) => typeof v === "string")),
     };
 
     set({
@@ -826,71 +665,14 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       projectName: params.projectName || "MyElementProject",
       scope: "element",
       rootArchetype: arch,
-      target: targetConfig,
       activePageId: "page_stage",
       pages: {
         page_stage: newPage,
       },
-      elements: {
-        [rootElementId]: rootElement,
-      },
+      document,
     });
 
     return rootElementId;
-  },
-
-  setElementProperty: (elementId, propertyKey, value, actionLabel) => {
-    const snapshot = get().getSnapshot();
-    if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
-    }
-
-    set((state) => {
-      const element = state.elements[elementId];
-      if (!element) return state;
-
-      return {
-        elements: {
-          ...state.elements,
-          [elementId]: {
-            ...element,
-            properties: {
-              ...element.properties,
-              [propertyKey]: value,
-            },
-          },
-        },
-      };
-    });
-
-    EventBus.emit("element:modified", { elementId, propertyKey, value });
-  },
-
-  addElement: (element, actionLabel) => {
-    const snapshot = get().getSnapshot();
-    if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
-    }
-
-    set((state) => ({
-      elements: {
-        ...state.elements,
-        [element.id]: element,
-      },
-    }));
-  },
-
-  removeElement: (elementId, actionLabel) => {
-    const snapshot = get().getSnapshot();
-    if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
-    }
-
-    set((state) => {
-      const copy = { ...state.elements };
-      delete copy[elementId];
-      return { elements: copy };
-    });
   },
 
   mountDemoProject: () => {
@@ -905,32 +687,28 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     useHistoryStore.getState().pushState("Clear Canvas", blank);
   },
 
-  insertGeneratedComponent: (elements, rootId, actionLabel = "Insert AI Component") => {
+  insertGeneratedComponent: (layers, rootId, actionLabel = "Insert AI Component") => {
     const snapshot = get().getSnapshot();
     useHistoryStore.getState().pushState(actionLabel, snapshot);
 
     set((state) => {
-      const newElements = { ...state.elements };
-      for (const el of elements) {
-        newElements[el.id] = el;
-      }
+      const nextLayers = { ...state.document.layers };
+      for (const layer of layers) nextLayers[layer.id] = layer;
 
-      const activePage = state.pages[state.activePageId];
-      if (activePage && newElements[activePage.rootElementId]) {
-        const rootContainer = newElements[activePage.rootElementId];
-        if (!rootContainer.children.includes(rootId)) {
-          newElements[activePage.rootElementId] = {
-            ...rootContainer,
-            children: [...rootContainer.children, rootId],
-          };
+      // Attach the component's root under the active page's root layer (both sides of the link).
+      const pageRootId = state.pages[state.activePageId]?.rootElementId;
+      const pageRoot = pageRootId ? nextLayers[pageRootId] : undefined;
+      if (pageRoot && nextLayers[rootId] && rootId !== pageRoot.id) {
+        nextLayers[rootId] = { ...nextLayers[rootId], parentId: pageRoot.id };
+        if (!pageRoot.children.includes(rootId)) {
+          nextLayers[pageRoot.id] = { ...pageRoot, children: [...pageRoot.children, rootId] };
         }
       }
 
-      return {
-        elements: newElements,
-      };
+      return { document: { ...state.document, layers: nextLayers } };
     });
   },
+
 
   addStateVariable: (variable, actionLabel) => {
     // Validate value against declared type and dispatch diagnostic if mismatch
@@ -1506,19 +1284,14 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       order: pageData.order ?? Object.keys(snapshot.pages).length,
     };
 
-    const newRootElement: ProjectElement = rootElement || {
-      id: rootElId,
-      name: `${newPage.name} Container`,
-      archetype: "container",
-      parentId: null,
-      children: [],
-      properties: {
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        padding: 24,
-      },
-    };
+    const newRootElement: Layer =
+      rootElement ??
+      createLayer({
+        id: rootElId,
+        archetype: "container",
+        name: `${newPage.name} Container`,
+        properties: { display: "flex", flexDirection: "column", minHeight: "100vh", padding: 24 },
+      });
 
     if (actionLabel) {
       useHistoryStore.getState().pushState(actionLabel, snapshot);
@@ -1529,10 +1302,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
         ...s.pages,
         [pageId]: newPage,
       },
-      elements: {
-        ...s.elements,
-        [rootElId]: newRootElement,
-      },
+      document: { ...s.document, layers: { ...s.document.layers, [newRootElement.id]: newRootElement } },
       activePageId: pageId,
     }));
 
@@ -1621,22 +1391,10 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     };
 
     // Duplicate root element
-    const originalRoot = state.elements[originalPage.rootElementId];
-    const duplicatedRoot: ProjectElement = originalRoot
-      ? {
-          ...originalRoot,
-          id: newRootId,
-          name: `${originalRoot.name} (Copy)`,
-          children: [],
-        }
-      : {
-          id: newRootId,
-          name: `${duplicatedPage.name} Container`,
-          archetype: "container",
-          parentId: null,
-          children: [],
-          properties: {},
-        };
+    const originalRoot = state.document.layers[originalPage.rootElementId];
+    const duplicatedRoot: Layer = originalRoot
+      ? { ...originalRoot, id: newRootId, name: `${originalRoot.name} (Copy)`, parentId: null, children: [] }
+      : createLayer({ id: newRootId, archetype: "container", name: `${duplicatedPage.name} Container`, properties: {} });
 
     if (actionLabel) {
       useHistoryStore.getState().pushState(actionLabel, snapshot);
@@ -1647,10 +1405,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
         ...s.pages,
         [newPageId]: duplicatedPage,
       },
-      elements: {
-        ...s.elements,
-        [newRootId]: duplicatedRoot,
-      },
+      document: { ...s.document, layers: { ...s.document.layers, [newRootId]: duplicatedRoot } },
       activePageId: newPageId,
     }));
 

@@ -10,9 +10,9 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
 import { ColorTokens, WireColorTokens } from "@/core/types/theme";
 import { StyleEmitterOptions, EmittedFile } from "@/core/types/compiler";
+import type { Layer } from "@/core/document/schema";
 
 /** The part of a theme that `emitTokens` reads. Partial token maps are allowed. */
 export interface TokenThemeInput {
@@ -69,7 +69,7 @@ export class StyleEmitter {
    * Generates a CSS class selector for a given project element.
    */
   public static getElementClassName(
-    element: ProjectElement,
+    element: Layer,
     options?: StyleEmitterOptions
   ): string {
     const prefix = options?.classPrefix ? `${options.classPrefix}-` : "";
@@ -145,7 +145,7 @@ export class StyleEmitter {
    * Compiles an element's properties into CSS declarations and returns the rule string.
    */
   public static emitElementRules(
-    element: ProjectElement,
+    element: Layer,
     options?: StyleEmitterOptions
   ): string {
     const indent = " ".repeat(options?.indent ?? 2);
@@ -288,10 +288,10 @@ export class StyleEmitter {
   }
 
   /**
-   * Compiles an entire dictionary of ProjectElements into a scoped stylesheet.
+   * Compiles an entire dictionary of layers into a scoped stylesheet.
    */
   public static emitProjectStyles(
-    elements: Record<string, ProjectElement>,
+    elements: Record<string, Layer>,
     options?: StyleEmitterOptions
   ): EmittedFile {
     const lines: string[] = [];

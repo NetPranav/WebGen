@@ -38,6 +38,7 @@ import { WindowMenu } from "@/editor/menus/WindowMenu";
 import { HelpMenu } from "@/editor/menus/HelpMenu";
 import { LazyLayoutLogo } from "@/editor/panels/launcher/LazyLayoutLogo";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useLayers } from "@/core/store/useDocumentStore";
 
 type OpenMenuId = "file" | "edit" | "view" | "window" | "help" | null;
 
@@ -114,7 +115,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   const [copiedId, setCopiedId] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
-  const elements = useProjectStore((s) => s.elements);
+  const elements = useLayers();
   const mountDemoProject = useProjectStore((s) => s.mountDemoProject);
   const clearToBlankCanvas = useProjectStore((s) => s.clearToBlankCanvas);
   const isDemoMounted = Boolean(elements["el_hero_heading"] && elements["el_buy_button"]);

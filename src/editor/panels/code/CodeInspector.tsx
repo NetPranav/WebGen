@@ -32,7 +32,7 @@ import {
   CheckCircle2,
   Terminal,
 } from "lucide-react";
-import { useProjectStore, ProjectElement } from "@/core/store/useProjectStore";
+import { useProjectStore } from "@/core/store/useProjectStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { InteractiveEmitter } from "@/compiler/emitters/react/InteractiveEmitter";
 import { MediaEmitter } from "@/compiler/emitters/react/MediaEmitter";
@@ -40,6 +40,7 @@ import { StructuralEmitter } from "@/compiler/emitters/react/StructuralEmitter";
 import { TextEmitter } from "@/compiler/emitters/react/TextEmitter";
 import { multiEngineAnimationRuntime } from "@/core/runtime/MultiEngineAnimationRuntime";
 import { ZipPacker } from "@/compiler/export/ZipPacker";
+import type { Layer } from "@/core/document/schema";
 
 export interface CodeInspectorProps {
   className?: string;
@@ -49,7 +50,7 @@ export interface CodeInspectorProps {
 
 type ActiveTab = "component" | "animation" | "styles" | "readme";
 
-const FALLBACK_ELEMENT: ProjectElement = {
+const FALLBACK_ELEMENT: Layer = {
   id: "elem_btn",
   name: "Interactive Button",
   archetype: "button",
@@ -63,7 +64,7 @@ export const CodeInspector: React.FC<CodeInspectorProps> = ({
   style,
   targetElementId,
 }) => {
-  const elements = useProjectStore((s) => s.elements);
+  const elements = useProjectStore((s) => s.document.layers);
   const pages = useProjectStore((s) => s.pages);
   const activePageId = useProjectStore((s) => s.activePageId);
   const selectedId = useSelectionStore((s) => s.selectedId);
@@ -84,7 +85,7 @@ export const CodeInspector: React.FC<CodeInspectorProps> = ({
     Object.keys(elements)[0] ||
     "elem_default";
 
-  const activeElement: ProjectElement = elements[resolvedElementId] || FALLBACK_ELEMENT;
+  const activeElement: Layer = elements[resolvedElementId] || FALLBACK_ELEMENT;
 
   const archetype = activeElement.archetype || "button";
   const componentName = activeElement.name

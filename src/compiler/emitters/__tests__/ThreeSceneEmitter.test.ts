@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ThreeSceneEmitter } from "../ThreeSceneEmitter";
-import { ProjectElement } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 test("Sub-Phase 8.5 Verification Gate: Zero 3D content produces zero Three.js code (tree-shaking guaranteed)", () => {
-  const elements2DOnly: Record<string, ProjectElement> = {
+  const elements2DOnly: Record<string, Layer> = {
     btn_1: {
       id: "btn_1",
       name: "PrimaryButton",
@@ -32,7 +32,7 @@ test("Sub-Phase 8.5 Verification Gate: Zero 3D content produces zero Three.js co
 });
 
 test("ThreeSceneEmitter: Emits declarative React-Three-Fiber (R3F) JSX with meshes, cameras, and lights", () => {
-  const elements3D: Record<string, ProjectElement> = {
+  const elements3D: Record<string, Layer> = {
     cam_main: {
       id: "cam_main",
       name: "SceneCamera",
@@ -104,7 +104,7 @@ test("ThreeSceneEmitter: Emits declarative React-Three-Fiber (R3F) JSX with mesh
 });
 
 test("ThreeSceneEmitter: Emits Lite Mode CSS 3D transforms without external bundle weight", () => {
-  const elements3D: Record<string, ProjectElement> = {
+  const elements3D: Record<string, Layer> = {
     card3d: {
       id: "card3d",
       name: "FloatingCard3D",

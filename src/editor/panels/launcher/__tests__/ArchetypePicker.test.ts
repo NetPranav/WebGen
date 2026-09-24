@@ -23,9 +23,8 @@ import {
   ARCHETYPE_FAMILIES,
   ALL_ARCHETYPE_IDS,
   getArchetypeDefinition,
-  ArchetypeId,
-  FamilyId,
 } from "../archetypeData";
+import type { InitialArchetypeId as ArchetypeId } from "@/core/document/registry";
 import { ArchetypePicker, ArchetypePickerProps } from "../ArchetypePicker";
 
 describe("Sub-Phase 2.2: Archetype Picker", () => {
@@ -96,7 +95,6 @@ describe("Sub-Phase 2.2: Archetype Picker", () => {
       assert.strictEqual(bgDef.idPrefix, "elem_bg_");
 
       // Unknown archetype
-      // @ts-expect-error testing invalid ID
       const unknownDef = getArchetypeDefinition("unknown_item");
       assert.strictEqual(unknownDef, undefined);
     });

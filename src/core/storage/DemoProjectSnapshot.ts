@@ -10,19 +10,16 @@
  * ============================================================================
  */
 
-import {
-  ProjectStateSnapshot,
-  ProjectElement,
-  PageDefinition,
-  StateVariable,
-} from "../store/useProjectStore";
+import { ProjectStateSnapshot, PageDefinition, StateVariable } from "../store/useProjectStore";
 import { DEFAULT_ENVIRONMENT_SETTINGS } from "../types/environment";
+import type { Layer } from "@/core/document/schema";
+import { createDocumentFromLayers } from "../document/factories";
 
 /**
  * Clean Blank Canvas Snapshot: Empty element hierarchy ready for AI creation.
  */
 export function createBlankCanvasSnapshot(): ProjectStateSnapshot {
-  const rootElement: ProjectElement = {
+  const rootElement: Layer = {
     id: "el_root_container",
     name: "CanvasRoot",
     archetype: "container",
@@ -52,19 +49,11 @@ export function createBlankCanvasSnapshot(): ProjectStateSnapshot {
     projectName: "New Component Project",
     scope: "element",
     rootArchetype: "container",
-    target: {
-      framework: "nextjs-app",
-      styling: "tailwind",
-      animation: "gsap",
-      language: "typescript",
-    },
     activePageId: "page_home",
     pages: {
       page_home: homePage,
     },
-    elements: {
-      el_root_container: rootElement,
-    },
+    document: createDocumentFromLayers([rootElement]),
     databaseSchemas: {},
     databaseRecords: {},
     stateVariables: {},
@@ -92,7 +81,7 @@ export function createBlankCanvasSnapshot(): ProjectStateSnapshot {
  * interactive button, typography, database collections, and animation timeline.
  */
 export function createShowcaseSnapshot(): ProjectStateSnapshot {
-  const elements: Record<string, ProjectElement> = {
+  const elements: Record<string, Layer> = {
     el_root_container: {
       id: "el_root_container",
       name: "RootContainer",
@@ -168,15 +157,9 @@ export function createShowcaseSnapshot(): ProjectStateSnapshot {
     projectName: "Showcase Demo",
     scope: "element",
     rootArchetype: "container",
-    target: {
-      framework: "nextjs-app",
-      styling: "tailwind",
-      animation: "gsap",
-      language: "typescript",
-    },
     activePageId: "page_home",
     pages,
-    elements,
+    document: createDocumentFromLayers(Object.values(elements)),
     databaseSchemas: {
       Products: {
         id: "col_products",

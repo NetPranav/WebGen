@@ -8,8 +8,10 @@
  * ============================================================================
  */
 
-import { ProjectStateSnapshot } from "../store/useProjectStore";
+import type { LegacyProjectSnapshot, ProjectStateSnapshot } from "../store/useProjectStore";
 import { DEFAULT_ENVIRONMENT_SETTINGS } from "../types/environment";
+import { createDocumentFromLayers, createLayer } from "../document/factories";
+import { upgradeSnapshot } from "../document/migrations";
 
 export interface ProjectSettings {
   archetype?: string;
@@ -69,12 +71,6 @@ export function createDefaultBlankSnapshot(
     projectName,
     scope: (settings?.scope as ProjectStateSnapshot["scope"]) || "page",
     rootArchetype: settings?.archetype || "container",
-    target: {
-      framework: settings?.framework || "nextjs-app",
-      styling: settings?.styling || "tailwind",
-      animation: settings?.animation || "gsap",
-      language: settings?.language || "typescript",
-    },
     activePageId: "page_home",
     pages: {
       page_home: {
@@ -84,20 +80,26 @@ export function createDefaultBlankSnapshot(
         rootElementId,
       },
     },
-    elements: {
-      [rootElementId]: {
-        id: rootElementId,
-        name: "Root Canvas",
-        archetype: "container",
-        parentId: null,
-        properties: {
-          width: "100%",
-          height: "100%",
-          backgroundColor: "transparent",
-          display: "flex",
-          flexDirection: "column",
-        },
-        children: [], // Empty canvas by default
+    document: {
+      ...createDocumentFromLayers([
+        createLayer({
+          id: rootElementId,
+          archetype: "container",
+          name: "Root Canvas",
+          properties: {
+            width: "100%",
+            height: "100%",
+            backgroundColor: "transparent",
+            display: "flex",
+            flexDirection: "column",
+          },
+        }),
+      ]),
+      exportSettings: {
+        framework: settings?.framework || "nextjs-app",
+        styling: settings?.styling || "tailwind",
+        animation: settings?.animation || "gsap",
+        language: settings?.language || "typescript",
       },
     },
     databaseSchemas: {},
@@ -156,7 +158,7 @@ class ProjectDatabaseManager {
         name: p.name,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
-        elementCount: Object.keys(p.snapshot.elements || {}).length,
+        elementCount: Object.keys(p.snapshot.document?.layers || {}).length,
         pageCount: Object.keys(p.snapshot.pages || {}).length,
       }));
     }
@@ -189,7 +191,9 @@ class ProjectDatabaseManager {
     try {
       const raw = window.localStorage.getItem(`${PROJECT_PREFIX_KEY}${id}`);
       if (!raw) return null;
-      const record: StoredProjectRecord = JSON.parse(raw);
+      const stored: StoredProjectRecord = JSON.parse(raw);
+      // Projects saved before MDM v2 hold a v1 snapshot; upgrade on read.
+      const record: StoredProjectRecord = { ...stored, snapshot: upgradeSnapshot(stored.snapshot as LegacyProjectSnapshot) };
       this.memoryCache.set(id, record);
       return record;
     } catch (e) {
@@ -223,7 +227,7 @@ class ProjectDatabaseManager {
         projectId: id,
         projectName: name,
       };
-    } else if (params.snapshot && Object.keys(params.snapshot.elements || {}).length > 0) {
+    } else if (params.snapshot && Object.keys(params.snapshot.document?.layers || {}).length > 0) {
       fullSnapshot = {
         ...createDefaultBlankSnapshot(id, name, settings),
         ...params.snapshot,
@@ -258,7 +262,7 @@ class ProjectDatabaseManager {
           name,
           createdAt: record.createdAt,
           updatedAt: record.updatedAt,
-          elementCount: Object.keys(fullSnapshot.elements || {}).length,
+          elementCount: Object.keys(fullSnapshot.document?.layers || {}).length,
           pageCount: Object.keys(fullSnapshot.pages || {}).length,
         });
         window.localStorage.setItem(REGISTRY_INDEX_KEY, JSON.stringify(list));
@@ -309,7 +313,7 @@ class ProjectDatabaseManager {
           name: projectName,
           createdAt: record.createdAt,
           updatedAt: record.updatedAt,
-          elementCount: Object.keys(snapshot.elements || {}).length,
+          elementCount: Object.keys(snapshot.document?.layers || {}).length,
           pageCount: Object.keys(snapshot.pages || {}).length,
         });
         window.localStorage.setItem(REGISTRY_INDEX_KEY, JSON.stringify(list));

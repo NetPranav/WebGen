@@ -11,7 +11,6 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
 import {
   Object3DProperties,
   Camera3DProperties,
@@ -21,6 +20,7 @@ import {
   DEFAULT_LIGHT3D_PROPERTIES,
 } from "@/core/types/scene3d";
 import { Scene3DEngine } from "@/core/engine/Scene3DEngine";
+import type { Layer } from "@/core/document/schema";
 
 export interface ThreeSceneEmitterOptions {
   mode?: "r3f" | "lite"; // "r3f" uses React-Three-Fiber, "lite" emits pure CSS 3D transforms
@@ -41,7 +41,7 @@ export class ThreeSceneEmitter {
   /**
    * Checks if an element is a 3D archetype.
    */
-  public static is3DElement(element: ProjectElement): boolean {
+  public static is3DElement(element: Layer): boolean {
     return (
       element.archetype === "object3D" ||
       element.archetype === "camera3D" ||
@@ -53,8 +53,8 @@ export class ThreeSceneEmitter {
    * Extracts all 3D elements from an element registry.
    */
   public static filter3DElements(
-    elements: Record<string, ProjectElement>
-  ): ProjectElement[] {
+    elements: Record<string, Layer>
+  ): Layer[] {
     return Object.values(elements).filter((el) => this.is3DElement(el));
   }
 
@@ -63,7 +63,7 @@ export class ThreeSceneEmitter {
    * If zero 3D elements exist, returns has3DContent=false and code="", guaranteeing zero Three.js weight.
    */
   public static emit(
-    elements: Record<string, ProjectElement>,
+    elements: Record<string, Layer>,
     options: ThreeSceneEmitterOptions = {}
   ): EmittedThreeScene {
     const all3D = this.filter3DElements(elements);
@@ -102,7 +102,7 @@ export class ThreeSceneEmitter {
    * Emits "Lite Mode" pure CSS 3D transforms without Three.js bundle weight.
    */
   private static emitLiteCss3D(
-    elements: ProjectElement[],
+    elements: Layer[],
     componentName: string
   ): string {
     const lines: string[] = [];
@@ -141,8 +141,8 @@ export class ThreeSceneEmitter {
    * Emits declarative React-Three-Fiber JSX.
    */
   private static emitR3F(
-    all3D: ProjectElement[],
-    allElements: Record<string, ProjectElement>,
+    all3D: Layer[],
+    allElements: Record<string, Layer>,
     componentName: string,
     options: ThreeSceneEmitterOptions
   ): string {
@@ -236,7 +236,7 @@ export class ThreeSceneEmitter {
   /**
    * Emits JSX for a single 3D mesh object.
    */
-  private static emitMeshJSX(obj: ProjectElement, indent: string): string {
+  private static emitMeshJSX(obj: Layer, indent: string): string {
     const props = (obj.properties || {}) as Partial<Object3DProperties>;
     const pos = props.position3D || DEFAULT_OBJECT3D_PROPERTIES.position3D;
     const scl = props.scale3D || DEFAULT_OBJECT3D_PROPERTIES.scale3D;

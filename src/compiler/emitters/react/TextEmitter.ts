@@ -14,7 +14,7 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 export interface TextEmitterOptions {
   stylingSystem?: "tailwind" | "css-modules" | "vanilla";
@@ -33,7 +33,7 @@ export interface EmittedTextResult {
 
 export class TextEmitter {
   public static emit(
-    element: ProjectElement,
+    element: Layer,
     options: TextEmitterOptions = {}
   ): EmittedTextResult {
     const componentName = options.componentName || this.toPascalCase(element.name || "TextElement");

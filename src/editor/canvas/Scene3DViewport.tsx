@@ -13,10 +13,10 @@
  */
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { useProjectStore } from "@/core/store/useProjectStore";
 import { Scene3DEngine } from "@/core/engine/Scene3DEngine";
 import { Object3DProperties, Camera3DProperties, Light3DProperties } from "@/core/types/scene3d";
 import { Box, Camera, Sun, Compass, Play, Eye } from "lucide-react";
+import { useLayers } from "@/core/store/useDocumentStore";
 
 export interface Scene3DViewportProps {
   isPlaying?: boolean;
@@ -30,7 +30,7 @@ export const Scene3DViewport: React.FC<Scene3DViewportProps> = ({
   style,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { elements } = useProjectStore();
+  const elements = useLayers();
 
   // Orbit navigation state
   const [cameraRotX, setCameraRotX] = useState(0.4); // elevation

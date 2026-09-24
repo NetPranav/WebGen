@@ -13,33 +13,25 @@
 
 import React from "react";
 import { Feather } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
+import type { PropValue } from "@/core/document/registry";
+import { readProps } from "@/core/document/props";
 
 export interface SvgVectorSectionProps {
   elementId: string;
   elementName: string;
 }
 
-// TODO(MDM-P2): typed view over the untyped `ProjectElement.properties` bag;
-// MDM v2 gives each archetype a real props schema.
-interface SvgVectorProps {
-  stroke?: string;
-  strokeWidth?: number;
-  fill?: string;
-  strokeDashoffset?: number;
-  path?: string;
-}
-
 export const SvgVectorSection: React.FC<SvgVectorSectionProps> = ({
   elementId,
   elementName,
 }) => {
-  const { elements, setElementProperty } = useProjectStore();
+  const elements = useLayers();
   const currentElement = elements[elementId];
-  const props = (currentElement?.properties || {}) as SvgVectorProps;
+  const props = readProps(currentElement, "icon");
 
-  const updateProp = (key: string, val: unknown) => {
-    setElementProperty(elementId, key, val, `Update svg ${key}`);
+  const updateProp = (key: string, val: PropValue) => {
+    documentCommands.updateProps(elementId, { [key]: val }, `Update svg ${key}`);
   };
 
   const stroke = props.stroke || "currentColor";

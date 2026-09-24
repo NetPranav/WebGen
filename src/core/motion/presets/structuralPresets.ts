@@ -25,7 +25,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Divider Draw LTR",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.8,
       easing: "power3.out",
       enabled: true,
@@ -59,7 +59,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Divider Draw Center-Out",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.7,
       easing: "power2.out",
       enabled: true,
@@ -93,7 +93,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Gradient Sweep Loop",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 4.0,
       repeat: -1,
       easing: "linear",
@@ -121,7 +121,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Dash Offset Marquee",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 2.0,
       repeat: -1,
       easing: "linear",
@@ -149,7 +149,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Scroll-Triggered Reveal",
       type: "scroll",
-      trigger: "onScroll",
+      trigger: "scrollProgress",
       duration: 1.0,
       easing: "none",
       enabled: true,
@@ -181,7 +181,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Sunrise Gradient Drift",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 12.0,
       repeat: -1,
       easing: "sine.inOut",
@@ -218,7 +218,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Aurora Borealis Shifting Color",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 16.0,
       repeat: -1,
       easing: "sine.inOut",
@@ -255,7 +255,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Deep Space Cosmic Drift",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 14.0,
       repeat: -1,
       easing: "power1.inOut",
@@ -284,7 +284,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Parallax Scroll Depth",
       type: "scroll",
-      trigger: "onScroll",
+      trigger: "scrollProgress",
       duration: 1.0,
       easing: "none",
       enabled: true,
@@ -316,7 +316,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Film Grain Noise Pulse",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 3.5,
       repeat: -1,
       easing: "sine.inOut",
@@ -345,7 +345,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Ambient Color Crossfade",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 6.0,
       repeat: -1,
       easing: "sine.inOut",
@@ -374,7 +374,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Radial Glow Scanner",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 8.0,
       repeat: -1,
       easing: "sine.inOut",
@@ -403,7 +403,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
     animation: {
       name: "Subtle Mesh Flow",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 20.0,
       repeat: -1,
       easing: "linear",

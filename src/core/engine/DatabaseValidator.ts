@@ -11,7 +11,7 @@
  * ============================================================================
  */
 
-import { ElementType } from "../types/element-sections";
+import type { ArchetypeId } from "../document/registry";
 import {
   CollectionSchema,
   DatabaseField,
@@ -167,7 +167,7 @@ export class DatabaseValidatorService {
   public validatePropertyBinding(options: {
     elementId: string;
     elementName?: string;
-    archetype: ElementType;
+    archetype: ArchetypeId;
     propertyKey: string;
     sourceField: DatabaseField;
     sourceCollectionName: string;

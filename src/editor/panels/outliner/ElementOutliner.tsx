@@ -26,13 +26,15 @@ import {
   Film,
   Folder,
 } from "lucide-react";
-import { useProjectStore, ProjectElement } from "@/core/store/useProjectStore";
-import { ArchetypeId, FamilyId, getArchetypeDefinition } from "../launcher/archetypeData";
-import { AttachedAnimation } from "@/core/elements/types";
+import { useProjectStore } from "@/core/store/useProjectStore";
+import { getArchetype, type ArchetypeId, type FamilyId } from "@/core/document/registry";
 import { QuickAddModal } from "./QuickAddModal";
 import { AnimationTrackRow } from "./TreeNode";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
+import type { Layer } from "@/core/document/schema";
+import { documentCommands, useLayerClips, useLayers } from "@/core/store/useDocumentStore";
+import type { ClipTemplate } from "@/core/document/schema";
 
 export interface ElementOutlinerProps {
   selectedId?: string;
@@ -43,14 +45,16 @@ export const ElementOutliner: React.FC<ElementOutlinerProps> = ({
   selectedId,
   onSelectElement,
 }) => {
-  const { elements, setElementProperty, pages, activePageId } = useProjectStore();
+  const elements = useLayers();
+  const { pages, activePageId } = useProjectStore();
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isAnimStackOpen, setIsAnimStackOpen] = useState(true);
 
   // Determine root element from active page or first available element
   const activePage = pages[activePageId];
   const rootElementId = activePage?.rootElementId || Object.keys(elements)[0];
-  const rootElement: ProjectElement | undefined = elements[rootElementId];
+  const rootElement: Layer | undefined = elements[rootElementId];
+  const animStack = useLayerClips(rootElement?.id);
 
   if (!rootElement) {
     return (
@@ -68,42 +72,26 @@ export const ElementOutliner: React.FC<ElementOutlinerProps> = ({
     );
   }
 
-  const archetype = (rootElement.archetype as ArchetypeId) || "button";
-  const def = getArchetypeDefinition(archetype);
-  const family = def?.family || "interactive";
+  const archetype: ArchetypeId = rootElement.archetype;
+  const family: FamilyId = getArchetype(archetype).family ?? "interactive";
   const isSelected = selectedId === rootElement.id;
 
-  // Retrieve animation stack from element properties or defaults
-  const animStack: AttachedAnimation[] =
-    (rootElement.properties?.animationStack as AttachedAnimation[]) ||
-    (rootElement.properties?.animations as AttachedAnimation[]) ||
-    [];
-
-  const updateAnimStack = (newStack: AttachedAnimation[]) => {
-    setElementProperty(rootElement.id, "animationStack", newStack, "Update animation stack");
-  };
-
-  const handleAddAnimation = (anim: AttachedAnimation) => {
-    updateAnimStack([...animStack, anim]);
+  const handleAddAnimation = (anim: ClipTemplate) => {
+    documentCommands.addClip(rootElement.id, anim, "Add animation");
   };
 
   const handleToggleMute = (animId: string) => {
-    const updated = animStack.map((a) =>
-      a.id === animId ? { ...a, enabled: !a.enabled } : a
-    );
-    updateAnimStack(updated);
+    const clip = animStack.find((a) => a.id === animId);
+    if (clip) documentCommands.updateClip(animId, { enabled: !clip.enabled }, "Toggle animation");
   };
 
   const handleToggleLock = (animId: string) => {
-    const updated = animStack.map((a) =>
-      a.id === animId ? { ...a, locked: !a.locked } : a
-    );
-    updateAnimStack(updated);
+    const clip = animStack.find((a) => a.id === animId);
+    if (clip) documentCommands.updateClip(animId, { locked: !clip.locked }, "Lock animation");
   };
 
   const handleDeleteAnimation = (animId: string) => {
-    const updated = animStack.filter((a) => a.id !== animId);
-    updateAnimStack(updated);
+    documentCommands.removeClip(animId, "Remove animation");
   };
 
   const getFamilyIcon = (fam: FamilyId) => {

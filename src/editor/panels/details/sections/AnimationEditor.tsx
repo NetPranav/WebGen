@@ -30,17 +30,18 @@ import {
   AnimationTrigger,
   CubicBezierHandle,
 } from "@/core/types/animations";
-import { ElementType } from "@/core/types/element-sections";
+import type { ArchetypeId } from "@/core/document/registry";
 import { AnimationValidator } from "@/core/engine/AnimationValidator";
 import { KeyframeTimeline } from "../controls/KeyframeTimeline";
 import { BezierCurveModal } from "../controls/BezierCurveModal";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
+import { documentCommands, useLayer } from "@/core/store/useDocumentStore";
 
 interface AnimationEditorProps {
   elementId: string;
   elementName?: string;
-  archetype?: ElementType;
+  archetype?: ArchetypeId;
 }
 
 export const AnimationEditor: React.FC<AnimationEditorProps> = ({
@@ -48,16 +49,11 @@ export const AnimationEditor: React.FC<AnimationEditorProps> = ({
   elementName = "Element",
   archetype = "button",
 }) => {
-  const {
-    animationSamples,
-    elements,
-    setElementProperty,
-    registerAnimationSample,
-  } = useProjectStore();
+  const { animationSamples, registerAnimationSample } = useProjectStore();
+  const element = useLayer(elementId);
 
   const [isBezierModalOpen, setIsBezierModalOpen] = useState(false);
 
-  const element = elements[elementId];
   const attachedSampleId = element?.properties?.attachedAnimationSampleId as string | undefined;
   const attachedTrigger = (element?.properties?.animationTrigger as AnimationTrigger) || "onMount";
 
@@ -75,30 +71,15 @@ export const AnimationEditor: React.FC<AnimationEditorProps> = ({
   }, [activeSample, archetype, elementId, elementName]);
 
   const handleAttachSample = (sampleId: string) => {
-    setElementProperty(
-      elementId,
-      "attachedAnimationSampleId",
-      sampleId,
-      `Attach animation '${sampleId}'`
-    );
+    documentCommands.updateProps(elementId, { attachedAnimationSampleId: sampleId }, `Attach animation '${sampleId}'`);
   };
 
   const handleDetachSample = () => {
-    setElementProperty(
-      elementId,
-      "attachedAnimationSampleId",
-      undefined,
-      "Detach animation"
-    );
+    documentCommands.updateProps(elementId, { attachedAnimationSampleId: undefined }, "Detach animation");
   };
 
   const handleTriggerChange = (trigger: AnimationTrigger) => {
-    setElementProperty(
-      elementId,
-      "animationTrigger",
-      trigger,
-      `Set animation trigger to '${trigger}'`
-    );
+    documentCommands.updateProps(elementId, { animationTrigger: trigger }, `Set animation trigger to '${trigger}'`);
   };
 
   const handleCurveChange = (curve: CubicBezierHandle) => {

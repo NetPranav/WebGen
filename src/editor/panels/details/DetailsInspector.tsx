@@ -35,7 +35,6 @@ import {
   X,
   Box,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
 import { DataBindingEditor } from "./sections/DataBindingEditor";
 import { AnimationEditor } from "./sections/AnimationEditor";
 import { MediaSection } from "./sections/MediaSection";
@@ -46,6 +45,7 @@ import { MaterialInspectorSection } from "./sections/MaterialInspectorSection";
 import { EnvironmentInspector } from "./EnvironmentInspector";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
+import { useLayers } from "@/core/store/useDocumentStore";
 
 interface DetailsInspectorProps {
   selectedElementId?: string | null;
@@ -60,7 +60,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
   onOpenBlueprint,
   onDeselect,
 }) => {
-  const { elements } = useProjectStore();
+  const elements = useLayers();
   const isElementSelected = Boolean(
     selectedElementId &&
     selectedElementId !== "" &&

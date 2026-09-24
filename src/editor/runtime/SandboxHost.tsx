@@ -42,18 +42,15 @@ import {
   Send,
   Activity,
 } from "lucide-react";
-import {
-  useProjectStore,
-  ProjectElement,
-  PageDefinition,
-  StateVariable,
-} from "@/core/store/useProjectStore";
+import { useProjectStore, PageDefinition, StateVariable } from "@/core/store/useProjectStore";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { mockDatabase } from "@/runtime/MockDatabase";
 import { mockApiServer } from "@/runtime/MockApiServer";
 import { executionTracer } from "@/runtime/ExecutionTracer";
 import { hotReloadEngine } from "@/runtime/HotReloadEngine";
 import { ExecutionRun } from "@/core/types/trace";
+import type { Layer } from "@/core/document/schema";
+import { useLayers } from "@/core/store/useDocumentStore";
 
 export interface SandboxHostProps {
   width?: number | string;
@@ -81,7 +78,7 @@ interface TrappedError {
  */
 export function generateElementMarkup(
   elementId: string,
-  elements: Record<string, ProjectElement>,
+  elements: Record<string, Layer>,
   stateVars: Record<string, StateVariable> = {}
 ): string {
   const el = elements[elementId];
@@ -281,7 +278,7 @@ export function generateElementMarkup(
  */
 export function buildSandboxDocument(
   page: PageDefinition,
-  elements: Record<string, ProjectElement>,
+  elements: Record<string, Layer>,
   stateVars: Record<string, StateVariable> = {}
 ): string {
   const rootElementHtml =
@@ -547,10 +544,10 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
   const [dbMutationTick, setDbMutationTick] = useState(0);
 
   // AST state from store
+  const elements = useLayers();
   const {
     pages,
     activePageId,
-    elements,
     stateVariables,
     databaseSchemas,
     databaseRecords,
@@ -891,7 +888,6 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
             <span className="hot-reload-indicator__dot" />
             <span>HOT RELOAD</span>
           </div>
-
 
 
           {/* Sub-Phase 5.3: Execution Trace Trigger */}

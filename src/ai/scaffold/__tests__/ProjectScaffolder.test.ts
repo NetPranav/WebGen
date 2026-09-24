@@ -37,20 +37,20 @@ describe("Sub-Phase 6.4: Full Project Scaffold Generator", () => {
 
     // 3. Outliner UI Element hierarchy verification
     // Auth page form and inputs
-    assert.ok(snapshot.elements["auth_form"], "Must have auth form");
-    assert.ok(snapshot.elements["email_input"], "Must have email input");
-    assert.ok(snapshot.elements["pass_input"], "Must have password input");
-    assert.ok(snapshot.elements["login_btn"], "Must have login button");
-    assert.strictEqual(snapshot.elements["login_btn"].archetype, "button");
+    assert.ok(snapshot.document.layers["auth_form"], "Must have auth form");
+    assert.ok(snapshot.document.layers["email_input"], "Must have email input");
+    assert.ok(snapshot.document.layers["pass_input"], "Must have password input");
+    assert.ok(snapshot.document.layers["login_btn"], "Must have login button");
+    assert.strictEqual(snapshot.document.layers["login_btn"].archetype, "button");
 
     // Pricing page cards
-    assert.ok(snapshot.elements["pricing_grid"], "Must have pricing grid");
-    assert.ok(snapshot.elements["card_pro"], "Must have Pro card");
-    assert.ok(snapshot.elements["btn_pro"], "Must have Pro choose button");
+    assert.ok(snapshot.document.layers["pricing_grid"], "Must have pricing grid");
+    assert.ok(snapshot.document.layers["card_pro"], "Must have Pro card");
+    assert.ok(snapshot.document.layers["btn_pro"], "Must have Pro choose button");
 
     // Dashboard metrics
-    assert.ok(snapshot.elements["stats_row"], "Must have stats row");
-    assert.ok(snapshot.elements["stat_revenue_text"], "Must have revenue text");
+    assert.ok(snapshot.document.layers["stats_row"], "Must have stats row");
+    assert.ok(snapshot.document.layers["stat_revenue_text"], "Must have revenue text");
 
     // 4. Database schemas & seed records
     assert.ok(snapshot.databaseSchemas["users"], "Must have users collection");
@@ -91,7 +91,7 @@ describe("Sub-Phase 6.4: Full Project Scaffold Generator", () => {
     const storeState = useProjectStore.getState();
 
     assert.strictEqual(storeState.pages["page_dashboard"].name, "Dashboard");
-    assert.strictEqual(storeState.elements["login_btn"].name, "Login Button");
+    assert.strictEqual(storeState.document.layers["login_btn"].name, "Login Button");
     assert.strictEqual(storeState.databaseSchemas["users"].displayName, "Users");
     assert.ok(storeState.blueprintGraphs[mainGraph.id], "Store must contain restored graph");
   });

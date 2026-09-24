@@ -10,7 +10,8 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
+
 
 export interface VanillaEmitterOptions {
   componentName?: string;
@@ -33,7 +34,7 @@ export class VanillaHtmlEmitter {
   }
 
   public static emit(
-    element: ProjectElement,
+    element: Layer,
     options: VanillaEmitterOptions = {}
   ): EmittedVanillaPackage {
     const name = options.componentName || element.name || "element";

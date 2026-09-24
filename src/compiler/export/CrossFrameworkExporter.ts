@@ -10,7 +10,6 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
 import { TargetFramework, StylingSystem } from "@/editor/panels/launcher/TechConfigurator";
 import { InteractiveEmitter } from "../emitters/react/InteractiveEmitter";
 import { MediaEmitter } from "../emitters/react/MediaEmitter";
@@ -18,6 +17,7 @@ import { StructuralEmitter } from "../emitters/react/StructuralEmitter";
 import { TextEmitter } from "../emitters/react/TextEmitter";
 import { VueComponentEmitter } from "../emitters/vue/VueComponentEmitter";
 import { VanillaHtmlEmitter } from "../emitters/vanilla/VanillaHtmlEmitter";
+import type { Layer } from "@/core/document/schema";
 
 export interface CrossFrameworkExportResult {
   framework: TargetFramework;
@@ -32,7 +32,7 @@ export interface CrossFrameworkExportResult {
 
 export class CrossFrameworkExporter {
   public static exportElement(
-    element: ProjectElement,
+    element: Layer,
     framework: TargetFramework = "nextjs-app",
     styling: StylingSystem = "tailwind"
   ): CrossFrameworkExportResult {

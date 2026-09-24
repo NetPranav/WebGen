@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import { ElementType } from "./element-sections";
+import type { ArchetypeId } from "../document/registry";
 
 export type BindingSourceType =
   | "database"
@@ -36,7 +36,7 @@ export type TransformFunctionType =
 export interface BindingTarget {
   elementId: string;
   elementName?: string;
-  archetype: ElementType;
+  archetype: ArchetypeId;
   propertyKey: string;
 }
 

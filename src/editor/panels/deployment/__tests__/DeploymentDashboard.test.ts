@@ -8,6 +8,7 @@ import {
 } from "../../../../core/types/deployment";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
+import { loadDocument } from "@/core/document/migrations";
 
 describe("Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy (Panel 19)", () => {
   beforeEach(() => {
@@ -23,7 +24,7 @@ describe("Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy (Panel 19)", (
           rootElementId: "el_root",
         },
       },
-      elements: {
+      document: loadDocument({ elements: {
         el_root: {
           id: "el_root",
           name: "Root Container",
@@ -32,7 +33,7 @@ describe("Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy (Panel 19)", (
           children: [],
           properties: {},
         },
-      },
+      } }),
       databaseSchemas: {
         col_users: {
           id: "col_users",

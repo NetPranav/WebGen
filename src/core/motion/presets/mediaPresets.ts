@@ -25,7 +25,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Ken Burns Subtle Zoom",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 8.0,
       repeat: -1,
       easing: "sine.inOut",
@@ -70,7 +70,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Ken Burns Pan & Drift",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 10.0,
       repeat: -1,
       easing: "power1.inOut",
@@ -115,7 +115,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Clip-Path Circle Reveal",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.9,
       easing: "power3.out",
       enabled: true,
@@ -149,7 +149,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Clip-Path Diamond Reveal",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.85,
       easing: "power4.inOut",
       enabled: true,
@@ -176,7 +176,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Clip-Path Angle Wipe",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.75,
       easing: "power2.inOut",
       enabled: true,
@@ -203,7 +203,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Grayscale to Color",
       type: "hover",
-      trigger: "onHover",
+      trigger: "hover",
       duration: 0.45,
       easing: "power2.out",
       enabled: true,
@@ -237,7 +237,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Cinematic Blur-Up",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 1.1,
       easing: "power2.out",
       enabled: true,
@@ -278,7 +278,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Hover Zoom & Darken",
       type: "hover",
-      trigger: "onHover",
+      trigger: "hover",
       duration: 0.4,
       easing: "power2.out",
       enabled: true,
@@ -312,7 +312,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "3D Tilt Perspective",
       type: "hover",
-      trigger: "onHover",
+      trigger: "hover",
       duration: 0.5,
       easing: "spring(stiffness: 300, damping: 20)",
       enabled: true,
@@ -353,7 +353,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "SVG Stroke Draw-In",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 1.4,
       easing: "power2.inOut",
       enabled: true,
@@ -380,7 +380,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "SVG Morph Pulsar",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 2.0,
       repeat: -1,
       easing: "sine.inOut",
@@ -409,7 +409,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Vignette Shadow Pull",
       type: "hover",
-      trigger: "onHover",
+      trigger: "hover",
       duration: 0.35,
       easing: "power2.out",
       enabled: true,
@@ -436,7 +436,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
     animation: {
       name: "Glitch Displacement Shutter",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.25,
       easing: "linear",
       enabled: true,

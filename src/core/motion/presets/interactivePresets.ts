@@ -25,7 +25,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Magnetic Hover Pull",
       type: "hover",
-      trigger: "onHover",
+      trigger: "hover",
       duration: 0.3,
       easing: "spring(stiffness: 400, damping: 25)",
       enabled: true,
@@ -59,7 +59,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Tactile Tap Bounce",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.2,
       easing: "back.out(3)",
       enabled: true,
@@ -87,7 +87,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Mount Pop-In Reveal",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.45,
       easing: "back.out(1.7)",
       enabled: true,
@@ -121,7 +121,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Elastic Snap Back",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.35,
       easing: "spring(stiffness: 600, damping: 15)",
       enabled: true,
@@ -148,7 +148,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Skeuomorphic Click",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.16,
       easing: "power2.out",
       enabled: true,
@@ -184,7 +184,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Liquid Toggle Slide",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.4,
       easing: "spring(stiffness: 350, damping: 20)",
       enabled: true,
@@ -219,7 +219,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Jiggle Attention",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 0.8,
       repeat: -1,
       easing: "power1.inOut",
@@ -251,7 +251,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Ripple Press",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.3,
       easing: "power2.out",
       enabled: true,
@@ -279,7 +279,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Haptic Micro-Vibrate",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.18,
       easing: "linear",
       enabled: true,
@@ -310,7 +310,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Focus Ring Pulse",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 1.6,
       repeat: -1,
       easing: "sine.inOut",
@@ -347,7 +347,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Glint Shimmer Pass",
       type: "hover",
-      trigger: "onHover",
+      trigger: "hover",
       duration: 0.6,
       easing: "power2.inOut",
       enabled: true,
@@ -383,7 +383,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Float Levitate",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 3.0,
       repeat: -1,
       easing: "sine.inOut",
@@ -412,7 +412,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
     animation: {
       name: "Breathing Glow",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 2.4,
       repeat: -1,
       easing: "power1.inOut",

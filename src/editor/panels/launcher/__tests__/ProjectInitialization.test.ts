@@ -24,9 +24,10 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import React from "react";
 import { useProjectStore } from "@/core/store/useProjectStore";
-import { ALL_ARCHETYPE_IDS, ArchetypeId, getArchetypeDefinition } from "../archetypeData";
+import { ALL_ARCHETYPE_IDS, getArchetypeDefinition } from "../archetypeData";
+import type { ArchetypeId, InitialArchetypeId } from "@/core/document/registry";
 import { ScopeCard } from "../ScopeCard";
-import { ELEMENT_SECTION_REGISTRY } from "@/core/types/element-sections";
+import { getArchetype } from "@/core/document/registry";
 
 describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
   beforeEach(() => {
@@ -50,7 +51,7 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       assert.strictEqual(state.projectName, "AnimatedHeroImage");
       assert.strictEqual(state.scope, "element");
       assert.strictEqual(state.rootArchetype, "image");
-      assert.deepStrictEqual(state.target, {
+      assert.deepStrictEqual(state.document.exportSettings, {
         framework: "nextjs-app",
         styling: "tailwind",
         animation: "gsap",
@@ -58,7 +59,7 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       });
 
       // Verify root element in elements dictionary
-      const rootEl = state.elements[rootId];
+      const rootEl = state.document.layers[rootId];
       assert.ok(rootEl, "Root element must exist in elements dictionary");
       assert.strictEqual(rootEl.archetype, "image");
       assert.strictEqual(rootEl.name, "AnimatedHeroImage");
@@ -78,7 +79,7 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
     });
 
     it("verifies all 10 archetypes initialize with their CONVENTIONS.md ID prefixes", () => {
-      const expectedPrefixes: Record<ArchetypeId, string> = {
+      const expectedPrefixes: Record<InitialArchetypeId, string> = {
         button: "elem_btn_",
         toggle: "elem_toggle_",
         badge: "elem_badge_",
@@ -101,7 +102,7 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
         });
 
         const state = useProjectStore.getState();
-        const rootEl = state.elements[rootId];
+        const rootEl = state.document.layers[rootId];
         assert.ok(rootEl, `Element for ${archId} must exist in state`);
         assert.strictEqual(rootEl.archetype, archId);
         assert.ok(
@@ -115,23 +116,23 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
   describe("2. Details Inspector Contextual Section Rendering (PANELS.md §3)", () => {
     it("maps all 10 archetypes in ELEMENT_SECTION_REGISTRY to their contextual sections", () => {
       // 1. Image has media_props
-      assert.ok(ELEMENT_SECTION_REGISTRY.image.includes("media_props"));
-      assert.ok(!ELEMENT_SECTION_REGISTRY.image.includes("typography"));
+      assert.ok(getArchetype("image").sections.includes("media_props"));
+      assert.ok(!getArchetype("image").sections.includes("typography"));
 
       // 2. Divider has divider_props
-      assert.ok(ELEMENT_SECTION_REGISTRY.divider.includes("divider_props"));
-      assert.ok(!ELEMENT_SECTION_REGISTRY.divider.includes("typography"));
+      assert.ok(getArchetype("divider").sections.includes("divider_props"));
+      assert.ok(!getArchetype("divider").sections.includes("typography"));
 
       // 3. Background has background_props
-      assert.ok(ELEMENT_SECTION_REGISTRY.background.includes("background_props"));
-      assert.ok(!ELEMENT_SECTION_REGISTRY.background.includes("typography"));
+      assert.ok(getArchetype("background").sections.includes("background_props"));
+      assert.ok(!getArchetype("background").sections.includes("typography"));
 
       // 4. Icon has svg_vector
-      assert.ok(ELEMENT_SECTION_REGISTRY.icon.includes("svg_vector"));
+      assert.ok(getArchetype("icon").sections.includes("svg_vector"));
 
       // 5. Button and Text have typography
-      assert.ok(ELEMENT_SECTION_REGISTRY.button.includes("typography"));
-      assert.ok(ELEMENT_SECTION_REGISTRY.text.includes("typography"));
+      assert.ok(getArchetype("button").sections.includes("typography"));
+      assert.ok(getArchetype("text").sections.includes("typography"));
     });
 
     it("renders DetailsInspector for Image archetype with Media Details", async () => {
@@ -260,13 +261,13 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       assert.strictEqual(state.projectName, projectName);
       assert.strictEqual(state.rootArchetype, "image");
       assert.strictEqual(state.scope, "element");
-      assert.strictEqual(state.target?.framework, "nextjs-app");
-      assert.strictEqual(state.target?.styling, "tailwind");
-      assert.strictEqual(state.target?.animation, "gsap");
-      assert.strictEqual(state.target?.language, "typescript");
+      assert.strictEqual(state.document.exportSettings.framework, "nextjs-app");
+      assert.strictEqual(state.document.exportSettings.styling, "tailwind");
+      assert.strictEqual(state.document.exportSettings.animation, "gsap");
+      assert.strictEqual(state.document.exportSettings.language, "typescript");
 
       // 3. Assert root element is created with id prefix elem_img_
-      const rootEl = state.elements[rootId];
+      const rootEl = state.document.layers[rootId];
       assert.ok(rootEl);
       assert.strictEqual(rootEl.archetype, "image");
       assert.ok(rootId.startsWith("elem_img_"));

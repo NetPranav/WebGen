@@ -27,7 +27,9 @@ import {
   Layers,
   ArrowRight,
 } from "lucide-react";
-import { useProjectStore, ProjectElement } from "@/core/store/useProjectStore";
+import { useProjectStore } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
+import { documentCommands } from "@/core/store/useDocumentStore";
 
 interface BlockTemplate {
   id: string;
@@ -35,7 +37,7 @@ interface BlockTemplate {
   title: string;
   badge: string;
   description: string;
-  createElements: (parentId: string) => ProjectElement[];
+  createElements: (parentId: string) => Layer[];
 }
 
 const PREBUILT_BLOCKS: BlockTemplate[] = [
@@ -54,7 +56,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
       const ctaPrimaryId = `el_cta1_${Date.now()}`;
       const ctaSecondaryId = `el_cta2_${Date.now()}`;
 
-      return [
+      const layers: Layer[] = [
         {
           id: heroId,
           name: "SaaS Hero Section",
@@ -140,6 +142,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
           children: [],
         },
       ];
+      return layers;
     },
   },
 
@@ -156,7 +159,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
       const card2Id = `el_fcard2_${Date.now()}`;
       const card3Id = `el_fcard3_${Date.now()}`;
 
-      return [
+      const layers: Layer[] = [
         {
           id: sectionId,
           name: "Feature Showcase Grid",
@@ -211,6 +214,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
           children: [],
         },
       ];
+      return layers;
     },
   },
 
@@ -227,7 +231,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
       const proTierId = `el_tier_pro_${Date.now()}`;
       const entTierId = `el_tier_ent_${Date.now()}`;
 
-      return [
+      const layers: Layer[] = [
         {
           id: pricingId,
           name: "Pricing Section",
@@ -283,6 +287,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
           children: [],
         },
       ];
+      return layers;
     },
   },
 
@@ -299,7 +304,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
       const passInputId = `el_in_pass_${Date.now()}`;
       const submitBtnId = `el_btn_login_${Date.now()}`;
 
-      return [
+      const layers: Layer[] = [
         {
           id: authId,
           name: "Sign In Card",
@@ -355,6 +360,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
           children: [],
         },
       ];
+      return layers;
     },
   },
 
@@ -368,7 +374,7 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
     createElements: (parentId) => {
       const footerId = `block_footer_${Date.now()}`;
 
-      return [
+      const layers: Layer[] = [
         {
           id: footerId,
           name: "Sitemap Footer",
@@ -384,12 +390,13 @@ const PREBUILT_BLOCKS: BlockTemplate[] = [
           children: [],
         },
       ];
+      return layers;
     },
   },
 ];
 
 export const ContentBlockShelf: React.FC = () => {
-  const { pages, activePageId, addElement, setElementProperty } = useProjectStore();
+  const { pages, activePageId } = useProjectStore();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [addedBlockId, setAddedBlockId] = useState<string | null>(null);
@@ -408,26 +415,8 @@ export const ContentBlockShelf: React.FC = () => {
   });
 
   const handleAddBlock = (block: BlockTemplate) => {
-    const newElements = block.createElements(rootElementId);
-    const rootBlockElement = newElements[0];
-
-    // Add all elements to store
-    newElements.forEach((el) => {
-      addElement(el, `Add Block: ${block.title}`);
-    });
-
-    // Append rootBlockElement.id to root container children
-    const state = useProjectStore.getState();
-    const rootContainer = state.elements[rootElementId];
-    if (rootContainer) {
-      const existingChildren = rootContainer.children || [];
-      setElementProperty(
-        rootElementId,
-        "children",
-        [...existingChildren, rootBlockElement.id],
-        `Append ${block.title} to Page`
-      );
-    }
+    // The block's root is parented to the page root, so insertLayers links it into the tree.
+    documentCommands.insertLayers(block.createElements(rootElementId), [], `Add Block: ${block.title}`);
 
     setAddedBlockId(block.id);
     setTimeout(() => setAddedBlockId(null), 2000);

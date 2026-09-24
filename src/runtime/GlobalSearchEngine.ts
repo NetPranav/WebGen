@@ -171,7 +171,7 @@ export class GlobalSearchEngineManager {
       }
 
       // 2. Index Elements
-      const elements = Object.values(storeState.elements || {});
+      const elements = Object.values(storeState.document.layers);
       for (const elem of elements) {
         const propValues: string[] = [];
         if (elem.properties) {

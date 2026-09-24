@@ -5,6 +5,7 @@ import { useDependencyStore } from "../../../../core/store/useDependencyStore";
 import { useProjectStore, ProjectStateSnapshot } from "../../../../core/store/useProjectStore";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import { DiagnosticEvent } from "../../../../core/types/diagnostics";
+import { loadDocument } from "@/core/document/migrations";
 
 describe("Sub-Phase 8.3: Panel 26 — Reference Viewer & Dependency Graph", () => {
   let baselineSnapshot: ProjectStateSnapshot;
@@ -28,7 +29,7 @@ describe("Sub-Phase 8.3: Panel 26 — Reference Viewer & Dependency Graph", () =
           rootElementId: "el_profile_root",
         },
       },
-      elements: {
+      document: loadDocument({ elements: {
         el_container: {
           id: "el_container",
           name: "Main Container",
@@ -74,7 +75,7 @@ describe("Sub-Phase 8.3: Panel 26 — Reference Viewer & Dependency Graph", () =
           children: [],
           properties: {},
         },
-      },
+      } }),
       databaseSchemas: {
         col_users: {
           id: "col_users",

@@ -21,7 +21,7 @@ describe("ProjectDatabase Client Storage Engine", () => {
     assert.strictEqual(snapshot.projectId, id);
     assert.strictEqual(snapshot.projectName, "My Brand New Project");
     assert.ok(snapshot.pages["page_home"]);
-    const rootEl = snapshot.elements["elem_canvas_root"];
+    const rootEl = snapshot.document.layers["elem_canvas_root"];
     assert.ok(rootEl);
     assert.strictEqual(rootEl.children.length, 0); // Empty canvas by default
     assert.deepStrictEqual(snapshot.databaseSchemas, {});
@@ -43,7 +43,7 @@ describe("ProjectDatabase Client Storage Engine", () => {
     assert.ok(fetched);
     assert.strictEqual(fetched.id, customId);
     assert.strictEqual(fetched.name, "Custom Testing Studio");
-    assert.strictEqual(fetched.snapshot.elements["elem_canvas_root"].children.length, 0);
+    assert.strictEqual(fetched.snapshot.document.layers["elem_canvas_root"].children.length, 0);
 
     // Save updated snapshot
     const updated = ProjectDatabase.saveProjectSnapshot(

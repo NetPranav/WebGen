@@ -15,7 +15,9 @@ import { MEDIA_PRESETS } from "./mediaPresets";
 import { STRUCTURAL_PRESETS } from "./structuralPresets";
 import { TEXT_PRESETS } from "./textPresets";
 import { MotionPreset, PresetFilterCriteria } from "./types";
-import { ArchetypeId, FamilyId, AttachedAnimation } from "../../elements/types";
+import type { ArchetypeId, FamilyId } from "../../document/registry";
+import type { ClipTemplate } from "../../document/schema";
+import { hydrateClip } from "../../document/factories";
 
 export * from "./types";
 export * from "./interactivePresets";
@@ -58,7 +60,7 @@ export function getPresetsByFamily(family: FamilyId): MotionPreset[] {
  * Rule 6.1 Category Hard Block definition per archetype.
  * Specifies disallowed animation categories for each archetype.
  */
-export const RULE_6_1_BLOCKED_CATEGORIES: Record<ArchetypeId, { blockedCategories: string[]; explanation: string }> = {
+export const RULE_6_1_BLOCKED_CATEGORIES: Partial<Record<ArchetypeId, { blockedCategories: string[]; explanation: string }>> = {
   text: {
     blockedCategories: ["hover", "tap"],
     explanation: "Rule 6.1: Plain text cannot be directly clicked or hovered. Wrap in a Button or Link to enable interactive gestures.",
@@ -157,39 +159,10 @@ export function filterPresets(criteria: PresetFilterCriteria): MotionPreset[] {
 }
 
 /**
- * Instantiate a preset into a fully hydrated AttachedAnimation object.
+ * Instantiates a preset as a clip template with fresh ids, ready for `documentCommands.addClip`.
  */
-export function instantiatePreset(
-  presetId: string,
-  customOverrides?: Partial<AttachedAnimation>
-): AttachedAnimation | null {
+export function instantiatePreset(presetId: string, customOverrides?: Partial<ClipTemplate>): ClipTemplate | null {
   const preset = getPresetById(presetId);
   if (!preset) return null;
-
-  const instanceId = `anim_${preset.id.replace("preset_", "")}_${Math.random().toString(36).slice(2, 7)}`;
-
-  return {
-    id: instanceId,
-    name: preset.animation.name,
-    type: preset.animation.type,
-    trigger: preset.animation.trigger,
-    duration: preset.animation.duration,
-    easing: preset.animation.easing,
-    repeat: preset.animation.repeat,
-    enabled: true,
-    scrollTrigger: preset.animation.scrollTrigger ? { ...preset.animation.scrollTrigger } : undefined,
-    stagger: preset.animation.stagger ? { ...preset.animation.stagger } : undefined,
-    tracks: preset.animation.tracks
-      ? preset.animation.tracks.map((t) => ({
-          property: t.property,
-          keyframes: t.keyframes.map((kf, i) => ({
-            id: `kf_${i}_${Math.random().toString(36).slice(2, 6)}`,
-            time: kf.time,
-            value: kf.value,
-            ease: kf.ease,
-          })),
-        }))
-      : [],
-    ...customOverrides,
-  };
+  return { ...hydrateClip(preset.animation), ...customOverrides };
 }

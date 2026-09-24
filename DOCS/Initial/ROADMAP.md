@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.0.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phase 1 ✅ (CI enforced by convention; see Phase 1 log). Next: Phase 2 (MDM v2).
+**Status:** Active. Phases 1–2 ✅. Next: Phase 3 (Store, History & Persistence).
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -66,7 +66,7 @@ A phase is **✅ COMPLETE** only when:
 | # | Track | Phase | Key deliverable | Depends on | Status |
 |---|---|---|---|---|---|
 | 1 | A · Solid Ground | Build Health & CI | 0 TS / 0 lint errors, CI, `next build` green | — | ✅ (enforcement by convention) |
-| 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | 📋 |
+| 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | ✅ |
 | 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | 📋 |
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | 📋 |
 | 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | 📋 |
@@ -169,26 +169,48 @@ Not verified in a browser: the React-hooks refactors (state-sync effects moved t
 **Closes:** AUD-04, AUD-05 (model half), AUD-07 · **Depends on:** 1
 
 ### Sub-Phase 2.1: Schema Definition
-- [ ] `src/core/document/schema.ts`: the MDM types from PRD §4 (Document, Layer kinds, Archetype, Effect instance, Track, Clip, State, Trigger, Behaviour, Tokens, ExportSettings).
-- [ ] A runtime validator (Zod or equivalent) generated from the same source. It also produces the **JSON Schema** used by the AI in Phase 30. One source, three outputs: TS types, runtime validator, JSON Schema.
-- [ ] `schemaVersion: 2` plus `src/core/document/migrations/` with a `v1 → v2` migration covering `ProjectElement` and `properties.animationStack` data saved in localStorage.
+- [x] `src/core/document/schema.ts`: the MDM types from PRD §4 (Document, Layer kinds, Archetype, Effect instance, Track, Clip, State, Trigger, Behaviour, Tokens, ExportSettings). *Notes:* layer kind is derived from the archetype (not stored, so it can't drift). `effect` is a reserved kind; the effect-instance props contract arrives with the Effects Library (Phase 25).
+- [x] A runtime validator (Zod or equivalent) generated from the same source. It also produces the **JSON Schema** used by the AI in Phase 30. One source, three outputs: TS types, runtime validator, JSON Schema.
+- [x] `schemaVersion: 2` plus `src/core/document/migrations/` with a `v1 → v2` migration covering `ProjectElement` and `properties.animationStack` data saved in localStorage.
 
 ### Sub-Phase 2.2: Archetype and Layer-Kind Registry
-- [ ] One registry, `src/core/document/registry.ts`, maps each archetype/kind to its property sections, legal states, default props, and semantic export tag. Its data comes from the v1.1 `archetypes/*.ts` and `element-sections.ts`.
-- [ ] Retire `ElementType` (20 types) and the unused parts of `GrammarElementType` (32 types). Grammar types that Initial Phase doesn't need (Navbar, Page, Form …) are listed as "reserved" in the registry, not deleted from the grammar doc.
+- [x] One registry, `src/core/document/registry.ts`, maps each archetype/kind to its property sections, legal states, default props, and semantic export tag. Its data comes from the v1.1 `archetypes/*.ts` and `element-sections.ts`. *Note:* default props come from the live `initElementProject` values; the `archetypes/*.ts` factories were only used by tests that never ran (outside the test glob) and were deleted.
+- [x] Retire `ElementType` (20 types) and the unused parts of `GrammarElementType` (32 types). Grammar types that Initial Phase doesn't need (Navbar, Page, Form …) are listed as "reserved" in the registry, not deleted from the grammar doc. *Note:* `GrammarElementType` stays as the grammar's own vocabulary; the registry maps each archetype to one and exports `RESERVED_GRAMMAR_TYPES`.
 
 ### Sub-Phase 2.3: Single Store API
-- [ ] `useDocumentStore` with typed commands only: `addLayer`, `updateProps(layerId, patch)`, `addTrack`, `setKeyframe`, `addState`, `applyDiff(diff)` … No `setElementProperty(id, string, unknown)`.
-- [ ] Every command is a serialisable **Patch** (Immer patches, already a dependency). The same patch format is used by undo, AI diffs, and future collaboration.
-- [ ] Deterministic ID generator (`prefix_` + 8 hex characters from `crypto.getRandomValues`), replacing `Math.random` IDs (AUD-07).
+- [x] `useDocumentStore` with typed commands only: `addLayer`, `updateProps(layerId, patch)`, `addTrack`, `setKeyframe`, `addState`, `applyDiff(diff)` … No `setElementProperty(id, string, unknown)`. *Design:* the document lives in the project store's `document` field (so snapshots, saving and undo keep covering it); `useDocumentStore.ts` is the only read/write API over it.
+- [x] Every command is a serialisable **Patch** (Immer patches, already a dependency). The same patch format is used by undo, AI diffs, and future collaboration. *Note:* undo still uses snapshots; Phase 3.1 moves it onto these inverse patches.
+- [x] Deterministic ID generator (`prefix_` + 8 hex characters from `crypto.getRandomValues`), replacing `Math.random` IDs (AUD-07). *Scope:* all document entities (layers, clips, tracks, keyframes, states). Runtime/project records (history entries, diagnostics, trace runs, pages, branches) still use ad-hoc ids.
 
 ### Sub-Phase 2.4: Consumer Migration
-- [ ] Move the Sequencer, Outliner, Details, Code Inspector, Co-pilot and Emitters to MDM. Delete the `TODO(MDM-P2)` shims from Phase 1.
-- [ ] Remove `ProjectElement`, `BaseElementNode` and `AttachedAnimation` once nothing imports them.
+- [x] Move the Sequencer, Outliner, Details, Code Inspector, Co-pilot and Emitters to MDM. Delete the `TODO(MDM-P2)` shims from Phase 1. *Note:* the runtime's dual track-id switch is re-tagged `TODO(P7)`: it serves the separate `AnimationSample` model, which Phase 7 folds into the document.
+- [x] Remove `ProjectElement`, `BaseElementNode` and `AttachedAnimation` once nothing imports them.
 
 **Reuse:** archetype defaults, property surfaces (v1.1 PRD §5), `SCHEMA_REFERENCE.md` fragments.
 **Key files:** `src/core/document/*`, `src/core/store/useDocumentStore.ts`
 **Verification Gate:** `grep` finds zero imports of the removed types. Every v1.1 demo project in localStorage migrates and renders identically (Playwright screenshot before and after). A property-based test round-trips 500 random documents through validate → serialise → parse without change.
+
+### Phase 2 Progress Log
+**2026-09-24: ✅ Phase 2 complete.** CI green on PR #6 (Linux). Gate evidence below.
+- **Removed types:** a unit test (`documentStore.test.ts`, "Phase 2 gate") scans all source, comments excluded, and finds no `ProjectElement`, `BaseElementNode`, `AttachedAnimation` or `ElementType`. `src/core/elements/` is deleted.
+- **Migration parity (Playwright):** the pre-Phase-2 build (`5d7a934`, :3001) saved a real v1 project with two co-pilot presets in `properties.animationStack`. The new build (:3000) loaded the same localStorage and rendered it with a **0 px** difference (live FPS/memory counters masked). Re-saving produced a v2 document with the same two animations as clips on `el_buy_button` (triggers `onHover→hover`, `onClick→press`, track counts equal), and no `elements` key.
+- **Property test:** 500 random documents round-trip validate → serialise → parse unchanged (`schema.test.ts`, fast-check).
+- `typecheck` 0 · `lint` 0 errors / 463 warnings (budget ratcheted 467 → 463) · 625/625 tests (31 new) · `next build` green · `run-editor` smoke 8/8.
+
+Bugs found and fixed along the way:
+- **Sequencer edits persist (AUD-05):** "+ Keyframe" now writes to the clip the Sequencer reads. Verified in the browser: the edits survive a save.
+- **Content Block Shelf** attached blocks by writing `properties.children` instead of the layer's real `children`, so inserted blocks never joined the tree.
+- **`insertGeneratedComponent`** added the component to the page root's children but left the component's `parentId` null; **`removeElement`** left the id dangling in its parent's children. Both are fixed by the new commands.
+- **GPU auto-fix** in Motion Diagnostics was a no-op. It now sets `willChange: "transform"`, as its message says.
+- **Zod drops `__proto__` keys silently** (found by the property test). The validator now rejects them explicitly, and migration drops them.
+- **Version-control merge** now carries non-conflicting clip changes and repairs tree links. It previously added layers without linking them to their parent.
+
+Known gaps, deliberately left for their phases:
+- Undo is still snapshot-based (Phase 3.1 moves it to inverse patches).
+- A clip changed on both branches merges as "current wins" with no conflict reported.
+- `AnimationSample` (the AnimationEditor / emitter timeline model) is still separate (Phase 7).
+- Per-archetype prop keys are not validated (Phase 8 rules engine; `src/core/document/props.ts` holds the typed views until then).
+- The "Prompt AI" input steals focus from global search (pre-existing).
 
 ---
 

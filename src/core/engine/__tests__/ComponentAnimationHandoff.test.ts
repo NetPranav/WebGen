@@ -11,7 +11,7 @@ describe("ComponentAnimationHandoff: AI Creation to Full Animation & Export Loop
     // 1. Clear to pristine blank canvas
     useProjectStore.getState().clearToBlankCanvas();
     const blankState = useProjectStore.getState();
-    const blankRoot = blankState.elements[blankState.pages[blankState.activePageId].rootElementId];
+    const blankRoot = blankState.document.layers[blankState.pages[blankState.activePageId].rootElementId];
     assert.equal(blankRoot.children.length, 0);
 
     // 2. Synthesize a complete pricing card from prompt
@@ -23,9 +23,9 @@ describe("ComponentAnimationHandoff: AI Creation to Full Animation & Export Loop
     // 3. Insert generated component into store
     useProjectStore.getState().insertGeneratedComponent(generated.elements, generated.rootId);
     const updatedState = useProjectStore.getState();
-    const updatedRoot = updatedState.elements[updatedState.pages[updatedState.activePageId].rootElementId];
+    const updatedRoot = updatedState.document.layers[updatedState.pages[updatedState.activePageId].rootElementId];
     assert.ok(updatedRoot.children.includes(generated.rootId));
-    assert.ok(updatedState.elements[generated.rootId]);
+    assert.ok(updatedState.document.layers[generated.rootId]);
 
     // 4. Find the button and card elements
     const buttonElement = generated.elements.find((e) => e.archetype === "button");
@@ -78,14 +78,14 @@ describe("ComponentAnimationHandoff: AI Creation to Full Animation & Export Loop
     // 7. Stash & Mount verification: Mount Showcase Demo
     useProjectStore.getState().mountDemoProject();
     const showcaseState = useProjectStore.getState();
-    assert.ok(showcaseState.elements["el_hero_heading"]);
-    assert.ok(showcaseState.elements["el_buy_button"]);
+    assert.ok(showcaseState.document.layers["el_hero_heading"]);
+    assert.ok(showcaseState.document.layers["el_buy_button"]);
     assert.ok(showcaseState.databaseSchemas["Products"]);
 
     // 8. Clear back to blank canvas
     useProjectStore.getState().clearToBlankCanvas();
     const clearedState = useProjectStore.getState();
-    const clearedRoot = clearedState.elements[clearedState.pages[clearedState.activePageId].rootElementId];
+    const clearedRoot = clearedState.document.layers[clearedState.pages[clearedState.activePageId].rootElementId];
     assert.equal(clearedRoot.children.length, 0);
     assert.equal(Object.keys(clearedState.databaseSchemas).length, 0);
   });

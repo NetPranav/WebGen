@@ -23,10 +23,10 @@ import {
   Film,
   Sparkles,
 } from "lucide-react";
-import { AttachedAnimation } from "@/core/elements/types";
+import type { ClipTemplate } from "@/core/document/schema";
 
 export interface AnimationNodeRowProps {
-  animation: AttachedAnimation;
+  animation: ClipTemplate;
   onToggleMute: (id: string) => void;
   onToggleLock: (id: string) => void;
   onDelete: (id: string) => void;

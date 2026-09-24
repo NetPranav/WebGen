@@ -22,9 +22,10 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import React from "react";
 import { useProjectStore } from "@/core/store/useProjectStore";
-import { ALL_ARCHETYPE_IDS, ArchetypeId, getArchetypeDefinition } from "../../launcher/archetypeData";
+import { ALL_ARCHETYPE_IDS } from "../../launcher/archetypeData";
 import { FAMILY_ANIMATION_PRESETS, QuickAddModal } from "../QuickAddModal";
-import { ELEMENT_SECTION_REGISTRY, DetailSectionId } from "@/core/types/element-sections";
+import type { DetailSectionId } from "@/core/types/element-sections";
+import { getArchetype } from "@/core/document/registry";
 
 describe("Sub-Phase 3.5: Simplified Outliner & Content Browser Linkage", () => {
   describe("1. Family Animation Presets Registry", () => {
@@ -46,7 +47,7 @@ describe("Sub-Phase 3.5: Simplified Outliner & Content Browser Linkage", () => {
 
     it("ensures Media presets include ScrollTrigger scrub and clip-path", () => {
       const mediaPresets = FAMILY_ANIMATION_PRESETS.media;
-      const hasScroll = mediaPresets.some((p) => p.trigger === "onScroll");
+      const hasScroll = mediaPresets.some((p) => p.trigger === "scrollProgress");
       const hasClip = mediaPresets.some((p) => p.id.includes("clip"));
       assert.ok(hasScroll, "Media family must include onScroll preset");
       assert.ok(hasClip, "Media family must include clip-path reveal preset");
@@ -54,7 +55,7 @@ describe("Sub-Phase 3.5: Simplified Outliner & Content Browser Linkage", () => {
 
     it("ensures Structural presets include infinite ambient loop (repeat: -1)", () => {
       const structPresets = FAMILY_ANIMATION_PRESETS.structural;
-      const ambient = structPresets.find((p) => p.trigger === "ambient");
+      const ambient = structPresets.find((p) => p.trigger === "time");
       assert.ok(ambient, "Structural family must include ambient preset");
       assert.strictEqual(ambient?.repeat, -1, "Ambient preset must have repeat: -1 for continuous loop");
     });
@@ -118,7 +119,7 @@ describe("Sub-Phase 3.5: Simplified Outliner & Content Browser Linkage", () => {
        */
 
       for (const archId of ALL_ARCHETYPE_IDS) {
-        const sections = ELEMENT_SECTION_REGISTRY[archId];
+        const sections = getArchetype(archId).sections;
         assert.ok(sections && sections.length > 0, `Archetype ${archId} must have registered sections`);
 
         // Universal check

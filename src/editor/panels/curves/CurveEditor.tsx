@@ -19,7 +19,8 @@ import { Point2D, SplineSolver } from "@/core/wasm/SplineSolver";
 import { SpringEditor, SpringConfig } from "./SpringEditor";
 import { Play, RotateCcw, Check, Sparkles, Layers, Sliders } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
-import { AttachedAnimation } from "@/core/elements/types";
+import { getLayerClips } from "@/core/document/factories";
+import { documentCommands, getDocument, useLayers } from "@/core/store/useDocumentStore";
 
 export interface BezierControlPoints {
   p1: Point2D; // (x1, y1)
@@ -60,7 +61,8 @@ export const BEZIER_PRESETS: Record<string, { label: string; p1: Point2D; p2: Po
 };
 
 export const CurveEditor: React.FC = () => {
-  const { elements, setElementProperty, pages, activePageId } = useProjectStore();
+  const elements = useLayers();
+  const { pages, activePageId } = useProjectStore();
 
   const [activeTab, setActiveTab] = useState<"bezier" | "spring">("bezier");
   const [activePreset, setActivePreset] = useState<string>("power2Out");
@@ -174,15 +176,9 @@ export const CurveEditor: React.FC = () => {
     const activeElement = elements[rootElementId];
     if (!activeElement) return;
 
-    // TODO(MDM-P2): the stack lives in `properties.animationStack` until MDM v2.
-    const storedStack = activeElement.properties.animationStack;
-    const stack: AttachedAnimation[] = Array.isArray(storedStack) ? [...(storedStack as AttachedAnimation[])] : [];
-    if (stack.length > 0) {
-      stack[0] = {
-        ...stack[0],
-        easing: cssCubicBezier,
-      };
-      setElementProperty(activeElement.id, "animationStack", stack, "Apply custom bezier easing");
+    const [firstClip] = getLayerClips(getDocument(), activeElement.id);
+    if (firstClip) {
+      documentCommands.updateClip(firstClip.id, { easing: cssCubicBezier }, "Apply custom bezier easing");
       setAppliedFeedback(true);
       setTimeout(() => setAppliedFeedback(false), 1500);
     }

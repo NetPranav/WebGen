@@ -6,11 +6,12 @@ import { PrismaSchemaEmitter } from "../../../../compiler/emitters/PrismaSchemaE
 import { ApiRouteEmitter } from "../../../../compiler/emitters/ApiRouteEmitter";
 import { LogicFlowEmitter } from "../../../../compiler/emitters/LogicFlowEmitter";
 import { GSAPAnimationEmitter } from "../../../../compiler/emitters/GSAPAnimationEmitter";
-import { ProjectElement, PageDefinition } from "../../../../core/store/useProjectStore";
+import { PageDefinition } from "../../../../core/store/useProjectStore";
 import { CollectionSchema } from "../../../../core/types/database";
 import { AnimationSample } from "../../../../core/types/animations";
 import { BlueprintGraph } from "../../../../core/ast/ASTManager";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
+import type { Layer } from "@/core/document/schema";
 
 describe("Sub-Phase 6.3: LiveCodeInspector Compilation & AST Mapping", () => {
   const mockPage: PageDefinition = {
@@ -20,7 +21,7 @@ describe("Sub-Phase 6.3: LiveCodeInspector Compilation & AST Mapping", () => {
     rootElementId: "el_container",
   };
 
-  const mockElements: Record<string, ProjectElement> = {
+  const mockElements: Record<string, Layer> = {
     el_container: {
       id: "el_container",
       name: "HeroContainer",
@@ -145,7 +146,7 @@ describe("Sub-Phase 6.3: LiveCodeInspector Compilation & AST Mapping", () => {
   // --------------------------------------------------------------------------
   // 3. Bidirectional Code-to-AST Mapping
   // --------------------------------------------------------------------------
-  it("maps clicked code line text back to the corresponding ProjectElement ID", () => {
+  it("maps clicked code line text back to the corresponding Layer ID", () => {
     const cssFile = StyleEmitter.emitProjectStyles(mockElements);
     const lines = cssFile.content.split("\n");
 

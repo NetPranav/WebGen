@@ -10,9 +10,10 @@
  * ============================================================================
  */
 
-import { ProjectElement, PageDefinition, StateVariable } from "@/core/store/useProjectStore";
+import { PageDefinition, StateVariable } from "@/core/store/useProjectStore";
 import { ComponentEmitterOptions, EmittedFile } from "@/core/types/compiler";
 import { StyleEmitter } from "./StyleEmitter";
+import type { Layer } from "@/core/document/schema";
 
 export class ReactComponentEmitter {
   /**
@@ -31,7 +32,7 @@ export class ReactComponentEmitter {
   /**
    * Determines the optimal semantic HTML tag for an element.
    */
-  public static resolveSemanticTag(element: ProjectElement): string {
+  public static resolveSemanticTag(element: Layer): string {
     const props = element.properties || {};
 
     // 1. Explicit semanticTag property
@@ -83,7 +84,7 @@ export class ReactComponentEmitter {
    */
   public static requiresClientDirective(
     elementId: string,
-    elements: Record<string, ProjectElement>
+    elements: Record<string, Layer>
   ): boolean {
     const el = elements[elementId];
     if (!el) return false;
@@ -109,7 +110,7 @@ export class ReactComponentEmitter {
    */
   public static emitJsxNode(
     elementId: string,
-    elements: Record<string, ProjectElement>,
+    elements: Record<string, Layer>,
     options?: ComponentEmitterOptions,
     depth: number = 2
   ): string {
@@ -210,7 +211,7 @@ export class ReactComponentEmitter {
    */
   public static emitComponent(
     rootElementId: string,
-    elements: Record<string, ProjectElement>,
+    elements: Record<string, Layer>,
     options?: ComponentEmitterOptions
   ): EmittedFile {
     const rootEl = elements[rootElementId];
@@ -297,7 +298,7 @@ export class ReactComponentEmitter {
    */
   public static emitPage(
     page: PageDefinition,
-    elements: Record<string, ProjectElement>,
+    elements: Record<string, Layer>,
     options?: ComponentEmitterOptions
   ): EmittedFile {
     const pagePascalName = ReactComponentEmitter.toPascalCase(page.name || "Page");

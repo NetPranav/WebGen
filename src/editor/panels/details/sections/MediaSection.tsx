@@ -22,34 +22,22 @@ import {
   Crosshair,
   Maximize2,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
+import type { PropValue } from "@/core/document/registry";
+import { readProps } from "@/core/document/props";
 
 export interface MediaSectionProps {
   elementId: string;
   elementName: string;
 }
 
-// TODO(MDM-P2): typed view over the untyped `ProjectElement.properties` bag;
-// MDM v2 gives each archetype a real props schema.
-interface MediaProps {
-  src?: string;
-  fallbackSrc?: string;
-  alt?: string;
-  objectFit?: string;
-  aspectRatio?: string;
-  focalPoint?: { x: number; y: number };
-  filter?: { grayscale: number; blur: number; brightness: number; contrast: number; saturate: number };
-  overlay?: { color: string; opacity: number; blendMode: string };
-  clipPath?: string;
-}
-
 export const MediaSection: React.FC<MediaSectionProps> = ({
   elementId,
   elementName,
 }) => {
-  const { elements, setElementProperty } = useProjectStore();
+  const elements = useLayers();
   const currentElement = elements[elementId];
-  const props = (currentElement?.properties || {}) as MediaProps;
+  const props = readProps(currentElement, "image");
 
   // Subgroup open/collapsed states
   const [openSubgroups, setOpenSubgroups] = useState({
@@ -64,14 +52,14 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
     setOpenSubgroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const updateProp = (key: string, val: unknown) => {
-    setElementProperty(elementId, key, val, `Update image ${key}`);
+  const updateProp = (key: string, val: PropValue) => {
+    documentCommands.updateProps(elementId, { [key]: val }, `Update image ${key}`);
   };
 
-  const updateNested = (parentKey: "focalPoint" | "filter" | "overlay", childKey: string, val: unknown) => {
-    const parentObj: Record<string, unknown> = { ...(props[parentKey] || {}) };
+  const updateNested = (parentKey: "focalPoint" | "filter" | "overlay", childKey: string, val: PropValue) => {
+    const parentObj: Record<string, PropValue> = { ...(props[parentKey] || {}) };
     parentObj[childKey] = val;
-    setElementProperty(elementId, parentKey, parentObj, `Update image ${parentKey}.${childKey}`);
+    documentCommands.updateProps(elementId, { [parentKey]: parentObj }, `Update image ${parentKey}.${childKey}`);
   };
 
   // Extract properties with defaults

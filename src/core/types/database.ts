@@ -11,7 +11,7 @@
  * ============================================================================
  */
 
-import { ElementType } from "./element-sections";
+import type { ArchetypeId } from "../document/registry";
 
 // ----------------------------------------------------------------------------
 // 1. Primitive & Relational Field Types (Prisma-Aligned)
@@ -130,7 +130,7 @@ export interface PropertyBindingRule {
 }
 
 export interface ArchetypeBindingRules {
-  archetype: ElementType;
+  archetype: ArchetypeId;
   properties: Record<string, PropertyBindingRule>;
 }
 
@@ -140,7 +140,7 @@ export interface ArchetypeBindingRules {
  * can legally bind to which database property categories.
  */
 export const ARCHETYPE_PROPERTY_BINDING_MATRIX: Record<
-  ElementType,
+  ArchetypeId,
   Record<string, PropertyBindingRule>
 > = {
   text: {

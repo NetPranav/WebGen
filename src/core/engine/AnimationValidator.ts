@@ -11,7 +11,7 @@
  * ============================================================================
  */
 
-import { ElementType } from "../types/element-sections";
+import type { ArchetypeId } from "../document/registry";
 import {
   AnimationSample,
   AnimationTrack,
@@ -42,7 +42,7 @@ export class AnimationValidatorService {
     target: {
       elementId: string;
       elementName?: string;
-      archetype: ElementType;
+      archetype: ArchetypeId;
     }
   ): AnimationValidationResult {
     const compatRule = ARCHETYPE_ANIMATION_COMPATIBILITY[target.archetype];

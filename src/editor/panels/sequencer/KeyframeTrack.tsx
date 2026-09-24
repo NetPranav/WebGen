@@ -14,12 +14,12 @@
  */
 
 import React, { useRef, useCallback } from "react";
-import { AnimationKeyframe } from "@/core/elements/types";
+import type { Keyframe } from "@/core/document/schema";
 
 export interface KeyframeTrackProps {
   trackId: string;
   property: string;
-  keyframes: AnimationKeyframe[];
+  keyframes: Keyframe[];
   pixelsPerSecond: number;
   totalDuration: number;
   isActive: boolean;
@@ -47,7 +47,7 @@ export const KeyframeTrack: React.FC<KeyframeTrackProps> = ({
 
   const handleMouseDownKeyframe = (
     e: React.MouseEvent,
-    kf: AnimationKeyframe,
+    kf: Keyframe,
     kfId: string
   ) => {
     e.stopPropagation();

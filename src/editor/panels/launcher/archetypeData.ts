@@ -3,27 +3,16 @@
  * ARCHETYPE TAXONOMY & METADATA REGISTRY
  * ============================================================================
  * Scope: Screen 00: Project Hub / Archetype Picker
- * Single Source of Truth for the 4 Element Families & 10 Archetypes
- * defined in PRD.md §5, CONVENTIONS.md §3, and SCHEMA_REFERENCE.md §2.
+ * Display metadata (names, descriptions, suggested presets) for the 4 families
+ * and 10 starting archetypes. Ids, kinds and defaults live in the document
+ * registry (`src/core/document/registry.ts`).
  * ============================================================================
  */
 
-export type ArchetypeId =
-  | "button"
-  | "toggle"
-  | "badge"
-  | "fab"
-  | "image"
-  | "icon"
-  | "divider"
-  | "background"
-  | "container"
-  | "text";
-
-export type FamilyId = "interactive" | "media" | "structural" | "text";
+import { INITIAL_ARCHETYPE_IDS, type FamilyId, type InitialArchetypeId } from "@/core/document/registry";
 
 export interface ArchetypeDefinition {
-  id: ArchetypeId;
+  id: InitialArchetypeId;
   family: FamilyId;
   name: string;
   idPrefix: string;
@@ -201,7 +190,7 @@ export const ARCHETYPE_FAMILIES: FamilyDefinition[] = [
 /**
  * Helper to look up an archetype definition by its ID
  */
-export function getArchetypeDefinition(id: ArchetypeId): ArchetypeDefinition | undefined {
+export function getArchetypeDefinition(id: string): ArchetypeDefinition | undefined {
   for (const family of ARCHETYPE_FAMILIES) {
     const found = family.archetypes.find((a) => a.id === id);
     if (found) return found;
@@ -209,18 +198,5 @@ export function getArchetypeDefinition(id: ArchetypeId): ArchetypeDefinition | u
   return undefined;
 }
 
-/**
- * All 10 valid archetype IDs
- */
-export const ALL_ARCHETYPE_IDS: ArchetypeId[] = [
-  "button",
-  "toggle",
-  "badge",
-  "fab",
-  "image",
-  "icon",
-  "divider",
-  "background",
-  "container",
-  "text",
-];
+/** All 10 archetypes a project can start from. */
+export const ALL_ARCHETYPE_IDS: readonly InitialArchetypeId[] = INITIAL_ARCHETYPE_IDS;

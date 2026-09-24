@@ -2,10 +2,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ZipPacker } from "../export/ZipPacker";
 import { GitExporter } from "../export/GitExporter";
-import { ProjectElement, PageDefinition } from "../../core/store/useProjectStore";
+import { PageDefinition } from "../../core/store/useProjectStore";
 import { CollectionSchema } from "../../core/types/database";
 import { BlueprintGraph } from "../../core/ast/ASTManager";
 import { AnimationSample } from "../../core/types/animations";
+import type { Layer } from "@/core/document/schema";
 
 describe("Sub-Phase 6.4: Standalone Git Project Exporter & ZipPacker", () => {
   describe("ZipPacker (PKZIP Encoder)", () => {
@@ -115,7 +116,7 @@ describe("Sub-Phase 6.4: Standalone Git Project Exporter & ZipPacker", () => {
   });
 
   describe("GitExporter.packageProject End-to-End Packaging", () => {
-    const mockElements: Record<string, ProjectElement> = {
+    const mockElements: Record<string, Layer> = {
       hero_section: {
         id: "hero_section",
         name: "HeroSection",

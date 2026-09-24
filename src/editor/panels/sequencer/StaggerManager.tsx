@@ -14,7 +14,7 @@
  */
 
 import React from "react";
-import { StaggerConfig } from "@/core/elements/types";
+import type { StaggerConfig } from "@/core/document/schema";
 import { Repeat, Zap, X } from "lucide-react";
 
 export interface StaggerManagerProps {

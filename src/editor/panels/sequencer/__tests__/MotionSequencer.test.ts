@@ -19,7 +19,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { formatTimecode } from "../PlayheadControls";
 import { getPropertyFamilyBadge } from "../TrackHeader";
-import { AnimationTrack } from "@/core/elements/types";
+import type { Track } from "@/core/document/schema";
 
 describe("Phase 4.1: Motion Sequencer Timeline & Property Tracks", async () => {
   const { getValidPropertiesForArchetype, interpolateTrackValue } = await import("../MotionSequencer");
@@ -93,7 +93,7 @@ describe("Phase 4.1: Motion Sequencer Timeline & Property Tracks", async () => {
   });
 
   describe("Track Value Interpolation at 120 FPS", () => {
-    const sampleTrack: AnimationTrack = {
+    const sampleTrack: Track = {
       id: "tr_trans_y",
       property: "transform.y",
       keyframes: [
