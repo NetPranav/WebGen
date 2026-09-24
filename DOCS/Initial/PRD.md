@@ -1,284 +1,284 @@
 # PRODUCT REQUIREMENTS DOCUMENT (PRD) — INITIAL PHASE
 
-## Project Name: Visual Motion & Frontend Design Studio
-**Internal Codename:** "Unreal Engine for Animation & Frontend Design"
-**Document Version:** 1.1.0
-**Phase:** Initial Phase (Element Animation Studio)
-**Status:** Approved for Architecture & Specification
-**Target Platform:** Web Desktop (Chrome, Edge, Safari, Firefox)
-**Primary Tech Baseline:** Next.js 15 / React 19 / TypeScript + C++ WebAssembly (Physics & Splines) + GSAP & Framer Motion
+## Project Name: LazyLayout — AI-Native Motion Design Studio
+**Internal Codename:** "Figma for Motion, built with AI"
+**Document Version:** 2.0.0
+**Phase:** Initial Phase (Motion Element & Effect Studio)
+**Status:** Approved direction. Implementation restarts from `ROADMAP.md` v2.0.0 Phase 1.
+**Target Platform:** Desktop web (Chrome, Edge, Safari, Firefox)
+**Tech Baseline:** Next.js 16 (App Router) / React 19 / TypeScript. Animation engines: CSS & Web Animations API, Motion (`motion/react`, formerly Framer Motion), GSAP 3, SVG, Three.js via React-Three-Fiber, and WebGL shaders. AI: Claude API.
 **File Location:** `DOCS/Initial/PRD.md`
-**Supersedes:** v1.0.0 — scope narrowed from "3 Design Scopes" to **Element Design only**; see §3 and CHANGELOG.md.
+**Supersedes:** v1.1.0. The history is in `CHANGELOG.md`. What was actually built under v1.1 is recorded in `AUDIT.md`.
 
 ---
 
-## 1. Executive Summary & Core Philosophy
+## 1. Executive Summary
 
 ### 1.1 The Vision
-The **Visual Motion & Frontend Design Studio** is a professional visual development tool that allows engineers, animators, and frontend designers to visually construct, choreograph, inspect, and export production-grade, **atomic, animated UI elements**.
+LazyLayout is a **motion design studio where AI builds the first version and helps you refine it, and where designing feels like Figma rather than like writing code.**
 
-It is **NOT** a template website builder, a page builder, or a vector drawing tool. For the Initial Phase, it is a **single-purpose Element Animation Engine**: one element on stage, fully animated, fully inspectable, exported as clean code.
+A designer or developer can:
+1. **Describe** an animation ("a headline whose letters blur in one by one, then shimmer"), or
+2. **Draw** it (sketch an oval and get a perfect ellipse; draw a line and it becomes a path the element travels along), or
+3. **Pick** it from a library of high-end effects (in the spirit of [React Bits](https://reactbits.dev): split-text reveals, magnetic buttons, aurora backgrounds, 3D tilt cards),
+
+…then tune it visually on a timeline and in a live playground, and **export clean, dependency-honest code** that runs the same way in their own project.
 
 ### 1.2 Core Thesis
-> *"If Unreal Engine's Sequencer and Blueprints allow a creator to choreograph cinematics, actors, and physical interactions with sub-millisecond precision, this studio allows a frontend engineer to visually orchestrate a single UI element's motion — its image, its dividing lines, its background — with GSAP timelines, Framer Motion springs, and SVG path morphs, and export pristine, human-readable, zero-dependency code that drops effortlessly into any existing React, Next.js, Vue, or Vanilla codebase."*
+> *Top-tier web animation today needs three rare skills at once: motion design taste, knowledge of animation engines (GSAP, Motion, SVG, Three.js, shaders), and front-end engineering. LazyLayout collapses all three into one canvas. The AI supplies the engineering and a first draft of the taste, the canvas gives the human direct manipulation, and a rules engine keeps every result valid, fast and accessible.*
 
-### 1.3 Initial Phase Scope Decision (Why Element-Only)
-The full product vision includes three design scopes — **Element**, **Component**, and **Page/Section** (see `ROADMAP.md` §1 for the full multi-phase plan). The Initial Phase deliberately builds **only Scope 1: Element Design**, and builds it **completely**, before any Component or Page work begins.
+### 1.3 What Changed From v1.1 (and Why)
+| v1.1 | v2.0 | Why |
+|---|---|---|
+| The user picks framework, styling and animation engine *before* designing | The user designs first. The engine is **chosen automatically** per animation by the rules engine (§7), and the export target is chosen **at export time** | Designers think in motion, not in libraries |
+| 10 fixed archetypes in 4 families | Archetypes stay, plus **Effects**: parametric, prop-driven motion components (§5) | High-end effects (React Bits style) are prop-driven systems, not keyframe lists |
+| Keyframes were the only animation model | Keyframes **plus** states, pointer-reactive behaviours, physics, scroll and procedural/shader animation (§6) | Most premium effects are continuous and reactive, not timed |
+| "AI" was a rule-based keyword parser | **A real LLM** constrained to the Motion Document schema, with a rule-based offline fallback (§8) | Delivers "base built by AI, helped by AI" |
+| Unreal-style dense inspector | **Figma-style** progressive disclosure: *Simple* mode by default, *Pro* on demand (§9) | Design making must be easy |
+| No drawing | **Draw-to-design and draw-to-animate** (§9.2) | Sketch an oval and get an ellipse; draw a line and get a motion path or stroke animation |
+| Three.js was out of scope | **Three.js / R3F and shader effects are in scope** | Many premium effects are WebGL |
+| "Verified" meant unit tests over strings | "Verified" means **compiled, rendered in a browser, and pixel-compared** (§11) | See `AUDIT.md` |
 
-"Completely" means every element archetype the studio ships with in this phase must have:
-1. A full property schema (Transform, Layout, Appearance, and archetype-specific properties).
-2. Full animation authoring across all four engines (GSAP, Framer Motion, SVG, native CSS) — see §4.
-3. A working Sequencer + Curve Editor experience.
-4. A working Play/Interaction Sandbox preview.
-5. Clean, zero-dependency code export that builds and animates identically outside the studio.
+### 1.4 Target Users
+| Persona | Needs | Primary entry point |
+|---|---|---|
+| **Front-end developer** with no motion background | A polished animated hero, button or background quickly, as code they can own | Prompt or Effects Library, then Export |
+| **Product / UI designer** used to Figma | Animate without code, hand off something developers accept | Draw, then Timeline, then Share / Export |
+| **Motion designer** (After Effects / Rive) | Precise timing, curves, states; web-native output | Timeline Pro, Curve Editor, State Machine |
+| **Design engineer** | Build and publish reusable effect components with props | Effect authoring, then Registry export |
 
-Component Design and Page/Section Design are **explicitly out of scope** for the Initial Phase. They are not partially built, not stubbed with placeholder UI, and not selectable in the Home Screen (see §6). Building them is Phase 9+ work per `ROADMAP.md` and is out of scope for this document.
+### 1.5 Scope Boundary (Initial Phase)
+**In scope:** one **Motion Document** containing one hero **Element** or one self-contained **Effect Component**, which may have internal layers (e.g. a card with an image, a title and a glare layer), authored, previewed and exported.
 
-### 1.4 Target Audience & Problem Statement
-Modern frontend animation is fragmented:
-- Designers produce static Figma frames or After Effects motion videos that developers must spend days manually re-implementing with code.
-- Traditional code libraries (GSAP, Framer Motion) offer immense power but lack real-time visual scrubbing, multi-track curve editing, and live element feedback.
-- Existing visual builders lock code into monolithic proprietary runtimes or unmaintainable, bloated code blobs with zero flexibility.
-- Even "simple" elements — a hero image, a section divider, an animated background — are routinely hand-coded from scratch on every project because no visual tool treats them as first-class animatable citizens.
-
-The **Visual Motion & Frontend Design Studio** bridges this gap for single elements:
-1. **Visual Timeline & Bezier Precision:** Multi-track keyframing with cubic bezier easing handles and state triggers (hover, tap, scroll-into-view, mount).
-2. **Deterministic Frontend AST:** Visual adjustments map directly to an Abstract Syntax Tree (AST) representing one element's DOM structure, CSS layout tokens, and motion tracks.
-3. **Production-Grade Code Export:** Emits modular, beautifully formatted, zero-bloat code (React + Tailwind, Framer Motion, GSAP, or Vanilla CSS) ready for immediate `git commit` and copy-paste into production repositories.
-4. **Element-First Home Experience:** Instant entry into a single, focused element canvas paired with instant target technology selection — no scope-selection friction.
-
----
-
-## 2. Unreal Engine to Motion Studio Mapping
-
-| Unreal Engine Concept | Motion & Frontend Studio Equivalent | Function in Studio |
-| :--- | :--- | :--- |
-| **Project Hub / Launcher** | **Interactive Project Hub** | Name the element project and choose target technology (Next.js, React, Tailwind, GSAP, Framer Motion). |
-| **Level Viewport** | **Element Stage Viewport** | Isolated, centered canvas with live hover/click/scroll-into-view previews of the single element being designed. |
-| **Sequencer / Timeline** | **Motion Sequencer & Curve Editor** | Multi-track keyframe timeline, cubic bezier curves, and stagger managers scoped to one element's node tree. |
-| **World Outliner (Simplified)** | **Element & Animation Outliner** | Streamlined hierarchy: Root Element ➔ Child Nodes (Image, Divider, Background Layer, Icon, Text) ➔ Attached Animation Stacks. |
-| **Details Panel** | **Properties & Details Inspector** | Visual controls for Transforms, Layout, Appearance, Typography, Media (Image), Divider, Background, and Motion Bindings. |
-| **Content Browser** | **Content & Motion Browser** | Reusable asset library for Animation Presets (Hover/Entrance/Scroll), Easing Curves, SVG Vectors, and raster Images. |
-| **Play in Editor (PIE)** | **Play & Sandbox Mode** | Live simulation mode testing hover micro-interactions, scroll scrubbing, click triggers, and spring physics on the element. |
-| **C++ Physics Kernel** | **Wasm Curve Physics** | 120 FPS Bezier curve solving and spline interpolation for the Curve Editor. |
-| **Source Code Generator** | **Clean Code Emitter & Inspector** | Live split-screen syntax-highlighted code generator outputting React/Next.js/Tailwind/GSAP/Framer code for the single element. |
+**Out of scope (unchanged from v1.1, see `ROADMAP.md` §8):** multi-page sites, routing, databases, logic blueprints, backend, deployment, real-time collaboration. That code already exists from the full-vision track (`DOCS/After/`). It is **removed from the Initial Phase bundle** (Phase 6), not deleted from the repository.
 
 ---
 
-## 3. Design Scope: Element Design (The Only Scope in This Phase)
+## 2. Product Principles (Non-Negotiable)
 
-```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│                  ELEMENT DESIGN — THE ONLY SCOPE IN THE INITIAL PHASE             │
-│  Focused on atomic, self-contained animated UI elements. One element per project. │
-├───────────────────────────┬───────────────────────────┬───────────────────────────┤
-│ INTERACTIVE ELEMENTS      │ MEDIA ELEMENTS            │ STRUCTURAL ELEMENTS       │
-│ • Magnetic Button         │ • Animated Image          │ • Animated Divider        │
-│ • Animated Toggle Switch  │ • SVG Path Morph Icon     │ • Animated Background     │
-│ • Animated Badge / Chip   │                           │   Layer                   │
-│ • Floating Action Button  │                           │ • Text Label              │
-└───────────────────────────┴───────────────────────────┴───────────────────────────┘
-```
-
-* **Focus:** Micro-interactions, spring physics, hover/tap/focus states, scroll-into-view entrances, SVG icon animation, image motion (reveal, parallax, ken burns, hover zoom), divider draw-in/sweep animation, and background motion (gradient shift, parallax, noise/pattern drift).
-* **Canvas Environment:** Isolated centered stage with scale-to-fit zoom, contrast background toggles (Dark, Light, Transparent checkerboard), and state triggers (Default, Hover, Active, Focus, In-View).
-* **Export Output:** A single, lightweight self-contained component file (e.g. `AnimatedHeroImage.tsx`, `SectionDivider.tsx`, `GradientBackdrop.tsx` + optional CSS module or Tailwind classes).
-* **Definition of "Complete" for this Scope:** All four element families above (Interactive, Media, Structural, Text) are fully specified, fully animatable across all four animation engines where applicable, fully inspectable, and fully exportable — see §5.
-
-**Deferred (explicitly not built in this phase):** Scope 2 (Component Design — navbars, pricing cards, carousels, modals) and Scope 3 (Page/Section Design — hero sections, feature grids, scroll narratives). Both are documented at the roadmap level only; see `ROADMAP.md` §1 for when they begin.
+1. **Design first, engine second.** The user never has to know which library runs an animation. The Rules Engine (§7) picks one and explains its choice on request.
+2. **One document, one truth.** Every surface (canvas, timeline, AI, code view, export) reads and writes the same **Motion Document Model (MDM)**. No parallel models. *(Closes AUD-04.)*
+3. **Preview = Export.** What plays on stage is the same engine code that ships. A sampled `evaluate(t)` from the document must match the running preview and the exported build within tolerance. *(Closes AUD-09, AUD-15.)*
+4. **AI proposes, human disposes.** Every AI change arrives as a visible diff (ghost layers, ghost keyframes) and merges only on explicit approval. *No Silent AI Writes.*
+5. **Rules before UI.** Compatibility, conflict and performance rules live in one executable rule table. The UI only *renders* what the rules allow. *(Inside-Out Law, kept from v1.x.)*
+6. **Simple by default, deep on demand.** Every panel has a Simple face (3–7 controls) and a Pro face. Nothing in Simple mode requires animation vocabulary.
+7. **Motion must be accessible and fast.** Every animation has a reduced-motion variant and a performance classification (GPU / paint / layout). Layout-thrashing animations are blocked or auto-fixed.
+8. **Honest claims.** A feature is only listed as shipped when its Verification Gate passes in a real environment (see `ROADMAP.md` §3).
 
 ---
 
-## 4. Multi-Engine Animation Pipeline
+## 3. Mental Model: Figma for Motion
 
-The studio provides first-class visual authoring for all leading web animation standards, applied to every element archetype in §5:
-
-```
-                               ┌────────────────────────────────┐
-                               │     VISUAL MOTION STUDIO       │
-                               │  - Sequencer Tracks            │
-                               │  - Cubic Bezier Handles        │
-                               │  - ScrollTrigger Scrubbers     │
-                               └───────────────┬────────────────┘
-                                               │
-               ┌───────────────────────────────┼──────────────────────────────┐
-               ▼                               ▼                              ▼
-     ┌──────────────────┐            ┌──────────────────┐           ┌──────────────────┐
-     │   GSAP ENGINE    │            │  FRAMER MOTION   │           │   SVG & CSS      │
-     │ • TimelineMax    │            │ • Spring Physics │           │ • Path Morphing  │
-     │ • ScrollTrigger  │            │ • AnimatePresence│           │ • Stroke Dashoff │
-     │ • SplitText      │            │ • LayoutId Morphs│           │ • CSS Keyframes  │
-     │ • Flip Plugin    │            │ • Gestures (Drag)│           │ • SVG Filters    │
-     └─────────┬────────┘            └─────────┬────────┘           └─────────┬────────┘
-               │                               │                              │
-               └───────────────────────────────┼──────────────────────────────┘
-                                               │
-                                               ▼
-                              ┌──────────────────────────────────┐
-                              │    CLEAN CODE EMITTER ENGINE     │
-                              │ • Next.js 15 / React 19 TSX      │
-                              │ • Tailwind CSS / CSS Modules     │
-                              │ • Fully typed props & interfaces │
-                              │ • Zero lock-in, direct git copy  │
-                              └──────────────────────────────────┘
-```
-
-### 4.1 GSAP (GreenSock) Integration
-- Visual timeline with multi-channel keyframing (`x`, `y`, `scale`, `rotation`, `opacity`, `transformOrigin`, `filter`, and archetype-specific channels like `media.clipPath` or `background.gradientAngle`).
-- Visual ScrollTrigger boundaries: Start trigger, End trigger, scrub duration, pin element, markers toggle — used for scroll-linked image reveals, background parallax, and divider draw-ins.
-- Stagger controls: Direction (`start`, `end`, `center`, `random`), ease, and grid distribution — used when a Divider or Background has multiple sub-layers.
-
-### 4.2 Framer Motion Integration
-- Declarative motion props: `initial`, `animate`, `exit`, `whileHover`, `whileTap`, `whileInView`.
-- Physical spring parameter sliders: `stiffness`, `damping`, `mass`, `restDelta`, `restSpeed`.
-- Shared layout morphing: Visual `layoutId` linker for crossfading between two Image states (e.g. ken-burns loop).
-
-### 4.3 SVG Vector & Path Animation
-- Visual SVG path morphing (`d` attribute tweening with point-count alignment) — Icon archetype.
-- Stroke dashoffset animation for drawing lines, logos, and vector illustrations — Icon and **Divider** archetypes both use this mechanism (a Divider is modeled internally as a straight or gradient SVG line so it can reuse the exact same draw-in math).
-- Interactive SVG filter controls: Gaussian blur, color matrix, turbulence, and displacement maps — used by both Icon and Background (noise texture) archetypes.
-
-### 4.4 CSS Native Animations & Springs
-- Pure CSS keyframe generator for zero-bundle-overhead animations (background gradient position shifts, divider dash-offset loops, image filter transitions).
-- Custom easing curve exporter using `cubic-bezier(x1, y1, x2, y2)`.
+| Figma concept | LazyLayout equivalent | Notes |
+|---|---|---|
+| Canvas + Frames | **Stage + Artboard** | One artboard per document in the Initial Phase; device frame presets |
+| Layers panel | **Layers panel** | Groups, masks, lock and hide; each layer shows its motion badges |
+| Pen / Pencil / Shape tools | **Draw tools with shape recognition** | Sketch → clean vector (§9.2) |
+| Design panel (right) | **Properties panel** | Simple / Pro faces |
+| Prototype tab | **Motion tab** | States, triggers, timeline |
+| Smart Animate | **Auto-transition between states** | Spring or tween, chosen by rules |
+| Components + Variants | **Effects + States** | Effects expose typed props like component properties |
+| Plugins / Community | **Effects Library** | Curated, parametric, exportable |
+| Dev Mode | **Code panel + Export** | Framework and engine chosen here, at the end |
 
 ---
 
-## 5. The Four Element Families (Full Specification)
+## 4. Core Concepts (Motion Document Model)
 
-Every element archetype below is a **first-class citizen**: it gets its own Details Inspector section (`PANELS.md` §3, Panel 03), its own JSON schema fragment (`SCHEMA_REFERENCE.md`), its own ID prefix (`CONVENTIONS.md` §2), and its own code emitter path (`FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` §2).
+The formal schema is in `SCHEMA_REFERENCE.md` (updated in Phase 2). These are the concepts:
 
-### 5.1 Family A — Interactive Elements
-| Archetype | ID Prefix | Examples |
-| :--- | :--- | :--- |
-| Button | `elem_btn_` | Magnetic Button, Primary CTA, Icon Button |
-| Toggle Switch | `elem_toggle_` | Animated Toggle Switch |
-| Badge / Chip | `elem_badge_` | Animated Badge, Notification Chip |
-| Floating Action Button | `elem_fab_` | Floating Action Button |
-
-**Animatable surface:** Transform, Appearance (background, border, radius, shadow), Typography (for label), Motion Triggers (`onHover`, `onClick`, `onFocus`).
-
-### 5.2 Family B — Media Elements
-| Archetype | ID Prefix | Examples |
-| :--- | :--- | :--- |
-| Image | `elem_img_` | Animated Hero Image, Ken-Burns Gallery Tile, Reveal Image |
-| Icon (SVG) | `elem_icon_` | SVG Path Morph Icon, Animated Logo Mark |
-
-**Image — full property surface:**
-- `media.src` — image asset reference (URL or local import path).
-- `media.objectFit` — `"cover" | "contain" | "fill" | "none"`.
-- `media.focalPoint` — `{ x: 0–100%, y: 0–100% }`, drives crop/zoom anchor.
-- `media.filter` — `{ grayscale, blur, brightness, contrast, saturate }`, each animatable independently.
-- `media.clipPath` — animatable reveal mask (e.g. wipe-in from a polygon or inset clip path).
-- `media.overlay` — `{ color, opacity, blendMode }`, an animatable tint layer above the image (for hover darken/lighten).
-- `transform.scale` — drives Ken Burns slow-zoom and hover-zoom behaviors.
-- `appearance.radius`, `appearance.border`, `appearance.shadows` — same as any element.
-
-**Animation presets shipped for Image:** `Ken Burns Loop`, `Fade + Scale Reveal`, `Clip-Path Wipe In`, `Hover Zoom + Darken`, `Grayscale-to-Color on Hover`, `Scroll Parallax Depth`.
-
-### 5.3 Family C — Structural Elements
-| Archetype | ID Prefix | Examples |
-| :--- | :--- | :--- |
-| Divider | `elem_divider_` | Animated Section Divider, Gradient Rule |
-| Background Layer | `elem_bg_` | Animated Gradient Backdrop, Parallax Background, Noise Texture Layer |
-| Container | `elem_container_` | Wrapping layout frame for the above (used only to compose multi-node elements such as an image with a divider beneath it) |
-
-**Divider — full property surface:**
-- `divider.orientation` — `"horizontal" | "vertical"`.
-- `divider.length` — `px | %`, animatable `0 → 100%` for a draw-in effect.
-- `divider.thickness` — `px`.
-- `divider.style` — `"solid" | "dashed" | "dotted" | "gradient"`.
-- `divider.color` — hex/rgba, or `divider.gradient` — `{ stops: [{ offset, color }], angle }` when `style === "gradient"`.
-- `divider.strokeDashoffset` — reuses the SVG stroke-draw mechanism from §4.3 for line "drawing" animations.
-- `divider.capStyle` — `"butt" | "round" | "square"`.
-
-**Animation presets shipped for Divider:** `Draw-In Left-to-Right`, `Draw-In Center-Out`, `Gradient Sweep Loop`, `Dash Offset Marquee`, `Scroll-Triggered Reveal`.
-
-**Background Layer — full property surface:**
-- `background.type` — `"solid" | "linear-gradient" | "radial-gradient" | "image" | "noise" | "pattern"`.
-- `background.color` — used when `type === "solid"`.
-- `background.gradient` — `{ stops: [{ offset, color }], angle }`, animatable stop offsets and angle for a shifting gradient.
-- `background.image` — `{ src, position, size, repeat }` when `type === "image"`.
-- `background.parallax` — `{ speed: number }`, a scroll-linked translateY multiplier (0 = static, 1 = scrolls at page speed, negative = reverse-parallax).
-- `background.blendMode` — CSS `mix-blend-mode` value, animatable for crossfade-style transitions between two backgrounds.
-- `background.noise` — `{ opacity, scale }`, an animatable SVG-filter-driven grain texture used for "film grain" ambient backdrops.
-
-**Animation presets shipped for Background:** `Gradient Angle Drift`, `Parallax Scroll Depth`, `Noise Texture Pulse`, `Blend-Mode Crossfade`, `Color Morph Loop`.
-
-### 5.4 Family D — Text Elements
-| Archetype | ID Prefix | Examples |
-| :--- | :--- | :--- |
-| Text / Label | `elem_text_` | Button label, standalone animated heading fragment |
-
-**Animatable surface:** Typography (font, weight, size, line height, letter spacing, color), `appearance.opacity`, `transform` (for entrance animation), GSAP SplitText-driven character/word stagger reveals.
+| Concept | Definition |
+|---|---|
+| **Motion Document** | The root file. Holds the artboard, layers, effects, states, timelines, tokens and export settings. Versioned (`schemaVersion`). |
+| **Layer** | A node in the tree. Its kind is one of: `element` (archetype-backed DOM), `vector` (SVG path/shape), `text`, `image`, `group`, `mask`, `scene3d`, `shader`, `effect` (an instance of a library effect). |
+| **Archetype** | The semantic type of an element layer (Button, Image, Divider, Background, Text, …). It determines the legal properties and states, and the tag emitted on export. The v1.1 archetypes are kept. |
+| **Effect** | A parametric motion component: typed **props** (with defaults, ranges and AI descriptions), internal layers, and a **behaviour** (timeline, reactive, physics, procedural or shader). Example: `SplitTextReveal { splitBy, stagger, from, blur, ease }`. |
+| **Track** | A property animated over time on one layer. |
+| **Clip** | A reusable group of tracks with a duration, placed on the timeline and triggered by a state or event. |
+| **State** | A named snapshot of properties (e.g. `idle`, `hover`, `pressed`, `inView`). Transitions between states are auto-animated. |
+| **Trigger** | What starts a clip or state change: `mount`, `hover`, `press`, `focus`, `inView`, `scrollProgress`, `pointerMove`, `drag`, `time`, `custom`. |
+| **Behaviour** | A continuous, non-keyframed driver: `follow-pointer`, `magnet`, `tilt`, `spring-to`, `inertia`, `noise`, `loop`, `shader-uniform`. |
+| **Rule** | An executable constraint from the Rules Engine (compatibility, conflict, performance, accessibility). |
 
 ---
 
-## 6. Home Screen / Project Hub Workflow
+## 5. What Can Be Designed: Families & Effect Categories
 
-When launching the application, the user arrives at the **Interactive Project Hub** (`Screen 00`):
+### 5.1 Element Families (kept from v1.1)
+| Family | Archetypes |
+|---|---|
+| Interactive | Button, Toggle, Badge/Chip, FAB |
+| Media | Image, Icon (SVG) |
+| Structural | Divider, Background Layer, Container |
+| Text | Text / Heading / Label |
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ ⚡ VISUAL MOTION & FRONTEND DESIGN STUDIO                         [Docs]  [GitHub]     │
-├───────────────────────────────────────────────────┬────────────────────────────────────┤
-│ STEP 1: NAME YOUR ELEMENT PROJECT                 │ STEP 2: CHOOSE YOUR TECH STACK     │
-│                                                   │                                    │
-│ ┌───────────────────────────────────────────────┐ │ ▾ Target Framework                │
-│ │ [ Project Name: "AnimatedHeroImage"          ] │ │ [ Next.js 15 (App Router)        ] │
-│ └───────────────────────────────────────────────┘ │                                    │
-│                                                   │ ▾ Styling System                   │
-│ ┌───────────────────────────────────────────────┐ │ [ Tailwind CSS                   ] │
-│ │ [✨ ELEMENT DESIGN]              (Active)     │ │                                    │
-│ │ Interactive, Media, Structural & Text          │ │ ▾ Animation Engine                 │
-│ │ elements. Buttons, images, dividers,           │ │ [ GSAP 3.12 (GreenSock)          ] │
-│ │ backgrounds, icons, badges & toggles.          │ │                                    │
-│ └───────────────────────────────────────────────┘ │ ▾ Language                         │
-│                                                   │ (•) TypeScript    ( ) JavaScript   │
-│ ┌───────────────────────────────────────────────┐ │                                    │
-│ │ [🧩 COMPONENT DESIGN]      (Coming in Phase 9) │ │ ┌────────────────────────────────┐ │
-│ │ Disabled — see ROADMAP.md                      │ │ │ 🚀 LAUNCH DESIGN STUDIO        │ │
-│ └───────────────────────────────────────────────┘ │ └────────────────────────────────┘ │
-│                                                   │                                    │
-│ ┌───────────────────────────────────────────────┐ │                                    │
-│ │ [📄 PAGE / SECTION DESIGN] (Coming in Phase 9) │ │                                    │
-│ │ Disabled — see ROADMAP.md                      │ │                                    │
-│ └───────────────────────────────────────────────┘ │                                    │
-└───────────────────────────────────────────────────┴────────────────────────────────────┘
-```
+The property surfaces from v1.1 §5 (media, divider, background) stay valid and move into `SCHEMA_REFERENCE.md`.
 
-**Behavioral requirements (not just visual):**
-1. `Element Design` is the only selectable/enabled scope card. It is pre-selected by default; the user does not need to click it to proceed.
-2. `Component Design` and `Page / Section Design` cards render in a visibly disabled state (reduced opacity, `cursor: not-allowed`, no hover elevation) with a tooltip: *"Coming in a later phase — see ROADMAP.md"*. They are visible for roadmap transparency but are not clickable.
-3. After naming the project and choosing the tech stack, the user picks a **starting archetype** from Family A–D (§5) before "Launch Design Studio" is enabled — this determines the root node's archetype and pre-populates the Details Inspector with the correct property sections (e.g. picking `Image` shows the Media section; picking `Background Layer` shows the Background section).
-4. Selecting the scope and tech stack immediately tailors the workspace presets, AST compiler, code inspector, and asset recommendations for the chosen archetype.
+### 5.2 Effect Categories (new; React Bits-grade target list)
+The Effects Library (`ROADMAP.md` Phase 25) must ship **at least 40 effects** across these categories. Each one is built from LazyLayout primitives. Nothing is copied from third-party code (see §12, Licensing).
+
+| Category | Representative effects (target) | Primary engine(s) |
+|---|---|---|
+| **Text** | Split reveal (chars/words/lines), blur-in, shiny/sheen text, gradient flow, decrypt/scramble, typewriter, rotating words, count-up, scroll-reveal text, variable-font proximity, circular text, glitch, falling letters (physics) | CSS/WAAPI, GSAP, Motion, Canvas |
+| **Interaction** | Magnet, click spark, star/electric border, glare hover, tilt (3D), spotlight card, cursor trail, blob cursor, image trail, ripple, pixel/particle trail | Motion (springs), Pointer Behaviours, Canvas |
+| **SVG** | Stroke draw, path morph, motion along path, animated logo mark, liquid/gooey blob, animated icons, line-art reveal | SVG + GSAP/WAAPI |
+| **Components** | Dock magnification, stacked/bounce cards, flowing/infinite menu, circular gallery, animated list, elastic slider, folder open, counter | Motion (layout + springs) |
+| **Backgrounds** | Aurora, silk, waves, dot grid, particles, noise/grain, iridescence, beams/light rays, plasma, grid distortion, hyperspeed | WebGL shader, Canvas 2D, CSS |
+| **3D** | Floating object, orbit showcase, 3D card flip, lanyard/physics badge, GLTF hero spin, parallax depth scene | Three.js / R3F |
+
+### 5.3 Effect Contract
+Every effect must declare:
+1. **Props schema**: typed, with defaults, min/max, units, and a one-line description the AI can read.
+2. **Behaviour type(s)**: timeline, state, reactive, physics, procedural or shader.
+3. **Engine route**: the default engine plus fallbacks, chosen by the rules (§7).
+4. **Reduced-motion variant.**
+5. **Performance class and budget**: e.g. "GPU, < 2 ms/frame at 1080p".
+6. **Export templates** for each supported target (§10).
+7. **A thumbnail** and a **playground scene** (the default props shown in the gallery).
 
 ---
 
-## 7. Professional Code Exporter Requirements
+## 6. Animation Model Requirements
 
-The exporter must adhere to the **Zero-Lock-In Code Quality Standards**:
-
-1. **Standard, Idiomatic Code:** Emits standard TypeScript/TSX code formatted according to Prettier and ESLint best practices.
-2. **Zero Engine Runtime Overhead:** The exported code requires ONLY the selected public npm packages (e.g. `gsap`, `framer-motion`, `lucide-react`, `tailwindcss`) and has zero dependencies on this engine.
-3. **Modular File Structure:**
-   - Single-file export: Clean, self-contained component with inline styles or Tailwind classes.
-   - Multi-file export: Clean folder structure with `ComponentName.tsx`, `useAnimationTimeline.ts`, and `styles.module.css`.
-4. **Archetype-Aware Emission:** The emitter must pick the correct DOM tag and prop surface per family:
-   - Interactive elements emit `<button>`/`<div role="switch">` semantics.
-   - Image emits `<Image />` (Next.js) or `<img>` with `loading="lazy"` and explicit `width`/`height` to avoid layout shift, wrapped in an animatable container when `clipPath` or `overlay` is used.
-   - Divider emits either a styled `<hr>`/`<div>` (for solid/dashed/dotted, CSS-driven) or an inline `<svg><line/></svg>` (for gradient/draw-in styles that require `strokeDashoffset`).
-   - Background emits a CSS-in-JS or Tailwind-arbitrary-value background on the wrapping element, or a dedicated absolutely-positioned `<div class="background-layer">` when parallax/noise/blend-mode requires an independent stacking context.
-5. **Copy or Download:** One-click "Copy Code" button with toast notification, or "Download ZIP" package containing the fully functional component, TypeScript types, and setup instructions.
+1. **Keyframe timelines:** multi-track, per-keyframe easing, graph editor, auto-key record mode.
+2. **States & transitions:** Figma Smart-Animate style state-to-state interpolation, with per-transition spring or tween settings, plus an optional state machine (Rive-style inputs: boolean, number, trigger).
+3. **Reactive behaviours:** pointer position, proximity, velocity, scroll progress, element visibility, drag, device tilt, all mappable to properties through curves.
+4. **Physics:** springs (stiffness, damping, mass, velocity handoff), inertia/momentum, simple rigid bodies for "falling" effects.
+5. **Procedural & shader:** noise, loops, and GLSL uniforms driven by time, pointer and props.
+6. **Text splitting:** by character, word and line, with accessible markup preserved.
+7. **SVG:** path editing, morph (with point matching), stroke draw, motion path with auto-rotate, filters, gradients, masks.
+8. **3D:** primitives, GLTF, materials, lights, camera and 3D tracks; camera paths.
+9. **Scroll:** scroll-linked and scroll-triggered animation, with native CSS scroll-driven timelines where supported and a JS fallback.
+10. **Time controls:** global time scale (slow motion), loop, ping-pong, frame snapping, playhead scrubbing of *everything*, including reactive and shader layers, through a virtual pointer and virtual scroll.
 
 ---
 
-## 8. Definition of Done (Initial Phase)
+## 7. Rules Engine & Automatic Engine Routing
 
-The Initial Phase is verified complete when, for **every** archetype listed in §5 (Button, Toggle, Badge, FAB, Image, Icon, Divider, Background Layer, Container, Text):
+The Rules Engine is the executable form of `lazylayout_element_grammer.md` and `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md`. It answers three questions everywhere in the product:
 
-1. A user can open the Home Screen, name a project, confirm **Element Design** (the only enabled scope), pick the archetype and **Next.js + Tailwind + GSAP**, and land in the tailored studio with the correct Details Inspector sections visible.
-2. The user can attach at least the archetype's default animation presets (§5) using the visual Sequencer and Bezier curve editor, and every property listed in that archetype's property surface is editable from the Details Inspector.
-3. The user can scrub the timeline in real time and test live interactions (hover / tap / scroll-into-view as applicable) in the Play Mode sandbox.
-4. The user can inspect the generated TypeScript code in the Live Code Inspector and copy it directly into an external Next.js repository, where it builds and animates identically without warnings or errors.
-5. Component Design and Page/Section Design remain fully disabled and out of scope, with no partial UI, dead code paths, or placeholder screens shipped for them in this phase.
+1. **"Is this allowed?"** Is the property, state, trigger or effect compatible with this layer? (The grammar compatibility matrix.)
+2. **"Does it conflict?"** Single Transform Authority, priority arbitration, and one engine owning each property per layer.
+3. **"Which engine should run it?"** The routing decision, based on the spec's §12 decision tree:
+
+| Animation shape | Default engine | Why |
+|---|---|---|
+| Passive loop on transform/opacity/colour | CSS `@keyframes` / WAAPI | Zero JS, compositor thread |
+| Gesture, hover, press, drag, layout change | Motion (springs, layout) | Velocity-preserving interruption |
+| Orchestrated multi-layer timeline, text split, SVG morph, scroll scrub | GSAP (subject to the §12 licensing gate), otherwise WAAPI + LazyLayout sequencing | Mature sequencing |
+| 3D scene | Three.js / R3F | WebGL |
+| Full-surface procedural background | WebGL fragment shader (Canvas 2D fallback) | GPU |
+
+The user can override the routing in Pro mode. The Rules Engine then validates the override and explains any trade-off it introduces.
+
+---
+
+## 8. AI System
+
+### 8.1 Roles
+| Role | Input | Output |
+|---|---|---|
+| **Builder** | Text prompt, optional reference image or sketch | A complete Motion Document (layers + effects + motion) as a **proposed diff** |
+| **Co-pilot** | Selection plus instruction ("make it bouncier", "stagger from centre", "slower on mobile") | A targeted diff on the selected layers or tracks |
+| **Explainer** | Selection | A plain-language description of what the animation does and why this engine was chosen |
+| **Fixer** | Rules Engine and performance diagnostics | Auto-fix proposals (e.g. animate `transform` instead of `left`) |
+| **Sketch interpreter** | Drawn strokes plus a canvas snapshot | Recognised shapes and UI intent (Phase 38) |
+
+### 8.2 Technical Requirements
+- **Model:** Claude API, default `claude-opus-5`. The model ID is one config constant so it can be changed without code edits.
+- **Output is schema-constrained:** tool use with `strict: true` and/or structured outputs (`output_config.format`) against the MDM JSON Schema. Free-form code generation is never used for document edits.
+- **Every AI output is validated** by the Rules Engine *before* the user sees it. Invalid output is repaired in one automatic retry that feeds the diagnostics back to the model, or it is rejected with an explanation.
+- **Streaming**, so ghost layers appear progressively.
+- **Prompt caching** of the large, stable prefix (rules, schema, effect catalogue) to keep cost and latency down.
+- **Vision input** for reference images, canvas snapshots and sketches.
+- **API keys stay server-side** (a Next.js route handler). The browser never holds a key.
+- **Offline fallback:** the existing deterministic parsers (`IntentParser`, `MotionAiEngine`) are kept as a no-network mode and as a test oracle.
+- **An eval set** (Phase 33) measures validity rate, rule-violation rate, and human acceptance rate of AI proposals.
+
+---
+
+## 9. Design Experience
+
+### 9.1 Simple Mode (default) vs Pro Mode
+| Surface | Simple | Pro |
+|---|---|---|
+| Properties | Position, size, colour, corner radius, one "Motion" card | Full archetype sections, tokens, engine override |
+| Motion | Pick a motion card (Fade up, Pop, Magnetic, Draw, Shimmer …) with an **Intensity** and a **Speed** slider | Timeline, graph editor, states, state machine, behaviours |
+| AI | Prompt bar ("Describe what you want") | Co-pilot with scope selection, history, explain |
+| Export | "Copy React component" | Framework, styling, engine, file layout, registry |
+
+### 9.2 Draw-to-Design & Draw-to-Animate
+| The user draws… | LazyLayout produces… |
+|---|---|
+| A rough oval | A perfect ellipse (vector), fitted by least squares; "keep as drawn" is available |
+| A rough rectangle / triangle / star / polygon | A clean shape with snapped corners and right angles |
+| A wobbly line | A straightened line, or a smoothed curve if it is clearly curved |
+| A freehand path, then "animate" | A **stroke-draw animation** whose timing follows the drawing speed |
+| A line *from* an element | A **motion path**: the element travels along it (auto-rotate optional) |
+| A circular gesture around an element | A **rotation / orbit** animation |
+| A zig-zag over an element | A **delete** gesture (with undo) |
+| A rough UI sketch (box + scribble text) | AI-interpreted elements (Button with label, Card …), proposed as a diff |
+
+Recognition must be **instant (< 50 ms) and local** for shapes. Only UI-intent interpretation calls the LLM.
+
+### 9.3 Animation Playground
+An isolated, full-screen preview with:
+- State toggles and a **props panel** (like Storybook controls).
+- Time scale (0.1×–2×).
+- A reduced-motion toggle.
+- Device frames.
+- A light / dark / checkerboard backdrop.
+- An FPS and frame-time meter.
+- "Compare with export": runs the exported build side by side.
+
+---
+
+## 10. Export Requirements
+
+1. **Targets:** React (TSX) for Next.js App Router and Vite; Vue 3 SFC; vanilla HTML/CSS/JS (Web Component); CSS-only when the animation allows it.
+2. **Engine-honest:** export imports only the packages the routed engines need (`motion`, `gsap` + `@gsap/react`, `three` + `@react-three/fiber` + `@react-three/drei`, none for CSS/WAAPI), and lists exact install commands.
+3. **Effect export = component with props**, matching the effect's props schema with defaults, typed.
+4. **Registry export:** a shadcn-style registry item and `npx`-installable snippet (Phase 28).
+5. **Verified:** every export target is type-checked, built, and rendered headlessly in CI, then compared against the in-editor preview (Phase 27).
+6. **Zero lock-in:** no imports from LazyLayout in exported code.
+7. **Accessibility:** `prefers-reduced-motion` handling, semantic tags, split text that stays readable to screen readers.
+
+---
+
+## 11. Definition of Done (Initial Phase v2)
+
+The Initial Phase is complete when **all** of the following are demonstrated in a real browser and a real build, not only in unit tests:
+
+1. **Prompt → animation.** A new user types a one-sentence prompt, receives a valid animated element or effect as a ghost diff within 20 seconds, accepts it, and plays it.
+2. **Draw → animation.** A user draws an oval (it becomes an ellipse), draws a line from it (it becomes a motion path), presses play, and the ellipse travels the path. Then they draw a freehand logo stroke and it becomes a stroke-draw animation.
+3. **Library → customise.** A user inserts at least one effect from each §5.2 category, changes props in Simple mode, and sees live results at ≥ 55 fps on a 2020-class laptop (measured in the browser).
+4. **Timeline precision.** A user edits keyframes, curves and states in Pro mode, and the scrubbed playhead matches `evaluate(t)` for every layer type, including reactive (virtual pointer) and shader layers.
+5. **Export parity.** For every effect in the library and every archetype: the exported React code type-checks, builds with Next 16 and Vite, renders headlessly, and differs from the editor preview by ≤ 1% pixels at 5 sampled times.
+6. **Rules.** It is impossible to create an animation the Rules Engine marks invalid. Every blocked action shows a reason and a suggested alternative.
+7. **Accessibility.** Every exported animation respects `prefers-reduced-motion`. Text effects stay screen-reader readable.
+8. **Health.** `tsc` has 0 errors, lint has 0 errors, CI is green, and `next build` succeeds.
+
+---
+
+## 12. Licensing & Risk Register
+
+| Risk | Mitigation | Owner phase |
+|---|---|---|
+| The GSAP Standard License "Competitive Products" clause may cover a visual animation builder | Written clarification from GreenSock/Webflow (draft in the animation spec §11) **before** GSAP runs inside the editor. Until then the editor preview uses WAAPI/Motion, and GSAP is available as an **export target only** | 14 |
+| React Bits and similar libraries have their own licenses | Treat them as **inspiration only**. Every effect is re-implemented from LazyLayout primitives. The library records the source of each effect's idea, and no third-party code is copied | 25 |
+| LLM cost and latency | Prompt caching, compact schema, streaming, per-request budget, offline fallback | 30 |
+| WebGL availability and performance on low-end devices | Feature detection, Canvas 2D and static fallbacks, per-effect performance budget | 18, 19, 26 |
+| The C++/Wasm kernel adds build complexity for unproven gain | Decision gate in Phase 5, driven by a real browser benchmark; delete the claim or ship the kernel | 5 |
+
+---
+
+## 13. Success Metrics (post-launch)
+
+| Metric | Target |
+|---|---|
+| Time from blank to exported animated element | Median < 3 minutes |
+| AI proposal acceptance rate | ≥ 60% accepted without manual edits |
+| AI proposal validity (passes rules on first try) | ≥ 95% |
+| Export parity failures | 0 in CI |
+| Effects in the library | ≥ 40 at launch |
+| Preview frame rate for the library's default scenes | ≥ 55 fps p95 on the reference laptop |

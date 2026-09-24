@@ -9,6 +9,52 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0] — 2026-09-24
+
+### Phase 1 (Build Health & CI): green locally, CI gate pending
+
+#### Fixed
+- **Type errors 162 → 0** (AUD-01). Model-boundary shims are tagged `TODO(MDM-P2)` for Phase 2 to remove. Baseline: `DOCS/Initial/audit/tsc-baseline.txt`.
+- **ESLint errors 179 → 0** (AUD-02): typed every `any`, escaped JSX entities, and replaced state-syncing effects, ref writes during render, and impure render calls with the patterns React's compiler rules expect.
+- Real bugs found along the way: the AI Co-pilot never saw the selection; the Code Inspector ZIP download called a missing method; Project Hub dropped the chosen tech stack; the Sequencer/Curve Editor read the animation stack from a field that is never written (AUD-05 read side); the Live Code Inspector called setState during render; stale closures in whiteboard zoom settings, blueprint drag listeners and sequencer shortcuts.
+
+#### Added
+- `typecheck` and `test:unit` scripts; `test` runs `typecheck` first.
+- `react-hooks/exhaustive-deps` is an error for `src/editor/**`; the `lint` script enforces a warning budget (`--max-warnings=467`).
+- `.github/workflows/ci.yml`: install → typecheck → lint → test → build on every push and PR (AUD-03).
+- Shared helpers: `src/core/errors.ts`, `src/core/ids.ts` (AUD-07 ID format), `src/core/hooks/useLatestRef.ts`, `src/core/hooks/useNow.ts`.
+
+#### Removed
+- `@next/swc-darwin-arm64` devDependency: Next resolves SWC per platform from the lockfile, so Linux CI works.
+- `src/editor/panels/collaboration/LiveCollaborationPanel.tsx`: unused, and written against collab-store methods that don't exist.
+
+#### Pending before Phase 1 is ✅
+- The first green GitHub CI run, branch protection on `main`, and a PR with a deliberate type error shown to be blocked.
+
+---
+
+## [2.0.0] — 2026-09-24
+
+### Direction Reset: AI-Native, Figma-Way Motion Studio, Rebuilt on an Honest Baseline
+
+This release changes the Initial Phase's direction and replaces its roadmap. It follows a full audit of the codebase against the v1.1 claims.
+
+#### Why
+- Direction: the base of every design should be **built by AI and refined with AI**, designing should feel like **Figma** (including drawing: an oval becomes an ellipse, a line becomes a motion path), and the output should reach **React Bits-grade** effects across GSAP, Motion (Framer Motion), SVG, Three.js and shaders.
+- Reality: the audit (`AUDIT.md`) found that v1.1's "8/8 phases complete" rested mostly on string-output unit tests. Specifically: 162 TypeScript errors, four conflicting element models, a timeline read/write bug, no animation engine running inside the editor, Framer Motion and Three.js not installed, a 2D canvas labelled as WebGL, an uncompiled Wasm kernel, no LLM, and exports that are never compiled.
+
+#### Added
+- **`AUDIT.md` (v1.0.0):** 28 findings (AUD-01 … AUD-28) with severity, evidence and fix phase, plus a list of what is genuinely solid and should be kept.
+
+#### Changed
+- **`PRD.md` (v1.1.0 → v2.0.0):** Renamed to *LazyLayout — AI-Native Motion Design Studio*. New principles (design first, engine second; One Document; Preview = Export; No Silent AI Writes; Simple by default; honest claims). Introduced the Motion Document Model concepts (Layer, Effect, Track, Clip, State, Trigger, Behaviour, Rule). Added Effect categories (Text, Interaction, SVG, Components, Backgrounds, 3D) with an effect contract, automatic engine routing, the AI system (Claude API, schema-constrained, streaming, cached, vision, offline fallback), Simple/Pro modes, draw-to-design and draw-to-animate, the Animation Playground, verified export, a real-environment Definition of Done, a licensing and risk register, and success metrics. Tech stack selection moves from project start to export time. Three.js and shader effects are now in scope.
+- **`ROADMAP.md` (v1.1.0 → v2.0.0):** Expanded from 8 to **40 phases in 8 tracks**: A Solid Ground (fixes, 1–6), B Motion Core (7–13), C Engines (14–19), D Studio (20–26), E Export (27–29), F AI (30–34), G Simple Design / drawing (35–39), H Release (40). Added seven Architectural Laws (v2), a stricter Definition of Done, an honest reclassification of the v1.1 phases, audit traceability, milestones M1–M8, and a parallelisation guide.
+
+#### Pending (tracked in ROADMAP v2 Phase 6.3)
+- `UI.md`, `PANELS.md`, `SCHEMA_REFERENCE.md`, `CONVENTIONS.md` and `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` still describe v1.1. Each now carries a "pending v2 update" banner.
+
+---
+
 ## [1.7.0] — 2026-09-21
 
 ### Phase 8 Completed: End-to-End Verification & Integration Gate (Initial Phase MVP)
