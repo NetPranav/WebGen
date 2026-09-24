@@ -1,17 +1,23 @@
 /**
  * ============================================================================
- * PROJECT DATABASE & REGISTRY (CLIENT STORAGE ENGINE)
+ * PROJECT DATABASE (INDEXEDDB)
  * ============================================================================
- * Manages client-side persistent storage of projects with unique IDs.
- * Whenever a project is opened or created, it is registered with its unique ID
- * so it can be reloaded, shared via URL, and persisted.
+ * ROADMAP Phase 3.2. Stores projects, their list summaries and their undo
+ * history in IndexedDB (`idb.ts`). localStorage is kept only for UI
+ * preferences and the crash-recovery journal; projects saved there by older
+ * builds are moved into IndexedDB once, on first use.
+ *
+ * When IndexedDB is unavailable (some privacy modes, server rendering), the
+ * database runs in memory for the session and `persistent` is false.
  * ============================================================================
  */
 
 import type { LegacyProjectSnapshot, ProjectStateSnapshot } from "../store/useProjectStore";
+import type { PersistedHistory } from "../store/useHistoryStore";
 import { DEFAULT_ENVIRONMENT_SETTINGS } from "../types/environment";
 import { createDocumentFromLayers, createLayer } from "../document/factories";
 import { upgradeSnapshot } from "../document/migrations";
+import { getIndexedDB, openDatabase, requestResult, runTransaction } from "./idb";
 
 export interface ProjectSettings {
   archetype?: string;
@@ -28,6 +34,8 @@ export interface StoredProjectRecord {
   name: string;
   createdAt: string;
   updatedAt: string;
+  /** Increments on every save; the crash-recovery journal is tied to one revision. */
+  revision: number;
   settings: ProjectSettings;
   snapshot: ProjectStateSnapshot;
 }
@@ -41,8 +49,10 @@ export interface ProjectRegistrySummary {
   pageCount: number;
 }
 
-const REGISTRY_INDEX_KEY = "__uweb_project_registry_v1__";
-const PROJECT_PREFIX_KEY = "__uweb_proj_";
+/** localStorage keys used by builds before Phase 3 (read once for migration). */
+const LEGACY_REGISTRY_KEY = "__uweb_project_registry_v1__";
+const LEGACY_PROJECT_PREFIX = "__uweb_proj_";
+const MIGRATION_FLAG = "migratedFromLocalStorage";
 
 /**
  * Generate a cryptographically distinct, URL-safe unique project ID
@@ -115,233 +125,234 @@ export function createDefaultBlankSnapshot(
   };
 }
 
-class ProjectDatabaseManager {
-  private memoryCache = new Map<string, StoredProjectRecord>();
+interface HistoryRecord extends PersistedHistory {
+  projectId: string;
+}
 
-  private isStorageAvailable(): boolean {
-    if (typeof window === "undefined") return false;
-    try {
-      const test = "__test_storage__";
-      window.localStorage.setItem(test, test);
-      window.localStorage.removeItem(test);
-      return true;
-    } catch {
-      return false;
+function toSummary(record: StoredProjectRecord): ProjectRegistrySummary {
+  return {
+    id: record.id,
+    name: record.name,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    elementCount: Object.keys(record.snapshot.document?.layers || {}).length,
+    pageCount: Object.keys(record.snapshot.pages || {}).length,
+  };
+}
+
+/** Upgrades a stored snapshot from any schema version to the current one. */
+function upgradeRecord(record: StoredProjectRecord): StoredProjectRecord {
+  return { ...record, revision: record.revision ?? 0, snapshot: upgradeSnapshot(record.snapshot as unknown as LegacyProjectSnapshot) };
+}
+
+export class ProjectDatabaseManager {
+  private dbPromise: Promise<IDBDatabase | null> | null = null;
+  private memory = new Map<string, StoredProjectRecord>();
+  private memoryHistory = new Map<string, PersistedHistory>();
+
+  constructor(
+    private readonly factory: () => IDBFactory | null = getIndexedDB,
+    private readonly legacyStorage: () => Storage | null = () => {
+      try {
+        return typeof localStorage === "undefined" ? null : localStorage;
+      } catch {
+        return null;
+      }
     }
+  ) {}
+
+  private db(): Promise<IDBDatabase | null> {
+    if (!this.dbPromise) {
+      const factory = this.factory();
+      this.dbPromise = factory
+        ? openDatabase(factory)
+            .then(async (db) => {
+              await this.migrateFromLocalStorage(db);
+              return db;
+            })
+            .catch((error) => {
+              console.warn("[ProjectDatabase] IndexedDB unavailable; projects are kept in memory for this session.", error);
+              return null;
+            })
+        : Promise.resolve(null);
+    }
+    return this.dbPromise;
   }
 
-  /**
-   * Helper delegate to generate a unique project ID
-   */
+  /** True when projects survive a reload (IndexedDB is available). */
+  public async isPersistent(): Promise<boolean> {
+    return (await this.db()) !== null;
+  }
+
   public generateProjectId(): string {
     return generateProjectId();
   }
 
-  /**
-   * Helper delegate to create a default blank canvas snapshot
-   */
-  public createDefaultBlankSnapshot(
-    projectId: string,
-    projectName = "Blank Project",
-    settings?: ProjectSettings
-  ): ProjectStateSnapshot {
+  public createDefaultBlankSnapshot(projectId: string, projectName = "Blank Project", settings?: ProjectSettings): ProjectStateSnapshot {
     return createDefaultBlankSnapshot(projectId, projectName, settings);
   }
 
-  /**
-   * Retrieves all registered project summaries
-   */
-  public listProjects(): ProjectRegistrySummary[] {
-    if (!this.isStorageAvailable()) {
-      return Array.from(this.memoryCache.values()).map((p) => ({
-        id: p.id,
-        name: p.name,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-        elementCount: Object.keys(p.snapshot.document?.layers || {}).length,
-        pageCount: Object.keys(p.snapshot.pages || {}).length,
-      }));
-    }
-
-    try {
-      const raw = window.localStorage.getItem(REGISTRY_INDEX_KEY);
-      if (!raw) return [];
-      const summaries: ProjectRegistrySummary[] = JSON.parse(raw);
-      return summaries.sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      );
-    } catch (e) {
-      console.warn("[ProjectDatabase] Error listing projects from localStorage:", e);
-      return [];
-    }
+  /** Project summaries, most recently updated first. */
+  public async listProjects(): Promise<ProjectRegistrySummary[]> {
+    const db = await this.db();
+    const summaries = db
+      ? await runTransaction(db, ["summaries"], "readonly", (tx) =>
+          requestResult(tx.objectStore("summaries").getAll() as IDBRequest<ProjectRegistrySummary[]>)
+        )
+      : Array.from(this.memory.values(), toSummary);
+    return summaries.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
-  /**
-   * Loads a project by unique ID from database storage
-   */
-  public getProject(id: string): StoredProjectRecord | null {
+  public async getProject(id: string): Promise<StoredProjectRecord | null> {
     if (!id) return null;
-
-    if (this.memoryCache.has(id)) {
-      return this.memoryCache.get(id)!;
-    }
-
-    if (!this.isStorageAvailable()) return null;
-
-    try {
-      const raw = window.localStorage.getItem(`${PROJECT_PREFIX_KEY}${id}`);
-      if (!raw) return null;
-      const stored: StoredProjectRecord = JSON.parse(raw);
-      // Projects saved before MDM v2 hold a v1 snapshot; upgrade on read.
-      const record: StoredProjectRecord = { ...stored, snapshot: upgradeSnapshot(stored.snapshot as LegacyProjectSnapshot) };
-      this.memoryCache.set(id, record);
-      return record;
-    } catch (e) {
-      console.warn(`[ProjectDatabase] Error loading project '${id}':`, e);
-      return null;
-    }
+    const db = await this.db();
+    if (!db) return this.memory.get(id) ?? null;
+    const stored = await runTransaction(db, ["projects"], "readonly", (tx) =>
+      requestResult(tx.objectStore("projects").get(id) as IDBRequest<StoredProjectRecord | undefined>)
+    );
+    return stored ? upgradeRecord(stored) : null;
   }
 
   /**
-   * Registers and saves a project into the storage database.
-   * If the project doesn't exist, it creates a new registered entry.
+   * Writes a project record, its summary and (optionally) its history in one
+   * transaction. Rejects with `StorageQuotaError` when storage is full.
    */
-  public registerProject(params: {
+  public async putProject(record: StoredProjectRecord, history?: PersistedHistory): Promise<StoredProjectRecord> {
+    const db = await this.db();
+    if (!db) {
+      this.memory.set(record.id, record);
+      if (history) this.memoryHistory.set(record.id, history);
+      return record;
+    }
+    await runTransaction(db, ["projects", "summaries", "history"], "readwrite", (tx) => {
+      tx.objectStore("projects").put(record);
+      tx.objectStore("summaries").put(toSummary(record));
+      if (history) tx.objectStore("history").put({ projectId: record.id, ...history } satisfies HistoryRecord);
+    });
+    return record;
+  }
+
+  /**
+   * Registers a project. An existing project keeps its data and is merged with
+   * `params.snapshot`; a new one starts from `params.snapshot` or a blank canvas.
+   */
+  public async registerProject(params: {
     id?: string;
     name?: string;
     settings?: ProjectSettings;
     snapshot?: Partial<ProjectStateSnapshot>;
-  }): StoredProjectRecord {
+  }): Promise<StoredProjectRecord> {
     const id = params.id && params.id.trim() ? params.id.trim() : generateProjectId();
-    const existing = this.getProject(id);
+    const existing = await this.getProject(id);
     const now = new Date().toISOString();
-
     const name = params.name || existing?.name || "Blank Project";
     const settings = params.settings || existing?.settings || { template: "blank" };
 
-    let fullSnapshot: ProjectStateSnapshot;
+    let snapshot: ProjectStateSnapshot;
     if (existing?.snapshot) {
-      fullSnapshot = {
-        ...existing.snapshot,
-        ...(params.snapshot || {}),
-        projectId: id,
-        projectName: name,
-      };
+      snapshot = { ...existing.snapshot, ...(params.snapshot || {}), projectId: id, projectName: name };
     } else if (params.snapshot && Object.keys(params.snapshot.document?.layers || {}).length > 0) {
-      fullSnapshot = {
-        ...createDefaultBlankSnapshot(id, name, settings),
-        ...params.snapshot,
-        projectId: id,
-        projectName: name,
-      };
+      snapshot = { ...createDefaultBlankSnapshot(id, name, settings), ...params.snapshot, projectId: id, projectName: name };
     } else {
-      fullSnapshot = createDefaultBlankSnapshot(id, name, settings);
+      snapshot = createDefaultBlankSnapshot(id, name, settings);
     }
 
-    const record: StoredProjectRecord = {
+    return this.putProject({
       id,
       name,
       createdAt: existing?.createdAt || now,
       updatedAt: now,
+      revision: (existing?.revision ?? 0) + 1,
       settings,
-      snapshot: fullSnapshot,
-    };
-
-    // Save into memory cache
-    this.memoryCache.set(id, record);
-
-    // Save into localStorage
-    if (this.isStorageAvailable()) {
-      try {
-        window.localStorage.setItem(`${PROJECT_PREFIX_KEY}${id}`, JSON.stringify(record));
-
-        // Update registry index
-        const list = this.listProjects().filter((p) => p.id !== id);
-        list.unshift({
-          id,
-          name,
-          createdAt: record.createdAt,
-          updatedAt: record.updatedAt,
-          elementCount: Object.keys(fullSnapshot.document?.layers || {}).length,
-          pageCount: Object.keys(fullSnapshot.pages || {}).length,
-        });
-        window.localStorage.setItem(REGISTRY_INDEX_KEY, JSON.stringify(list));
-      } catch (e) {
-        console.warn("[ProjectDatabase] Storage quota or write error:", e);
-      }
-    }
-
-    return record;
+      snapshot,
+    });
   }
 
-  /**
-   * Updates an existing project's snapshot in the database
-   */
-  public saveProjectSnapshot(
+  /** Saves a new snapshot (and history) for a project. Creates the record if it doesn't exist. */
+  public async saveProjectSnapshot(
     id: string,
     snapshot: ProjectStateSnapshot,
-    name?: string
-  ): StoredProjectRecord | null {
+    options: { name?: string; history?: PersistedHistory } = {}
+  ): Promise<StoredProjectRecord | null> {
     if (!id) return null;
-
-    const existing = this.getProject(id);
+    const existing = await this.getProject(id);
     const now = new Date().toISOString();
-    const projectName = name || snapshot.projectName || existing?.name || "Blank Project";
-
-    const record: StoredProjectRecord = {
-      id,
-      name: projectName,
-      createdAt: existing?.createdAt || now,
-      updatedAt: now,
-      settings: existing?.settings || {},
-      snapshot: {
-        ...snapshot,
-        projectId: id,
-        projectName,
+    const name = options.name || snapshot.projectName || existing?.name || "Blank Project";
+    return this.putProject(
+      {
+        id,
+        name,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+        revision: (existing?.revision ?? 0) + 1,
+        settings: existing?.settings || {},
+        snapshot: { ...snapshot, projectId: id, projectName: name },
       },
-    };
+      options.history
+    );
+  }
 
-    this.memoryCache.set(id, record);
+  public async loadHistory(id: string): Promise<PersistedHistory | null> {
+    const db = await this.db();
+    if (!db) return this.memoryHistory.get(id) ?? null;
+    const stored = await runTransaction(db, ["history"], "readonly", (tx) =>
+      requestResult(tx.objectStore("history").get(id) as IDBRequest<HistoryRecord | undefined>)
+    );
+    return stored ? { past: stored.past, future: stored.future } : null;
+  }
 
-    if (this.isStorageAvailable()) {
-      try {
-        window.localStorage.setItem(`${PROJECT_PREFIX_KEY}${id}`, JSON.stringify(record));
-
-        const list = this.listProjects().filter((p) => p.id !== id);
-        list.unshift({
-          id,
-          name: projectName,
-          createdAt: record.createdAt,
-          updatedAt: record.updatedAt,
-          elementCount: Object.keys(snapshot.document?.layers || {}).length,
-          pageCount: Object.keys(snapshot.pages || {}).length,
-        });
-        window.localStorage.setItem(REGISTRY_INDEX_KEY, JSON.stringify(list));
-      } catch (e) {
-        console.warn(`[ProjectDatabase] Error updating project '${id}':`, e);
-      }
+  public async deleteProject(id: string): Promise<boolean> {
+    const db = await this.db();
+    if (!db) {
+      this.memoryHistory.delete(id);
+      return this.memory.delete(id);
     }
-
-    return record;
+    await runTransaction(db, ["projects", "summaries", "history"], "readwrite", (tx) => {
+      tx.objectStore("projects").delete(id);
+      tx.objectStore("summaries").delete(id);
+      tx.objectStore("history").delete(id);
+    });
+    return true;
   }
 
   /**
-   * Deletes a project from the storage database
+   * Moves projects saved in localStorage by pre-Phase-3 builds into IndexedDB,
+   * once. The localStorage copies are removed only after the move commits.
    */
-  public deleteProject(id: string): boolean {
-    this.memoryCache.delete(id);
+  private async migrateFromLocalStorage(db: IDBDatabase): Promise<void> {
+    const done = await runTransaction(db, ["meta"], "readonly", (tx) => requestResult(tx.objectStore("meta").get(MIGRATION_FLAG)));
+    if (done) return;
 
-    if (this.isStorageAvailable()) {
-      try {
-        window.localStorage.removeItem(`${PROJECT_PREFIX_KEY}${id}`);
-        const list = this.listProjects().filter((p) => p.id !== id);
-        window.localStorage.setItem(REGISTRY_INDEX_KEY, JSON.stringify(list));
-        return true;
-      } catch {
-        return false;
+    const storage = this.legacyStorage();
+
+    const records: StoredProjectRecord[] = [];
+    const legacyKeys: string[] = [];
+    if (storage) {
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (!key?.startsWith(LEGACY_PROJECT_PREFIX)) continue;
+        legacyKeys.push(key);
+        try {
+          records.push(upgradeRecord(JSON.parse(storage.getItem(key) || "null") as StoredProjectRecord));
+        } catch (error) {
+          console.warn(`[ProjectDatabase] Skipping unreadable legacy project "${key}".`, error);
+        }
       }
     }
-    return true;
+
+    await runTransaction(db, ["projects", "summaries", "meta"], "readwrite", (tx) => {
+      for (const record of records) {
+        if (!record?.id) continue;
+        tx.objectStore("projects").put(record);
+        tx.objectStore("summaries").put(toSummary(record));
+      }
+      tx.objectStore("meta").put({ key: MIGRATION_FLAG, value: new Date().toISOString(), count: records.length });
+    });
+
+    if (storage) {
+      for (const key of legacyKeys) storage.removeItem(key);
+      storage.removeItem(LEGACY_REGISTRY_KEY);
+    }
   }
 }
 

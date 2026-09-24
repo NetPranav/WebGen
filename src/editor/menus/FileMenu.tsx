@@ -20,6 +20,8 @@ import {
   Clock,
   LogOut,
   Sparkles,
+  Download,
+  Upload,
 } from "lucide-react";
 
 interface FileMenuProps {
@@ -29,6 +31,8 @@ interface FileMenuProps {
   onNew?: () => void;
   onOpen?: () => void;
   onExport?: () => void;
+  onExportProjectFile?: () => void;
+  onImportProjectFile?: () => void;
 }
 
 export const FileMenu: React.FC<FileMenuProps> = ({
@@ -38,6 +42,8 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onNew,
   onOpen,
   onExport,
+  onExportProjectFile,
+  onImportProjectFile,
 }) => {
   if (!isOpen) return null;
 
@@ -96,6 +102,30 @@ export const FileMenu: React.FC<FileMenuProps> = ({
           <span>Save As Template...</span>
         </span>
         <kbd className="menu-item__shortcut">Ctrl+Shift+S</kbd>
+      </button>
+
+      <div className="menu-separator" />
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(onExportProjectFile)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Download size={13} /></span>
+          <span>Export Project File (.lazy.json)</span>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(onImportProjectFile)}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Upload size={13} /></span>
+          <span>Import Project File...</span>
+        </span>
       </button>
 
       <div className="menu-separator" />

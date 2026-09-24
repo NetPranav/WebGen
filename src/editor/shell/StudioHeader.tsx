@@ -58,6 +58,10 @@ interface StudioHeaderProps {
   onSelectWorkspace?: (preset: string) => void;
   activeWorkspace?: string;
   onSave?: () => void;
+  /** Downloads the project as a `.lazy.json` file. */
+  onExportProjectFile?: () => void;
+  /** Opens a `.lazy.json` file as a new project. */
+  onImportProjectFile?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
@@ -93,6 +97,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onSelectWorkspace,
   activeWorkspace = "full-studio",
   onSave,
+  onExportProjectFile,
+  onImportProjectFile,
   onUndo,
   onRedo,
   canUndo = true,
@@ -226,6 +232,9 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               isOpen={openMenu === "file"}
               onClose={() => setOpenMenu(null)}
               onSave={onSave}
+              onOpen={onImportProjectFile}
+              onExportProjectFile={onExportProjectFile}
+              onImportProjectFile={onImportProjectFile}
             />
           </div>
 

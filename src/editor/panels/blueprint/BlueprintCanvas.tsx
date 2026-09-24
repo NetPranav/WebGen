@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { useHistoryStore } from "@/core/store/useHistoryStore";
+import { historyCommands } from "@/core/store/useDocumentStore";
 import {
   getNodeDefinition,
   getPinColor,
@@ -150,9 +151,8 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     disconnectBlueprintWire,
     setBlueprintPinValue,
     compileActiveBlueprintGraph,
-    undo,
-    redo,
   } = useProjectStore();
+  const { undo, redo } = historyCommands;
 
   const canUndo = useHistoryStore((s) => s.past.length > 0);
   const canRedo = useHistoryStore((s) => s.future.length > 0);

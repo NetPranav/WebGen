@@ -57,11 +57,12 @@ import { MotionAICoPilot } from "@/editor/panels/ai/MotionAICoPilot";
 import { useTearOff, TearOffDragSource } from "@/core/events/useTearOff";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
 import { useProjectStore } from "@/core/store/useProjectStore";
-import {
-  ProjectDatabase,
-  generateProjectId,
-  createDefaultBlankSnapshot,
-} from "@/core/storage/ProjectDatabase";
+import { useHistoryStore } from "@/core/store/useHistoryStore";
+import { ProjectDatabase, generateProjectId, createDefaultBlankSnapshot } from "@/core/storage/ProjectDatabase";
+import { projectSession, useSaveStatus, type PendingRecovery } from "@/core/storage/ProjectSession";
+import { historyCommands, installGestureCoalescing } from "@/core/store/useDocumentStore";
+import { LazyFileError, isLazyFileName, lazyFileName, parseLazyFile, serializeLazyFile } from "@/core/storage/lazyFile";
+import { RecoveryPrompt, SaveErrorBanner, FileDropOverlay } from "./PersistenceUi";
 import {
   Save,
   Undo2,
@@ -278,7 +279,13 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   }, [isDraggingAi, leftWidth, rightWidth, leftCollapsed, rightCollapsed, aiPanelWidth]);
 
   const [zoomLevel, setZoomLevel] = useState(100);
-  const [isDirty, setIsDirty] = useState(false);
+  const saveState = useSaveStatus((s) => s.state);
+  const isDirty = saveState === "pending" || saveState === "saving" || saveState === "error";
+  const canUndo = useHistoryStore((s) => s.past.length > 0);
+  const canRedo = useHistoryStore((s) => s.future.length > 0);
+  const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [isFileDragOver, setIsFileDragOver] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState("full-studio");
   const [isPlaying, setIsPlaying] = useState(false);
   const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -309,102 +316,167 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       window.history.replaceState({}, "", cleanUrl.pathname + (cleanUrl.search ? cleanUrl.search : ""));
     }
 
-    let currentId = params.get("projectId") || params.get("id") || "";
+    const currentId = params.get("projectId") || params.get("id") || "";
     const archetype = params.get("archetype");
     const name = params.get("name") ? decodeURIComponent(params.get("name")!) : "";
-    const framework = params.get("framework");
-    const styling = params.get("styling");
-    const animation = params.get("animation");
-    const lang = params.get("lang");
-    const template = params.get("template");
+    const settings = {
+      archetype: archetype || "container",
+      framework: params.get("framework") || "nextjs-app",
+      styling: params.get("styling") || "tailwind",
+      animation: params.get("animation") || "gsap",
+      language: params.get("lang") || "typescript",
+      template: params.get("template") || "blank",
+    };
 
-    if (!currentId) {
-      // Auto-generate unique project ID and register into ProjectDatabase
-      currentId = generateProjectId();
-      const newBlankSnapshot = createDefaultBlankSnapshot(
-        currentId,
-        name || "Blank Project",
-        {
-          archetype: archetype || "container",
-          framework: framework || "nextjs-app",
-          styling: styling || "tailwind",
-          animation: animation || "gsap",
-          language: lang || "typescript",
-          template: template || "blank",
-        }
-      );
-
-      ProjectDatabase.registerProject({
-        id: currentId,
-        name: name || "Blank Project",
-        settings: {
-          archetype: archetype || "container",
-          framework: framework || "nextjs-app",
-          styling: styling || "tailwind",
-          animation: animation || "gsap",
-          language: lang || "typescript",
-          template: template || "blank",
-        },
-        snapshot: newBlankSnapshot,
-      });
-
-      // Update URL with unique project ID without page reload
-      const updatedUrl = new URL(window.location.href);
-      updatedUrl.searchParams.set("projectId", currentId);
-      window.history.replaceState({}, "", updatedUrl.pathname + (updatedUrl.search ? updatedUrl.search : ""));
-
-      useProjectStore.getState().restoreSnapshot(newBlankSnapshot);
-      useProjectStore.getState().setProjectId(currentId);
-      if (name) useProjectStore.getState().setProjectName(name);
-    } else {
-      // Existing projectId provided in URL
-      const existing = ProjectDatabase.getProject(currentId);
-      if (existing) {
-        useProjectStore.getState().restoreSnapshot(existing.snapshot);
-        useProjectStore.getState().setProjectId(currentId);
-        if (existing.name) useProjectStore.getState().setProjectName(existing.name);
-      } else {
-        // Register this project ID in the database with blank snapshot
-        const newBlankSnapshot = createDefaultBlankSnapshot(
-          currentId,
-          name || "Blank Project",
-          {
-            archetype: archetype || "container",
-            framework: framework || "nextjs-app",
-            styling: styling || "tailwind",
-            animation: animation || "gsap",
-            language: lang || "typescript",
-            template: template || "blank",
-          }
-        );
-        ProjectDatabase.registerProject({
-          id: currentId,
-          name: name || "Blank Project",
-          settings: {
-            archetype: archetype || "container",
-            framework: framework || "nextjs-app",
-            styling: styling || "tailwind",
-            animation: animation || "gsap",
-            language: lang || "typescript",
-            template: template || "blank",
-          },
-          snapshot: newBlankSnapshot,
-        });
-        useProjectStore.getState().restoreSnapshot(newBlankSnapshot);
-        useProjectStore.getState().setProjectId(currentId);
-        if (name) useProjectStore.getState().setProjectName(name);
+    let cancelled = false;
+    void (async () => {
+      const id = currentId || generateProjectId();
+      if (!currentId) {
+        // No project in the URL: start a new blank one and put its id in the URL.
+        const updatedUrl = new URL(window.location.href);
+        updatedUrl.searchParams.set("projectId", id);
+        window.history.replaceState({}, "", updatedUrl.pathname + updatedUrl.search);
       }
+      const result = await projectSession.open(id, {
+        create: { name: name || "Blank Project", settings, snapshot: createDefaultBlankSnapshot(id, name || "Blank Project", settings) },
+      });
+      if (!cancelled && result.recovery) setRecovery(result.recovery);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Autosave safety: save when the tab is hidden or the page goes away.
+  useEffect(() => {
+    const flush = () => void projectSession.flush();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flush);
+    };
+  }, []);
+
+  // A pointer press (drag, scrub, slider) is one undo step.
+  useEffect(() => installGestureCoalescing(window), []);
+
+  // Undo / redo: Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y, and the command registry's events.
+  // Text fields keep their own native undo.
+  useEffect(() => {
+    const isTextField = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || isTextField(e.target)) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        historyCommands.undo();
+      } else if ((key === "z" && e.shiftKey) || (key === "y" && e.ctrlKey && !e.metaKey)) {
+        e.preventDefault();
+        historyCommands.redo();
+      }
+    };
+    const onUndo = () => historyCommands.undo();
+    const onRedo = () => historyCommands.redo();
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("antigravity:undo", onUndo);
+    window.addEventListener("antigravity:redo", onRedo);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("antigravity:undo", onUndo);
+      window.removeEventListener("antigravity:redo", onRedo);
+    };
+  }, []);
+
+  /** Exports the open project as a `.lazy.json` file download. */
+  const handleExportProjectFile = useCallback(async () => {
+    const state = useProjectStore.getState();
+    const record = state.projectId ? await ProjectDatabase.getProject(state.projectId) : null;
+    const blob = new Blob([serializeLazyFile(state.getSnapshot(), record?.settings)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = lazyFileName(state.projectName || "project");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, []);
+
+  /** Imports a `.lazy.json` file as a new project and opens it. */
+  const handleImportProjectFile = useCallback(async (file: File) => {
+    try {
+      const parsed = parseLazyFile(await file.text());
+      await projectSession.flush();
+      const id = generateProjectId();
+      await ProjectDatabase.registerProject({
+        id,
+        name: parsed.project.name,
+        settings: parsed.project.settings,
+        snapshot: { ...parsed.snapshot, projectId: id },
+      });
+      const result = await projectSession.open(id);
+      setRecovery(result.recovery);
+      const updatedUrl = new URL(window.location.href);
+      for (const key of [...updatedUrl.searchParams.keys()]) updatedUrl.searchParams.delete(key);
+      updatedUrl.searchParams.set("projectId", id);
+      window.history.replaceState({}, "", updatedUrl.pathname + updatedUrl.search);
+      setFileError(null);
+    } catch (error) {
+      setFileError(error instanceof LazyFileError ? error.message : `Could not open "${file.name}": ${error instanceof Error ? error.message : String(error)}`);
     }
   }, []);
 
+  const handleOpenImportPicker = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) void handleImportProjectFile(file);
+    };
+    input.click();
+  }, [handleImportProjectFile]);
+
+  // Drop a .lazy.json file anywhere on the window to open it.
+  useEffect(() => {
+    const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    const onDragOver = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      setIsFileDragOver(true);
+    };
+    const onDragLeave = (e: DragEvent) => {
+      if (e.relatedTarget === null) setIsFileDragOver(false);
+    };
+    const onDrop = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      setIsFileDragOver(false);
+      const file = Array.from(e.dataTransfer?.files ?? []).find((f) => isLazyFileName(f.name));
+      if (file) void handleImportProjectFile(file);
+      else setFileError("Drop a LazyLayout project file (.lazy.json) to open it.");
+    };
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("dragleave", onDragLeave);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("dragleave", onDragLeave);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, [handleImportProjectFile]);
+
   const handleSaveProject = useCallback(() => {
-    const currentId = projectId || useProjectStore.getState().projectId;
-    if (currentId) {
-      const snapshot = useProjectStore.getState().getSnapshot();
-      ProjectDatabase.saveProjectSnapshot(currentId, snapshot);
-    }
-    setIsDirty(false);
-  }, [projectId]);
+    void projectSession.flush();
+  }, []);
 
   useEffect(() => {
     const handleGlobalSaveShortcut = (e: KeyboardEvent) => {
@@ -1088,6 +1160,21 @@ export const EditorShell: React.FC<EditorShellProps> = ({
 
   return (
     <div className="dock-layout">
+      {recovery && (
+        <RecoveryPrompt
+          recovery={recovery}
+          onRestore={() => {
+            setRecovery(null);
+            void projectSession.restoreRecovery();
+          }}
+          onDiscard={() => {
+            setRecovery(null);
+            void projectSession.discardRecovery();
+          }}
+        />
+      )}
+      <SaveErrorBanner fileError={fileError} onDismissFileError={() => setFileError(null)} />
+      <FileDropOverlay visible={isFileDragOver} />
       {/* Top Header Slot: Single Streamlined StudioHeader */}
       <div
         className="dock-layout__header"
@@ -1122,8 +1209,12 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             onSelectWorkspace={handleSelectWorkspace}
             activeWorkspace={activeWorkspace}
             onSave={handleSaveProject}
-            onUndo={() => {}}
-            onRedo={() => {}}
+            onExportProjectFile={() => void handleExportProjectFile()}
+            onImportProjectFile={handleOpenImportPicker}
+            onUndo={historyCommands.undo}
+            onRedo={historyCommands.redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
             onZoomIn={() => setZoomLevel((z) => Math.min(z + 10, 250))}
             onZoomOut={() => setZoomLevel((z) => Math.max(z - 10, 25))}
             onZoomReset={() => setZoomLevel(100)}
@@ -1194,9 +1285,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                 onCloseTab={handleCloseFullPageTab}
                 onTabDragStart={handleFullPageTabDragStart}
                 isDirty={isDirty}
-                onSave={() => setIsDirty(false)}
-                onUndo={() => {}}
-                onRedo={() => {}}
+                onSave={handleSaveProject}
+                onUndo={historyCommands.undo}
+                onRedo={historyCommands.redo}
                 onCloseAll={handleCloseAllFullPage}
                 onOpenAsset={(id, title) => handleDockFullPage(id, title)}
               >
@@ -1290,7 +1381,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     assetId={currentFullPagePanel.panelId}
                     assetTitle={currentFullPagePanel.title}
                     isDirty={isDirty}
-                    onSave={() => setIsDirty(false)}
+                    onSave={handleSaveProject}
                     onSwitchToBlueprint={() =>
                       handleDockFullPage("blueprint", "Logic Blueprint")
                     }
@@ -1443,7 +1534,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     <button
                       type="button"
                       className="viewport-action-btn"
-                      onClick={() => {}}
+                      onClick={historyCommands.undo}
                       title="Undo (Ctrl+Z)"
                     >
                       <Undo2 size={14} />
@@ -1452,7 +1543,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     <button
                       type="button"
                       className="viewport-action-btn"
-                      onClick={() => {}}
+                      onClick={historyCommands.redo}
                       title="Redo (Ctrl+Shift+Z)"
                     >
                       <Redo2 size={14} />

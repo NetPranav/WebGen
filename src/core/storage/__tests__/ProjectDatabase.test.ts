@@ -1,78 +1,75 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  ProjectDatabase,
-  generateProjectId,
-  createDefaultBlankSnapshot,
-} from "../ProjectDatabase";
+import { IDBFactory } from "fake-indexeddb";
+import { ProjectDatabaseManager, generateProjectId, createDefaultBlankSnapshot } from "../ProjectDatabase";
+import { MemoryStorage } from "./memoryStorage";
 
-describe("ProjectDatabase Client Storage Engine", () => {
-  it("should generate a unique, well-formatted project ID", () => {
-    const id1 = generateProjectId();
-    const id2 = generateProjectId();
-    assert.ok(id1.startsWith("prj_"));
-    assert.ok(id2.startsWith("prj_"));
-    assert.notStrictEqual(id1, id2);
+describe("ProjectDatabase (IndexedDB, Phase 3.2)", () => {
+  it("generates unique, well-formed project ids", () => {
+    const a = generateProjectId();
+    const b = generateProjectId();
+    assert.ok(a.startsWith("prj_") && b.startsWith("prj_"));
+    assert.notEqual(a, b);
   });
 
-  it("should create a clean default blank project snapshot with empty elements", () => {
-    const id = generateProjectId();
-    const snapshot = createDefaultBlankSnapshot(id, "My Brand New Project");
-    assert.strictEqual(snapshot.projectId, id);
-    assert.strictEqual(snapshot.projectName, "My Brand New Project");
-    assert.ok(snapshot.pages["page_home"]);
-    const rootEl = snapshot.document.layers["elem_canvas_root"];
-    assert.ok(rootEl);
-    assert.strictEqual(rootEl.children.length, 0); // Empty canvas by default
-    assert.deepStrictEqual(snapshot.databaseSchemas, {});
+  it("creates a clean blank snapshot", () => {
+    const snapshot = createDefaultBlankSnapshot("prj_x", "My Brand New Project");
+    assert.equal(snapshot.projectName, "My Brand New Project");
+    assert.equal(snapshot.document.layers.elem_canvas_root.children.length, 0);
+    assert.deepEqual(snapshot.databaseSchemas, {});
   });
 
-  it("should register, retrieve, and update a project in the database", () => {
-    const customId = "prj_test_custom_id";
-    const registered = ProjectDatabase.registerProject({
-      id: customId,
-      name: "Custom Testing Studio",
-      settings: { framework: "nextjs-app", template: "blank" },
+  it("registers, reads, updates and lists projects; a second connection sees them (reload)", async () => {
+    const factory = new IDBFactory();
+    const db = new ProjectDatabaseManager(() => factory, () => null);
+    assert.equal(await db.isPersistent(), true);
+
+    const registered = await db.registerProject({ id: "prj_custom", name: "Custom Studio" });
+    assert.equal(registered.revision, 1);
+    const fetched = await db.getProject("prj_custom");
+    assert.equal(fetched?.name, "Custom Studio");
+
+    const updated = await db.saveProjectSnapshot("prj_custom", { ...fetched!.snapshot, projectName: "Renamed" }, {
+      history: { past: [], future: [] },
     });
+    assert.equal(updated?.revision, 2);
 
-    assert.strictEqual(registered.id, customId);
-    assert.strictEqual(registered.name, "Custom Testing Studio");
-
-    // Fetch from database
-    const fetched = ProjectDatabase.getProject(customId);
-    assert.ok(fetched);
-    assert.strictEqual(fetched.id, customId);
-    assert.strictEqual(fetched.name, "Custom Testing Studio");
-    assert.strictEqual(fetched.snapshot.document.layers["elem_canvas_root"].children.length, 0);
-
-    // Save updated snapshot
-    const updated = ProjectDatabase.saveProjectSnapshot(
-      customId,
-      {
-        ...fetched.snapshot,
-        projectName: "Renamed Studio",
-      },
-      "Renamed Studio"
+    const reopened = new ProjectDatabaseManager(() => factory, () => null);
+    assert.equal((await reopened.getProject("prj_custom"))?.name, "Renamed");
+    assert.deepEqual(await reopened.loadHistory("prj_custom"), { past: [], future: [] });
+    assert.deepEqual(
+      (await reopened.listProjects()).map((p) => p.id),
+      ["prj_custom"]
     );
 
-    assert.ok(updated);
-    assert.strictEqual(updated.name, "Renamed Studio");
-
-    const reFetched = ProjectDatabase.getProject(customId);
-    assert.strictEqual(reFetched?.name, "Renamed Studio");
+    await reopened.deleteProject("prj_custom");
+    assert.equal(await reopened.getProject("prj_custom"), null);
+    assert.deepEqual(await reopened.listProjects(), []);
   });
 
-  it("should list projects from the registry index", () => {
-    const id = generateProjectId();
-    ProjectDatabase.registerProject({
-      id,
-      name: "Listable Project",
-    });
+  it("moves projects saved in localStorage by older builds into IndexedDB, once", async () => {
+    const legacy = new MemoryStorage();
+    const snapshot = createDefaultBlankSnapshot("prj_old", "Old Project");
+    legacy.setItem(
+      "__uweb_proj_prj_old",
+      JSON.stringify({ id: "prj_old", name: "Old Project", createdAt: "2026-01-01", updatedAt: "2026-01-02", settings: {}, snapshot })
+    );
+    legacy.setItem("__uweb_project_registry_v1__", "[]");
+    legacy.setItem("ui:theme", "dark");
 
-    const list = ProjectDatabase.listProjects();
-    assert.ok(Array.isArray(list));
-    const found = list.find((p) => p.id === id);
-    assert.ok(found);
-    assert.strictEqual(found.name, "Listable Project");
+    const factory = new IDBFactory();
+    const db = new ProjectDatabaseManager(() => factory, () => legacy);
+    const migrated = await db.getProject("prj_old");
+    assert.equal(migrated?.name, "Old Project");
+    assert.equal(migrated?.revision, 0);
+    assert.equal(legacy.getItem("__uweb_proj_prj_old"), null, "the localStorage copy is removed");
+    assert.equal(legacy.getItem("ui:theme"), "dark", "UI preferences stay");
+  });
+
+  it("falls back to memory when IndexedDB is unavailable", async () => {
+    const db = new ProjectDatabaseManager(() => null, () => null);
+    assert.equal(await db.isPersistent(), false);
+    await db.registerProject({ id: "prj_mem", name: "In Memory" });
+    assert.equal((await db.getProject("prj_mem"))?.name, "In Memory");
   });
 });

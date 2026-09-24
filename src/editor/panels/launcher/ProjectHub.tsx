@@ -191,7 +191,7 @@ export const ProjectHub: React.FC<ProjectHubProps> = ({
   };
 
   // Launch action
-  const handleLaunch = () => {
+  const handleLaunch = async () => {
     const name = projectName.trim() || "LazyLayout";
     const arch = selectedArchetype || "button";
 
@@ -206,8 +206,8 @@ export const ProjectHub: React.FC<ProjectHubProps> = ({
       target: techConfig,
     });
 
-    // Register project into storage database
-    ProjectDatabase.registerProject({
+    // Register the project and wait for the write to commit before navigating away.
+    await ProjectDatabase.registerProject({
       id: newProjectId,
       name,
       settings: {

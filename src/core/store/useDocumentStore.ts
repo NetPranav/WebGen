@@ -4,25 +4,35 @@
  * ============================================================================
  * DOCUMENT STORE API (MDM v2)
  * ============================================================================
- * ROADMAP Phase 2.3. The only way to read and change the Motion Document.
+ * ROADMAP Phases 2.3 and 3.1. The only way to read and change the Motion Document.
  *
  * - Reads: `useDocument(selector)` and the `useLayer` / `useLayerClips` hooks,
  *   or `getDocument()` outside React.
  * - Writes: the typed commands in `documentCommands`. Each runs as an Immer
- *   recipe and returns the resulting patches, the format that undo (Phase 3),
- *   AI diffs (Phase 31) and collaboration share. `applyDiff` replays patches.
+ *   recipe and yields patches plus inverse patches, the format that undo, AI
+ *   diffs (Phase 31) and collaboration share. `applyDiff` replays patches.
+ * - Gestures: `documentCommands.begin(label)` opens a transaction. Commands
+ *   inside it apply at once (the stage shows them) but are *transient*: they
+ *   reach neither history nor autosave until `commit()` squashes them into one
+ *   entry. `cancel()` restores the document from before the transaction.
+ *   `installGestureCoalescing(window)` opens one automatically for every
+ *   pointer press, so any drag, scrub or slider is a single undo step.
+ * - History: `historyCommands.undo / redo / jumpTo`.
  *
- * The document lives in the project store's `document` field, so snapshots,
- * persistence and history keep covering it.
+ * The document lives in the project store's `document` field, so snapshots
+ * and persistence keep covering it.
  * ============================================================================
  */
 
 import { useMemo } from "react";
 import { applyPatches, enablePatches, produceWithPatches, type Draft, type Patch } from "immer";
-import { useProjectStore } from "./useProjectStore";
+import { captureProjectState, useProjectStore } from "./useProjectStore";
 import { useHistoryStore } from "./useHistoryStore";
 import { EventBus } from "../events/EventBus";
+import { DiagnosticBus } from "../engine/DiagnosticBus";
 import { createId } from "../ids";
+import { diffPatches } from "../document/diff";
+import type { HistoryTransaction } from "../types/history";
 import { attachClip, createLayer, getLayerClips, getSubtreeIds, type NewLayerInput } from "../document/factories";
 import { type LayerProps, type PropValue } from "../document/registry";
 import {
@@ -39,17 +49,28 @@ import {
 
 enablePatches();
 
+export type DocumentChangeSource = "command" | "transaction" | "undo" | "redo" | "history";
+
 export interface DocumentChange {
   label?: string;
   patches: Patch[];
   inversePatches: Patch[];
+  source?: DocumentChangeSource;
+  /** Part of an open transaction: already visible, but not yet durable (no history, no autosave). */
+  transient?: boolean;
+  /**
+   * A transaction's final record. The document already holds this state (its
+   * transient changes were emitted earlier), so listeners that mirror state
+   * should skip it; listeners that persist changes should use it.
+   */
+  summary?: boolean;
 }
 
 export type DocumentChangeListener = (change: DocumentChange) => void;
 
 const listeners = new Set<DocumentChangeListener>();
 
-/** Subscribe to every committed document change (patches included). */
+/** Subscribe to every document change (patches included). See `DocumentChange` for the flags. */
 export function subscribeToDocumentChanges(listener: DocumentChangeListener): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -59,22 +80,312 @@ export function getDocument(): MotionDocument {
   return useProjectStore.getState().document;
 }
 
-/**
- * Runs `recipe` against the document and commits the result. A labelled change
- * also records an undo step (snapshot history until Phase 3 moves undo onto patches).
- */
-function commit(label: string | undefined, recipe: (draft: Draft<MotionDocument>) => void): DocumentChange {
-  const store = useProjectStore.getState();
-  const [next, patches, inversePatches] = produceWithPatches(store.document, recipe);
-  const change: DocumentChange = { label, patches, inversePatches };
-  if (patches.length === 0) return change;
-
-  if (label) useHistoryStore.getState().pushState(label, store.getSnapshot());
-  useProjectStore.setState({ document: next });
+function emit(change: DocumentChange) {
   listeners.forEach((listener) => listener(change));
   EventBus.emit("document:changed", change);
+}
+
+/** Label for commands called without one; every durable change is undoable. */
+const DEFAULT_LABEL = "Edit";
+
+/** Consecutive edits with the same label to the same targets within this window become one undo step. */
+export const MERGE_WINDOW_MS = 1000;
+
+/**
+ * Label plus the entities a change touches (paths cut to 3 segments, e.g.
+ * `layers/<id>/properties`), or undefined when the change can't merge. Only
+ * plain value edits merge (text, numbers, toggles); structural changes such
+ * as adding a keyframe or a layer are always their own step.
+ */
+function mergeKeyFor(label: string, patches: Patch[]): string | undefined {
+  const valueEdit = patches.every(
+    (p) => (p.op === "replace" || p.op === "add") && (p.value === null || typeof p.value !== "object")
+  );
+  if (!valueEdit) return undefined;
+  const targets = new Set(patches.map((p) => p.path.slice(0, 3).join("/")));
+  return `${label}|${[...targets].sort().join(",")}`;
+}
+
+// ---------------------------------------------------------------------------
+// Transactions
+// ---------------------------------------------------------------------------
+
+interface OpenTransaction {
+  label: string;
+  base: MotionDocument;
+}
+
+let openTransaction: OpenTransaction | null = null;
+/** True while a pointer is pressed and gesture coalescing is installed. */
+let gestureActive = false;
+/** The transaction the current gesture opened lazily on its first labelled command. */
+let gestureTransaction: DocumentTransaction | null = null;
+
+export interface DocumentTransaction {
+  readonly label: string;
+  /** False once committed or cancelled, or when this handle joined an outer transaction. */
+  readonly isOwner: boolean;
+  commit(): DocumentChange | null;
+  cancel(): void;
+}
+
+function setDocument(next: MotionDocument) {
+  useProjectStore.setState({ document: next });
+}
+
+function recordDocumentEntry(label: string, patches: Patch[], inversePatches: Patch[], mergeKey?: string) {
+  useHistoryStore.getState().record({ actionLabel: label, change: { kind: "document", patches, inversePatches }, mergeKey });
+}
+
+/**
+ * Records a durable command change, merging it into the previous entry when
+ * it repeats the same edit (same label and targets) within `MERGE_WINDOW_MS`,
+ * e.g. typing into one field. The merged entry is re-squashed with a diff so
+ * it stays compact.
+ */
+function recordCommandChange(label: string, before: MotionDocument, after: MotionDocument, patches: Patch[], inversePatches: Patch[]) {
+  const history = useHistoryStore.getState();
+  const mergeKey = mergeKeyFor(label, patches);
+  const last = history.past[history.past.length - 1];
+  const canMerge =
+    mergeKey !== undefined &&
+    last &&
+    last.change.kind === "document" &&
+    last.mergeKey === mergeKey &&
+    Date.now() - last.timestamp < MERGE_WINDOW_MS &&
+    history.future.length === 0;
+
+  if (!canMerge || last.change.kind !== "document") {
+    recordDocumentEntry(label, patches, inversePatches, mergeKey);
+    return;
+  }
+
+  const base = applyPatches(before, last.change.inversePatches);
+  const squashed = diffPatches(base, after);
+  if (squashed.length === 0) {
+    history.dropLast();
+    return;
+  }
+  history.replaceLast({
+    ...last,
+    timestamp: Date.now(),
+    groupCount: (last.groupCount ?? 1) + 1,
+    change: { kind: "document", patches: squashed, inversePatches: diffPatches(after, base) },
+  });
+}
+
+/**
+ * Runs `recipe` against the document and commits the result: recorded in
+ * history and emitted as durable, unless a transaction is open, in which case
+ * it is applied and emitted as transient.
+ */
+function commit(label: string | undefined, recipe: (draft: Draft<MotionDocument>) => void): DocumentChange {
+  const before = getDocument();
+  const [next, patches, inversePatches] = produceWithPatches(before, recipe);
+  const resolvedLabel = label ?? DEFAULT_LABEL;
+  if (patches.length === 0) return { label: resolvedLabel, patches, inversePatches };
+
+  if (!openTransaction && gestureActive) gestureTransaction = beginTransaction(resolvedLabel);
+
+  setDocument(next);
+  if (openTransaction) {
+    const change: DocumentChange = { label: resolvedLabel, patches, inversePatches, source: "transaction", transient: true };
+    emit(change);
+    return change;
+  }
+
+  recordCommandChange(resolvedLabel, before, next, patches, inversePatches);
+  const change: DocumentChange = { label: resolvedLabel, patches, inversePatches, source: "command" };
+  emit(change);
   return change;
 }
+
+function beginTransaction(label: string): DocumentTransaction {
+  if (openTransaction) {
+    // Join the outer transaction: it alone decides commit or cancel.
+    return { label, isOwner: false, commit: () => null, cancel: () => {} };
+  }
+  const tx: OpenTransaction = { label, base: getDocument() };
+  openTransaction = tx;
+  let open = true;
+
+  return {
+    label,
+    get isOwner() {
+      return open;
+    },
+    commit() {
+      if (!open) return null;
+      open = false;
+      openTransaction = null;
+      if (gestureTransaction === this) gestureTransaction = null;
+      const after = getDocument();
+      const patches = diffPatches(tx.base, after);
+      if (patches.length === 0) return null;
+      const inversePatches = diffPatches(after, tx.base);
+      recordDocumentEntry(tx.label, patches, inversePatches);
+      const change: DocumentChange = { label: tx.label, patches, inversePatches, source: "transaction", summary: true };
+      emit(change);
+      return change;
+    },
+    cancel() {
+      if (!open) return;
+      open = false;
+      openTransaction = null;
+      if (gestureTransaction === this) gestureTransaction = null;
+      const current = getDocument();
+      const patches = diffPatches(current, tx.base);
+      if (patches.length === 0) return;
+      setDocument(tx.base);
+      emit({ label: tx.label, patches, inversePatches: diffPatches(tx.base, current), source: "transaction", transient: true });
+    },
+  };
+}
+
+/** True while a transaction is open (a gesture is in progress). */
+export function isTransactionOpen(): boolean {
+  return openTransaction !== null;
+}
+
+function endGesture() {
+  gestureActive = false;
+  const tx = gestureTransaction;
+  gestureTransaction = null;
+  tx?.commit();
+}
+
+/**
+ * Coalesces every command issued while a pointer is pressed into one
+ * transaction, committed when the pointer is released (or the window loses
+ * focus). Returns a disposer.
+ */
+export function installGestureCoalescing(target: Window): () => void {
+  const onDown = (e: PointerEvent) => {
+    if (e.button === 0) gestureActive = true;
+  };
+  target.addEventListener("pointerdown", onDown, true);
+  target.addEventListener("pointerup", endGesture, true);
+  target.addEventListener("pointercancel", endGesture, true);
+  target.addEventListener("blur", endGesture);
+  return () => {
+    target.removeEventListener("pointerdown", onDown, true);
+    target.removeEventListener("pointerup", endGesture, true);
+    target.removeEventListener("pointercancel", endGesture, true);
+    target.removeEventListener("blur", endGesture);
+    endGesture();
+  };
+}
+
+/** Test and scripting hooks for the gesture coalescer. */
+export const gestureCoalescing = {
+  press() {
+    gestureActive = true;
+  },
+  release: endGesture,
+};
+
+// ---------------------------------------------------------------------------
+// History
+// ---------------------------------------------------------------------------
+
+function applyDocumentPatches(patches: Patch[], inversePatches: Patch[], label: string, source: DocumentChangeSource) {
+  setDocument(applyPatches(getDocument(), patches));
+  emit({ label, patches, inversePatches, source });
+}
+
+/**
+ * Replaces the document with `next` as a durable change that is not itself
+ * recorded in history (history swaps, loading recovered changes).
+ */
+export function setDocumentFromHistory(next: MotionDocument, label: string, source: DocumentChangeSource = "history") {
+  const current = getDocument();
+  const patches = diffPatches(current, next);
+  if (patches.length === 0) return;
+  setDocument(next);
+  emit({ label, patches, inversePatches: diffPatches(next, current), source });
+}
+
+/** Applies a history entry in one direction and returns the entry to push on the opposite stack. */
+function applyEntry(entry: HistoryTransaction, direction: "undo" | "redo"): HistoryTransaction {
+  const { change } = entry;
+  if (change.kind === "document") {
+    if (direction === "undo") applyDocumentPatches(change.inversePatches, change.patches, entry.actionLabel, "undo");
+    else applyDocumentPatches(change.patches, change.inversePatches, entry.actionLabel, "redo");
+    return entry;
+  }
+
+  // Project entries swap: the stored state goes live, the live state is stored.
+  const { document: storedDocument, ...rest } = change.state as Record<string, unknown> & { document?: MotionDocument };
+  const current = captureProjectState(storedDocument !== undefined);
+  useProjectStore.setState(rest as Partial<ReturnType<typeof useProjectStore.getState>>);
+  if (storedDocument) setDocumentFromHistory(storedDocument, entry.actionLabel, direction);
+  return { ...entry, change: { kind: "project", state: current } };
+}
+
+/** Applies an entry; an entry that no longer applies is dropped and reported instead of crashing. */
+function tryApplyEntry(entry: HistoryTransaction, direction: "undo" | "redo"): HistoryTransaction | null {
+  try {
+    return applyEntry(entry, direction);
+  } catch (error) {
+    DiagnosticBus.emit({
+      channel: "UNDO_STACK_CORRUPT",
+      severity: "error",
+      source: { panel: "Panel 23: Undo History", entityId: entry.id },
+      message: `History entry "${entry.actionLabel}" could not be ${direction === "undo" ? "undone" : "redone"} and was removed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      suggestion: "The document is unchanged. Earlier history entries are still available.",
+    });
+    return null;
+  }
+}
+
+export const historyCommands = {
+  undo(): boolean {
+    gestureTransaction?.commit();
+    const history = useHistoryStore.getState();
+    const entry = history.takeUndo();
+    if (!entry) return false;
+    const applied = tryApplyEntry(entry, "undo");
+    if (!applied) return false;
+    history.pushFuture(applied);
+    return true;
+  },
+
+  redo(): boolean {
+    gestureTransaction?.commit();
+    const history = useHistoryStore.getState();
+    const entry = history.takeRedo();
+    if (!entry) return false;
+    const applied = tryApplyEntry(entry, "redo");
+    if (!applied) return false;
+    history.pushPast(applied);
+    return true;
+  },
+
+  /**
+   * Jumps to the state just before `transactionId` (if it is in the undo
+   * stack) or just after it (if it is in the redo stack), stepping one entry
+   * at a time so mixed document and project entries stay consistent.
+   */
+  jumpTo(transactionId: string): boolean {
+    const { past, future } = useHistoryStore.getState();
+    if (past.some((t) => t.id === transactionId)) {
+      while (useHistoryStore.getState().past.length > 0) {
+        const last = useHistoryStore.getState().past.at(-1)!;
+        historyCommands.undo();
+        if (last.id === transactionId) return true;
+      }
+    } else if (future.some((t) => t.id === transactionId)) {
+      while (useHistoryStore.getState().future.length > 0) {
+        const next = useHistoryStore.getState().future[0];
+        historyCommands.redo();
+        if (next.id === transactionId) return true;
+      }
+    }
+    return false;
+  },
+};
 
 function requireLayer(draft: Draft<MotionDocument>, layerId: string): Draft<Layer> {
   const layer = draft.layers[layerId];
@@ -108,6 +419,11 @@ function detachChild(draft: Draft<MotionDocument>, layer: Draft<Layer>) {
 }
 
 export const documentCommands = {
+  /** Opens a transaction for a gesture (see the file header). Nested calls join the open one. */
+  begin(label: string): DocumentTransaction {
+    return beginTransaction(label);
+  },
+
   // ---------------------------------------------------------------- layers
 
   /** Adds a new layer of `archetype` (registry defaults unless props are given). Returns its id. */
