@@ -15,17 +15,15 @@ import { IntentParser } from "@/ai/intent/IntentParser";
 import { StructuredIntent } from "@/ai/intent/intent-types";
 import { ConstrainedDecoder } from "./ConstrainedDecoder";
 import { ForceDirectedLayout } from "@/ai/layout/ForceDirectedLayout";
-import {
-  ProjectStateSnapshot,
-  PageDefinition,
-  ProjectElement,
-  StateVariable,
-} from "@/core/store/useProjectStore";
+import { ProjectStateSnapshot, PageDefinition, StateVariable } from "@/core/store/useProjectStore";
 import { CollectionSchema, DatabaseField } from "@/core/types/database";
 import { AnimationSample } from "@/core/types/animations";
 import { DataBindingDescriptor } from "@/core/types/data-binding";
 import { BlueprintGraph } from "@/core/ast/ASTManager";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
+import type { Layer } from "@/core/document/schema";
+import { createDocumentFromLayers } from "@/core/document/factories";
+import { normalizeDocument } from "@/core/document/migrations";
 
 export interface ScaffoldOptions {
   projectName?: string;
@@ -80,7 +78,7 @@ export class ProjectScaffolder {
       projectName,
       activePageId,
       pages,
-      elements,
+      document: normalizeDocument(createDocumentFromLayers(Object.values(elements))),
       databaseSchemas,
       databaseRecords,
       stateVariables,
@@ -113,11 +111,11 @@ export class ProjectScaffolder {
 
   private static generatePagesAndElements(intent: StructuredIntent): {
     pages: Record<string, PageDefinition>;
-    elements: Record<string, ProjectElement>;
+    elements: Record<string, Layer>;
     activePageId: string;
   } {
     const pages: Record<string, PageDefinition> = {};
-    const elements: Record<string, ProjectElement> = {};
+    const elements: Record<string, Layer> = {};
 
     // Determine required pages
     const pageSpecs: { id: string; name: string; slug: string }[] = [];
@@ -560,7 +558,7 @@ export class ProjectScaffolder {
   }
 
   private static generateDataBindings(
-    elements: Record<string, ProjectElement>,
+    elements: Record<string, Layer>,
     databaseSchemas: Record<string, CollectionSchema>
   ): Record<string, DataBindingDescriptor> {
     const bindings: Record<string, DataBindingDescriptor> = {};

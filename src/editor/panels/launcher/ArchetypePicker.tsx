@@ -12,11 +12,8 @@
  */
 
 import React from "react";
-import {
-  ARCHETYPE_FAMILIES,
-  ArchetypeId,
-  ArchetypeDefinition,
-} from "./archetypeData";
+import { ARCHETYPE_FAMILIES, ArchetypeDefinition } from "./archetypeData";
+import type { InitialArchetypeId as ArchetypeId } from "@/core/document/registry";
 import {
   MousePointerClick,
   ToggleLeft,

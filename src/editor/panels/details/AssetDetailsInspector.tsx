@@ -48,15 +48,14 @@ import {
   AddPaletteItem,
 } from "@/core/types/details";
 import {
-  ElementType,
   DetailSectionId,
-  ELEMENT_SECTION_REGISTRY,
   ButtonSpecificConfig,
   ImageSpecificConfig,
   TextSpecificConfig,
   ContainerSpecificConfig,
   InputSpecificConfig,
 } from "@/core/types/element-sections";
+import { getArchetype, type ArchetypeId } from "@/core/document/registry";
 import { AddComponentPalette } from "./AddComponentPalette";
 import { AppearanceEditor } from "./sections/AppearanceEditor";
 import { TypographyEditor } from "./sections/TypographyEditor";
@@ -282,7 +281,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
   const [events, setEvents] = useState<ComponentEventBinding[]>(defaultSchema.events);
 
   // Element Type Detection & Context Switching
-  const initialElementType = useMemo<ElementType>(() => {
+  const initialElementType = useMemo<ArchetypeId>(() => {
     if (defaultSchema.elementType) return defaultSchema.elementType;
     const lowerTitle = panelTitle.toLowerCase();
     const lowerId = panelId.toLowerCase();
@@ -315,7 +314,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
     return "generic";
   }, [defaultSchema.elementType, panelTitle, panelId, isImage]);
 
-  const [activeElementType, setActiveElementType] = useState<ElementType>(initialElementType);
+  const [activeElementType, setActiveElementType] = useState<ArchetypeId>(initialElementType);
   const [prevInitialElementType, setPrevInitialElementType] = useState(initialElementType);
   if (initialElementType !== prevInitialElementType) {
     setPrevInitialElementType(initialElementType);
@@ -412,7 +411,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
     if (isBlueprint || isSequencer || isConsole) {
       return ["identity", "sequence", "console"];
     }
-    return ELEMENT_SECTION_REGISTRY[activeElementType] || ELEMENT_SECTION_REGISTRY.generic;
+    return [...getArchetype(activeElementType).sections];
   }, [activeElementType, isBlueprint, isSequencer, isConsole]);
 
   // Variable category collapse states
@@ -903,7 +902,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
                     isActive ? "details-archetype-pill--active" : ""
                   }`}
                   onClick={() => {
-                    setActiveElementType(archetype.id as ElementType);
+                    setActiveElementType(archetype.id as ArchetypeId);
                     setActionNotification({
                       message: `Switched context to ${archetype.label} Archetype`,
                       type: "success",
@@ -967,7 +966,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
                   className="form-select archetype-select-field"
                   value={activeElementType}
                   onChange={(e) => {
-                    const next = e.target.value as ElementType;
+                    const next = e.target.value as ArchetypeId;
                     setActiveElementType(next);
                     setActionNotification({
                       message: `Switched archetype to ${next}`,

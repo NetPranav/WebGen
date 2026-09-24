@@ -10,13 +10,16 @@
  * ============================================================================
  */
 
-import { BaseElementNode, AttachedAnimation, FamilyId, ArchetypeId, AnimationTrack } from "../elements/types";
+import { getArchetype, type ArchetypeId, type FamilyId } from "../document/registry";
+import { hydrateClip, type ClipDraft } from "../document/factories";
+import type { ClipTemplate, Layer } from "../document/schema";
 import { ALL_PRESETS, getPresetById, RULE_6_1_BLOCKED_CATEGORIES } from "../motion/presets";
+import { createId } from "../ids";
 
 export interface MotionAiRequest {
   prompt: string;
-  targetElement: BaseElementNode;
-  existingAnimations?: AttachedAnimation[];
+  targetElement: Layer;
+  existingAnimations?: ClipTemplate[];
 }
 
 export interface MotionAiDiffSummary {
@@ -28,9 +31,9 @@ export interface MotionAiDiffSummary {
 export interface MotionAiResponse {
   success: boolean;
   intent: string;
-  targetFamily: FamilyId;
+  targetFamily: FamilyId | null;
   targetArchetype: ArchetypeId;
-  ghostAnimation: AttachedAnimation | null;
+  ghostAnimation: ClipTemplate | null;
   diffSummary: MotionAiDiffSummary;
   explanation: string;
   ruleViolation?: {
@@ -48,7 +51,7 @@ interface IntentMatchRule {
   keywords: string[];
   matchedIntent: string;
   presetId?: string;
-  generator?: (element: BaseElementNode) => AttachedAnimation;
+  generator?: (element: Layer) => ClipDraft;
 }
 
 export class MotionAiEngine {
@@ -58,7 +61,8 @@ export class MotionAiEngine {
   public generateMotion(request: MotionAiRequest): MotionAiResponse {
     const { prompt, targetElement, existingAnimations = [] } = request;
     const normalizedPrompt = prompt.toLowerCase().trim();
-    const { archetype, family } = targetElement;
+    const { archetype } = targetElement;
+    const family = getArchetype(archetype).family;
 
     // 1. Check Rule 6.1 (Category Hard Block)
     const ruleCheck = this.checkRule61(normalizedPrompt, archetype);
@@ -80,8 +84,8 @@ export class MotionAiEngine {
       };
     }
 
-    // 2. Parse Intent and synthesize AttachedAnimation
-    const candidate = this.synthesizeAnimationForPrompt(normalizedPrompt, targetElement);
+    // 2. Parse Intent and synthesize a clip
+    const candidate = hydrateClip(this.synthesizeAnimationForPrompt(normalizedPrompt, targetElement));
 
     // 3. Compute Diff against existing tracks
     const diffSummary = this.computeDiff(candidate, existingAnimations);
@@ -163,17 +167,18 @@ export class MotionAiEngine {
   /**
    * Synthesize animation tracks matching user natural language prompt.
    */
-  private synthesizeAnimationForPrompt(prompt: string, element: BaseElementNode): AttachedAnimation {
+  private synthesizeAnimationForPrompt(prompt: string, element: Layer): ClipDraft {
     const p = prompt.toLowerCase();
-    const animId = `ghost_${Math.random().toString(36).slice(2, 7)}`;
+    const family = getArchetype(element.archetype).family;
+    const animId = createId("ghost");
 
     // A. Image: Ken Burns
-    if (p.includes("ken burns") || (p.includes("zoom") && element.family === "media")) {
+    if (p.includes("ken burns") || (p.includes("zoom") && family === "media")) {
       return {
         id: animId,
         name: "Ken Burns Subtle Zoom",
         type: "loop",
-        trigger: "ambient",
+        trigger: "time",
         duration: 8.0,
         repeat: -1,
         easing: "sine.inOut",
@@ -213,7 +218,7 @@ export class MotionAiEngine {
         id: animId,
         name: "Elastic Bounce on Tap",
         type: "tap",
-        trigger: "onClick",
+        trigger: "press",
         duration: 0.35,
         easing: "spring(stiffness: 450, damping: 18)",
         enabled: true,
@@ -237,7 +242,7 @@ export class MotionAiEngine {
         id: animId,
         name: "Slow Sunrise Gradient Drift",
         type: "loop",
-        trigger: "ambient",
+        trigger: "time",
         duration: 12.0,
         repeat: -1,
         easing: "sine.inOut",
@@ -270,7 +275,7 @@ export class MotionAiEngine {
         id: animId,
         name: "Divider Center Draw-In",
         type: isScroll ? "scroll" : "entrance",
-        trigger: isScroll ? "onScroll" : "onMount",
+        trigger: isScroll ? "scrollProgress" : "mount",
         duration: 0.9,
         easing: isScroll ? "none" : "power3.out",
         enabled: true,
@@ -301,12 +306,12 @@ export class MotionAiEngine {
     }
 
     // E. Text: Word stagger cascade
-    if (element.family === "text" && (p.includes("stagger") || p.includes("word") || p.includes("cascade"))) {
+    if (family === "text" && (p.includes("stagger") || p.includes("word") || p.includes("cascade"))) {
       return {
         id: animId,
         name: "Word Stagger Cascade",
         type: "entrance",
-        trigger: "onMount",
+        trigger: "mount",
         duration: 0.85,
         easing: "power3.out",
         enabled: true,
@@ -339,7 +344,7 @@ export class MotionAiEngine {
         id: animId,
         name: "SVG Vector Path Draw",
         type: "entrance",
-        trigger: "onMount",
+        trigger: "mount",
         duration: 1.4,
         easing: "power2.inOut",
         enabled: true,
@@ -361,7 +366,7 @@ export class MotionAiEngine {
         id: animId,
         name: "Magnetic Spring Hover",
         type: "hover",
-        trigger: "onHover",
+        trigger: "hover",
         duration: 0.3,
         easing: "spring(stiffness: 400, damping: 22)",
         enabled: true,
@@ -389,7 +394,7 @@ export class MotionAiEngine {
       id: animId,
       name: "Smooth Entrance Reveal",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.6,
       easing: "power2.out",
       enabled: true,
@@ -415,7 +420,7 @@ export class MotionAiEngine {
   /**
    * Compares the candidate animation against existing element tracks.
    */
-  private computeDiff(candidate: AttachedAnimation, existingAnimations: AttachedAnimation[]): MotionAiDiffSummary {
+  private computeDiff(candidate: ClipTemplate, existingAnimations: ClipTemplate[]): MotionAiDiffSummary {
     const existingProperties = new Set<string>();
     for (const anim of existingAnimations) {
       if (anim.tracks) {

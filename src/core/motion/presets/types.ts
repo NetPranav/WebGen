@@ -10,7 +10,11 @@
  * ============================================================================
  */
 
-import { AttachedAnimation, FamilyId, ArchetypeId } from "../../elements/types";
+import type { ArchetypeId, FamilyId } from "../../document/registry";
+import type { ClipDraft } from "../../document/factories";
+
+/** A preset's animation as stored in the catalogue: a clip draft without ids. */
+export type PresetAnimation = ClipDraft;
 
 export interface MotionPreset {
   id: string;
@@ -21,7 +25,7 @@ export interface MotionPreset {
   description: string;
   badge: "Spring" | "Gesture" | "Mount" | "ScrollTrigger" | "Hover" | "ClipPath" | "Vector" | "Ambient" | "SplitText" | "Physics";
   engine: "gsap" | "framer-motion" | "css-spring" | "svg-runtime";
-  animation: Omit<AttachedAnimation, "id">;
+  animation: PresetAnimation;
   tags: string[];
 }
 

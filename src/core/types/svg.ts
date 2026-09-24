@@ -14,7 +14,7 @@
  * ============================================================================
  */
 
-import { ElementType } from "./element-sections";
+import type { ArchetypeId } from "../document/registry";
 
 // ----------------------------------------------------------------------------
 // 1. SVG Archetype Element Types
@@ -29,7 +29,7 @@ export const SVG_ELEMENT_TYPES: readonly SvgElementType[] = [
   "svgText",
 ] as const;
 
-export function isSvgElementType(type: ElementType): type is SvgElementType {
+export function isSvgElementType(type: ArchetypeId): type is SvgElementType {
   return (SVG_ELEMENT_TYPES as readonly string[]).includes(type);
 }
 

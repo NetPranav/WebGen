@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CrossFrameworkExporter } from "../CrossFrameworkExporter";
-import { ProjectElement } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 test("Sub-Phase 8.2: Interactive Family (Button) exports cleanly across all 4 frameworks", () => {
-  const buttonEl: ProjectElement = {
+  const buttonEl: Layer = {
     id: "btn_action",
     name: "ActionButton",
     archetype: "button",
@@ -41,7 +41,7 @@ test("Sub-Phase 8.2: Interactive Family (Button) exports cleanly across all 4 fr
 });
 
 test("Sub-Phase 8.2: Media Family (Image) exports cleanly across all 4 frameworks", () => {
-  const imageEl: ProjectElement = {
+  const imageEl: Layer = {
     id: "img_hero",
     name: "HeroCover",
     archetype: "image",
@@ -69,7 +69,7 @@ test("Sub-Phase 8.2: Media Family (Image) exports cleanly across all 4 framework
 });
 
 test("Sub-Phase 8.2: Structural Family (Divider) exports cleanly across all 4 frameworks", () => {
-  const dividerEl: ProjectElement = {
+  const dividerEl: Layer = {
     id: "div_accent",
     name: "SectionDivider",
     archetype: "divider",
@@ -93,7 +93,7 @@ test("Sub-Phase 8.2: Structural Family (Divider) exports cleanly across all 4 fr
 });
 
 test("Sub-Phase 8.2: Text Family (Text) exports cleanly across all 4 frameworks", () => {
-  const textEl: ProjectElement = {
+  const textEl: Layer = {
     id: "text_title",
     name: "TitleHeading",
     archetype: "text",

@@ -15,7 +15,7 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 export interface InteractiveEmitterOptions {
   stylingSystem?: "tailwind" | "css-modules" | "vanilla";
@@ -34,7 +34,7 @@ export interface EmittedInteractiveResult {
 
 export class InteractiveEmitter {
   public static emit(
-    element: ProjectElement,
+    element: Layer,
     options: InteractiveEmitterOptions = {}
   ): EmittedInteractiveResult {
     const componentName = options.componentName || this.toPascalCase(element.name || "InteractiveButton");

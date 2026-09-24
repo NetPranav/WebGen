@@ -1,15 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { useProjectStore, ProjectElement } from "../../store/useProjectStore";
+import { useProjectStore } from "../../store/useProjectStore";
 import { multiEngineAnimationRuntime } from "../../runtime/MultiEngineAnimationRuntime";
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
 import { AnimationSample } from "../../types/animations";
+import type { Layer } from "@/core/document/schema";
+import { documentCommands } from "@/core/store/useDocumentStore";
 
 test("Sub-Phase 8.1: Full Pipeline Integration — Interactive Family (Button)", () => {
   const store = useProjectStore.getState();
 
   // 1. Launcher: Initialize project with Button archetype
-  const buttonElement: ProjectElement = {
+  const buttonElement: Layer = {
     id: "el_button_root",
     name: "CtaButton",
     archetype: "button",
@@ -22,8 +24,8 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Interactive Family (Button)",
     },
   };
 
-  store.addElement(buttonElement);
-  assert.equal(useProjectStore.getState().elements["el_button_root"].archetype, "button");
+  documentCommands.insertLayers([buttonElement]);
+  assert.equal(useProjectStore.getState().document.layers["el_button_root"].archetype, "button");
 
   // 2. Sequencer: Choreograph Hover Bounce animation
   const hoverBounceSample: AnimationSample = {
@@ -64,7 +66,7 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Media Family (Image)", () => 
   const store = useProjectStore.getState();
 
   // 1. Launcher: Initialize with Image archetype
-  const imageElement: ProjectElement = {
+  const imageElement: Layer = {
     id: "el_image_root",
     name: "ShowcaseImage",
     archetype: "image",
@@ -77,8 +79,8 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Media Family (Image)", () => 
     },
   };
 
-  store.addElement(imageElement);
-  assert.equal(useProjectStore.getState().elements["el_image_root"].archetype, "image");
+  documentCommands.insertLayers([imageElement]);
+  assert.equal(useProjectStore.getState().document.layers["el_image_root"].archetype, "image");
 
   // 2. Sequencer: Ken Burns Zoom + Blur-In
   const kenBurnsSample: AnimationSample = {
@@ -119,7 +121,7 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Structural Family (Divider)",
   const store = useProjectStore.getState();
 
   // 1. Launcher: Initialize with Divider archetype
-  const dividerElement: ProjectElement = {
+  const dividerElement: Layer = {
     id: "el_divider_root",
     name: "GradientDivider",
     archetype: "divider",
@@ -132,8 +134,8 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Structural Family (Divider)",
     },
   };
 
-  store.addElement(dividerElement);
-  assert.equal(useProjectStore.getState().elements["el_divider_root"].archetype, "divider");
+  documentCommands.insertLayers([dividerElement]);
+  assert.equal(useProjectStore.getState().document.layers["el_divider_root"].archetype, "divider");
 
   // 2. Sequencer: Stroke draw-in
   const drawSample: AnimationSample = {
@@ -169,7 +171,7 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Text Family (Text)", () => {
   const store = useProjectStore.getState();
 
   // 1. Launcher: Initialize with Text archetype
-  const textElement: ProjectElement = {
+  const textElement: Layer = {
     id: "el_text_root",
     name: "HeroHeading",
     archetype: "text",
@@ -182,8 +184,8 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Text Family (Text)", () => {
     },
   };
 
-  store.addElement(textElement);
-  assert.equal(useProjectStore.getState().elements["el_text_root"].archetype, "text");
+  documentCommands.insertLayers([textElement]);
+  assert.equal(useProjectStore.getState().document.layers["el_text_root"].archetype, "text");
 
   // 2. Sequencer: Staggered reveal
   const textSample: AnimationSample = {

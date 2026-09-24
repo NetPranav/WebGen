@@ -11,12 +11,12 @@
  */
 
 import React from "react";
-import { AttachedAnimation } from "@/core/elements/types";
+import type { ClipTemplate } from "@/core/document/schema";
 import { MotionAiDiffSummary } from "@/core/ai/MotionAiEngine";
 import { Check, X, Sparkles, Layers, Clock, Zap } from "lucide-react";
 
 export interface DiffPreviewProps {
-  ghostAnimation: AttachedAnimation;
+  ghostAnimation: ClipTemplate;
   diffSummary: MotionAiDiffSummary;
   onAccept: () => void;
   onDiscard: () => void;

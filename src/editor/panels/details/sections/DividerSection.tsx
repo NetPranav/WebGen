@@ -13,34 +13,25 @@
 
 import React from "react";
 import { Minus, ChevronRight } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
+import type { PropValue } from "@/core/document/registry";
+import { readProps } from "@/core/document/props";
 
 export interface DividerSectionProps {
   elementId: string;
   elementName: string;
 }
 
-// TODO(MDM-P2): typed view over the untyped `ProjectElement.properties` bag;
-// MDM v2 gives each archetype a real props schema.
-interface DividerProps {
-  orientation?: string;
-  length?: number;
-  thickness?: number;
-  style?: string;
-  color?: string;
-  capStyle?: string;
-}
-
 export const DividerSection: React.FC<DividerSectionProps> = ({
   elementId,
   elementName,
 }) => {
-  const { elements, setElementProperty } = useProjectStore();
+  const elements = useLayers();
   const currentElement = elements[elementId];
-  const props = (currentElement?.properties || {}) as DividerProps;
+  const props = readProps(currentElement, "divider");
 
-  const updateProp = (key: string, val: unknown) => {
-    setElementProperty(elementId, key, val, `Update divider ${key}`);
+  const updateProp = (key: string, val: PropValue) => {
+    documentCommands.updateProps(elementId, { [key]: val }, `Update divider ${key}`);
   };
 
   const orientation = props.orientation || "horizontal";

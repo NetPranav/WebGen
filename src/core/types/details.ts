@@ -311,20 +311,20 @@ export interface AssetLayoutSchema {
 }
 
 import {
-  ElementType,
   ButtonSpecificConfig,
   ImageSpecificConfig,
   TextSpecificConfig,
   ContainerSpecificConfig,
   InputSpecificConfig,
 } from "./element-sections";
+import type { ArchetypeId } from "../document/registry";
 
 /** Complete Asset Details Schema */
 export interface AssetDetailSchema {
   assetId: string;
   assetTitle: string;
   assetType: "component" | "blueprint" | "sequencer" | "database" | "image" | "console";
-  elementType?: ElementType;
+  elementType?: ArchetypeId;
   path: string;
   parentClass: string;
   classChain: string[];

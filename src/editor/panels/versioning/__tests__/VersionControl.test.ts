@@ -5,6 +5,7 @@ import { useVersionControlStore } from "../../../../core/store/useVersionControl
 import { useProjectStore, ProjectStateSnapshot } from "../../../../core/store/useProjectStore";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import { DiagnosticEvent } from "../../../../core/types/diagnostics";
+import { loadDocument } from "@/core/document/migrations";
 
 describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
   let baselineSnapshot: ProjectStateSnapshot;
@@ -24,7 +25,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
           rootElementId: "el_root",
         },
       },
-      elements: {
+      document: loadDocument({ elements: {
         el_root: {
           id: "el_root",
           name: "Root Container",
@@ -46,7 +47,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
             variant: "outline",
           },
         },
-      },
+      } }),
       databaseSchemas: {
         col_users: {
           id: "col_users",
@@ -113,11 +114,11 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     const targetSnapshot: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
 
     // 1. Modify property on el_btn
-    targetSnapshot.elements.el_btn.properties.variant = "primary";
-    targetSnapshot.elements.el_btn.properties.fontSize = 14;
+    targetSnapshot.document.layers.el_btn.properties.variant = "primary";
+    targetSnapshot.document.layers.el_btn.properties.fontSize = 14;
 
     // 2. Add a new text element
-    targetSnapshot.elements.el_txt = {
+    targetSnapshot.document.layers.el_txt = {
       id: "el_txt",
       name: "Header Text",
       archetype: "text",
@@ -223,11 +224,11 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
 
     // Current branch changes button variant to "primary"
     const currentHead: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
-    currentHead.elements.el_btn.properties.variant = "primary";
+    currentHead.document.layers.el_btn.properties.variant = "primary";
 
     // Incoming branch changes button variant to "secondary"
     const incomingHead: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
-    incomingHead.elements.el_btn.properties.variant = "secondary";
+    incomingHead.document.layers.el_btn.properties.variant = "secondary";
 
     const result = VersionControlEngine.detectMergeConflicts(baseSnapshot, currentHead, incomingHead);
 
@@ -249,11 +250,11 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
 
     // Current branch changes button variant
     const currentHead: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
-    currentHead.elements.el_btn.properties.variant = "primary";
+    currentHead.document.layers.el_btn.properties.variant = "primary";
 
     // Incoming branch adds a new container element
     const incomingHead: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
-    incomingHead.elements.el_card = {
+    incomingHead.document.layers.el_card = {
       id: "el_card",
       name: "Profile Card",
       archetype: "container",
@@ -269,9 +270,9 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     assert.ok(result.mergedSnapshot);
 
     // Merged snapshot should have BOTH the button variant update AND the new card element
-    assert.strictEqual(result.mergedSnapshot.elements.el_btn.properties.variant, "primary");
-    assert.ok(result.mergedSnapshot.elements.el_card);
-    assert.strictEqual(result.mergedSnapshot.elements.el_card.name, "Profile Card");
+    assert.strictEqual(result.mergedSnapshot.document.layers.el_btn.properties.variant, "primary");
+    assert.ok(result.mergedSnapshot.document.layers.el_card);
+    assert.strictEqual(result.mergedSnapshot.document.layers.el_card.name, "Profile Card");
   });
 
   it("should restore snapshot cleanly into useProjectStore", () => {
@@ -283,11 +284,11 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     // 2. Mutate live project store
     useProjectStore.setState({
       projectName: "Mutated Project Name",
-      elements: {},
+      document: loadDocument({ elements: {} }),
     });
 
     assert.strictEqual(useProjectStore.getState().projectName, "Mutated Project Name");
-    assert.strictEqual(Object.keys(useProjectStore.getState().elements).length, 0);
+    assert.strictEqual(Object.keys(useProjectStore.getState().document.layers).length, 0);
 
     // 3. Restore snapshot
     const restored = store.restoreSnapshot(baselineRecord.id);
@@ -295,7 +296,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
 
     // 4. Confirm project store has restored elements and original project name
     assert.strictEqual(useProjectStore.getState().projectName, "Versioned Web App");
-    assert.ok(useProjectStore.getState().elements.el_btn);
-    assert.strictEqual(useProjectStore.getState().elements.el_btn.properties.label, "Submit");
+    assert.ok(useProjectStore.getState().document.layers.el_btn);
+    assert.strictEqual(useProjectStore.getState().document.layers.el_btn.properties.label, "Submit");
   });
 });

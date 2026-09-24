@@ -1,10 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ReactComponentEmitter } from "../emitters/ReactComponentEmitter";
-import { ProjectElement, PageDefinition } from "../../core/store/useProjectStore";
+import { PageDefinition } from "../../core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () => {
-  const sampleElements: Record<string, ProjectElement> = {
+  const sampleElements: Record<string, Layer> = {
     el_nav: {
       id: "el_nav",
       name: "MainNavbar",
@@ -58,7 +59,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
     assert.equal(ReactComponentEmitter.resolveSemanticTag(sampleElements.el_email_input), "input");
 
     // Container name heuristics
-    const headerEl: ProjectElement = {
+    const headerEl: Layer = {
       id: "el_h",
       name: "AppHeader",
       archetype: "container",
@@ -68,7 +69,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
     };
     assert.equal(ReactComponentEmitter.resolveSemanticTag(headerEl), "header");
 
-    const footerEl: ProjectElement = {
+    const footerEl: Layer = {
       id: "el_f",
       name: "SiteFooter",
       archetype: "container",
@@ -79,7 +80,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
     assert.equal(ReactComponentEmitter.resolveSemanticTag(footerEl), "footer");
 
     // Explicit override
-    const customEl: ProjectElement = {
+    const customEl: Layer = {
       id: "el_c",
       name: "CustomBox",
       archetype: "container",

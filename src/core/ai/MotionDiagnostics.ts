@@ -10,7 +10,14 @@
  * ============================================================================
  */
 
-import { BaseElementNode, AttachedAnimation, AnimationTrack } from "../elements/types";
+import type { PropValue } from "../document/registry";
+import type { ClipTemplate, Layer } from "../document/schema";
+
+/** What an auto-fix changes: props to merge into the layer, and the layer's new clip stack. */
+export interface MotionDiagnosticFix {
+  propsPatch: Record<string, PropValue>;
+  updatedAnimations: ClipTemplate[];
+}
 
 export type DiagnosticSeverity = "info" | "warning" | "error";
 
@@ -23,14 +30,14 @@ export interface MotionDiagnosticIssue {
   impact: string;
   suggestedFix: string;
   autoFixable: boolean;
-  fixAction?: () => { updatedElement: BaseElementNode; updatedAnimations: AttachedAnimation[] };
+  fixAction?: () => MotionDiagnosticFix;
 }
 
 export class MotionDiagnostics {
   /**
    * Run full performance audit on an element and its attached animations.
    */
-  public analyze(element: BaseElementNode, animations: AttachedAnimation[] = []): MotionDiagnosticIssue[] {
+  public analyze(element: Layer, animations: ClipTemplate[] = []): MotionDiagnosticIssue[] {
     const issues: MotionDiagnosticIssue[] = [];
 
     // 1. Layout Reflow Check (animating top/left/width/height instead of transform)
@@ -42,7 +49,7 @@ export class MotionDiagnostics {
     issues.push(...svgMorphIssues);
 
     // 3. Oversized / Unoptimized Image Check
-    const imageIssues = this.checkImageOptimization(element);
+    const imageIssues = this.checkImageOptimization(element, animations);
     issues.push(...imageIssues);
 
     // 4. Excessive Filter / Noise Layers Check
@@ -59,7 +66,7 @@ export class MotionDiagnostics {
   /**
    * Identifies layout reflow violations where geometric properties are animated.
    */
-  private checkLayoutReflows(element: BaseElementNode, animations: AttachedAnimation[]): MotionDiagnosticIssue[] {
+  private checkLayoutReflows(element: Layer, animations: ClipTemplate[]): MotionDiagnosticIssue[] {
     const issues: MotionDiagnosticIssue[] = [];
     const reflowProps = ["layout.width", "layout.height", "layout.top", "layout.left", "layout.margin", "layout.padding"];
 
@@ -85,7 +92,7 @@ export class MotionDiagnostics {
                 return t;
               });
               const updatedAnimations = animations.map((a) => (a.id === anim.id ? { ...a, tracks: updatedTracks } : a));
-              return { updatedElement: { ...element }, updatedAnimations };
+              return { propsPatch: {}, updatedAnimations };
             },
           });
         }
@@ -98,7 +105,7 @@ export class MotionDiagnostics {
   /**
    * Evaluates SVG path morph complexity and vertex point counts.
    */
-  private checkSvgMorphPerformance(element: BaseElementNode, animations: AttachedAnimation[]): MotionDiagnosticIssue[] {
+  private checkSvgMorphPerformance(element: Layer, animations: ClipTemplate[]): MotionDiagnosticIssue[] {
     const issues: MotionDiagnosticIssue[] = [];
     if (element.archetype !== "icon") return issues;
 
@@ -133,13 +140,13 @@ export class MotionDiagnostics {
   /**
    * Flags oversized image dimensions or missing modern responsive containment.
    */
-  private checkImageOptimization(element: BaseElementNode): MotionDiagnosticIssue[] {
+  private checkImageOptimization(element: Layer, animations: ClipTemplate[]): MotionDiagnosticIssue[] {
     const issues: MotionDiagnosticIssue[] = [];
     if (element.archetype !== "image") return issues;
 
     const props = element.properties as Record<string, unknown>;
-    const width = Number(props.width || element.layout.width || 0);
-    const height = Number(props.height || element.layout.height || 0);
+    const width = Number(props.width || 0);
+    const height = Number(props.height || 0);
 
     if (width > 2000 || height > 2000) {
       issues.push({
@@ -152,16 +159,10 @@ export class MotionDiagnostics {
         suggestedFix: "Enable responsive srcset containment or set objectFit='cover' with Next.js Image fill layout.",
         autoFixable: true,
         fixAction: () => {
-          const updatedElement: BaseElementNode = {
-            ...element,
-            properties: {
-              ...element.properties,
-              objectFit: "cover",
-              layout: "fill",
-              loading: "lazy",
-            },
+          return {
+            propsPatch: { objectFit: "cover", layout: "fill", loading: "lazy" },
+            updatedAnimations: [...animations],
           };
-          return { updatedElement, updatedAnimations: [...element.animationStack] };
         },
       });
     }
@@ -172,7 +173,7 @@ export class MotionDiagnostics {
   /**
    * Checks for stacked SVG filter and CSS blur layers that exhaust fillrate budgets.
    */
-  private checkFilterStacking(element: BaseElementNode, animations: AttachedAnimation[]): MotionDiagnosticIssue[] {
+  private checkFilterStacking(element: Layer, animations: ClipTemplate[]): MotionDiagnosticIssue[] {
     const issues: MotionDiagnosticIssue[] = [];
     const props = element.properties as Record<string, unknown>;
 
@@ -218,7 +219,7 @@ export class MotionDiagnostics {
             });
             return { ...anim, tracks: updatedTracks };
           });
-          return { updatedElement: { ...element }, updatedAnimations };
+          return { propsPatch: {}, updatedAnimations };
         },
       });
     }
@@ -229,11 +230,11 @@ export class MotionDiagnostics {
   /**
    * Checks if element animated transforms have GPU compositing hints.
    */
-  private checkGpuCompositing(element: BaseElementNode, animations: AttachedAnimation[]): MotionDiagnosticIssue[] {
+  private checkGpuCompositing(element: Layer, animations: ClipTemplate[]): MotionDiagnosticIssue[] {
     const issues: MotionDiagnosticIssue[] = [];
     const hasTransformTracks = animations.some((a) => a.tracks?.some((t) => t.property.startsWith("transform.")));
 
-    if (hasTransformTracks && !element.appearance?.boxShadow) {
+    if (hasTransformTracks && element.properties.willChange !== "transform") {
       issues.push({
         id: `gpu_will_change_${element.id}`,
         severity: "info",
@@ -244,13 +245,7 @@ export class MotionDiagnostics {
         suggestedFix: "Promote layer with GPU will-change compositing hint.",
         autoFixable: true,
         fixAction: () => {
-          const updatedElement: BaseElementNode = {
-            ...element,
-            appearance: {
-              ...element.appearance,
-            },
-          };
-          return { updatedElement, updatedAnimations: [...animations] };
+          return { propsPatch: { willChange: "transform" }, updatedAnimations: [...animations] };
         },
       });
     }

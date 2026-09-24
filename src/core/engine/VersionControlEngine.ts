@@ -25,6 +25,13 @@ import {
   MergeConflict,
 } from "../types/versioning";
 import { DiagnosticBus } from "./DiagnosticBus";
+import { normalizeDocument, upgradeSnapshot } from "../document/migrations";
+import type { LegacyProjectSnapshot } from "../store/useProjectStore";
+
+/** Stored snapshots may predate MDM v2; read their document through the migration. */
+function documentOf(snapshot: ProjectStateSnapshot | LegacyProjectSnapshot) {
+  return upgradeSnapshot(snapshot as LegacyProjectSnapshot).document;
+}
 
 export class VersionControlEngine {
   /**
@@ -114,8 +121,8 @@ export class VersionControlEngine {
 
     const basePages = base.pages || {};
     const targetPages = target.pages || {};
-    const baseElements = base.elements || {};
-    const targetElements = target.elements || {};
+    const baseElements = documentOf(base).layers;
+    const targetElements = documentOf(target).layers;
     const baseSchemas = base.databaseSchemas || {};
     const targetSchemas = target.databaseSchemas || {};
     const baseGraphs = base.blueprintGraphs || {};
@@ -375,9 +382,11 @@ export class VersionControlEngine {
   ): BranchMergeResult {
     const conflicts: MergeConflict[] = [];
 
-    const baseElements = base.elements || {};
-    const curElements = currentHead.elements || {};
-    const incElements = incomingHead.elements || {};
+    const baseDoc = documentOf(base);
+    const incomingDoc = documentOf(incomingHead);
+    const baseElements = baseDoc.layers;
+    const curElements = documentOf(currentHead).layers;
+    const incElements = incomingDoc.layers;
 
     // 1. Element Property Conflicts & Edit-vs-Delete Conflicts
     const allElIds = new Set([
@@ -509,24 +518,38 @@ export class VersionControlEngine {
     }
 
     // Clean automatic merge: incorporate incoming changes onto current head
-    const mergedSnapshot: ProjectStateSnapshot = JSON.parse(JSON.stringify(currentHead));
+    const mergedSnapshot: ProjectStateSnapshot = structuredClone({ ...currentHead, document: documentOf(currentHead) });
+    const mergedDoc = mergedSnapshot.document;
 
-    // Incorporate incoming non-conflicting elements
+    // Incorporate incoming non-conflicting layers
     for (const [elId, incEl] of Object.entries(incElements)) {
       if (!(elId in baseElements)) {
-        // Element was newly added in incoming branch
-        mergedSnapshot.elements[elId] = JSON.parse(JSON.stringify(incEl));
-      } else if (elId in mergedSnapshot.elements) {
-        // Element in both: apply non-conflicting properties from incoming
+        // Layer was newly added in incoming branch
+        mergedDoc.layers[elId] = structuredClone(incEl);
+      } else if (elId in mergedDoc.layers) {
+        // Layer in both: apply non-conflicting properties from incoming
         const bProps = baseElements[elId]?.properties || {};
         const iProps = incEl.properties || {};
         for (const [k, v] of Object.entries(iProps)) {
           if (JSON.stringify(bProps[k]) !== JSON.stringify(v)) {
-            mergedSnapshot.elements[elId].properties[k] = v;
+            mergedDoc.layers[elId].properties[k] = v;
           }
         }
       }
     }
+
+    // Incorporate incoming clips that were added, or changed only on the incoming branch
+    for (const [clipId, incClip] of Object.entries(incomingDoc.clips)) {
+      const baseClip = baseDoc.clips[clipId];
+      const curClip = mergedDoc.clips[clipId];
+      const addedOnIncoming = !baseClip && !curClip;
+      const changedOnlyOnIncoming =
+        baseClip && curClip && JSON.stringify(baseClip) === JSON.stringify(curClip) && JSON.stringify(baseClip) !== JSON.stringify(incClip);
+      if (addedOnIncoming || changedOnlyOnIncoming) mergedDoc.clips[clipId] = structuredClone(incClip);
+    }
+
+    // New layers from the incoming branch must be linked into their parents.
+    normalizeDocument(mergedDoc);
 
     // Incorporate incoming non-conflicting pages
     for (const [pId, incPage] of Object.entries(incPages)) {

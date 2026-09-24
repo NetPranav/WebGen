@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import { ElementType } from "./element-sections";
+import type { ArchetypeId } from "../document/registry";
 
 export type AnimationTrackId =
   // Transform tracks
@@ -107,7 +107,7 @@ export interface DisallowedTrackReason {
 }
 
 export interface ArchetypeAnimationCompatibilityRule {
-  archetype: ElementType;
+  archetype: ArchetypeId;
   allowedTracks: AnimationTrackId[];
   disallowedTracks: Record<string, DisallowedTrackReason>;
 }
@@ -201,7 +201,7 @@ const COMMON_NON_3D_DISALLOWED_TRACKS: Record<string, DisallowedTrackReason> = {
  * Specifies exactly which tracks are legally permitted on each element archetype.
  */
 export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
-  ElementType,
+  ArchetypeId,
   ArchetypeAnimationCompatibilityRule
 > = {
   text: {

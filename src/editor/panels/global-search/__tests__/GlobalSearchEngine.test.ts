@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { GlobalSearchEngine } from "../../../../runtime/GlobalSearchEngine";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
 import { useSelectionStore } from "../../../../core/store/useSelectionStore";
+import { loadDocument } from "@/core/document/migrations";
 
 describe("Sub-Phase 7.2: Global Search Engine / Find in Blueprints (Panel 25)", () => {
   beforeEach(() => {
@@ -27,7 +28,7 @@ describe("Sub-Phase 7.2: Global Search Engine / Find in Blueprints (Panel 25)", 
           metaTitle: "User Analytics & Dashboard",
         },
       },
-      elements: {
+      document: loadDocument({ elements: {
         el_root: {
           id: "el_root",
           name: "Hero Section Container",
@@ -51,7 +52,7 @@ describe("Sub-Phase 7.2: Global Search Engine / Find in Blueprints (Panel 25)", 
             placeholder: "Enter credentials",
           },
         },
-      },
+      } }),
       blueprintGraphs: {
         graph_main: {
           id: "graph_main",

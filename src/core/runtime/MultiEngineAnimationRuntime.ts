@@ -777,8 +777,8 @@ export const ${varName}: Variants = {
 
     for (const track of sample.tracks) {
       const val = this.interpolateTrackValue(track, progress);
-      // TODO(MDM-P2): legacy dotted paths (`transform.x`, `media.scale` …) still
-      // arrive from `properties.animationStack`; MDM v2 unifies the track IDs.
+      // TODO(P7): this evaluator serves both `AnimationSample` track ids (`translateX`) and
+      // MDM v2 dot-paths (`transform.x`); Phase 7 folds AnimationSample into the document.
       const trackId: string = track.trackId;
 
       switch (trackId) {

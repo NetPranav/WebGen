@@ -14,7 +14,7 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 export interface StructuralEmitterOptions {
   framework?: "nextjs" | "react";
@@ -33,7 +33,7 @@ export interface EmittedStructuralResult {
 
 export class StructuralEmitter {
   public static emit(
-    element: ProjectElement,
+    element: Layer,
     options: StructuralEmitterOptions = {}
   ): EmittedStructuralResult {
     const componentName = options.componentName || this.toPascalCase(element.name || "StructuralElement");
@@ -51,7 +51,7 @@ export class StructuralEmitter {
 
   private static emitDivider(
     name: string,
-    element: ProjectElement,
+    element: Layer,
     options: StructuralEmitterOptions
   ): EmittedStructuralResult {
     const isTailwind = options.stylingSystem !== "css-modules";
@@ -149,7 +149,7 @@ export default ${name};
 
   private static emitBackground(
     name: string,
-    element: ProjectElement,
+    element: Layer,
     options: StructuralEmitterOptions
   ): EmittedStructuralResult {
     const isTailwind = options.stylingSystem !== "css-modules";
@@ -221,7 +221,7 @@ export default ${name};
 
   private static emitContainer(
     name: string,
-    element: ProjectElement,
+    element: Layer,
     options: StructuralEmitterOptions
   ): EmittedStructuralResult {
     const isTailwind = options.stylingSystem !== "css-modules";

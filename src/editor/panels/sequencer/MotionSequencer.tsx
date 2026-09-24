@@ -13,19 +13,12 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "@/editor/styles/sequencer.css";
-import { useProjectStore, ProjectElement } from "@/core/store/useProjectStore";
-import {
-  AttachedAnimation,
-  AnimationTrack,
-  AnimationKeyframe,
-  ScrollTriggerConfig,
-  StaggerConfig,
-  ArchetypeId,
-  FamilyId,
-} from "@/core/elements/types";
-import { getArchetypeDefinition } from "@/editor/panels/launcher/archetypeData";
+import { useProjectStore } from "@/core/store/useProjectStore";
+import { documentCommands, useLayerClips, useLayers } from "@/core/store/useDocumentStore";
+import { getArchetype, type ArchetypeId, type FamilyId, type PropValue } from "@/core/document/registry";
+import type { Clip, Keyframe, ScrollTriggerConfig, StaggerConfig, Track } from "@/core/document/schema";
 import { PlayheadControls } from "./PlayheadControls";
 import { TrackHeader } from "./TrackHeader";
 import { KeyframeTrack } from "./KeyframeTrack";
@@ -36,6 +29,7 @@ import { Plus, ChevronDown, Trash2, Copy, Sliders, ChevronsLeftRight } from "luc
 import { synthesizeSingleTransformMatrix, TransformComponents } from "@/core/runtime/EngineAdapters";
 import { createId } from "@/core/ids";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
+import type { Layer } from "@/core/document/schema";
 
 /**
  * Retrieves valid animatable property paths for a given archetype and family
@@ -140,7 +134,7 @@ export function getValidPropertiesForArchetype(
 /**
  * Interpolates value of a track at given timestamp t.
  */
-export function interpolateTrackValue(track: AnimationTrack, time: number): unknown {
+export function interpolateTrackValue(track: Track, time: number): unknown {
   if (!track.keyframes || track.keyframes.length === 0) return undefined;
   if (track.keyframes.length === 1) return track.keyframes[0].value;
 
@@ -168,7 +162,7 @@ export function interpolateTrackValue(track: AnimationTrack, time: number): unkn
   return sorted[sorted.length - 1].value;
 }
 
-function findKeyframe(tracks: AnimationTrack[], keyframeId: string | null) {
+function findKeyframe(tracks: Track[], keyframeId: string | null) {
   if (!keyframeId) return null;
   for (const track of tracks) {
     const keyframe = track.keyframes.find((k) => (k.id || `kf_${k.time}`) === keyframeId);
@@ -178,29 +172,27 @@ function findKeyframe(tracks: AnimationTrack[], keyframeId: string | null) {
 }
 
 export const MotionSequencer: React.FC = () => {
-  const { elements, setElementProperty, pages, activePageId } = useProjectStore();
+  const elements = useLayers();
+  const pages = useProjectStore((s) => s.pages);
+  const activePageId = useProjectStore((s) => s.activePageId);
 
   // Determine root or active element
   const activePage = pages[activePageId || "page_home"];
   const rootElementId = activePage?.rootElementId || Object.keys(elements)[0];
-  const activeElement: ProjectElement | undefined = elements[rootElementId];
+  const activeElement: Layer | undefined = elements[rootElementId];
 
-  const archetype = activeElement?.archetype as ArchetypeId | undefined;
-  const family: FamilyId | undefined = archetype ? getArchetypeDefinition(archetype)?.family : undefined;
+  const archetype: ArchetypeId | undefined = activeElement?.archetype;
+  const family: FamilyId | undefined = archetype ? (getArchetype(archetype).family ?? undefined) : undefined;
 
-  // Active animation from element's animation stack.
-  // TODO(MDM-P2): the stack lives in `properties.animationStack` (where writes land, AUD-05) until MDM v2.
-  const storedStack = activeElement?.properties.animationStack;
-  const animationStack: AttachedAnimation[] = useMemo(() => {
-    return Array.isArray(storedStack) ? (storedStack as AttachedAnimation[]) : [];
-  }, [storedStack]);
+  // The layer's animation stack: its clips, in order.
+  const animationStack = useLayerClips(activeElement?.id);
 
   const [activeAnimIndex, setActiveAnimIndex] = useState(0);
-  const currentAnimation: AttachedAnimation | undefined = animationStack[activeAnimIndex] || animationStack[0];
+  const currentAnimation: Clip | undefined = animationStack[activeAnimIndex] || animationStack[0];
 
   // Tracks for active animation
   const currentTracks = currentAnimation?.tracks;
-  const tracks: AnimationTrack[] = useMemo(() => {
+  const tracks: Track[] = useMemo(() => {
     if (currentTracks && currentTracks.length > 0) {
       return currentTracks;
     }
@@ -344,32 +336,28 @@ export const MotionSequencer: React.FC = () => {
 
   // Helper to commit tracks back to store
   const commitTracks = useCallback(
-    (newTracks: AnimationTrack[]) => {
+    (newTracks: Track[]) => {
       if (!activeElement) return;
-
-      const updatedStack = [...animationStack];
-      if (updatedStack.length === 0) {
-        updatedStack.push({
-          id: `anim_${Date.now()}`,
-          name: "Default Motion",
-          type: "entrance",
-          trigger: "onMount",
-          duration: totalDuration,
-          easing: "power2.out",
-          enabled: true,
-          tracks: newTracks,
-        });
+      if (!currentAnimation) {
+        documentCommands.addClip(
+          activeElement.id,
+          {
+            id: createId("clip"),
+            name: "Default Motion",
+            type: "entrance",
+            trigger: "mount",
+            duration: totalDuration,
+            easing: "power2.out",
+            enabled: true,
+            tracks: newTracks,
+          },
+          "Update motion tracks"
+        );
       } else {
-        const targetIndex = activeAnimIndex < updatedStack.length ? activeAnimIndex : 0;
-        updatedStack[targetIndex] = {
-          ...updatedStack[targetIndex],
-          tracks: newTracks,
-        };
+        documentCommands.setTracks(currentAnimation.id, newTracks, "Update motion tracks");
       }
-
-      setElementProperty(activeElement.id, "animationStack", updatedStack, "Update motion tracks");
     },
-    [activeElement, animationStack, activeAnimIndex, totalDuration, setElementProperty]
+    [activeElement, currentAnimation, totalDuration]
   );
 
   // Playhead actions
@@ -401,7 +389,7 @@ export const MotionSequencer: React.FC = () => {
     commitTracks(updated);
   };
 
-  const handleUpdateKeyframeValue = (trackId: string, kfId: string, val: unknown) => {
+  const handleUpdateKeyframeValue = (trackId: string, kfId: string, val: PropValue) => {
     const updated = tracks.map((t) => {
       if (t.id !== trackId) return t;
       return {
@@ -427,8 +415,8 @@ export const MotionSequencer: React.FC = () => {
     const targetTrack = tracks.find((t) => t.id === activeTrackId) || tracks[0];
     if (!targetTrack) return;
 
-    const newKf: AnimationKeyframe = {
-      id: `kf_${Date.now()}`,
+    const newKf: Keyframe = {
+      id: createId("kf"),
       time: Math.round(currentTime * 120) / 120,
       value: "default",
       ease: currentAnimation?.easing || "power2.out",
@@ -464,8 +452,8 @@ export const MotionSequencer: React.FC = () => {
     const sourceKf = targetTrack.keyframes.find((k) => (k.id || `kf_${k.time}`) === kfId);
     if (!sourceKf) return;
 
-    const newKf: AnimationKeyframe = {
-      id: `kf_${Date.now()}`,
+    const newKf: Keyframe = {
+      id: createId("kf"),
       time: Math.min(totalDuration, Math.round((currentTime || sourceKf.time + 0.1) * 120) / 120),
       value: sourceKf.value,
       ease: sourceKf.ease,
@@ -518,7 +506,7 @@ export const MotionSequencer: React.FC = () => {
     setIsAddTrackOpen(false);
     if (tracks.some((t) => t.property === property)) return;
 
-    const newTrack: AnimationTrack = {
+    const newTrack: Track = {
       id: createId("tr"),
       property,
       keyframes: [
@@ -576,14 +564,8 @@ export const MotionSequencer: React.FC = () => {
 
   // ScrollTrigger & Stagger update handlers
   const handleUpdateScrollTrigger = (stConfig: ScrollTriggerConfig) => {
-    if (!activeElement || !currentAnimation) return;
-    const updatedStack = [...animationStack];
-    const targetIdx = activeAnimIndex < updatedStack.length ? activeAnimIndex : 0;
-    updatedStack[targetIdx] = {
-      ...updatedStack[targetIdx],
-      scrollTrigger: stConfig,
-    };
-    setElementProperty(activeElement.id, "animationStack", updatedStack, "Update ScrollTrigger");
+    if (!currentAnimation) return;
+    documentCommands.updateClip(currentAnimation.id, { scrollTrigger: stConfig }, "Update ScrollTrigger");
   };
 
   const handleSimulateScroll = (progress: number) => {
@@ -591,25 +573,13 @@ export const MotionSequencer: React.FC = () => {
   };
 
   const handleUpdateRepeat = (repeatVal: number) => {
-    if (!activeElement || !currentAnimation) return;
-    const updatedStack = [...animationStack];
-    const targetIdx = activeAnimIndex < updatedStack.length ? activeAnimIndex : 0;
-    updatedStack[targetIdx] = {
-      ...updatedStack[targetIdx],
-      repeat: repeatVal,
-    };
-    setElementProperty(activeElement.id, "animationStack", updatedStack, "Update repeat policy");
+    if (!currentAnimation) return;
+    documentCommands.updateClip(currentAnimation.id, { repeat: repeatVal }, "Update repeat policy");
   };
 
   const handleUpdateStagger = (staggerConfig?: StaggerConfig) => {
-    if (!activeElement || !currentAnimation) return;
-    const updatedStack = [...animationStack];
-    const targetIdx = activeAnimIndex < updatedStack.length ? activeAnimIndex : 0;
-    updatedStack[targetIdx] = {
-      ...updatedStack[targetIdx],
-      stagger: staggerConfig,
-    };
-    setElementProperty(activeElement.id, "animationStack", updatedStack, "Update child stagger");
+    if (!currentAnimation) return;
+    documentCommands.updateClip(currentAnimation.id, { stagger: staggerConfig }, "Update child stagger");
   };
 
   const validProperties = getValidPropertiesForArchetype(archetype, family);

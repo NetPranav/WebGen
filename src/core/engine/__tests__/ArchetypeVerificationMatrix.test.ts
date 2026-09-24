@@ -1,10 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { ProjectElement } from "../../../core/store/useProjectStore";
+
 import { multiEngineAnimationRuntime } from "../../../core/runtime/MultiEngineAnimationRuntime";
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
 import { AnimationSample, AnimationTrackId } from "../../../core/types/animations";
-import { ElementType } from "../../../core/types/element-sections";
+import type { ArchetypeId } from "../../document/registry";
+import type { Layer } from "@/core/document/schema";
+import type { PropValue } from "../../../core/document/registry";
 
 /**
  * ============================================================================
@@ -22,10 +24,10 @@ import { ElementType } from "../../../core/types/element-sections";
  */
 
 interface ArchetypeDefinition {
-  archetype: ElementType;
+  archetype: ArchetypeId;
   name: string;
   family: "interactive" | "media" | "structural" | "text";
-  properties: Record<string, unknown>;
+  properties: Record<string, PropValue>;
   motionProperty: AnimationTrackId;
   motionKeyframes: { time: number; value: number | string }[]; // time in seconds
 }
@@ -186,7 +188,7 @@ describe("Sub-Phase 8.4: 10-Archetype × 5-Dimension Verification Matrix", () =>
 
   for (const item of ARCHETYPES) {
     describe(`Archetype: ${item.name} (${item.archetype.toUpperCase()})`, () => {
-      const element: ProjectElement = {
+      const element: Layer = {
         id: `el-${item.archetype}-001`,
         name: item.name,
         archetype: item.archetype,

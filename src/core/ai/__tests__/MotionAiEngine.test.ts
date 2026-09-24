@@ -14,79 +14,58 @@ import {
   filterPresets,
 } from "../../motion/presets";
 import { motionDiagnostics } from "../MotionDiagnostics";
-import { BaseElementNode } from "../../elements/types";
+import { hydrateClip, type ClipDraft } from "../../document/factories";
+import type { Layer } from "../../document/schema";
+
+/** A layer plus its animation stack, as the co-pilot sees it. */
+type TestElement = Layer & { animationStack: ClipDraft[] };
 
 describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
-  const dummyButton: BaseElementNode = {
+  const dummyButton: TestElement = {
     id: "elem_btn_test",
     name: "Primary CTA Button",
     archetype: "button",
-    family: "interactive",
-    tag: "button",
     parentId: null,
-    layout: { width: 140, height: 44 },
-    appearance: { opacity: 1 },
-    transform: { scale: 1 },
     properties: { label: "Get Started" },
     children: [],
     animationStack: [],
   };
 
-  const dummyImage: BaseElementNode = {
+  const dummyImage: TestElement = {
     id: "elem_img_test",
     name: "Hero Showcase Image",
     archetype: "image",
-    family: "media",
-    tag: "img",
     parentId: null,
-    layout: { width: 800, height: 600 },
-    appearance: { opacity: 1 },
-    transform: { scale: 1 },
     properties: { src: "/images/hero.webp", objectFit: "cover" },
     children: [],
     animationStack: [],
   };
 
-  const dummyDivider: BaseElementNode = {
+  const dummyDivider: TestElement = {
     id: "elem_div_test",
     name: "Section Divider",
     archetype: "divider",
-    family: "structural",
-    tag: "hr",
     parentId: null,
-    layout: { width: 600, height: 2 },
-    appearance: { opacity: 1 },
-    transform: { scale: 1 },
     properties: { orientation: "horizontal" },
     children: [],
     animationStack: [],
   };
 
-  const dummyBackground: BaseElementNode = {
+  const dummyBackground: TestElement = {
     id: "elem_bg_test",
     name: "Ambient Gradient Backdrop",
     archetype: "background",
-    family: "structural",
-    tag: "div",
     parentId: null,
-    layout: { width: 1200, height: 800 },
-    appearance: { opacity: 1 },
-    transform: { scale: 1 },
     properties: { type: "linear-gradient" },
     children: [],
     animationStack: [],
   };
 
-  const dummyText: BaseElementNode = {
+  const dummyText: TestElement = {
     id: "elem_text_test",
     name: "Hero Heading Title",
     archetype: "text",
-    family: "text",
-    tag: "h1",
     parentId: null,
-    layout: { width: 700, height: 80 },
-    appearance: { opacity: 1 },
-    transform: { scale: 1 },
     properties: { content: "Build visually. Ship flawlessly." },
     children: [],
     animationStack: [],
@@ -103,7 +82,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
       assert.equal(res.targetFamily, "interactive");
       assert.equal(res.targetArchetype, "button");
       assert.ok(res.ghostAnimation);
-      assert.equal(res.ghostAnimation.trigger, "onClick");
+      assert.equal(res.ghostAnimation.trigger, "press");
       assert.equal(res.ghostAnimation.type, "tap");
       assert.ok(res.ghostAnimation.tracks && res.ghostAnimation.tracks.length > 0);
       assert.equal(res.ghostAnimation.tracks[0].property, "transform.scale");
@@ -119,7 +98,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
       assert.equal(res.success, true);
       assert.equal(res.targetFamily, "media");
       assert.ok(res.ghostAnimation);
-      assert.equal(res.ghostAnimation.trigger, "ambient");
+      assert.equal(res.ghostAnimation.trigger, "time");
       assert.equal(res.ghostAnimation.repeat, -1);
       assert.ok(res.ghostAnimation.tracks?.some((t) => t.property === "transform.scale"));
       assert.ok(res.ghostAnimation.tracks?.some((t) => t.property === "media.focalPoint.x"));
@@ -134,7 +113,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
       assert.equal(res.success, true);
       assert.equal(res.targetFamily, "structural");
       assert.ok(res.ghostAnimation);
-      assert.equal(res.ghostAnimation.trigger, "ambient");
+      assert.equal(res.ghostAnimation.trigger, "time");
       assert.ok(res.ghostAnimation.tracks?.some((t) => t.property === "background.gradient.angle"));
     });
 
@@ -147,7 +126,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
       assert.equal(res.success, true);
       assert.equal(res.targetFamily, "structural");
       assert.ok(res.ghostAnimation);
-      assert.equal(res.ghostAnimation.trigger, "onScroll");
+      assert.equal(res.ghostAnimation.trigger, "scrollProgress");
       assert.ok(res.ghostAnimation.scrollTrigger);
       assert.ok(res.ghostAnimation.tracks?.some((t) => t.property === "transform.scaleX"));
     });
@@ -208,11 +187,11 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
         prompt: "add an elastic bounce on tap",
         targetElement: dummyButton,
         existingAnimations: [
-          {
+          hydrateClip({
             id: "anim_existing",
             name: "Initial Scale",
             type: "hover",
-            trigger: "onHover",
+            trigger: "hover",
             duration: 0.2,
             easing: "linear",
             enabled: true,
@@ -222,7 +201,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
                 keyframes: [{ time: 0, value: 1 }],
               },
             ],
-          },
+          }),
         ],
       });
 
@@ -263,9 +242,10 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
     it("instantiates a preset with unique IDs and cloned tracks", () => {
       const instantiated = instantiatePreset("preset_interactive_magnetic_hover");
       assert.ok(instantiated);
-      assert.ok(instantiated.id.startsWith("anim_interactive_magnetic_hover_"));
-      assert.equal(instantiated.tracks?.length, 2);
-      assert.ok(instantiated.tracks[0].keyframes[0].id?.startsWith("kf_"));
+      assert.match(instantiated.id, /^clip_[0-9a-f]{8}$/);
+      assert.notEqual(instantiatePreset("preset_interactive_magnetic_hover")?.id, instantiated.id);
+      assert.equal(instantiated.tracks.length, 2);
+      assert.match(instantiated.tracks[0].keyframes[0].id, /^kf_[0-9a-f]{8}$/);
     });
 
     it("filters presets by search query and badge", () => {
@@ -281,14 +261,14 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
 
   describe("Sub-Phase 7.4: Diagnostic Assistant", () => {
     it("flags layout reflow violations when animating layout.top / layout.left", () => {
-      const elementWithReflow: BaseElementNode = {
+      const elementWithReflow: TestElement = {
         ...dummyButton,
         animationStack: [
           {
             id: "anim_bad_reflow",
             name: "Bad Reflow Anim",
             type: "entrance",
-            trigger: "onMount",
+            trigger: "mount",
             duration: 0.5,
             easing: "linear",
             enabled: true,
@@ -302,7 +282,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
         ],
       };
 
-      const issues = motionDiagnostics.analyze(elementWithReflow, elementWithReflow.animationStack);
+      const issues = motionDiagnostics.analyze(elementWithReflow, elementWithReflow.animationStack.map(hydrateClip));
       const reflowIssue = issues.find((i) => i.category === "reflow");
 
       assert.ok(reflowIssue);
@@ -315,7 +295,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
     });
 
     it("flags oversized unoptimized images > 2000px", () => {
-      const hugeImage: BaseElementNode = {
+      const hugeImage: TestElement = {
         ...dummyImage,
         properties: { width: 3840, height: 2160 },
       };
@@ -328,11 +308,11 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
       assert.ok(imgIssue.autoFixable);
 
       const fixed = imgIssue.fixAction!();
-      assert.equal(fixed.updatedElement.properties.layout, "fill");
+      assert.equal(fixed.propsPatch.layout, "fill");
     });
 
     it("flags heavy filter stacking with blur > 24px and noise texture", () => {
-      const noisyHeavyElement: BaseElementNode = {
+      const noisyHeavyElement: TestElement = {
         ...dummyBackground,
         properties: { noise: { opacity: 0.15 } },
         animationStack: [
@@ -340,7 +320,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
             id: "anim_heavy_blur",
             name: "Extreme Blur",
             type: "entrance",
-            trigger: "onMount",
+            trigger: "mount",
             duration: 1.0,
             easing: "linear",
             enabled: true,
@@ -354,7 +334,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
         ],
       };
 
-      const issues = motionDiagnostics.analyze(noisyHeavyElement, noisyHeavyElement.animationStack);
+      const issues = motionDiagnostics.analyze(noisyHeavyElement, noisyHeavyElement.animationStack.map(hydrateClip));
       const filterIssue = issues.find((i) => i.category === "filter-stack");
 
       assert.ok(filterIssue);

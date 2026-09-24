@@ -30,13 +30,15 @@ import {
   Activity,
   Cpu,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { motionAiEngine, MotionAiResponse } from "@/core/ai/MotionAiEngine";
 import { ALL_PRESETS, getPresetsForArchetype, instantiatePreset, MotionPreset } from "@/core/motion/presets";
 import { motionDiagnostics, MotionDiagnosticIssue } from "@/core/ai/MotionDiagnostics";
 import { DiffPreview } from "./DiffPreview";
-import { AttachedAnimation, BaseElementNode } from "@/core/elements/types";
+import { documentCommands, useLayer, useLayerClips } from "@/core/store/useDocumentStore";
+import { getArchetype } from "@/core/document/registry";
+import { toClipTemplate } from "@/core/document/factories";
+import type { ClipTemplate } from "@/core/document/schema";
 
 export interface MotionAICoPilotProps {
   onClose?: () => void;
@@ -44,31 +46,16 @@ export interface MotionAICoPilotProps {
 }
 
 export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style }) => {
-  const elements = useProjectStore((s) => s.elements);
-  const setElementProperty = useProjectStore((s) => s.setElementProperty);
   const activeElementId = useSelectionStore((s) => s.selectedId);
-  // TODO(MDM-P2): the co-pilot works on a BaseElementNode view of ProjectElement. The animation
-  // stack lives in `properties.animationStack` (where the Sequencer writes it) until MDM v2.
-  const activeElement = useMemo(() => {
-    const el = activeElementId ? elements[activeElementId] : undefined;
-    if (!el) return null;
-    const stack = el.properties.animationStack;
-    return {
-      ...el,
-      animationStack: Array.isArray(stack) ? stack : [],
-    } as unknown as BaseElementNode;
-  }, [elements, activeElementId]);
+  const activeElement = useLayer(activeElementId) ?? null;
+  const activeClips = useLayerClips(activeElementId);
+  const activeFamily = activeElement ? getArchetype(activeElement.archetype).family : null;
 
-  const updateElement = (
-    elementId: string,
-    patch: { animationStack: AttachedAnimation[]; properties?: Record<string, unknown> },
-    actionLabel: string
-  ) => {
-    const current = elements[elementId]?.properties ?? {};
-    for (const [key, value] of Object.entries(patch.properties ?? {})) {
-      if (current[key] !== value) setElementProperty(elementId, key, value);
-    }
-    setElementProperty(elementId, "animationStack", patch.animationStack, actionLabel);
+  /** Replaces the active layer's stack, swapping out any clip with the same trigger. */
+  const replaceClipForTrigger = (clip: ClipTemplate, label: string) => {
+    if (!activeElement) return;
+    const others = activeClips.filter((c) => c.trigger !== clip.trigger).map(toClipTemplate);
+    documentCommands.setLayerClips(activeElement.id, [...others, clip], label);
   };
 
   const [activeTab, setActiveTab] = useState<"choreography" | "presets" | "diagnostics">("choreography");
@@ -80,7 +67,7 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
   // Quick prompt suggestions based on active element family
   const quickPrompts = useMemo(() => {
     if (!activeElement) return ["Add an entrance fade and lift", "Add a subtle float idle"];
-    switch (activeElement.family) {
+    switch (activeFamily) {
       case "interactive":
         return [
           "Add an elastic bounce on tap",
@@ -112,7 +99,7 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
       default:
         return ["Add entrance reveal", "Add hover scale"];
     }
-  }, [activeElement]);
+  }, [activeElement, activeFamily]);
 
   // Handle Prompt Submission
   const handleSubmitPrompt = (textToSubmit?: string) => {
@@ -122,7 +109,7 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
     const res = motionAiEngine.generateMotion({
       prompt,
       targetElement: activeElement,
-      existingAnimations: activeElement.animationStack || [],
+      existingAnimations: activeClips,
     });
 
     setActiveDiff(res);
@@ -133,14 +120,8 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
   const handleAcceptGhost = () => {
     if (!activeDiff?.ghostAnimation || !activeElement) return;
 
-    const existing = activeElement.animationStack || [];
     // Replace if same trigger exists or append
-    const updated = [
-      ...existing.filter((a) => a.trigger !== activeDiff.ghostAnimation!.trigger),
-      activeDiff.ghostAnimation,
-    ];
-
-    updateElement(activeElement.id, { animationStack: updated }, "AI: accept ghost motion");
+    replaceClipForTrigger(activeDiff.ghostAnimation, "AI: accept ghost motion");
 
     setNotification(`Accepted motion: "${activeDiff.ghostAnimation.name}" merged cleanly.`);
     setActiveDiff(null);
@@ -178,10 +159,7 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
     const instantiated = instantiatePreset(preset.id);
     if (!instantiated) return;
 
-    const existing = activeElement.animationStack || [];
-    const updated = [...existing.filter((a) => a.trigger !== instantiated.trigger), instantiated];
-
-    updateElement(activeElement.id, { animationStack: updated }, `Apply preset: ${preset.name}`);
+    replaceClipForTrigger(instantiated, `Apply preset: ${preset.name}`);
 
     setNotification(`Applied preset "${preset.name}" to ${activeElement.name}`);
     setTimeout(() => setNotification(null), 3000);
@@ -196,7 +174,7 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
     setActiveDiff({
       success: true,
       intent: preset.name,
-      targetFamily: activeElement.family,
+      targetFamily: activeFamily,
       targetArchetype: activeElement.archetype,
       ghostAnimation: instantiated,
       diffSummary: {
@@ -211,17 +189,16 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
   // Diagnostics
   const diagnosticIssues = useMemo(() => {
     if (!activeElement) return [];
-    return motionDiagnostics.analyze(activeElement, activeElement.animationStack || []);
-  }, [activeElement]);
+    return motionDiagnostics.analyze(activeElement, activeClips);
+  }, [activeElement, activeClips]);
 
   const handleAutoFix = (issue: MotionDiagnosticIssue) => {
     if (!issue.fixAction) return;
-    const { updatedElement, updatedAnimations } = issue.fixAction();
-    updateElement(
-      updatedElement.id,
-      { animationStack: updatedAnimations, properties: updatedElement.properties },
-      `Auto-fix: ${issue.title}`
-    );
+    if (!activeElement) return;
+    const { propsPatch, updatedAnimations } = issue.fixAction();
+    // One undo step: the labelled command records the snapshot before both changes.
+    documentCommands.updateProps(activeElement.id, propsPatch, `Auto-fix: ${issue.title}`);
+    documentCommands.setLayerClips(activeElement.id, updatedAnimations);
     setNotification(`Resolved: ${issue.title}`);
     setTimeout(() => setNotification(null), 3000);
   };

@@ -4,7 +4,7 @@ import { InteractiveEmitter } from "../react/InteractiveEmitter";
 import { MediaEmitter } from "../react/MediaEmitter";
 import { StructuralEmitter } from "../react/StructuralEmitter";
 import { TextEmitter } from "../react/TextEmitter";
-import { ProjectElement } from "../../../core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
   // ==========================================================================
@@ -12,7 +12,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
   // ==========================================================================
   describe("Sub-Phase 6.2: InteractiveEmitter", () => {
     it("emits semantic <button> with Tailwind CSS classes", () => {
-      const buttonElement: ProjectElement = {
+      const buttonElement: Layer = {
         id: "btn-1",
         name: "Primary Button",
         archetype: "button",
@@ -35,7 +35,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("emits semantic <button> with Scoped CSS Modules", () => {
-      const buttonElement: ProjectElement = {
+      const buttonElement: Layer = {
         id: "btn-2",
         name: "Secondary Button",
         archetype: "button",
@@ -55,7 +55,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("emits accessible <div role=\"switch\"> for Toggle archetype", () => {
-      const toggleElement: ProjectElement = {
+      const toggleElement: Layer = {
         id: "toggle-1",
         name: "Theme Toggle",
         archetype: "toggle",
@@ -74,7 +74,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("emits Badge chip element", () => {
-      const badgeElement: ProjectElement = {
+      const badgeElement: Layer = {
         id: "badge-1",
         name: "Status Pill",
         archetype: "badge",
@@ -94,7 +94,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
   // ==========================================================================
   describe("Sub-Phase 6.2: MediaEmitter", () => {
     it("emits Next.js <Image /> component with fill and aspect ratio wrapper", () => {
-      const imageElement: ProjectElement = {
+      const imageElement: Layer = {
         id: "img-1",
         name: "Hero Cover",
         archetype: "image",
@@ -122,7 +122,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("emits standard React <img loading=\"lazy\"> for Vite / CRA targets", () => {
-      const imageElement: ProjectElement = {
+      const imageElement: Layer = {
         id: "img-2",
         name: "Thumbnail Image",
         archetype: "image",
@@ -145,7 +145,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("emits vector <svg> and <path> for Icon archetype", () => {
-      const iconElement: ProjectElement = {
+      const iconElement: Layer = {
         id: "icon-1",
         name: "Checkmark Icon",
         archetype: "icon",
@@ -170,7 +170,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
   // ==========================================================================
   describe("Sub-Phase 6.2: StructuralEmitter", () => {
     it("emits semantic <hr> for solid Divider", () => {
-      const dividerElement: ProjectElement = {
+      const dividerElement: Layer = {
         id: "div-1",
         name: "Section Divider",
         archetype: "divider",
@@ -190,7 +190,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("emits separator <div> with gradient for gradient Divider", () => {
-      const dividerElement: ProjectElement = {
+      const dividerElement: Layer = {
         id: "div-2",
         name: "Glow Divider",
         archetype: "divider",
@@ -208,7 +208,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("emits backdrop container for Background Layer archetype", () => {
-      const bgElement: ProjectElement = {
+      const bgElement: Layer = {
         id: "bg-1",
         name: "Ambient Backdrop",
         archetype: "background",
@@ -230,7 +230,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
   // ==========================================================================
   describe("Sub-Phase 6.2: TextEmitter", () => {
     it("infers <h1> tag for large font size >= 32px", () => {
-      const headingElement: ProjectElement = {
+      const headingElement: Layer = {
         id: "txt-1",
         name: "Main Title",
         archetype: "text",
@@ -249,7 +249,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("infers <p> tag for standard body font size", () => {
-      const pElement: ProjectElement = {
+      const pElement: Layer = {
         id: "txt-2",
         name: "Body Text",
         archetype: "text",
@@ -267,7 +267,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
     });
 
     it("generates character/word tokens for SplitText stagger reveals", () => {
-      const splitElement: ProjectElement = {
+      const splitElement: Layer = {
         id: "txt-3",
         name: "Hero Reveal Heading",
         archetype: "text",
@@ -292,7 +292,7 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
   // ==========================================================================
   describe("Phase 6 Verification Gate: All 4 Element Families", () => {
     it("verifies clean drop-in output for Button, Image, Divider, Background, and Text", () => {
-      const elements: ProjectElement[] = [
+      const elements: Layer[] = [
         { id: "e1", name: "Primary Button", archetype: "button", properties: { label: "Submit" }, parentId: null, children: [] },
         { id: "e2", name: "Featured Image", archetype: "image", properties: { src: "/img.jpg" }, parentId: null, children: [] },
         { id: "e3", name: "Thin Divider", archetype: "divider", properties: { thickness: 1 }, parentId: null, children: [] },

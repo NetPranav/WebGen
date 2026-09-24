@@ -1,6 +1,6 @@
 # JSON SCHEMA REFERENCE CONTRACTS — INITIAL PHASE
 
-> **⚠️ Pending v2 update:** This document still describes Initial Phase v1.1. Where it conflicts with `PRD.md` v2.0.0 or `ROADMAP.md` v2.0.0, those documents win. It will be rewritten in ROADMAP v2 Phase 6.3 (schema content in Phase 2). See `AUDIT.md` for known gaps between this spec and the code.
+> **Status:** §0 (Motion Document Model v2) is current and authoritative as of ROADMAP Phase 2. §1–§8 below still describe Initial Phase v1.1 (the `elements` map, `animationStack`, v1 trigger names); they are kept for reference and rewritten in ROADMAP v2 Phase 6.3. Where they conflict with §0, §0 wins.
 
 ## Project Name: Visual Motion & Frontend Design Studio
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"
@@ -8,6 +8,63 @@
 **Phase:** Initial Phase (Element Animation Studio)
 **Status:** Production-Ready Specification
 **File Location:** `DOCS/Initial/SCHEMA_REFERENCE.md`
+
+---
+
+## 0. Motion Document Model v2 (MDM v2), authoritative
+
+**Source of truth:** `src/core/document/schema.ts` (Zod). One source produces three outputs:
+1. TypeScript types (`MotionDocument`, `Layer`, `Clip`, `Track`, `Keyframe`, `LayerState`, `Behaviour`, …).
+2. Runtime validation: `validateMotionDocument(input)` / `parseMotionDocument(input)`, including referential integrity.
+3. JSON Schema (draft 2020-12): `getMotionDocumentJsonSchema()`, for the AI layer (ROADMAP Phase 30).
+
+**Units:** times and durations are in **seconds**. Track `property` values are CONVENTIONS §4 dot-paths (`transform.y`, `appearance.opacity`, …).
+
+### 0.1 Shape
+
+```text
+MotionDocument
+  schemaVersion: 2
+  artboard       { width, height, background }
+  layers         Record<id, Layer>
+  clips          Record<id, Clip>          // a layer's animation stack = its clips, in insertion order
+  states         Record<id, LayerState>
+  behaviours     Record<id, Behaviour>
+  tokens         { colors, spacing, radii }
+  exportSettings { framework, styling, animation, language }   // was project `target` in v1
+
+Layer      { id, name, archetype, parentId | null, children[], visible?, locked?, properties: Props }
+Clip       { id, layerId, name, type, trigger, duration, delay?, easing, repeat? (-1 = loop),
+             enabled, locked?, scrollTrigger?, stagger?, tracks: Track[] }
+Track      { id, property, muted?, locked?, keyframes: Keyframe[] }
+Keyframe   { id, time, value: PropValue, ease? }
+LayerState { id, layerId, name, props }
+Behaviour  { id, layerId, type, enabled, params }
+PropValue  = string | number | boolean | null | PropValue[] | { [key]: PropValue }   // JSON data only
+```
+
+- **Layer kind** (PRD §4: element, vector, text, image, group, mask, scene3d, shader, effect) is *derived* from `archetype` through the registry (`getLayerKind`); it is not stored, so it cannot disagree with the archetype.
+- **Clip `type`:** `entrance | hover | tap | scroll | loop | morph`.
+- **Triggers** (PRD §4): `mount | hover | press | focus | inView | scrollProgress | pointerMove | drag | time | custom`.
+- **Behaviour `type`:** `follow-pointer | magnet | tilt | spring-to | inertia | noise | loop | shader-uniform`.
+
+### 0.2 Integrity rules (enforced by the validator)
+1. Every entity is stored under its own `id`.
+2. `parentId` points at an existing layer that lists this layer in `children`. Every child exists and points back. No duplicate children and no cycles.
+3. Every clip, state and behaviour belongs to an existing layer.
+4. Props are JSON data; the key `__proto__` is rejected (JS object copying would silently drop it).
+
+### 0.3 Archetype registry
+`src/core/document/registry.ts` is the single table for all 20 archetypes (10 PRD starting archetypes, `input`/`form`/`generic`, 4 SVG, 3 3D). Each entry gives its kind, family (or none), ID prefix, export tag, grammar type (for legal states), Details Inspector sections and default props. Grammar types with no archetype yet are listed in `RESERVED_GRAMMAR_TYPES`.
+
+### 0.4 IDs
+New entities use `createId(prefix)` → `<prefix>_<8 hex>` from `crypto.getRandomValues` (`elem_btn_3f8a109c`, `clip_…`, `trk_…`, `kf_…`). Existing ids are kept as they are.
+
+### 0.5 Versions & migration
+`loadDocument()` (`src/core/document/migrations`) accepts any version. v1 `elements` become `layers`, and each `properties.animationStack` / top-level `animationStack` entry becomes a clip. Legacy triggers map to v2 (`onMount→mount`, `onHover→hover`, `onClick→press`, `onScroll→scrollProgress`, `ambient→time`). Unknown archetypes become `generic`, broken tree links are repaired, and missing ids are generated. Documents from a newer schema are refused. Every snapshot load (history, version control, saved projects, demo) goes through it.
+
+### 0.6 Writing
+Only through `documentCommands` (`src/core/store/useDocumentStore.ts`): typed commands (`addLayer`, `removeLayer`, `updateProps`, `moveLayer`, `addClip`, `setLayerClips`, `addTrack`, `setKeyframe`, `addState`, `applyDiff`, …), each an Immer recipe that yields **patches + inverse patches**. `applyDiff` validates before applying.
 
 ---
 

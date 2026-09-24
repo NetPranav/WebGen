@@ -278,7 +278,7 @@ class DeploymentEngineManager {
     switch (stepId) {
       case "validate_ast": {
         const pageCount = Object.keys(storeState.pages || {}).length;
-        const elemCount = Object.keys(storeState.elements || {}).length;
+        const elemCount = Object.keys(storeState.document.layers).length;
         const schemaCount = Object.keys(storeState.databaseSchemas || {}).length;
         await delay(120);
         step.logs.push(`> Inspecting ${pageCount} pages and ${elemCount} canvas visual elements...`);

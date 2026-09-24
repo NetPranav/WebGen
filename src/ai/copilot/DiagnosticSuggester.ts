@@ -22,6 +22,8 @@ import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { BlueprintGraph } from "@/core/ast/ASTManager";
 import { ExecutionRun } from "@/core/types/trace";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { documentCommands } from "@/core/store/useDocumentStore";
+import { toPropValue } from "@/core/document/migrations";
 
 // ----------------------------------------------------------------------------
 // Core Types & Contracts
@@ -539,7 +541,10 @@ export class DiagnosticSuggester {
             scope: "global",
           });
         } else if (action.type === "update_element_prop" && action.elementId && action.propertyKey) {
-          store.setElementProperty(action.elementId, action.propertyKey, action.propertyValue);
+          const value = toPropValue(action.propertyValue);
+          if (value !== undefined) {
+            documentCommands.updateProps(action.elementId, { [action.propertyKey]: value }, "AI co-pilot fix");
+          }
         } else if (action.type === "add_node" && action.nodeType) {
           const graphId = action.graphId || store.activeBlueprintGraphId || "graph_main_event";
           store.addBlueprintNode(graphId, action.nodeType, action.position || { x: 300, y: 200 });

@@ -10,8 +10,8 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
 import { AnimationSample } from "@/core/types/animations";
+import type { Layer } from "@/core/document/schema";
 
 export interface VueEmitterOptions {
   stylingSystem?: "tailwind" | "vanilla-css" | "scoped-css";
@@ -37,7 +37,7 @@ export class VueComponentEmitter {
   }
 
   public static emit(
-    element: ProjectElement,
+    element: Layer,
     options: VueEmitterOptions = {}
   ): EmittedVueComponent {
     const componentName = options.componentName || this.toPascalCase(element.name);

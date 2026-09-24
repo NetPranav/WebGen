@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { StyleEmitter, TokenThemeInput } from "../emitters/StyleEmitter";
-import { ProjectElement } from "../../core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
   // --------------------------------------------------------------------------
@@ -37,7 +37,7 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
   // 2. Element Property Translation & Kebab-Casing
   // --------------------------------------------------------------------------
   it("converts camelCase properties to CSS kebab-case and formats units", () => {
-    const containerEl: ProjectElement = {
+    const containerEl: Layer = {
       id: "el_card_123",
       name: "HeroCard",
       archetype: "container",
@@ -71,7 +71,7 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
   // 3. Pseudo-Classes & Archetype Defaults
   // --------------------------------------------------------------------------
   it("emits archetype defaults and pseudo-classes (:hover, :active, :disabled)", () => {
-    const btnEl: ProjectElement = {
+    const btnEl: Layer = {
       id: "el_btn_submit",
       name: "SubmitBtn",
       archetype: "button",
@@ -104,7 +104,7 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
   // 4. Responsive Media Queries
   // --------------------------------------------------------------------------
   it("emits media queries for responsive breakpoint overrides", () => {
-    const el: ProjectElement = {
+    const el: Layer = {
       id: "el_grid_responsive",
       name: "ProductGrid",
       archetype: "container",
@@ -132,7 +132,7 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
   // 5. Project-Level Stylesheet Compilation
   // --------------------------------------------------------------------------
   it("compiles all elements into a unified scoped stylesheet", () => {
-    const elements: Record<string, ProjectElement> = {
+    const elements: Record<string, Layer> = {
       el_1: {
         id: "el_1",
         name: "Header",

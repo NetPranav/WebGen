@@ -14,7 +14,7 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
 
 export interface MediaEmitterOptions {
   framework?: "nextjs" | "react";
@@ -33,7 +33,7 @@ export interface EmittedMediaResult {
 
 export class MediaEmitter {
   public static emit(
-    element: ProjectElement,
+    element: Layer,
     options: MediaEmitterOptions = {}
   ): EmittedMediaResult {
     const componentName = options.componentName || this.toPascalCase(element.name || "MediaElement");
@@ -48,7 +48,7 @@ export class MediaEmitter {
 
   private static emitImage(
     name: string,
-    element: ProjectElement,
+    element: Layer,
     options: MediaEmitterOptions
   ): EmittedMediaResult {
     const isNext = options.framework !== "react";
@@ -162,7 +162,7 @@ export default ${name};
 
   private static emitIcon(
     name: string,
-    element: ProjectElement,
+    element: Layer,
     options: MediaEmitterOptions
   ): EmittedMediaResult {
     const isTailwind = options.stylingSystem !== "css-modules";

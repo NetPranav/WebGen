@@ -42,6 +42,7 @@ import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { ComponentGenerator } from "@/ai/component/ComponentGenerator";
 import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
+import { useLayers } from "@/core/store/useDocumentStore";
 
 interface WhiteboardCanvasProps {
   deviceMode?: "desktop" | "tablet" | "mobile";
@@ -116,7 +117,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const [ctaCount, setCtaCount] = useState(0);
 
   const environment = useProjectStore((state) => state.environment);
-  const elements = useProjectStore((state) => state.elements);
+  const elements = useLayers();
   const pages = useProjectStore((state) => state.pages);
   const activePageId = useProjectStore((state) => state.activePageId);
   const insertGeneratedComponent = useProjectStore((state) => state.insertGeneratedComponent);

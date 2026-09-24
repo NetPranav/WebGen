@@ -19,6 +19,8 @@ import {
   DependencyGraphMetrics,
 } from "../types/dependencies";
 import { DiagnosticBus } from "./DiagnosticBus";
+import { upgradeSnapshot } from "../document/migrations";
+import type { LegacyProjectSnapshot } from "../store/useProjectStore";
 
 export class DependencyAnalysisEngine {
   /**
@@ -99,7 +101,7 @@ export class DependencyAnalysisEngine {
     }
 
     // B. Visual Canvas Elements
-    const elements = snapshot.elements || {};
+    const elements = upgradeSnapshot(snapshot as LegacyProjectSnapshot).document.layers;
     for (const [elId, el] of Object.entries(elements)) {
       nodes[elId] = {
         id: elId,

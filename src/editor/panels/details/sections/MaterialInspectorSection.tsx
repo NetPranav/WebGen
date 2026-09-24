@@ -15,8 +15,9 @@
 
 import React from "react";
 import { Box, Layers, Eye } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
 import { PbrMaterialConfig, Object3DProperties } from "@/core/types/scene3d";
+import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
+import type { PropValue } from "@/core/document/registry";
 
 export interface MaterialInspectorSectionProps {
   elementId: string;
@@ -27,7 +28,7 @@ export const MaterialInspectorSection: React.FC<MaterialInspectorSectionProps> =
   elementId,
   elementName,
 }) => {
-  const { elements, setElementProperty } = useProjectStore();
+  const elements = useLayers();
   const currentElement = elements[elementId];
   const props = (currentElement?.properties || {}) as Partial<Object3DProperties>;
 
@@ -44,12 +45,12 @@ export const MaterialInspectorSection: React.FC<MaterialInspectorSectionProps> =
 
   const updateMaterial = (patch: Partial<PbrMaterialConfig>) => {
     const updated = { ...material, ...patch };
-    setElementProperty(elementId, "material", updated, `Update PBR material`);
+    documentCommands.updateProps(elementId, { material: updated as PropValue }, `Update PBR material`);
   };
 
   const updateGeometry = (type: string) => {
     const currGeom = props.geometry || { type: "box", dimensions: [1, 1, 1] };
-    setElementProperty(elementId, "geometry", { ...currGeom, type }, "Update 3D geometry");
+    documentCommands.updateProps(elementId, { geometry: { ...currGeom, type } as PropValue }, "Update 3D geometry");
   };
 
   return (

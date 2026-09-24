@@ -14,7 +14,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 
-import { ScrollTriggerConfig, StaggerConfig } from "@/core/elements/types";
+import type { ScrollTriggerConfig, StaggerConfig } from "@/core/document/schema";
 
 describe("Phase 4.3 & 4.4: ScrollTrigger & Stagger/Loop Manager", () => {
   describe("ScrollTrigger Configuration (Sub-Phase 4.3)", () => {

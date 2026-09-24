@@ -32,7 +32,7 @@ import {
   DataBindingDescriptor,
   TransformFunctionType,
 } from "@/core/types/data-binding";
-import { ElementType } from "@/core/types/element-sections";
+import type { ArchetypeId } from "@/core/document/registry";
 import {
   ARCHETYPE_PROPERTY_BINDING_MATRIX,
   DatabaseField,
@@ -46,7 +46,7 @@ import "@/editor/styles/forms.css";
 interface DataBindingEditorProps {
   elementId: string;
   elementName?: string;
-  archetype?: ElementType;
+  archetype?: ArchetypeId;
   onOpenDatabase?: () => void;
 }
 

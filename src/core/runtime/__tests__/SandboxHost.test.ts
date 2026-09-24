@@ -4,8 +4,9 @@ import {
   generateElementMarkup,
   buildSandboxDocument,
 } from "../../../editor/runtime/SandboxHost";
-import { ProjectElement, PageDefinition, StateVariable } from "../../store/useProjectStore";
+import { PageDefinition, StateVariable } from "../../store/useProjectStore";
 import { DiagnosticBus } from "../../engine/DiagnosticBus";
+import type { Layer } from "@/core/document/schema";
 
 describe("Sub-Phase 5.1: In-Memory Runtime Sandbox Host", () => {
   beforeEach(() => {
@@ -13,7 +14,7 @@ describe("Sub-Phase 5.1: In-Memory Runtime Sandbox Host", () => {
   });
 
   it("reconciles AST element hierarchy into DOM markup", () => {
-    const elements: Record<string, ProjectElement> = {
+    const elements: Record<string, Layer> = {
       el_root: {
         id: "el_root",
         name: "Root Container",
@@ -89,7 +90,7 @@ describe("Sub-Phase 5.1: In-Memory Runtime Sandbox Host", () => {
       rootElementId: "el_card",
     };
 
-    const elements: Record<string, ProjectElement> = {
+    const elements: Record<string, Layer> = {
       el_card: {
         id: "el_card",
         name: "Feature Card",

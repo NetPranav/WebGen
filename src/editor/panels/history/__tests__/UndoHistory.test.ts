@@ -4,6 +4,7 @@ import { useHistoryStore } from "../../../../core/store/useHistoryStore";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import { DiagnosticEvent } from "../../../../core/types/diagnostics";
+import { loadDocument } from "@/core/document/migrations";
 
 describe("Sub-Phase 8.1: Panel 23 — Undo History & Transaction Graph", () => {
   beforeEach(() => {
@@ -22,7 +23,7 @@ describe("Sub-Phase 8.1: Panel 23 — Undo History & Transaction Graph", () => {
           rootElementId: "el_root",
         },
       },
-      elements: {
+      document: loadDocument({ elements: {
         el_root: {
           id: "el_root",
           name: "Root Container",
@@ -33,7 +34,7 @@ describe("Sub-Phase 8.1: Panel 23 — Undo History & Transaction Graph", () => {
             title: "Original Title",
           },
         },
-      },
+      } }),
       databaseSchemas: {},
       redirectRules: {},
     });
@@ -245,7 +246,7 @@ describe("Sub-Phase 8.1: Panel 23 — Undo History & Transaction Graph", () => {
 
     // 2. Mutate project store
     useProjectStore.setState({
-      elements: {
+      document: loadDocument({ elements: {
         el_root: {
           id: "el_root",
           name: "Root Container",
@@ -256,11 +257,11 @@ describe("Sub-Phase 8.1: Panel 23 — Undo History & Transaction Graph", () => {
             title: "Updated Title After Changes",
           },
         },
-      },
+      } }),
     });
 
     assert.strictEqual(
-      useProjectStore.getState().elements.el_root.properties.title,
+      useProjectStore.getState().document.layers.el_root.properties.title,
       "Updated Title After Changes"
     );
 
@@ -269,7 +270,7 @@ describe("Sub-Phase 8.1: Panel 23 — Undo History & Transaction Graph", () => {
 
     // 4. Verify AST state restored back to Original Title
     assert.strictEqual(
-      useProjectStore.getState().elements.el_root.properties.title,
+      useProjectStore.getState().document.layers.el_root.properties.title,
       "Original Title"
     );
   });

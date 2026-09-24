@@ -12,7 +12,7 @@
  */
 
 import { EmittedFile, TargetFramework } from "../../core/types/compiler";
-import { ProjectElement, PageDefinition } from "../../core/store/useProjectStore";
+import { PageDefinition } from "../../core/store/useProjectStore";
 import { CollectionSchema } from "../../core/types/database";
 import { BlueprintGraph } from "../../core/ast/ASTManager";
 import { AnimationSample } from "../../core/types/animations";
@@ -24,6 +24,7 @@ import { PrismaSchemaEmitter } from "../emitters/PrismaSchemaEmitter";
 import { ApiRouteEmitter } from "../emitters/ApiRouteEmitter";
 import { LogicFlowEmitter } from "../emitters/LogicFlowEmitter";
 import { ZipPacker } from "./ZipPacker";
+import type { Layer } from "@/core/document/schema";
 
 export interface GitExporterOptions {
   /** Application package name (default: "webgen-app") */
@@ -71,7 +72,7 @@ export interface ExportBundle {
 
 export interface ProjectExportInput {
   pages: Record<string, PageDefinition>;
-  elements: Record<string, ProjectElement>;
+  elements: Record<string, Layer>;
   databaseSchemas?: Record<string, CollectionSchema>;
   blueprintGraphs?: Record<string, BlueprintGraph>;
   animationSamples?: Record<string, AnimationSample>;

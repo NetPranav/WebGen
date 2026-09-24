@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint --max-warnings=467",
+    "lint": "eslint --max-warnings=463",
     "test": "npm run typecheck && npm run test:unit",
     "test:unit": "tsx --test \"src/**/__tests__/*.test.ts\"",
     "build:wasm": "cd wasm && make release"
@@ -19,6 +19,7 @@
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "zod": "^4.6.5",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -27,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "fast-check": "^4.10.2",
     "tsx": "^4.23.13",
     "typescript": "^5"
   }

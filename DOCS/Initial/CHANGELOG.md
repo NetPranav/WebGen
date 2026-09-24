@@ -9,6 +9,30 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0] — 2026-09-24
+
+### Phase 2 (Unified Motion Document Model): gate passed locally, CI pending
+
+#### Added
+- **MDM v2** (`src/core/document/`): Zod schema with three outputs (types, validator with referential integrity, JSON Schema); archetype registry (20 archetypes → kind, family, id prefix, export tag, grammar type/legal states, Details sections, default props); `v1 → v2` migrations with tree repair; typed prop views.
+- **Document store API** (`src/core/store/useDocumentStore.ts`): typed commands, each an Immer recipe that yields patches plus inverse patches; `applyDiff` with validation; `useLayer` / `useLayers` / `useLayerClips` hooks.
+- 31 tests, including a 500-run property-based round trip and a source scan that keeps the retired types out.
+- `.claude/skills/run-editor`: a project skill that launches the editor and smoke-tests it in headless Chromium, with an old-vs-new comparison mode.
+- Dependencies: `zod` (runtime), `fast-check` (dev).
+
+#### Changed
+- The project snapshot holds `document: MotionDocument` instead of `elements`; export `target` moved into `document.exportSettings`. Every load path migrates older snapshots.
+- Animation triggers use the PRD vocabulary (`mount`, `hover`, `press`, `scrollProgress`, `time`, …); all 51 presets were updated.
+- Sequencer, Curve Editor, Outliner, Details sections, Co-pilot, Content Shelf, AI engine, diagnostics, emitters, exporters, version control, search and deployment read and write the document through the new API.
+
+#### Fixed
+- Sequencer keyframe edits now persist (AUD-05 model half); Content Shelf blocks are linked into the layer tree; generated components get both sides of their parent link; deleting a layer removes its subtree and owned clips; the GPU auto-fix works; `__proto__` prop keys are rejected instead of silently dropped; version-control merges carry clips.
+
+#### Removed
+- `src/core/elements/` (`BaseElementNode`, `AttachedAnimation`, archetype factories, validator tests that never ran), `ProjectElement`, `ElementType`, `ELEMENT_SECTION_REGISTRY`, `setElementProperty` / `addElement` / `removeElement`.
+
+---
+
 ## [2.1.0] — 2026-09-24
 
 ### Phase 1 (Build Health & CI): green locally, CI gate pending

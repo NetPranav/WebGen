@@ -13,34 +13,25 @@
 
 import React from "react";
 import { Sparkles, Layers } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
+import type { PropValue } from "@/core/document/registry";
+import { readProps } from "@/core/document/props";
 
 export interface BackgroundSectionProps {
   elementId: string;
   elementName: string;
 }
 
-// TODO(MDM-P2): typed view over the untyped `ProjectElement.properties` bag;
-// MDM v2 gives each archetype a real props schema.
-interface BackgroundProps {
-  type?: string;
-  color?: string;
-  gradientAngle?: number;
-  parallaxSpeed?: number;
-  blendMode?: string;
-  noiseOpacity?: number;
-}
-
 export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
   elementId,
   elementName,
 }) => {
-  const { elements, setElementProperty } = useProjectStore();
+  const elements = useLayers();
   const currentElement = elements[elementId];
-  const props = (currentElement?.properties || {}) as BackgroundProps;
+  const props = readProps(currentElement, "background");
 
-  const updateProp = (key: string, val: unknown) => {
-    setElementProperty(elementId, key, val, `Update background ${key}`);
+  const updateProp = (key: string, val: PropValue) => {
+    documentCommands.updateProps(elementId, { [key]: val }, `Update background ${key}`);
   };
 
   const bgType = props.type || "gradient";

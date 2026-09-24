@@ -31,7 +31,7 @@ import {
   Hash,
   FolderArchive,
 } from "lucide-react";
-import { useProjectStore, ProjectElement, ProjectStoreState } from "@/core/store/useProjectStore";
+import { useProjectStore, ProjectStoreState } from "@/core/store/useProjectStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { EmittedFile } from "@/core/types/compiler";
@@ -47,7 +47,7 @@ import { errorMessage } from "@/core/errors";
 /** Compiles the whole project into emitted files and reports how long it took. */
 function compileProjectFiles(project: {
   pages: ProjectStoreState["pages"];
-  elements: ProjectStoreState["elements"];
+  elements: ProjectStoreState["document"]["layers"];
   databaseSchemas: ProjectStoreState["databaseSchemas"];
   animationSamples: ProjectStoreState["animationSamples"];
   blueprintGraphs: ProjectStoreState["blueprintGraphs"];
@@ -139,7 +139,7 @@ type FileCategory = "all" | "component" | "page" | "styles" | "api" | "schema" |
 export const LiveCodeInspector: React.FC<LiveCodeInspectorProps> = ({ className, style }) => {
   // Store subscriptions
   const pages = useProjectStore((s) => s.pages);
-  const elements = useProjectStore((s) => s.elements);
+  const elements = useProjectStore((s) => s.document.layers);
   const databaseSchemas = useProjectStore((s) => s.databaseSchemas);
   const animationSamples = useProjectStore((s) => s.animationSamples);
   const blueprintGraphs = useProjectStore((s) => s.blueprintGraphs);

@@ -27,11 +27,13 @@ import {
   Terminal,
   ExternalLink,
 } from "lucide-react";
-import { useProjectStore, ProjectElement } from "@/core/store/useProjectStore";
+import { useProjectStore } from "@/core/store/useProjectStore";
 import { GSAPAnimationEmitter } from "@/compiler/emitters/GSAPAnimationEmitter";
 
 import { AnimationLoweringCompiler } from "@/core/engine/AnimationLoweringCompiler";
 import { multiEngineAnimationRuntime } from "@/core/runtime/MultiEngineAnimationRuntime";
+import type { Layer } from "@/core/document/schema";
+import { useLayers } from "@/core/store/useDocumentStore";
 
 export type ExportFramework = "css" | "waapi" | "framer" | "gsap";
 
@@ -48,11 +50,12 @@ export const AnimationExportPreview: React.FC<AnimationExportPreviewProps> = ({
   const [framework, setFramework] = useState<ExportFramework>("css");
   const [copied, setCopied] = useState(false);
 
-  const { elements, pages, activePageId } = useProjectStore();
+  const elements = useLayers();
+  const { pages, activePageId } = useProjectStore();
 
   const activePage = pages[activePageId || "page_home"];
   const targetId = elementId || activePage?.rootElementId || Object.keys(elements)[0] || "comp_hero";
-  const activeElement: ProjectElement | undefined = elements[targetId];
+  const activeElement: Layer | undefined = elements[targetId];
   const targetName = elementName || activeElement?.name || "Untitled";
   const archetype = activeElement?.archetype || "button";
   const cleanName = targetName.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();

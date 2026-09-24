@@ -10,13 +10,15 @@
  * ============================================================================
  */
 
-import { ProjectElement } from "@/core/store/useProjectStore";
+import type { Layer } from "@/core/document/schema";
+import { createId } from "@/core/ids";
+
 
 export interface GeneratedComponentResult {
   rootId: string;
   name: string;
   description: string;
-  elements: ProjectElement[];
+  elements: Layer[];
   suggestedPrompts: string[];
 }
 
@@ -24,9 +26,7 @@ export class ComponentGenerator {
   private static idCounter = 1;
 
   private static generateId(prefix: string): string {
-    const rand = Math.random().toString(16).substring(2, 8);
-    const id = `${prefix}_${Date.now().toString(36)}_${rand}`;
-    return id;
+    return createId(prefix);
   }
 
   /**
@@ -65,7 +65,7 @@ export class ComponentGenerator {
     const descId = this.generateId("elem_text");
     const buttonId = this.generateId("elem_btn");
 
-    const elements: ProjectElement[] = [
+    const elements: Layer[] = [
       {
         id: containerId,
         name: "PricingCard",
@@ -203,7 +203,7 @@ export class ComponentGenerator {
     const authorId = this.generateId("elem_text");
     const roleId = this.generateId("elem_text");
 
-    const elements: ProjectElement[] = [
+    const elements: Layer[] = [
       {
         id: containerId,
         name: "TestimonialCard",
@@ -300,7 +300,7 @@ export class ComponentGenerator {
     const toggleId = this.generateId("elem_toggle");
     const labelId = this.generateId("elem_text");
 
-    const elements: ProjectElement[] = [
+    const elements: Layer[] = [
       {
         id: containerId,
         name: "SwitchGroup",
@@ -371,7 +371,7 @@ export class ComponentGenerator {
     const primaryBtnId = this.generateId("elem_btn");
     const secondaryBtnId = this.generateId("elem_btn");
 
-    const elements: ProjectElement[] = [
+    const elements: Layer[] = [
       {
         id: containerId,
         name: "HeroSection",
@@ -507,7 +507,7 @@ export class ComponentGenerator {
     const imageId = this.generateId("elem_img");
     const captionId = this.generateId("elem_text");
 
-    const elements: ProjectElement[] = [
+    const elements: Layer[] = [
       {
         id: containerId,
         name: "MediaCard",
@@ -577,7 +577,7 @@ export class ComponentGenerator {
     const badge2Id = this.generateId("elem_badge");
     const badge3Id = this.generateId("elem_badge");
 
-    const elements: ProjectElement[] = [
+    const elements: Layer[] = [
       {
         id: containerId,
         name: "BadgePillsCluster",
@@ -669,7 +669,7 @@ export class ComponentGenerator {
     const bodyId = this.generateId("elem_text");
     const buttonId = this.generateId("elem_btn");
 
-    const elements: ProjectElement[] = [
+    const elements: Layer[] = [
       {
         id: containerId,
         name: "InteractiveCard",

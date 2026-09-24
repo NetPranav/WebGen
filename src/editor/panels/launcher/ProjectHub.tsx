@@ -16,10 +16,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LazyLayoutLogo } from "./LazyLayoutLogo";
-import {
-  ArchetypeId,
-  getArchetypeDefinition,
-} from "./archetypeData";
+import type { InitialArchetypeId as ArchetypeId } from "@/core/document/registry";
 import {
   TechConfig,
   TargetFramework,

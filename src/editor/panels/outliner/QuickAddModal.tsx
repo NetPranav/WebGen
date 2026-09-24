@@ -13,8 +13,8 @@
 
 import React, { useState } from "react";
 import { Sparkles, X, Plus, Zap, Play, Eye } from "lucide-react";
-import { ArchetypeId, FamilyId } from "../launcher/archetypeData";
-import { AttachedAnimation } from "@/core/elements/types";
+import type { ArchetypeId, FamilyId } from "@/core/document/registry";
+import type { ClipTemplate } from "@/core/document/schema";
 import { createId } from "@/core/ids";
 
 export interface QuickAddModalProps {
@@ -22,14 +22,14 @@ export interface QuickAddModalProps {
   archetype: ArchetypeId;
   family: FamilyId;
   onClose: () => void;
-  onAddAnimation: (anim: AttachedAnimation) => void;
+  onAddAnimation: (anim: ClipTemplate) => void;
 }
 
 interface PresetOption {
   id: string;
   name: string;
-  type: AttachedAnimation["type"];
-  trigger: AttachedAnimation["trigger"];
+  type: ClipTemplate["type"];
+  trigger: ClipTemplate["trigger"];
   duration: number;
   easing: string;
   repeat?: number;
@@ -43,7 +43,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_hover_pull",
       name: "Magnetic Hover & Spring Pull",
       type: "hover",
-      trigger: "onHover",
+      trigger: "hover",
       duration: 0.25,
       easing: "spring(stiffness: 400, damping: 25)",
       description: "Elastic physics spring pull toward cursor",
@@ -53,7 +53,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_tap_bounce",
       name: "Tactile Tap Compression",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.15,
       easing: "back.out(3)",
       description: "Subtle 0.96 scale compression on press",
@@ -63,7 +63,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_pop_entrance",
       name: "Mount Pop-In Reveal",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.4,
       easing: "back.out(1.7)",
       description: "Elastic scale from 0 to 1 on initial load",
@@ -75,7 +75,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_scroll_parallax",
       name: "ScrollTrigger Parallax Scrub",
       type: "scroll",
-      trigger: "onScroll",
+      trigger: "scrollProgress",
       duration: 1.0,
       easing: "none",
       description: "Ties image translateY to viewport scroll progress",
@@ -85,7 +85,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_hover_zoom",
       name: "Hover Zoom & Overlay Darken",
       type: "hover",
-      trigger: "onHover",
+      trigger: "hover",
       duration: 0.4,
       easing: "power2.out",
       description: "Smooth 1.06x scale zoom with subtle dark tint",
@@ -95,7 +95,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_clip_reveal",
       name: "Clip-Path Diamond Reveal",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.8,
       easing: "power4.inOut",
       description: "Wipes open from center diamond into full rectangle",
@@ -105,7 +105,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_svg_stroke",
       name: "SVG Vector Path Draw-In",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 1.2,
       easing: "power2.inOut",
       description: "Animates strokeDashoffset to draw vector lines",
@@ -117,7 +117,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_divider_draw",
       name: "Divider Length Draw-In",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.7,
       easing: "power3.out",
       description: "Animates divider length from 0% to 100%",
@@ -127,7 +127,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_ambient_drift",
       name: "Ambient Gradient Drift",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 12.0,
       repeat: -1,
       easing: "none",
@@ -138,7 +138,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_bg_parallax",
       name: "Background Depth Parallax",
       type: "scroll",
-      trigger: "onScroll",
+      trigger: "scrollProgress",
       duration: 1.0,
       easing: "none",
       description: "Slow multi-layer scroll drift for backdrop depth",
@@ -150,7 +150,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_split_chars",
       name: "SplitText Character Cascade",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.6,
       easing: "back.out(2)",
       description: "Splits characters and staggers entrance by 0.03s",
@@ -160,7 +160,7 @@ export const FAMILY_ANIMATION_PRESETS: Record<FamilyId, PresetOption[]> = {
       id: "preset_word_slide",
       name: "Word Rise & Blur In",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.7,
       easing: "power3.out",
       description: "Animates each word translateY from 20px with blur filter",
@@ -181,8 +181,8 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const validPresets = FAMILY_ANIMATION_PRESETS[family] || FAMILY_ANIMATION_PRESETS.interactive;
 
   const handleSelect = (preset: PresetOption) => {
-    const newAnim: AttachedAnimation = {
-      id: createId("anim"),
+    const newAnim: ClipTemplate = {
+      id: createId("clip"),
       name: preset.name,
       type: preset.type,
       trigger: preset.trigger,
@@ -190,6 +190,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       easing: preset.easing,
       repeat: preset.repeat,
       enabled: true,
+      tracks: [],
     };
     onAddAnimation(newAnim);
     onClose();

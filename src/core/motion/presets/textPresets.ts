@@ -25,7 +25,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Word Stagger Cascade",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.8,
       easing: "power3.out",
       enabled: true,
@@ -63,7 +63,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Character Stagger Pop",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.6,
       easing: "back.out(2)",
       enabled: true,
@@ -101,7 +101,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Blur-Up Line Reveal",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 1.0,
       easing: "power2.out",
       enabled: true,
@@ -142,7 +142,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Kinetic Type Tracking",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 1.2,
       easing: "power4.out",
       enabled: true,
@@ -176,7 +176,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Underline Draw-In",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.65,
       easing: "power2.out",
       enabled: true,
@@ -203,7 +203,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Highlighter Marker Sweep",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.75,
       easing: "power3.out",
       enabled: true,
@@ -230,7 +230,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Typewriter Cursor Step",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 1.8,
       easing: "steps(20)",
       enabled: true,
@@ -257,7 +257,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Bounce Stagger Wave",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 1.1,
       easing: "back.out(2.5)",
       enabled: true,
@@ -288,7 +288,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Gradient Text Sheen",
       type: "loop",
-      trigger: "ambient",
+      trigger: "time",
       duration: 3.5,
       repeat: -1,
       easing: "linear",
@@ -317,7 +317,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Split 3D Flip Stagger",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.9,
       easing: "power3.out",
       enabled: true,
@@ -355,7 +355,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Glitch Chromatic Aberration",
       type: "tap",
-      trigger: "onClick",
+      trigger: "press",
       duration: 0.3,
       easing: "linear",
       enabled: true,
@@ -386,7 +386,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
     animation: {
       name: "Fade-Up Editorial Reveal",
       type: "entrance",
-      trigger: "onMount",
+      trigger: "mount",
       duration: 0.85,
       easing: "power2.out",
       enabled: true,
