@@ -1,0 +1,373 @@
+/**
+ * ============================================================================
+ * ENGINE UI FORM STYLES
+ * ============================================================================
+ * UI Element: Form Inputs, Sliders, Toggles, Segmented Controls, Number Scrubs
+ * Screen / Scope: Used across Details Inspector, Project Settings, Outliner, etc.
+ * Role: Standardized form controls matching the Unreal-inspired IDE theme.
+ * 
+ * CSS ISOLATION RULE:
+ * Single Styling Authority: All form controls strictly governed by these classes.
+ * Visual constants derive exclusively from `tokens.css`.
+ * ============================================================================
+ */
+
+/* ----------------------------------------------------------------------------
+ * Form Groups & Rows
+ * ---------------------------------------------------------------------------- */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.form-row--2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.form-row--4col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xs);
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.form-label__hint {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* ----------------------------------------------------------------------------
+ * Standard Text & Number Inputs
+ * ---------------------------------------------------------------------------- */
+.form-input {
+  width: 100%;
+  height: 28px;
+  padding: 0 var(--space-sm);
+  background-color: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-input:hover {
+  border-color: var(--border-strong);
+}
+
+.form-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary-light);
+}
+
+.form-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.form-input:disabled {
+  background-color: var(--surface-panel-active);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ----------------------------------------------------------------------------
+ * Number Scrub Inputs (Unreal-style X, Y, W, H with axis badge)
+ * ---------------------------------------------------------------------------- */
+.form-number-scrub {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  background-color: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.form-number-scrub:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary-light);
+}
+
+.form-number-scrub__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 100%;
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  font-family: var(--font-mono);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.form-number-scrub__badge--x {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #DC2626;
+}
+
+.form-number-scrub__badge--y {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.form-number-scrub__badge--w {
+  background-color: rgba(32, 104, 89, 0.12);
+  color: #206859;
+}
+
+.form-number-scrub__badge--h {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #D97706;
+}
+
+.form-number-scrub__badge--neutral {
+  background-color: var(--surface-panel-active);
+  color: var(--text-muted);
+}
+
+.form-number-scrub__input {
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--space-xs);
+  border: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  outline: none;
+}
+
+/* ----------------------------------------------------------------------------
+ * Select Dropdown
+ * ---------------------------------------------------------------------------- */
+.form-select {
+  width: 100%;
+  height: 28px;
+  padding: 0 var(--space-lg) 0 var(--space-sm);
+  background-color: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.form-select:hover {
+  border-color: var(--border-strong);
+}
+
+.form-select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary-light);
+}
+
+/* ----------------------------------------------------------------------------
+ * Segmented Control (Pill Switcher)
+ * ---------------------------------------------------------------------------- */
+.form-segmented {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  background-color: var(--surface-panel-active);
+  border-radius: var(--radius-md);
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-segmented__btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  height: 24px;
+  padding: 0 var(--space-xs);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-segmented__btn:hover:not(.form-segmented__btn--active) {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.form-segmented__btn--active {
+  background-color: var(--surface-panel-solid);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-xs);
+  font-weight: var(--font-semibold);
+}
+
+/* ----------------------------------------------------------------------------
+ * Toggle Switch (Smooth Pill)
+ * ---------------------------------------------------------------------------- */
+.form-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.form-toggle {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  background-color: var(--surface-panel-active);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.form-toggle--active {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.form-toggle__thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+  background-color: #FFFFFF;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-normal);
+}
+
+.form-toggle--active .form-toggle__thumb {
+  transform: translateX(14px);
+}
+
+/* ----------------------------------------------------------------------------
+ * Range Slider with Value
+ * ---------------------------------------------------------------------------- */
+.form-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.form-slider {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  background: var(--surface-panel-active);
+  border-radius: var(--radius-full);
+  outline: none;
+  cursor: pointer;
+}
+
+.form-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  border: 2px solid var(--surface-panel-solid);
+  box-shadow: 0 0 0 1px var(--accent-primary), var(--shadow-xs);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 1px var(--accent-primary), 0 0 6px rgba(32, 104, 89, 0.3);
+}
+
+.form-slider-val {
+  width: 42px;
+  text-align: right;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * Color Swatch
+ * ---------------------------------------------------------------------------- */
+.form-color-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 26px;
+  padding: 2px var(--space-sm) 2px 2px;
+  background-color: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-sizing: border-box;
+  position: relative;
+  transition: border-color var(--transition-fast);
+}
+
+.form-color-picker:hover {
+  border-color: var(--border-strong);
+}
+
+.form-color-picker__swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.form-color-picker__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+

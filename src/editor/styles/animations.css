@@ -1,0 +1,186 @@
+/**
+ * ============================================================================
+ * ENGINE ANIMATIONS & KEYFRAMES
+ * ============================================================================
+ * UI Element: Global Micro-Animations & Dynamic Feedback
+ * Screen / Scope: Entire Engine IDE Shell (Panels, Wires, Modals, Tooltips)
+ * Role: Provides smooth micro-interactions, pulse animations, and transitions.
+ * 
+ * CSS ISOLATION RULE:
+ * Contains only keyframe definitions and reusable utility animation classes.
+ * No layout sizing or colors belong here.
+ * ============================================================================
+ */
+
+/* ----------------------------------------------------------------------------
+ * Fade & Scale Micro-Animations
+ * ---------------------------------------------------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleInSubtle {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ----------------------------------------------------------------------------
+ * Execution Pulse Animations (Blueprint Live Debugging)
+ * ---------------------------------------------------------------------------- */
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(32, 104, 89, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(32, 104, 89, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(32, 104, 89, 0);
+  }
+}
+
+@keyframes pulseGlowSuccess {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes pulseGlowDanger {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes wireDashFlow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Shimmer / Skeleton Loading
+ * ---------------------------------------------------------------------------- */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Reusable Animation Utility Classes
+ * ---------------------------------------------------------------------------- */
+.anim-fade-in {
+  animation: fadeIn var(--transition-fast) ease-out forwards;
+}
+
+.anim-slide-up {
+  animation: slideUpFade var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-slide-down {
+  animation: slideDownFade var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-slide-left {
+  animation: slideInLeft var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-slide-right {
+  animation: slideInRight var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-scale-in {
+  animation: scaleInSubtle var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-pulse {
+  animation: pulseGlow 1.5s infinite;
+}
+
+.anim-pulse-success {
+  animation: pulseGlowSuccess 1.5s infinite;
+}
+
+.anim-pulse-danger {
+  animation: pulseGlowDanger 1.5s infinite;
+}
+
+.anim-spin {
+  animation: spin 1s linear infinite;
+}

@@ -1,0 +1,152 @@
+/**
+ * ============================================================================
+ * ENGINE GLOBAL STYLES & CSS RESET
+ * ============================================================================
+ * UI Element: Global Document Body, Canvas Stage, and Base Resets
+ * Screen / Scope: Whole Application Engine
+ * Role: Provides baseline normalization, default font assignments, and custom scrollbars.
+ * 
+ * CSS ISOLATION RULE:
+ * This file handles ONLY base document defaults and root viewport sizing.
+ * No panel-specific styles or component rules are permitted here.
+ * ============================================================================
+ */
+
+@import "./tokens.css";
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.12) transparent;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--canvas-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ----------------------------------------------------------------------------
+ * Typography Hierarchy (Inter & JetBrains Mono)
+ * ---------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+}
+
+h1 { font-size: var(--text-4xl); font-weight: var(--font-bold); letter-spacing: -0.02em; }
+h2 { font-size: var(--text-3xl); font-weight: var(--font-bold); letter-spacing: -0.015em; }
+h3 { font-size: var(--text-2xl); font-weight: var(--font-semibold); letter-spacing: -0.01em; }
+h4 { font-size: var(--text-xl); font-weight: var(--font-semibold); }
+h5 { font-size: var(--text-lg); font-weight: var(--font-medium); }
+h6 { font-size: var(--text-md); font-weight: var(--font-medium); }
+
+p {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+code, kbd, pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 5px;
+  background-color: var(--surface-panel-hover);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-xs);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* ----------------------------------------------------------------------------
+ * Confluence Infinite Dot-Grid Matrix
+ * ---------------------------------------------------------------------------- */
+.confluence-grid {
+  background-color: var(--canvas-bg);
+  background-image: radial-gradient(var(--canvas-dot-color) var(--canvas-dot-size), transparent var(--canvas-dot-size));
+  background-size: var(--canvas-dot-spacing) var(--canvas-dot-spacing);
+}
+
+/* ----------------------------------------------------------------------------
+ * Custom Scrollbar Styling (Minimalist, Translucent, Curved)
+ * ---------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.24);
+}
+
+/* ----------------------------------------------------------------------------
+ * Interactive Elements Reset (Buttons, Inputs, Selects)
+ * ---------------------------------------------------------------------------- */
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+button {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-medium);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------------------
+ * Selection & Focus Indicators
+ * ---------------------------------------------------------------------------- */
+::selection {
+  background-color: var(--accent-primary-light);
+  color: var(--accent-primary-hover);
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}

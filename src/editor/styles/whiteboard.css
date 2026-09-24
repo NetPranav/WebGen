@@ -1,0 +1,768 @@
+/**
+ * ============================================================================
+ * WHITEBOARD CANVAS & VIEWPORT STYLES
+ * ============================================================================
+ * UI Element: Confluence Whiteboard Canvas, Responsive Device Frames,
+ *             Floating Dock Pill, Zoom Controls, and Selection Overlay.
+ * Screen / Scope: Screen 01: Application Viewport & Screen 12: Whiteboard Canvas
+ * Role: Provides infinite dot-grid stage, hardware-accelerated pan/zoom,
+ *       responsive frame styling, and floating canvas chrome.
+ * 
+ * CSS ISOLATION RULE:
+ * Governed strictly by `.whiteboard-stage` and child classes.
+ * Visual constants derive exclusively from `tokens.css`.
+ * Dynamic pan/zoom coordinates are passed via CSS custom properties:
+ *   --canvas-pan-x, --canvas-pan-y, --canvas-zoom
+ * ============================================================================
+ */
+
+/* ----------------------------------------------------------------------------
+ * Master Canvas Stage (Infinite Panning Container)
+ * ---------------------------------------------------------------------------- */
+.whiteboard-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  background-color: var(--canvas-bg);
+  cursor: default;
+  touch-action: none; /* Disables browser-level native document pinch-to-zoom */
+}
+
+.whiteboard-stage--panning,
+.whiteboard-stage--tool-pan {
+  cursor: grab;
+}
+
+.whiteboard-stage--panning:active,
+.whiteboard-stage--is-dragging-pan {
+  cursor: grabbing !important;
+}
+
+.whiteboard-stage--tool-pencil {
+  cursor: crosshair;
+}
+
+.whiteboard-stage--tool-text {
+  cursor: text;
+}
+
+/* ----------------------------------------------------------------------------
+ * Infinite Dot-Grid Matrix (Modulo LOD Octaves: Never Clusters or Merges)
+ * ---------------------------------------------------------------------------- */
+.whiteboard-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    var(--canvas-dot-color) var(--canvas-dot-size),
+    transparent var(--canvas-dot-size)
+  );
+  background-size: var(--canvas-grid-size, 24px) var(--canvas-grid-size, 24px);
+  background-position: var(--canvas-grid-pos-x, 0px) var(--canvas-grid-pos-y, 0px);
+  will-change: background-position, background-size;
+}
+
+.whiteboard-grid--lines {
+  background-image: 
+    linear-gradient(to right, var(--canvas-dot-color, rgba(148, 163, 184, 0.15)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--canvas-dot-color, rgba(148, 163, 184, 0.15)) 1px, transparent 1px);
+}
+
+.inspect-overlay-box {
+  position: absolute;
+  pointer-events: none;
+  z-index: 50;
+  border: 1px dashed #6366F1;
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.inspect-dimension-badge {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  background: rgba(15, 23, 42, 0.94);
+  color: #38BDF8;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  white-space: nowrap;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  backdrop-filter: blur(8px);
+}
+
+.inspect-archetype-tag {
+  color: #A5B4FC;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  padding-left: 4px;
+}
+
+.inspect-touch-warning {
+  color: #F59E0B;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+}
+
+/* ----------------------------------------------------------------------------
+ * Transformed World Canvas (Houses Device Frame and Placed Elements)
+ * ---------------------------------------------------------------------------- */
+.whiteboard-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  transform: translate3d(calc(var(--canvas-pan-x) * 1px), calc(var(--canvas-pan-y) * 1px), 0) scale(var(--canvas-zoom));
+  will-change: transform;
+}
+
+/* ----------------------------------------------------------------------------
+ * Responsive Device Frame (Desktop, Tablet, Mobile)
+ * ---------------------------------------------------------------------------- */
+.device-frame-container {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: width var(--transition-normal), height var(--transition-normal);
+}
+
+.device-frame-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 var(--space-xs) var(--space-sm);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  letter-spacing: 0.02em;
+}
+
+.device-frame-meta__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.device-frame-meta__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.device-frame-meta__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-success);
+  box-shadow: 0 0 6px var(--accent-success);
+}
+
+.device-frame {
+  position: relative;
+  background: var(--surface-panel-solid);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.12),
+              0 0 0 1px var(--border-default);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: width var(--transition-normal), height var(--transition-normal);
+}
+
+.device-frame--mobile {
+  border-radius: 40px;
+  box-shadow: 0 30px 70px -15px rgba(15, 23, 42, 0.18),
+              0 0 0 8px rgba(15, 23, 42, 0.05),
+              0 0 0 9px var(--border-default);
+}
+
+.device-frame--tablet {
+  border-radius: 28px;
+  box-shadow: 0 30px 70px -15px rgba(15, 23, 42, 0.15),
+              0 0 0 6px rgba(15, 23, 42, 0.04),
+              0 0 0 7px var(--border-default);
+}
+
+/* Mobile Notch / Dynamic Island Hint */
+.device-frame__notch {
+  width: 110px;
+  height: 24px;
+  background: #0F172A;
+  border-radius: var(--radius-full);
+  margin: var(--space-xs) auto 0;
+  z-index: 20;
+}
+
+/* Device Screen Viewport */
+.device-frame__screen {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ----------------------------------------------------------------------------
+ * Interactive Preview Content inside Device Frame
+ * ---------------------------------------------------------------------------- */
+.app-preview {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.app-preview__navbar {
+  height: 56px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-xl);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-preview__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.app-preview__nav-links {
+  display: flex;
+  gap: var(--space-lg);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.app-preview__nav-item {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.app-preview__nav-item:hover {
+  color: var(--accent-primary);
+}
+
+.app-preview__hero {
+  padding: var(--space-4xl) var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: radial-gradient(circle at 50% 20%, rgba(32, 104, 89, 0.06), transparent 70%);
+}
+
+.app-preview__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 12px;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-md);
+}
+
+.app-preview__title {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  max-width: 680px;
+  line-height: 1.15;
+  margin-bottom: var(--space-md);
+}
+
+.app-preview__subtitle {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  max-width: 540px;
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-xl);
+}
+
+.app-preview__cta-group {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.app-preview__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 20px;
+  background: var(--accent-primary);
+  color: #FFFFFF;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  box-shadow: 0 4px 12px rgba(32, 104, 89, 0.25);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.app-preview__btn-primary:hover {
+  background: var(--accent-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(32, 104, 89, 0.35);
+}
+
+.app-preview__btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 18px;
+  background: var(--surface-panel-solid);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.app-preview__btn-secondary:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+}
+
+.app-preview__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-lg);
+  padding: var(--space-2xl);
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.device-frame--mobile .app-preview__grid {
+  grid-template-columns: 1fr;
+}
+
+.device-frame--tablet .app-preview__grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.app-preview__card {
+  padding: var(--space-xl);
+  background: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.app-preview__card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.app-preview__card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.app-preview__card-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.app-preview__card-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: var(--leading-normal);
+}
+
+/* ----------------------------------------------------------------------------
+ * Selection Bounding Box & Handles Overlay
+ * ---------------------------------------------------------------------------- */
+.canvas-selection-box {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid var(--accent-primary);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 0 0 1px rgba(32, 104, 89, 0.2);
+  z-index: 30;
+}
+
+.canvas-selection-box__label {
+  position: absolute;
+  top: -24px;
+  left: -2px;
+  background: var(--accent-primary);
+  color: #FFFFFF;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.canvas-selection-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--accent-primary);
+  border-radius: 1px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+}
+
+.canvas-selection-handle--tl { top: -4px; left: -4px; cursor: nwse-resize; }
+.canvas-selection-handle--tr { top: -4px; right: -4px; cursor: nesw-resize; }
+.canvas-selection-handle--bl { bottom: -4px; left: -4px; cursor: nesw-resize; }
+.canvas-selection-handle--br { bottom: -4px; right: -4px; cursor: nwse-resize; }
+.canvas-selection-handle--tc { top: -4px; left: calc(50% - 4px); cursor: ns-resize; }
+.canvas-selection-handle--bc { bottom: -4px; left: calc(50% - 4px); cursor: ns-resize; }
+.canvas-selection-handle--ml { top: calc(50% - 4px); left: -4px; cursor: ew-resize; }
+.canvas-selection-handle--mr { top: calc(50% - 4px); right: -4px; cursor: ew-resize; }
+
+/* ----------------------------------------------------------------------------
+ * Atlassian Confluence-Style Floating Bottom Dock Pill
+ * ---------------------------------------------------------------------------- */
+.floating-dock-wrapper {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-floating-dock);
+  pointer-events: auto;
+}
+
+.floating-dock {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px 5px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-floating-dock);
+  transition: all var(--transition-fast);
+}
+
+.floating-dock:hover {
+  box-shadow: 0 16px 42px -4px rgba(15, 23, 42, 0.12),
+              0 4px 14px -2px rgba(15, 23, 42, 0.06);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.floating-dock__btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.floating-dock__btn:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.floating-dock__btn--active {
+  background: var(--surface-panel-selected) !important;
+  color: var(--accent-primary) !important;
+  font-weight: var(--font-semibold);
+}
+
+.floating-dock__btn--active::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+}
+
+.floating-dock__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-default);
+  margin: 0 3px;
+}
+
+/* Tooltip on Floating Dock Items */
+.floating-dock__tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--surface-tooltip);
+  color: #FFFFFF;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  z-index: var(--z-tooltip);
+}
+
+.floating-dock__btn:hover .floating-dock__tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.floating-dock__kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-xs);
+  padding: 1px 4px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ----------------------------------------------------------------------------
+ * Floating Zoom Controls Pill (Bottom-Right)
+ * ---------------------------------------------------------------------------- */
+.zoom-controls {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-floating-dock);
+  z-index: var(--z-floating-dock);
+  transition: all var(--transition-fast);
+}
+
+.zoom-controls:hover {
+  box-shadow: 0 16px 42px -4px rgba(15, 23, 42, 0.12),
+              0 4px 14px -2px rgba(15, 23, 42, 0.06);
+}
+
+.zoom-controls__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.zoom-controls__btn:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+}
+
+.zoom-controls__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.zoom-controls__readout {
+  padding: 0 6px;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+
+.zoom-controls__readout:hover {
+  background: var(--surface-panel-hover);
+  color: var(--accent-primary);
+}
+
+.zoom-controls__divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-default);
+  margin: 0 2px;
+}
+
+/* ----------------------------------------------------------------------------
+ * Blank Canvas Stage & Center Origin Reticle
+ * ---------------------------------------------------------------------------- */
+.canvas-blank-screen {
+  background-color: #0b0f19 !important;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(rgba(99, 102, 241, 0.07) 1.5px, transparent 1.5px) !important;
+  background-size: 24px 24px, 120px 120px !important;
+  background-position: 0 0, 0 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  min-height: 100% !important;
+  user-select: none;
+}
+
+.canvas-crosshair-axes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.canvas-axis-line {
+  position: absolute;
+  pointer-events: none;
+}
+
+.canvas-axis-line--x {
+  top: 0;
+  left: -50000px;
+  width: 100000px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(32, 104, 89, 0.04) 35%,
+    rgba(32, 104, 89, 0.22) 49.5%,
+    rgba(32, 104, 89, 0.45) 50%,
+    rgba(32, 104, 89, 0.22) 50.5%,
+    rgba(32, 104, 89, 0.04) 65%,
+    transparent 100%
+  );
+}
+
+.canvas-axis-line--y {
+  top: -50000px;
+  left: 0;
+  width: 1px;
+  height: 100000px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(32, 104, 89, 0.04) 35%,
+    rgba(32, 104, 89, 0.22) 49.5%,
+    rgba(32, 104, 89, 0.45) 50%,
+    rgba(32, 104, 89, 0.22) 50.5%,
+    rgba(32, 104, 89, 0.04) 65%,
+    transparent 100%
+  );
+}
+
+.canvas-center-origin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  user-select: none;
+  pointer-events: none;
+}
+
+.canvas-origin-reticle {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid rgba(32, 104, 89, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: none;
+  box-shadow: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.canvas-origin-icon {
+  color: #206859;
+  opacity: 0.75;
+  filter: none;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+

@@ -1,0 +1,823 @@
+/**
+ * ============================================================================
+ * DOCK LAYOUT & SHELL STYLES
+ * ============================================================================
+ * UI Element: Dock Infrastructure, Dock Zones, Tab Bars, Splitters, and Status Bar
+ * Screen / Scope: Entire IDE Studio Shell (`/editor`)
+ * Role: Provides layout grid, resizable panels, and glassmorphic styling.
+ * 
+ * CSS ISOLATION RULE:
+ * This file governs ONLY the dock layout structure, zone dimensions, splitters,
+ * tab strips, and status bar. Content inside panels must use their own component stylesheets.
+ * All styling values are derived exclusively from `tokens.css`.
+ * ============================================================================
+ */
+
+/* ----------------------------------------------------------------------------
+ * Root Dock Shell Layout
+ * ---------------------------------------------------------------------------- */
+.dock-layout {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--canvas-bg);
+  position: relative;
+}
+
+.dock-layout__header {
+  flex-shrink: 0;
+  z-index: var(--z-header);
+}
+
+.dock-layout__body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.dock-layout__statusbar {
+  flex-shrink: 0;
+  height: var(--statusbar-height);
+  z-index: var(--z-header);
+}
+
+/* ----------------------------------------------------------------------------
+ * Center Column (Hosts Center Stage + Bottom Drawer)
+ * ---------------------------------------------------------------------------- */
+.dock-center-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * Dock Zones (Glassmorphic Containers)
+ * ---------------------------------------------------------------------------- */
+.dock-zone {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-panel);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  overflow: hidden;
+  position: relative;
+  transition: width var(--transition-fast), height var(--transition-fast);
+}
+
+body.is-resizing .dock-zone,
+body.is-resizing .dock-center-col,
+body.is-resizing .dock-splitter,
+body.is-resizing .dock-corner-splitter {
+  transition: none !important;
+}
+
+.dock-zone--left {
+  height: 100%;
+  border-right: 1px solid var(--border-default);
+  box-shadow: var(--shadow-xs);
+  z-index: 20;
+}
+
+.dock-zone--right {
+  height: 100%;
+  border-left: 1px solid var(--border-default);
+  box-shadow: var(--shadow-xs);
+  z-index: 20;
+}
+
+.dock-zone--bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-default);
+  box-shadow: var(--shadow-md);
+  z-index: 22;
+}
+
+/* Layering Elevations:
+ * Governed by 2-second hover dwell or instant click (.dock-zone--elevated).
+ * Bottom Drawer remains on top until dwell threshold is reached.
+ */
+.dock-zone--left.dock-zone--elevated {
+  z-index: 35;
+}
+
+.dock-zone--right.dock-zone--elevated {
+  z-index: 35;
+}
+
+.dock-zone--bottom.dock-zone--elevated {
+  z-index: 29;
+}
+
+.dock-zone--center {
+  flex: 1;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  z-index: var(--z-canvas);
+}
+
+.dock-zone--collapsed {
+  user-select: none;
+}
+
+/* ----------------------------------------------------------------------------
+ * Center Document Tab Bar (Unreal Engine 5 Primary Document Tabs)
+ * ---------------------------------------------------------------------------- */
+.center-document-tabbar {
+  height: 34px;
+  background: var(--surface-dock-bar);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-xs);
+  user-select: none;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  z-index: 25;
+}
+
+.center-document-tabbar__tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 100%;
+  scrollbar-width: none;
+}
+
+.center-document-tabbar__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.center-document-tabbar__tab {
+  height: 28px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  position: relative;
+}
+
+.center-document-tabbar__tab:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+}
+
+.center-document-tabbar__tab--active {
+  background: var(--surface-panel-solid);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+}
+
+.center-document-tabbar__tab--active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: 1px;
+}
+
+.center-document-tabbar__badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 9px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #A5B4FC;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.center-document-tabbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+/* ----------------------------------------------------------------------------
+ * Dock Tab Bar (Panel Switcher Strip)
+ * ---------------------------------------------------------------------------- */
+.dock-tabbar {
+  height: var(--dock-tab-height);
+  background: var(--surface-dock-bar);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-xs);
+  user-select: none;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.dock-tabbar__tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 100%;
+  scrollbar-width: none;
+}
+
+.dock-tabbar__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.dock-tabbar__tab {
+  height: 28px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.dock-tabbar__tab:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+}
+
+.dock-tabbar__tab--active {
+  background: var(--surface-panel-solid);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+  border: none;
+  box-shadow: none;
+}
+
+.dock-tabbar__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-xs);
+  color: var(--text-tertiary);
+  margin-left: 2px;
+}
+
+.dock-tabbar__close:hover {
+  background: var(--accent-danger-light);
+  color: var(--accent-danger);
+}
+
+.dock-tabbar__controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.dock-tabbar__btn {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dock-tabbar__btn:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+}
+
+/* ----------------------------------------------------------------------------
+ * Collapsed Icon Strip
+ * ---------------------------------------------------------------------------- */
+.dock-collapsed-strip {
+  width: var(--collapsed-strip-width);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  gap: var(--space-sm);
+  background: var(--surface-dock-bar);
+}
+
+.dock-collapsed-strip__btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.dock-collapsed-strip__btn:hover {
+  background: var(--surface-panel-hover);
+  color: var(--accent-primary);
+}
+
+.dock-collapsed-strip__label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-top: var(--space-md);
+}
+
+/* ----------------------------------------------------------------------------
+ * Dock Content Area
+ * ---------------------------------------------------------------------------- */
+.dock-content {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  min-height: 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * Splitters (Draggable Divider Handles)
+ * ---------------------------------------------------------------------------- */
+.dock-splitter {
+  position: relative;
+  z-index: calc(var(--z-panels) + 1);
+  background: transparent;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.dock-splitter::after {
+  content: "";
+  position: absolute;
+  background: transparent;
+  transition: all var(--transition-fast);
+}
+
+.dock-splitter--vertical {
+  width: 5px;
+  cursor: col-resize;
+  margin: 0 -2px;
+  z-index: 28;
+}
+
+.dock-splitter--vertical::after {
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+}
+
+.dock-splitter--horizontal {
+  width: 100%;
+  height: 5px;
+  cursor: row-resize;
+  margin: -2px 0;
+  flex-shrink: 0;
+  z-index: 26;
+}
+
+.dock-splitter--horizontal::after {
+  left: 0;
+  right: 0;
+  top: 2px;
+  height: 2px;
+}
+
+.dock-splitter:hover::after,
+.dock-splitter--active::after {
+  background: var(--accent-primary);
+  box-shadow: 0 0 6px var(--accent-primary);
+}
+
+/* ----------------------------------------------------------------------------
+ * Dock Corner Splitter (2D Intersection Drag Handle)
+ * ---------------------------------------------------------------------------- */
+.dock-corner-splitter {
+  position: absolute;
+  user-select: none;
+  touch-action: none;
+  z-index: 40;
+}
+
+.dock-corner-splitter__handle {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  transition: all var(--transition-fast);
+  pointer-events: none;
+}
+
+.dock-corner-splitter:hover .dock-corner-splitter__handle,
+.dock-corner-splitter--active .dock-corner-splitter__handle {
+  background: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(32, 104, 89, 0.4), 0 0 8px var(--accent-primary);
+  transform: scale(1.4);
+}
+
+/* ----------------------------------------------------------------------------
+ * Status Bar Styling
+ * ---------------------------------------------------------------------------- */
+.statusbar {
+  height: 100%;
+  background: var(--surface-statusbar);
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.statusbar__left,
+.statusbar__center,
+.statusbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.statusbar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: default;
+}
+
+.statusbar__indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background-color: var(--accent-success);
+}
+
+.statusbar__indicator--dirty {
+  background-color: var(--accent-warning);
+}
+
+.statusbar__badge {
+  padding: 1px 6px;
+  background: var(--surface-panel-hover);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.statusbar__zoom-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+}
+
+.statusbar__zoom-btn:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+}
+
+/* Bottom Drawer Controller in Status Bar */
+.statusbar__drawer-group {
+  display: flex;
+  align-items: center;
+  padding-right: var(--space-sm);
+  margin-right: var(--space-xs);
+  border-right: 1px solid var(--border-default);
+}
+
+.statusbar__drawer-trigger {
+  height: 22px;
+  padding: 0 4px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.statusbar__drawer-trigger:hover {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+}
+
+.statusbar__drawer-trigger:focus-visible {
+  outline: none;
+  color: var(--text-primary);
+}
+
+.statusbar__drawer-trigger--active {
+  color: var(--text-secondary);
+}
+
+.statusbar__drawer-count {
+  font-size: var(--text-xs);
+  color: inherit;
+  opacity: 0.85;
+}
+
+/* Unreal-Style Output Log Button in Bottom Bar */
+.statusbar__log-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  background: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.statusbar__log-btn:hover {
+  background: var(--surface-panel-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.statusbar__log-btn--active {
+  background: var(--surface-panel-selected);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================================================
+ * TEAR-OFF DRAG SYSTEM
+ * ============================================================================
+ * Floating preview, header drop zone indicator, and tab drag feedback
+ * for the Unreal Engine-style tear-off tab system.
+ * ============================================================================ */
+
+/* Fullscreen overlay container (pointer-events: none so it doesn't block clicks) */
+.tearoff-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Header drop zone indicator — glowing bar across the top */
+.tearoff-header-dropzone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  transition: all 0.18s var(--ease-out-expo);
+  pointer-events: none;
+}
+
+.tearoff-header-dropzone--active {
+  background: linear-gradient(
+    180deg,
+    rgba(32, 104, 89, 0.10) 0%,
+    rgba(32, 104, 89, 0.03) 50%,
+    transparent 100%
+  );
+  border-bottom-color: var(--accent-primary);
+  box-shadow: 0 2px 16px rgba(32, 104, 89, 0.20);
+}
+
+/* Floating glassmorphic preview rectangle — GPU-accelerated */
+.tearoff-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 70px;
+  background: var(--surface-panel);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  pointer-events: none;
+  animation: tearoff-appear 0.12s var(--ease-out-expo);
+  will-change: transform, opacity, border-color;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+/* Dock Full-Page highlight */
+.tearoff-preview--header-zone {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-lg), 0 0 16px rgba(32, 104, 89, 0.25), 0 0 0 1px var(--accent-primary);
+}
+
+/* Bottom Drawer Drop Zone — 50% opacity translucent connection preview */
+.tearoff-bottom-drawer-dropzone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 36px;
+  height: 240px;
+  background: rgba(99, 102, 241, 0.10);
+  border: 2px dashed rgba(99, 102, 241, 0.50);
+  border-bottom: none;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: tearoff-appear 0.15s var(--ease-out-expo);
+  backdrop-filter: blur(2px);
+}
+
+.tearoff-bottom-drawer-dropzone__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px;
+  background: rgba(15, 17, 26, 0.82);
+  border: 1px solid rgba(99, 102, 241, 0.40);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color: var(--text-primary);
+}
+
+.tearoff-bottom-drawer-dropzone__icon {
+  color: #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tearoff-bottom-drawer-dropzone__label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #c7d2fe;
+}
+
+.tearoff-bottom-drawer-dropzone__sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Bottom Bar Drop Zone — status bar highlight */
+.tearoff-bottom-bar-dropzone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36px;
+  background: rgba(99, 102, 241, 0.22);
+  border-top: 2px solid #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: tearoff-appear 0.12s var(--ease-out-expo);
+}
+
+.tearoff-bottom-bar-dropzone__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0e7ff;
+  letter-spacing: 0.02em;
+}
+
+/* Preview states for bottom targets */
+.tearoff-preview--bottom-drawer {
+  border-color: #818cf8;
+  box-shadow: var(--shadow-lg), 0 0 16px rgba(99, 102, 241, 0.25), 0 0 0 1px #818cf8;
+}
+
+.tearoff-preview--bottom-drawer .tearoff-preview__hint {
+  color: #a5b4fc;
+}
+
+.tearoff-preview--bottom-bar {
+  border-color: #a5b4fc;
+  box-shadow: var(--shadow-lg), 0 0 12px rgba(99, 102, 241, 0.20);
+}
+
+.tearoff-preview--bottom-bar .tearoff-preview__hint {
+  color: #c7d2fe;
+}
+
+/* Snap-back zone: dimmed + dashed border to signal cancel */
+.tearoff-preview--snapback {
+  opacity: 0.45;
+  border-style: dashed;
+  border-color: var(--text-tertiary);
+  box-shadow: none;
+}
+
+.tearoff-preview--snapback .tearoff-preview__hint {
+  color: var(--accent-warning);
+}
+
+.tearoff-preview__grip {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.tearoff-preview__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tearoff-preview__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tearoff-preview__hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  color: var(--text-tertiary);
+  letter-spacing: 0.03em;
+}
+
+.tearoff-preview--header-zone .tearoff-preview__hint {
+  color: var(--accent-primary);
+}
+
+/* Tab in dragging state */
+.dock-tabbar__tab--dragging {
+  opacity: 0.35;
+  outline: 1px dashed var(--border-strong);
+  outline-offset: -1px;
+}
+
+@keyframes tearoff-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+

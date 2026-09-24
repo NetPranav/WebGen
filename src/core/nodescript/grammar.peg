@@ -1,0 +1,239 @@
+// ============================================================================
+// NODESCRIPT FORMAL PEG GRAMMAR SPECIFICATION
+// ============================================================================
+// Architecture Ref: Detailed Roadmap.md §Sub-Phase 5.1
+// Format: PEG.js / Parsing Expression Grammar
+// Canonical textual IR for Logic Blueprint Graphs (.nls)
+// ============================================================================
+
+Document
+  = _ header:HeaderDirective? _ graph:GraphDecl _ {
+      return {
+        version: header || "1.0",
+        graph: graph
+      };
+    }
+
+HeaderDirective
+  = "#nls-version:" _ version:VersionString LineTerminator {
+      return version;
+    }
+
+VersionString
+  = [0-9]+ ("." [0-9]+)* {
+      return text();
+    }
+
+GraphDecl
+  = "graph" __ name:Identifier _ typeOpt:("(" _ "type:" _ t:GraphType _ ")" { return t; })? _ "{" _ statements:Statements _ "}" {
+      return {
+        name: name,
+        type: typeOpt || "event",
+        statements: statements
+      };
+    }
+
+GraphType
+  = "event" / "function" / "macro"
+
+Statements
+  = (Statement _)*
+
+Statement
+  = NodeDecl
+  / WireDecl
+  / VariableDecl
+
+NodeDecl
+  = "node" __ alias:Identifier _ ":" _ type:QualifiedIdentifier _ params:ParameterList? _ pos:PositionAnnotation? {
+      return {
+        kind: "node",
+        alias: alias,
+        type: type,
+        params: params || {},
+        position: pos || null
+      };
+    }
+
+PositionAnnotation
+  = "@pos" _ "(" _ x:Number _ "," _ y:Number _ ")" {
+      return { x: x, y: y };
+    }
+
+ParameterList
+  = "(" _ entries:ParameterEntries? _ ")" {
+      return entries || {};
+    }
+
+ParameterEntries
+  = head:ParameterEntry tail:(_ "," _ ParameterEntry)* {
+      var result = {};
+      result[head.key] = head.value;
+      for (var i = 0; i < tail.length; i++) {
+        var entry = tail[i][3];
+        result[entry.key] = entry.value;
+      }
+      return result;
+    }
+
+ParameterEntry
+  = key:Identifier _ ":" _ value:Value {
+      return { key: key, value: value };
+    }
+
+WireDecl
+  = "wire" __ sourceNode:Identifier "." sourcePin:Identifier _ "->" _ targetNode:Identifier "." targetPin:Identifier _ guard:WireGuard? {
+      return {
+        kind: "wire",
+        sourceNode: sourceNode,
+        sourcePin: sourcePin,
+        targetNode: targetNode,
+        targetPin: targetPin,
+        guard: guard || null
+      };
+    }
+
+WireGuard
+  = "[" _ "when:" _ condition:ConditionString _ "]" {
+      return condition;
+    }
+
+ConditionString
+  = [^\]]+ {
+      return text().trim();
+    }
+
+VariableDecl
+  = ("variable" / "var") __ name:Identifier _ ":" _ type:Identifier _ "=" _ value:Value {
+      return {
+        kind: "variable",
+        name: name,
+        type: type,
+        value: value
+      };
+    }
+
+Value
+  = ReferenceExpr
+  / StringLiteral
+  / NumberLiteral
+  / BooleanLiteral
+  / NullLiteral
+  / ObjectLiteral
+  / ArrayLiteral
+  / Identifier
+
+ReferenceExpr
+  = "$" node:Identifier "." pin:Identifier {
+      return {
+        __ref: true,
+        node: node,
+        pin: pin
+      };
+    }
+
+ObjectLiteral
+  = "{" _ entries:ObjectEntries? _ "}" {
+      return entries || {};
+    }
+
+ObjectEntries
+  = head:ObjectEntry tail:(_ "," _ ObjectEntry)* {
+      var result = {};
+      result[head.key] = head.value;
+      for (var i = 0; i < tail.length; i++) {
+        var entry = tail[i][3];
+        result[entry.key] = entry.value;
+      }
+      return result;
+    }
+
+ObjectEntry
+  = key:Identifier _ ":" _ value:Value {
+      return { key: key, value: value };
+    }
+
+ArrayLiteral
+  = "[" _ elements:ArrayElements? _ "]" {
+      return elements || [];
+    }
+
+ArrayElements
+  = head:Value tail:(_ "," _ Value)* {
+      var list = [head];
+      for (var i = 0; i < tail.length; i++) {
+        list.push(tail[i][3]);
+      }
+      return list;
+    }
+
+QualifiedIdentifier
+  = Identifier ("." Identifier)* {
+      return text();
+    }
+
+Identifier
+  = [a-zA-Z_][a-zA-Z0-9_]* {
+      return text();
+    }
+
+StringLiteral
+  = "\"" chars:DoubleStringChar* "\"" {
+      return chars.join("");
+    }
+  / "'" chars:SingleStringChar* "'" {
+      return chars.join("");
+    }
+
+DoubleStringChar
+  = "\\\"" { return "\""; }
+  / "\\n"  { return "\n"; }
+  / "\\t"  { return "\t"; }
+  / "\\\\" { return "\\"; }
+  / [^\"\\]
+
+SingleStringChar
+  = "\\'"  { return "'"; }
+  / "\\n"  { return "\n"; }
+  / "\\t"  { return "\t"; }
+  / "\\\\" { return "\\"; }
+  / [^\'\\]
+
+NumberLiteral
+  = "-"? [0-9]+ ("." [0-9]+)? {
+      return parseFloat(text());
+    }
+
+Number
+  = "-"? [0-9]+ ("." [0-9]+)? {
+      return parseFloat(text());
+    }
+
+BooleanLiteral
+  = "true"  { return true; }
+  / "false" { return false; }
+
+NullLiteral
+  = "null"  { return null; }
+
+_ "whitespace or comment"
+  = (Whitespace / Comment)*
+
+__ "mandatory whitespace"
+  = (Whitespace / Comment)+
+
+Whitespace
+  = [ \t\n\r]
+
+Comment
+  = SingleLineComment
+  / MultiLineComment
+
+SingleLineComment
+  = ("//" / "#") [^\n\r]*
+
+MultiLineComment
+  = "/*" (!"*/" .)* "*/"
+
+LineTerminator
+  = [\n\r]+

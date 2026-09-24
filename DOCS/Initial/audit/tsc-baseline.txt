@@ -1,0 +1,200 @@
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(19,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(43,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(64,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(84,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(105,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(134,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(158,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(184,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(205,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(224,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(247,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(267,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(286,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'ProjectElement'.
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(309,9): error TS2739: Type '{ id: string; name: string; archetype: "button"; properties: { label: string; }; }' is missing the following properties from type 'ProjectElement': parentId, children
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(310,9): error TS2739: Type '{ id: string; name: string; archetype: "image"; properties: { src: string; }; }' is missing the following properties from type 'ProjectElement': parentId, children
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(311,9): error TS2739: Type '{ id: string; name: string; archetype: "divider"; properties: { thickness: number; }; }' is missing the following properties from type 'ProjectElement': parentId, children
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(312,9): error TS2739: Type '{ id: string; name: string; archetype: "background"; properties: {}; }' is missing the following properties from type 'ProjectElement': parentId, children
+src/compiler/emitters/__tests__/ArchetypeEmitters.test.ts(313,9): error TS2739: Type '{ id: string; name: string; archetype: "text"; properties: { content: string; fontSize: number; }; }' is missing the following properties from type 'ProjectElement': parentId, children
+src/compiler/emitters/react/InteractiveEmitter.ts(49,64): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/compiler/emitters/react/InteractiveEmitter.ts(50,62): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/compiler/emitters/react/InteractiveEmitter.ts(51,58): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/compiler/emitters/react/MediaEmitter.ts(40,60): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/compiler/emitters/react/StructuralEmitter.ts(39,66): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/compiler/emitters/react/StructuralEmitter.ts(40,72): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/compiler/export/CrossFrameworkExporter.ts(98,11): error TS2353: Object literal may only specify known properties, and 'framework' does not exist in type 'StructuralEmitterOptions'.
+src/core/ai/__tests__/MotionAiEngine.test.ts(27,15): error TS2353: Object literal may only specify known properties, and 'width' does not exist in type 'ElementLayout'.
+src/core/ai/__tests__/MotionAiEngine.test.ts(42,15): error TS2353: Object literal may only specify known properties, and 'width' does not exist in type 'ElementLayout'.
+src/core/ai/__tests__/MotionAiEngine.test.ts(57,15): error TS2353: Object literal may only specify known properties, and 'width' does not exist in type 'ElementLayout'.
+src/core/ai/__tests__/MotionAiEngine.test.ts(72,15): error TS2353: Object literal may only specify known properties, and 'width' does not exist in type 'ElementLayout'.
+src/core/ai/__tests__/MotionAiEngine.test.ts(87,15): error TS2353: Object literal may only specify known properties, and 'width' does not exist in type 'ElementLayout'.
+src/core/ai/MotionDiagnostics.ts(141,56): error TS2339: Property 'width' does not exist on type 'ElementLayout'.
+src/core/ai/MotionDiagnostics.ts(142,58): error TS2339: Property 'height' does not exist on type 'ElementLayout'.
+src/core/ai/MotionDiagnostics.ts(236,52): error TS2339: Property 'shadows' does not exist on type 'ElementAppearance'.
+src/core/elements/archetypes/interactive.ts(29,86): error TS2344: Type 'ButtonArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'ButtonArchetypeConfig'.
+src/core/elements/archetypes/interactive.ts(101,80): error TS2344: Type 'ToggleArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'ToggleArchetypeConfig'.
+src/core/elements/archetypes/interactive.ts(168,76): error TS2344: Type 'BadgeArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'BadgeArchetypeConfig'.
+src/core/elements/archetypes/interactive.ts(232,77): error TS2344: Type 'FabArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'FabArchetypeConfig'.
+src/core/elements/archetypes/media.ts(51,81): error TS2344: Type 'ImageArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'ImageArchetypeConfig'.
+src/core/elements/archetypes/media.ts(133,82): error TS2344: Type 'IconArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'IconArchetypeConfig'.
+src/core/elements/archetypes/structural.ts(35,88): error TS2344: Type 'DividerArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'DividerArchetypeConfig'.
+src/core/elements/archetypes/structural.ts(98,86): error TS2344: Type 'BackgroundArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'BackgroundArchetypeConfig'.
+src/core/elements/archetypes/structural.ts(166,90): error TS2344: Type 'ContainerArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'ContainerArchetypeConfig'.
+src/core/elements/archetypes/text.ts(34,79): error TS2344: Type 'TextArchetypeConfig' does not satisfy the constraint 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'TextArchetypeConfig'.
+src/core/engine/__tests__/ArchetypeVerificationMatrix.test.ts(191,9): error TS2322: Type 'string' is not assignable to type 'ElementType'.
+src/core/engine/__tests__/ArchetypeVerificationMatrix.test.ts(213,30): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/core/engine/__tests__/ArchetypeVerificationMatrix.test.ts(258,15): error TS2322: Type '{ time: number; value: any; easing: string; }[]' is not assignable to type 'KeyframePoint[]'.
+  Property 'offset' is missing in type '{ time: number; value: any; easing: string; }' but required in type 'KeyframePoint'.
+src/core/engine/ElementGrammarEngine.ts(404,23): error TS2322: Type '"Off"' is not assignable to type 'GrammarStateName'.
+src/core/engine/ElementGrammarEngine.ts(404,30): error TS2322: Type '"On"' is not assignable to type 'GrammarStateName'.
+src/core/engine/ElementGrammarEngine.ts(410,9): error TS2322: Type '"Off"' is not assignable to type 'GrammarStateName'.
+src/core/engine/ElementGrammarEngine.ts(410,22): error TS2322: Type '"On"' is not assignable to type 'GrammarStateName'.
+src/core/engine/ElementGrammarEngine.ts(411,9): error TS2322: Type '"On"' is not assignable to type 'GrammarStateName'.
+src/core/engine/ElementGrammarEngine.ts(411,21): error TS2322: Type '"Off"' is not assignable to type 'GrammarStateName'.
+src/core/engine/grammarHelpers.ts(18,3): error TS2305: Module '"../types/element-grammar"' has no exported member 'CandidateBindingOffer'.
+src/core/engine/grammarHelpers.ts(22,3): error TS2305: Module '"../types/element-grammar"' has no exported member 'TYPE_REGISTRY'.
+src/core/engine/grammarHelpers.ts(88,57): error TS2322: Type '"Drawer"' is not assignable to type 'GrammarElementType'.
+src/core/engine/GSAPTimelineCompiler.ts(117,62): error TS2345: Argument of type 'string | number | number[]' is not assignable to parameter of type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/profiler/__tests__/PerformanceBenchmark.test.ts(84,15): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type 'KeyframePoint'.
+src/core/profiler/__tests__/PerformanceBenchmark.test.ts(85,15): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type 'KeyframePoint'.
+src/core/profiler/__tests__/PerformanceBenchmark.test.ts(86,15): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type 'KeyframePoint'.
+src/core/profiler/__tests__/PerformanceBenchmark.test.ts(93,15): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type 'KeyframePoint'.
+src/core/profiler/__tests__/PerformanceBenchmark.test.ts(94,15): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type 'KeyframePoint'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(307,11): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(399,9): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(402,9): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(703,9): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(782,14): error TS2678: Type '"transform.x"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(786,14): error TS2678: Type '"transform.y"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(790,14): error TS2678: Type '"transform.z"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(794,14): error TS2678: Type '"transform.scale"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(795,14): error TS2678: Type '"media.scale"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(799,14): error TS2678: Type '"transform.scaleX"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(800,14): error TS2678: Type '"divider.length"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(804,14): error TS2678: Type '"transform.scaleY"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(805,14): error TS2678: Type '"divider.thickness"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(809,14): error TS2678: Type '"transform.rotate"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(813,14): error TS2678: Type '"transform.rotateX"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(817,14): error TS2678: Type '"transform.rotateY"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(822,14): error TS2678: Type '"appearance.opacity"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(823,14): error TS2678: Type '"media.overlay.opacity"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(824,14): error TS2678: Type '"background.noise.opacity"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(828,14): error TS2678: Type '"appearance.background.color"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(829,14): error TS2678: Type '"background.color"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(833,14): error TS2678: Type '"appearance.radius"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(840,14): error TS2678: Type '"typography.color"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(844,14): error TS2678: Type '"filter.blur"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(845,14): error TS2678: Type '"media.filter.blur"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(848,14): error TS2678: Type '"media.clipPath"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(852,14): error TS2678: Type '"svg.strokeDashoffset"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(853,14): error TS2678: Type '"divider.strokeDashoffset"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(856,14): error TS2678: Type '"background.blendMode"' is not comparable to type 'AnimationTrackId'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(875,39): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(879,45): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(880,61): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(904,34): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/runtime/MultiEngineAnimationRuntime.ts(904,46): error TS2322: Type 'string | number | number[]' is not assignable to type 'string | number'.
+  Type 'number[]' is not assignable to type 'string | number'.
+src/core/storage/DemoProjectSnapshot.ts(80,9): error TS2740: Type '{}' is missing the following properties from type 'BlueprintVariable[]': length, pop, push, concat, and 35 more.
+src/core/storage/DemoProjectSnapshot.ts(208,17): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type 'KeyframePoint'.
+src/core/storage/DemoProjectSnapshot.ts(209,17): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type 'KeyframePoint'.
+src/core/storage/DemoProjectSnapshot.ts(210,17): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type 'KeyframePoint'.
+src/core/storage/DemoProjectSnapshot.ts(224,9): error TS2740: Type '{}' is missing the following properties from type 'BlueprintVariable[]': length, pop, push, concat, and 35 more.
+src/core/store/useProjectStore.ts(512,72): error TS2322: Type '{ getDataContext: () => DataContext; getSnapshot: () => ProjectStateSnapshot; restoreSnapshot: (snapshot: ProjectStateSnapshot) => void; ... 70 more ...; environment?: WorldEnvironmentSettings | undefined; }' is not assignable to type 'ProjectStoreState'.
+  Types of property 'environment' are incompatible.
+    Type 'WorldEnvironmentSettings | undefined' is not assignable to type 'WorldEnvironmentSettings'.
+      Type 'undefined' is not assignable to type 'WorldEnvironmentSettings'.
+src/core/types/database.ts(142,14): error TS2740: Type '{ text: { textContent: { propertyKey: string; allowedCategories: ("TEXTUAL_SCALAR" | "NUMERIC" | "TEMPORAL")[]; description: string; safeFallback: string; }; }; image: { src: { propertyKey: string; allowedCategories: ("TEXTUAL_SCALAR" | "MEDIA_URL")[]; description: string; safeFallback: string; }; alt: { ...; }; }; ...' is missing the following properties from type 'Record<ElementType, Record<string, PropertyBindingRule>>': toggle, badge, fab, icon, and 5 more.
+src/editor/panels/ai/MotionAICoPilot.tsx(46,21): error TS2339: Property 'activeElementId' does not exist on type 'ProjectStoreState'.
+src/editor/panels/ai/MotionAICoPilot.tsx(46,38): error TS2339: Property 'updateElement' does not exist on type 'ProjectStoreState'.
+src/editor/panels/code/CodeInspector.tsx(88,62): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/editor/panels/code/CodeInspector.tsx(245,23): error TS2339: Property 'downloadZip' does not exist on type 'typeof ZipPacker'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(45,47): error TS2339: Property 'activeLocks' does not exist on type 'CollabStoreState'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(46,47): error TS2339: Property 'vectorClock' does not exist on type 'CollabStoreState'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(50,50): error TS2339: Property 'updatePeerRole' does not exist on type 'CollabStoreState'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(51,46): error TS2339: Property 'removePeer' does not exist on type 'CollabStoreState'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(52,47): error TS2339: Property 'releaseLock' does not exist on type 'CollabStoreState'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(53,56): error TS2339: Property 'simulatePeerActivity' does not exist on type 'CollabStoreState'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(54,59): error TS2551: Property 'simulateRemoteOperation' does not exist on type 'CollabStoreState'. Did you mean 'simulateRemotePeerJoin'?
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(199,102): error TS2538: Type 'undefined' cannot be used as an index type.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(200,20): error TS18048: 'localUser.role' is possibly 'undefined'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(223,25): error TS2561: Object literal may only specify known properties, but 'ringWidth' does not exist in type 'Properties<string | number, string & {}>'. Did you mean to write 'minWidth'?
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(286,107): error TS2538: Type 'undefined' cannot be used as an index type.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(356,28): error TS18046: 'lock' is of type 'unknown'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(363,30): error TS18046: 'lock' is of type 'unknown'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(366,71): error TS18046: 'lock' is of type 'unknown'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(372,52): error TS18046: 'lock' is of type 'unknown'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(509,19): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(509,64): error TS18046: 'a' is of type 'unknown'.
+src/editor/panels/collaboration/LiveCollaborationPanel.tsx(509,68): error TS18046: 'b' is of type 'unknown'.
+src/editor/panels/content-browser/ContentBrowser.tsx(1475,57): error TS2339: Property 'candidates' does not exist on type 'PlusIconDecision'.
+  Property 'candidates' does not exist on type '{ visible: false; reason: string; }'.
+src/editor/panels/content-browser/ContentBrowser.tsx(1499,40): error TS2339: Property 'candidates' does not exist on type 'PlusIconDecision'.
+  Property 'candidates' does not exist on type '{ visible: false; reason: string; }'.
+src/editor/panels/content-browser/ContentBrowser.tsx(1499,67): error TS2339: Property 'candidates' does not exist on type 'PlusIconDecision'.
+  Property 'candidates' does not exist on type '{ visible: false; reason: string; }'.
+src/editor/panels/content-browser/ContentBrowser.tsx(1500,42): error TS2339: Property 'candidates' does not exist on type 'PlusIconDecision'.
+  Property 'candidates' does not exist on type '{ visible: false; reason: string; }'.
+src/editor/panels/content-browser/ContentBrowser.tsx(1500,58): error TS7006: Parameter 'offer' implicitly has an 'any' type.
+src/editor/panels/content-browser/ContentBrowser.tsx(1500,65): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/editor/panels/content-browser/ContentBrowser.tsx(1544,69): error TS7006: Parameter 'prop' implicitly has an 'any' type.
+src/editor/panels/content-browser/ContentBrowser.tsx(1572,50): error TS2339: Property 'reason' does not exist on type 'PlusIconDecision'.
+  Property 'reason' does not exist on type '{ visible: true; candidates: CandidateBindingOffer[]; }'.
+src/editor/panels/content-browser/ContentBrowser.tsx(2130,23): error TS2367: This comparison appears to be unintentional because the types 'AssetCategory' and '"blueprint"' have no overlap.
+src/editor/panels/content-browser/ContentBrowser.tsx(2141,25): error TS2367: This comparison appears to be unintentional because the types 'AssetCategory' and '"blueprint"' have no overlap.
+src/editor/panels/content-browser/ContentBrowser.tsx(2147,25): error TS2367: This comparison appears to be unintentional because the types 'AssetCategory' and '"blueprint"' have no overlap.
+src/editor/panels/content-browser/ContentBrowser.tsx(2368,19): error TS2367: This comparison appears to be unintentional because the types 'AssetCategory' and '"blueprint"' have no overlap.
+src/editor/panels/content-browser/ContentBrowser.tsx(2374,19): error TS2367: This comparison appears to be unintentional because the types 'AssetCategory' and '"blueprint"' have no overlap.
+src/editor/panels/curves/CurveEditor.tsx(177,59): error TS2339: Property 'animationStack' does not exist on type 'ProjectElement'.
+src/editor/panels/curves/CurveEditor.tsx(298,17): error TS2322: Type '{ cx: number; cy: number; r: number; className: string; onMouseDown: (e: MouseEvent<SVGCircleElement, MouseEvent>) => void; title: string; }' is not assignable to type 'SVGProps<SVGCircleElement>'.
+  Property 'title' does not exist on type 'SVGProps<SVGCircleElement>'.
+src/editor/panels/curves/CurveEditor.tsx(306,17): error TS2322: Type '{ cx: number; cy: number; r: number; className: string; onMouseDown: (e: MouseEvent<SVGCircleElement, MouseEvent>) => void; title: string; }' is not assignable to type 'SVGProps<SVGCircleElement>'.
+  Property 'title' does not exist on type 'SVGProps<SVGCircleElement>'.
+src/editor/panels/details/DetailsInspector.tsx(533,19): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/editor/panels/details/DetailsInspector.tsx(561,19): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/editor/panels/details/DetailsInspector.tsx(589,19): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/editor/panels/details/DetailsInspector.tsx(617,19): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/editor/panels/details/DetailsInspector.tsx(648,19): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/editor/panels/details/DetailsInspector.tsx(779,17): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/editor/panels/details/DetailsInspector.tsx(806,17): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/editor/panels/global-search/GlobalSearchPanel.tsx(152,12): error TS2678: Type '"animation_sequence"' is not comparable to type 'SearchEntityType'.
+src/editor/panels/global-search/GlobalSearchPanel.tsx(153,12): error TS2678: Type '"animation_track"' is not comparable to type 'SearchEntityType'.
+src/editor/panels/launcher/__tests__/ProjectInitialization.test.ts(231,7): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/editor/panels/launcher/__tests__/ProjectInitialization.test.ts(232,7): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/editor/panels/launcher/__tests__/ProjectInitialization.test.ts(233,7): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/editor/panels/launcher/__tests__/ProjectInitialization.test.ts(263,26): error TS18048: 'state.target' is possibly 'undefined'.
+src/editor/panels/launcher/__tests__/ProjectInitialization.test.ts(264,26): error TS18048: 'state.target' is possibly 'undefined'.
+src/editor/panels/launcher/__tests__/ProjectInitialization.test.ts(265,26): error TS18048: 'state.target' is possibly 'undefined'.
+src/editor/panels/launcher/__tests__/ProjectInitialization.test.ts(266,26): error TS18048: 'state.target' is possibly 'undefined'.
+src/editor/panels/launcher/ProjectHub.tsx(206,7): error TS2353: Object literal may only specify known properties, and 'targetConfig' does not exist in type '{ projectId?: string | undefined; projectName: string; archetype: string; target?: ProjectTargetConfig | undefined; template?: string | undefined; actionLabel?: string | undefined; }'.
+src/editor/panels/sequencer/__tests__/ScrollTrigger.test.ts(53,26): error TS2367: This comparison appears to be unintentional because the types '0' and '-1' have no overlap.
+src/editor/panels/sequencer/AnimationExportPreview.tsx(57,36): error TS2339: Property 'type' does not exist on type 'ProjectElement'.
+src/editor/panels/sequencer/MotionSequencer.tsx(177,33): error TS2339: Property 'family' does not exist on type 'ProjectElement'.
+src/editor/panels/sequencer/MotionSequencer.tsx(181,28): error TS2339: Property 'animationStack' does not exist on type 'ProjectElement'.
+src/editor/panels/sequencer/MotionSequencer.tsx(182,22): error TS2339: Property 'animationStack' does not exist on type 'ProjectElement'.
