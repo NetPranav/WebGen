@@ -84,6 +84,12 @@ export function getWireColor(pinType: string): string {
   return getPinColor(pinType as PinDataType) || WIRE_COLOR_PALETTE.default;
 }
 
+function splineMatchesWire(spline: SplineResult, wire: { start: { x: number; y: number }; end: { x: number; y: number } }) {
+  const near = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
+  return near(spline.p0, wire.start) && near(spline.p3, wire.end);
+}
+
 export const WasmCableCanvas: React.FC<WasmCableCanvasProps> = ({
   wires,
   draggingWire = null,
@@ -140,7 +146,9 @@ export const WasmCableCanvas: React.FC<WasmCableCanvasProps> = ({
       workerPool.requestFrame(dirtyWires, 8.33).then((results) => {
         results.forEach((spline, id) => {
           const wire = wires.find((w) => w.id === id);
-          if (wire) {
+          // On a missed frame budget the pool answers from its own cache, which can hold a spline
+          // for older endpoints. Only cache a result that was solved for this wire's endpoints.
+          if (wire && splineMatchesWire(spline, wire)) {
             splineCacheRef.current.set(id, {
               spline,
               startKey: `${wire.start.x},${wire.start.y}`,
