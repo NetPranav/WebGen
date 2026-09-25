@@ -172,12 +172,30 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.sequencer-track-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sequencer-track-kf-count {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  margin: 0 4px 0 6px;
+}
+
 .sequencer-prop-badge {
+  flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 9px;
   padding: 1px 4px;
@@ -191,6 +209,8 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .sequencer-track-action-btn {

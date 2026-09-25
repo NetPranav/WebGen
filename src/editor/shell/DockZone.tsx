@@ -41,7 +41,7 @@ interface DockZoneProps {
   onTearOffStart?: (tabId: string, tabTitle: string, originX: number, originY: number) => void;
 }
 
-export const DockZone: React.FC<DockZoneProps> = ({
+export const DockZone = React.forwardRef<HTMLElement, DockZoneProps>(function DockZone({
   zoneId,
   size,
   isCollapsed,
@@ -59,7 +59,7 @@ export const DockZone: React.FC<DockZoneProps> = ({
   onMouseLeave,
   onClick,
   onTearOffStart,
-}) => {
+}, ref) {
   const currentSize = isCollapsed ? collapsedSize : size;
   const isHorizontalZone = zoneId === "left" || zoneId === "right";
 
@@ -83,6 +83,7 @@ export const DockZone: React.FC<DockZoneProps> = ({
     }
     return (
       <aside
+        ref={ref as React.Ref<HTMLElement>}
         className={`dock-zone dock-zone--${zoneId} dock-zone--collapsed ${className || ""}`}
         style={{ ...sizeStyle, ...style }}
         onMouseEnter={onMouseEnter}
@@ -108,6 +109,7 @@ export const DockZone: React.FC<DockZoneProps> = ({
 
   return (
     <div
+      ref={ref as React.Ref<HTMLDivElement>}
       className={`dock-zone dock-zone--${zoneId} ${className || ""}`}
       style={{ ...sizeStyle, ...style }}
       onMouseEnter={onMouseEnter}
@@ -130,4 +132,4 @@ export const DockZone: React.FC<DockZoneProps> = ({
       <div className="dock-content">{children}</div>
     </div>
   );
-};
+});

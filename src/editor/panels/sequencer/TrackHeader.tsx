@@ -77,26 +77,17 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({
     >
       <div className="sequencer-track-info">
         <Layers size={12} style={{ color: badge.color, flexShrink: 0 }} />
-        <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>
-          {property}
-        </span>
+        <span className="sequencer-track-name">{property}</span>
         <span
           className="sequencer-prop-badge"
           style={{ borderColor: badge.color, color: badge.color }}
         >
           {badge.label}
         </span>
-        <span
-          className="sequencer-prop-badge"
-          style={{ borderColor: tier.border, color: tier.color, background: tier.bg, fontSize: 8 }}
-          title={`${tier.name}: ${tier.label}`}
-        >
-          {tier.badge}
-        </span>
       </div>
 
       <div className="sequencer-track-actions" onClick={(e) => e.stopPropagation()}>
-        <span style={{ fontSize: 9, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", marginRight: 4 }}>
+        <span className="sequencer-track-kf-count">
           {keyframeCount} kf
         </span>
 

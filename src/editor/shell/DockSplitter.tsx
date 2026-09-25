@@ -6,20 +6,31 @@
  * ============================================================================
  * UI Element: Draggable Splitter Handle (Vertical / Horizontal)
  * Screen / Scope: Entire IDE Studio Shell (`/editor`)
- * Role: Provides responsive mouse-drag resizing between dock zones with hover highlight.
+ * Role: Resizes the adjacent dock zone by writing directly to its DOM node
+ * (rAF-batched, no React re-render) while dragging, then commits the final
+ * size to state once on release.
  * Styling Source: `@/editor/styles/dock.css` (`.dock-splitter`)
- * 
+ *
  * CSS ISOLATION NOTE:
  * Governed strictly by `.dock-splitter` and its modifiers (`--vertical`, `--horizontal`).
- * No conflicting inline styles; position changes are dispatched via onResize callback.
+ * No conflicting inline styles; position changes are dispatched via onCommit callback.
  * ============================================================================
  */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 
 interface DockSplitterProps {
   orientation: "vertical" | "horizontal";
-  onResize: (delta: number) => void;
+  /** DOM node of the zone this splitter resizes. Its width/height (and matching min-width/min-height) are written to directly while dragging. */
+  targetRef: React.RefObject<HTMLElement | null>;
+  /** Current committed size (px) of the target zone; used as the drag's starting value. */
+  value: number;
+  min: number;
+  max: number;
+  /** When true, dragging in the positive axis direction shrinks the zone instead of growing it (right/bottom-anchored zones). */
+  invert?: boolean;
+  /** Called once, on release, with the final clamped size. */
+  onCommit: (value: number) => void;
   onResizeEnd?: () => void;
   className?: string;
   style?: React.CSSProperties;
@@ -27,7 +38,12 @@ interface DockSplitterProps {
 
 export const DockSplitter: React.FC<DockSplitterProps> = ({
   orientation,
-  onResize,
+  targetRef,
+  value,
+  min,
+  max,
+  invert = false,
+  onCommit,
   onResizeEnd,
   className,
   style,
@@ -40,19 +56,40 @@ export const DockSplitter: React.FC<DockSplitterProps> = ({
       e.stopPropagation();
       setIsDragging(true);
 
-      let lastPos = orientation === "vertical" ? e.clientX : e.clientY;
+      const startPos = orientation === "vertical" ? e.clientX : e.clientY;
+      const startValue = value;
+      let latestValue = startValue;
+      let rafId: number | null = null;
 
       document.body.classList.add("is-resizing");
       document.body.style.cursor =
         orientation === "vertical" ? "col-resize" : "row-resize";
       document.body.style.userSelect = "none";
 
+      const applyLive = (v: number) => {
+        const el = targetRef.current;
+        if (!el) return;
+        if (orientation === "vertical") {
+          el.style.width = `${v}px`;
+          el.style.minWidth = `${v}px`;
+        } else {
+          el.style.height = `${v}px`;
+          el.style.minHeight = `${v}px`;
+        }
+      };
+
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const currentPos =
           orientation === "vertical" ? moveEvent.clientX : moveEvent.clientY;
-        const delta = currentPos - lastPos;
-        lastPos = currentPos;
-        onResize(delta);
+        const delta = currentPos - startPos;
+        const raw = startValue + (invert ? -delta : delta);
+        latestValue = Math.min(Math.max(raw, min), max);
+        if (rafId == null) {
+          rafId = requestAnimationFrame(() => {
+            applyLive(latestValue);
+            rafId = null;
+          });
+        }
       };
 
       const handleMouseUp = () => {
@@ -60,6 +97,8 @@ export const DockSplitter: React.FC<DockSplitterProps> = ({
         document.body.classList.remove("is-resizing");
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
+        if (rafId != null) cancelAnimationFrame(rafId);
+        onCommit(latestValue);
         if (onResizeEnd) onResizeEnd();
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
@@ -68,7 +107,7 @@ export const DockSplitter: React.FC<DockSplitterProps> = ({
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
     },
-    [orientation, onResize, onResizeEnd]
+    [orientation, targetRef, value, min, max, invert, onCommit, onResizeEnd]
   );
 
   return (

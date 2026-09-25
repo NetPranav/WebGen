@@ -197,7 +197,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   };
 
   return (
-    <div className="quick-add-overlay" style={{
+    <div className="quick-add-overlay anim-fade-in" style={{
       position: "fixed",
       top: 0,
       left: 0,
@@ -211,7 +211,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       justifyContent: "center",
     }}>
       <div
-        className="quick-add-dialog anim-scale-up"
+        className="quick-add-dialog anim-scale-in"
         style={{
           width: "440px",
           maxWidth: "90vw",

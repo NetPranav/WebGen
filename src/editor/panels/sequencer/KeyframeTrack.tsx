@@ -89,7 +89,7 @@ export const KeyframeTrack: React.FC<KeyframeTrackProps> = ({
       ref={laneRef}
       className={`sequencer-lane-row ${isActive ? "sequencer-lane-row--active" : ""}`}
       onClick={handleLaneClick}
-      style={{ width: `${pixelsPerSecond * totalDuration + 120}px` }}
+      style={{ width: `${pixelsPerSecond * totalDuration + 120}px`, minWidth: "100%" }}
       role="row"
     >
       {keyframes.map((kf, index) => {

@@ -13,15 +13,13 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "@/editor/styles/ai-copilot.css";
 import {
   Sparkles,
   Send,
-  AlertTriangle,
   CheckCircle2,
   XCircle,
-  Cpu,
   RefreshCw,
   FileCode,
   ShieldCheck,
@@ -30,9 +28,6 @@ import {
   X,
   Sliders,
   Check,
-  Columns,
-  Maximize2,
-  Minimize2,
   GripVertical,
 } from "lucide-react";
 import {
@@ -62,7 +57,6 @@ function createUserMessage(content: string): AiMessage {
 export const AiPromptBar: React.FC<AiPromptBarProps> = ({
   onClose,
   dockMode = "replace",
-  onToggleDockMode,
   onStartDrag,
   className = "",
   style = {},
@@ -75,7 +69,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
     {
       id: "welcome",
       role: "assistant",
-      content: `### ⚡ LayoutAI Co-Pilot Ready\n\nI am grounded in your **LazyLayout** project's active **AST**, **DiagnosticBus**, and **Execution Trace**.\n\nAsk me to diagnose errors, repair data bindings, or generate layout & blueprint nodes. All modifications require your **explicit approval** before applying!`,
+      content: `### ⚡ LazyLayout AI Ready\n\nI am grounded in your **LazyLayout** project's active **AST**, **DiagnosticBus**, and **Execution Trace**.\n\nAsk me to diagnose errors, repair data bindings, or generate layout & blueprint nodes. All modifications require your **explicit approval** before applying!`,
       timestamp: Date.now(),
     },
   ]);
@@ -108,11 +102,6 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
 
-  // Context summary
-  const errorCount = useMemo(
-    () => activeDiagnostics.filter((d) => d.severity === "error").length,
-    [activeDiagnostics]
-  );
 
   // Send message
   const handleSendMessage = async (customPrompt?: string) => {
@@ -203,7 +192,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
                 e.preventDefault();
                 onStartDrag();
               }}
-              title="Drag to relocate LayoutAI to another dock side"
+              title="Drag to relocate LazyLayout AI to another dock side"
             >
               <GripVertical size={14} />
             </button>
@@ -211,56 +200,21 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
           <div className="ai-copilot-logo">
             <Sparkles size={14} color="#FFFFFF" />
           </div>
-          <div>
-            <div className="ai-copilot-title">LayoutAI Assistant</div>
+          <div className="ai-copilot-title-text">
+            <div className="ai-copilot-title">LazyLayout AI</div>
             <div className="ai-copilot-subtitle">Intelligent Layout & AST Reasoning</div>
           </div>
         </div>
 
         {/* Mode switcher & controls */}
         <div className="ai-copilot-header-controls">
-          {onToggleDockMode && (
-            <>
-              <button
-                type="button"
-                className={`ai-copilot-mode-btn ${dockMode === "replace" ? "ai-copilot-mode-btn--active" : ""}`}
-                onClick={() => onToggleDockMode("replace")}
-                title="Replace Details Panel (Full Right Zone)"
-              >
-                <Maximize2 size={11} />
-                <span>Replace</span>
-              </button>
-
-              <button
-                type="button"
-                className={`ai-copilot-mode-btn ${dockMode === "split-left" ? "ai-copilot-mode-btn--active" : ""}`}
-                onClick={() => onToggleDockMode("split-left")}
-                title="Dock Beside Details (Dual Resizable Columns)"
-              >
-                <Columns size={11} />
-                <span>Split Beside</span>
-              </button>
-            </>
-          )}
-
-          {errorCount > 0 ? (
-            <div className="ai-copilot-health-badge ai-copilot-health-badge--error">
-              <AlertTriangle size={10} />
-              <span>{errorCount} Err</span>
-            </div>
-          ) : (
-            <div className="ai-copilot-health-badge ai-copilot-health-badge--healthy">
-              <CheckCircle2 size={10} />
-              <span>Healthy</span>
-            </div>
-          )}
-
           {onClose && (
             <button
               type="button"
               className="ai-copilot-mode-btn"
               onClick={onClose}
-              title="Close LayoutAI"
+              title="Close LazyLayout AI"
+              aria-label="Close LazyLayout AI"
             >
               <X size={14} />
             </button>
@@ -409,7 +363,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
               handleSendMessage();
             }
           }}
-          placeholder="Ask LayoutAI to diagnose, fix, or generate logic..."
+          placeholder="Ask LazyLayout AI to diagnose, fix, or generate logic..."
           disabled={isThinking}
           className="ai-copilot-input"
         />
@@ -433,7 +387,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <ShieldCheck size={16} color="#206859" />
                 <span style={{ fontSize: "12px", fontWeight: 700, color: "#0F172A" }}>
-                  Review Proposed LayoutAI AST Diff
+                  Review Proposed LazyLayout AI AST Diff
                 </span>
               </div>
               <span

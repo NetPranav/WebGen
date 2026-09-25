@@ -18,7 +18,6 @@ import { FloatingDock, CanvasTool } from "./FloatingDock";
 import { ZoomControls } from "./ZoomControls";
 import { CanvasOverlay, SelectionRect } from "./CanvasOverlay";
 import {
-  Sparkles,
   ArrowRight,
   Film,
   Workflow,
@@ -32,14 +31,10 @@ import {
   Crosshair,
   Focus,
   ShieldAlert,
-  Wand2,
-  CornerDownLeft,
-  X,
 } from "lucide-react";
 import { SandboxHost } from "@/editor/runtime/SandboxHost";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
-import { ComponentGenerator } from "@/ai/component/ComponentGenerator";
 import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import { useLayers } from "@/core/store/useDocumentStore";
@@ -120,32 +115,11 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const elements = useLayers();
   const pages = useProjectStore((state) => state.pages);
   const activePageId = useProjectStore((state) => state.activePageId);
-  const insertGeneratedComponent = useProjectStore((state) => state.insertGeneratedComponent);
-  const mountDemoProject = useProjectStore((state) => state.mountDemoProject);
   const selectEntity = useSelectionStore((state) => state.select);
 
   const activePage = pages[activePageId] || Object.values(pages)[0];
   const rootContainer = activePage ? elements[activePage.rootElementId] : null;
   const childCount = rootContainer?.children?.length || 0;
-
-  const [promptText, setPromptText] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showPromptModal, setShowPromptModal] = useState(false);
-
-  const handleGenerate = (customPrompt?: string) => {
-    const text = (customPrompt || promptText).trim();
-    if (!text) return;
-    setIsGenerating(true);
-    try {
-      const result = ComponentGenerator.generateComponent(text);
-      insertGeneratedComponent(result.elements, result.rootId, `Generate: ${result.name}`);
-      selectEntity(result.rootId, "element");
-      setPromptText("");
-      setShowPromptModal(false);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const palette = THEME_PALETTES[environment?.theme?.palette] || THEME_PALETTES.clean_light;
 
@@ -166,6 +140,18 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     });
   }, [onZoomChange]);
 
+  /** Zoom so the whole device frame fits the viewport (never above 100%), centered
+   * slightly above the middle so the floating tool dock doesn't cover its bottom edge. */
+  const fitToFrame = useCallback(() => {
+    if (!containerRef.current) return;
+    const { clientWidth, clientHeight } = containerRef.current;
+    if (clientWidth === 0 || clientHeight === 0) return;
+
+    const scale = Math.min((clientWidth - 96) / device.width, (clientHeight - 160) / device.height, 1);
+    onZoomChange(Math.max(10, Math.floor(scale * 100)));
+    setPan({ x: clientWidth / 2, y: clientHeight / 2 - 28 });
+  }, [device.width, device.height, onZoomChange]);
+
   // Center on mount and listen for recenter event
   useEffect(() => {
     bringBackToCenter();
@@ -178,6 +164,15 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       window.removeEventListener("antigravity:recenter_canvas", handleRecenterEvent);
     };
   }, [bringBackToCenter]);
+
+  // Auto-fit whenever the page preview appears or the device target changes, and
+  // return to 100% when it goes away (e.g. "Clear Showcase"). Declared after the
+  // mount-time recenter so it wins when a project loads with content.
+  const hasFrame = isPlayMode || childCount > 0;
+  useEffect(() => {
+    if (hasFrame) fitToFrame();
+    else bringBackToCenter();
+  }, [hasFrame, deviceMode, fitToFrame, bringBackToCenter]);
 
   // Dynamically adapt selected element bounds when switching device dimensions
   const [prevDeviceWidth, setPrevDeviceWidth] = useState(device.width);
@@ -479,313 +474,29 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
               />
             </div>
           </div>
-        ) : (
-          /* Blank Canvas State: Prompt AI Card at Center */
-          <div
-            className="canvas-prompt-card"
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "560px",
-              maxWidth: "90vw",
-              background: "rgba(255, 255, 255, 0.95)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(226, 232, 240, 0.9)",
-              borderRadius: "20px",
-              padding: "32px",
-              boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
-              zIndex: 10,
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "10px",
-                  backgroundColor: "#ecfdf5",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#059669",
-                }}
-              >
-                <Wand2 size={20} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 600, color: "#0f172a" }}>
-                  Prompt AI to Create Component
-                </h3>
-                <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>
-                  Describe a component in natural language, and the studio will generate the AST elements ready for animation.
-                </p>
+        ) : null}
+
+        {/* World-space Origin Marker — a fixed point of reference (Blender's 3D-cursor
+            equivalent) so "where is center" has an answer even on an empty canvas.
+            Pinned to world (0,0) via .whiteboard-world's pan/zoom transform, same as
+            the crosshair lines below, so it stays put as you pan and zoom. */}
+        {!isPlayMode && environment.viewport.axes.enabled && (
+          <>
+            <div className="canvas-crosshair-axes" aria-hidden="true">
+              <div className="canvas-axis-line canvas-axis-line--x" />
+              <div className="canvas-axis-line canvas-axis-line--y" />
+            </div>
+            <div className="canvas-center-origin" title="World origin (0, 0)">
+              <div className="canvas-origin-reticle">
+                <Crosshair size={12} className="canvas-origin-icon" />
               </div>
             </div>
-
-            {/* Prompt Input Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleGenerate();
-              }}
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-            >
-              <div style={{ position: "relative" }}>
-                <input
-                  type="text"
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  placeholder="e.g. Create a glassmorphic pricing card with badge, price, and button..."
-                  autoFocus
-                  style={{
-                    width: "100%",
-                    padding: "14px 110px 14px 16px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: "14px",
-                    outline: "none",
-                    backgroundColor: "#f8fafc",
-                    color: "#0f172a",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={!promptText.trim() || isGenerating}
-                  style={{
-                    position: "absolute",
-                    right: "8px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    backgroundColor: promptText.trim() ? "#059669" : "#94a3b8",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "8px 14px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: promptText.trim() ? "pointer" : "default",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <span>Generate</span>
-                  <CornerDownLeft size={13} />
-                </button>
-              </div>
-
-              {/* Quick Prompt Pills */}
-              <div>
-                <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#94a3b8" }}>
-                  Quick Starts:
-                </span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
-                  {[
-                    { label: "💎 Pricing Tier Card", prompt: "Create a modern dark mode pricing card with badge and button" },
-                    { label: "⭐ Testimonial Review", prompt: "Create a testimonial review card with avatar and quote" },
-                    { label: "⚡ Dark Mode Toggle", prompt: "Create a dark mode toggle switch" },
-                    { label: "🚀 Hero Banner", prompt: "Create a hero banner with headline and CTA" },
-                    { label: "🖼️ Media Showcase", prompt: "Create a media showcase with image and caption" },
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => handleGenerate(item.prompt)}
-                      style={{
-                        background: "#f1f5f9",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "9999px",
-                        padding: "4px 10px",
-                        fontSize: "12px",
-                        color: "#334155",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Or Load Stashed Demo */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "8px", borderTop: "1px solid #f1f5f9" }}>
-                <span style={{ fontSize: "12px", color: "#64748b" }}>Want to inspect the existing demo?</span>
-                <button
-                  type="button"
-                  onClick={() => mountDemoProject()}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#059669",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                >
-                  <Sparkles size={12} />
-                  <span>Mount Showcase Demo</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Coordinate Crosshairs & Overlays when elements exist */}
-        {childCount > 0 && !isPlayMode && (
-          <>
-            {environment.viewport.axes.enabled && (
-              <div className="canvas-crosshair-axes" aria-hidden="true">
-                <div className="canvas-axis-line canvas-axis-line--x" />
-                <div className="canvas-axis-line canvas-axis-line--y" />
-              </div>
-            )}
-            <CanvasOverlay selectedElement={selectedElement} />
           </>
         )}
+
+        {/* Overlays when elements exist */}
+        {childCount > 0 && !isPlayMode && <CanvasOverlay selectedElement={selectedElement} />}
       </div>
-
-      {/* Floating Prompt AI Component Trigger when canvas is active */}
-      {childCount > 0 && !isPlayMode && (
-        <button
-          type="button"
-          onClick={() => setShowPromptModal(true)}
-          title="Prompt AI to generate another component"
-          style={{
-            position: "absolute",
-            top: "16px",
-            right: "16px",
-            background: "#ffffff",
-            border: "1.5px solid #059669",
-            borderRadius: "9999px",
-            padding: "8px 16px",
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "#059669",
-            boxShadow: "0 4px 14px rgba(5, 150, 105, 0.15)",
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            zIndex: 30,
-            transition: "all 0.15s ease",
-          }}
-        >
-          <Wand2 size={14} />
-          <span>+ Prompt Component</span>
-        </button>
-      )}
-
-      {/* Floating Prompt Modal Dialog */}
-      {showPromptModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.4)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={() => setShowPromptModal(false)}
-        >
-          <div
-            style={{
-              width: "560px",
-              maxWidth: "90vw",
-              background: "#ffffff",
-              borderRadius: "20px",
-              padding: "28px",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Wand2 size={18} style={{ color: "#059669" }} />
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>Create New Component</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPromptModal(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleGenerate();
-              }}
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-            >
-              <input
-                type="text"
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                placeholder="e.g. Create a dark mode testimonial card with avatar..."
-                autoFocus
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: "10px",
-                  border: "1.5px solid #cbd5e1",
-                  fontSize: "14px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => setShowPromptModal(false)}
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                    background: "#f8fafc",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!promptText.trim() || isGenerating}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    border: "none",
-                    background: "#059669",
-                    color: "#ffffff",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Generate & Add
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Floating Atlassian-Style Bottom Dock */}
       <FloatingDock
@@ -800,7 +511,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         onZoomIn={() => onZoomChange(Math.min(zoomLevel + 10, 400))}
         onZoomOut={() => onZoomChange(Math.max(zoomLevel - 10, 10))}
         onResetZoom={bringBackToCenter}
-        onFitToScreen={bringBackToCenter}
+        onFitToScreen={fitToFrame}
         onRecenter={bringBackToCenter}
       />
     </div>

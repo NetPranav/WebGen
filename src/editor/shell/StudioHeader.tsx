@@ -10,7 +10,7 @@
  *       - Brand Logo & Title ("LazyLayout Studio")
  *       - Project filename tag ("MyProject.uweb") with dirty state
  *       - Desktop Menu Bar (File, Edit, View, Window, Help)
- *       - Environment status indicators (Git branch, Wasm badge, Settings)
+ *       - Device preview switcher, Showcase demo toggle, Help & Settings
  * Styling Source: `@/editor/styles/menus.css` (`.studio-header`, `.menu-bar`)
  * ============================================================================
  */
@@ -18,10 +18,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import "@/editor/styles/menus.css";
 import {
-  GitBranch,
   Settings,
   HelpCircle,
-  Activity,
   Monitor,
   Tablet,
   Smartphone,
@@ -85,7 +83,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   projectId,
   projectName = "MyProject.uweb",
   isDirty = false,
-  branchName = "main",
   deviceMode = "desktop",
   onSelectDeviceMode,
   leftOpen = true,
@@ -179,41 +176,29 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <span className="studio-header__title">LazyLayout</span>
         </div>
 
-        <div className="studio-header__project-tag" title="Active Project File">
-          {isDirty && <span className="studio-header__project-dirty" title="Unsaved changes" />}
-          <span>{projectName}</span>
+        {/* Project pill: file name + save state, with the copyable project ID as a suffix */}
+        <div className="studio-header__project" title="Active Project File">
+          <span
+            className={`studio-header__project-dot ${isDirty ? "studio-header__project-dot--dirty" : ""}`}
+            title={isDirty ? "Unsaved changes" : "All changes saved"}
+          />
+          <span className="studio-header__project-name">{projectName}</span>
+          {projectId && (
+            <button
+              type="button"
+              className="studio-header__project-id-chip"
+              onClick={handleCopyProjectLink}
+              title={`Project ID: ${projectId} (Click to copy project link)`}
+              aria-label="Copy project link"
+            >
+              <Hash size={10} />
+              <span>{projectId}</span>
+              {copiedId ? <Check size={10} /> : <Copy size={10} />}
+            </button>
+          )}
         </div>
 
-        {projectId && (
-          <button
-            type="button"
-            className="studio-header__project-id-chip"
-            onClick={handleCopyProjectLink}
-            title={`Project ID: ${projectId} (Click to copy project link)`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 10.5,
-              fontFamily: "var(--font-mono, monospace)",
-              padding: "3px 8px",
-              borderRadius: 4,
-              backgroundColor: "rgba(99, 102, 241, 0.12)",
-              color: "#818CF8",
-              border: "1px solid rgba(99, 102, 241, 0.3)",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <Hash size={10} style={{ opacity: 0.8 }} />
-            <span>{projectId}</span>
-            {copiedId ? (
-              <Check size={10} style={{ color: "#34D399" }} />
-            ) : (
-              <Copy size={10} style={{ opacity: 0.7 }} />
-            )}
-          </button>
-        )}
+        <span className="studio-header__divider" aria-hidden="true" />
 
         {/* Desktop Menu Bar */}
         <nav className="menu-bar" aria-label="Engine Menus">
@@ -339,7 +324,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             title="Desktop Canvas (1440px)"
           >
             <Monitor size={12} />
-            <span>Desktop</span>
+            <span className="toolbar-segmented__label">Desktop</span>
           </button>
           <button
             type="button"
@@ -348,7 +333,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             title="Tablet Canvas (768px)"
           >
             <Tablet size={12} />
-            <span>Tablet</span>
+            <span className="toolbar-segmented__label">Tablet</span>
           </button>
           <button
             type="button"
@@ -357,32 +342,21 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             title="Mobile Canvas (375px)"
           >
             <Smartphone size={12} />
-            <span>Mobile</span>
+            <span className="toolbar-segmented__label">Mobile</span>
           </button>
         </div>
       </div>
 
       {/* Right: Git Branch, Engine Badge, Settings */}
+      {/* Right: Showcase demo toggle, then help/settings (branch + engine stats live in the status bar) */}
       <div className="studio-header__right">
-        <div className="studio-header__badge" title={`Working on branch ${branchName}`}>
-          <GitBranch size={12} />
-          <span>{branchName}</span>
-        </div>
-
-        <div
-          className="studio-header__badge"
-          title="TypeScript spline/physics engine (ROADMAP Sub-Phase 5.3 decided against Wasm: DOCS/Initial/decisions/0001-wasm.md)"
-        >
-          <Activity size={12} style={{ color: "var(--accent-success)" }} />
-          <span>TypeScript 120 FPS</span>
-        </div>
-
         {/* Demo Stash / Canvas State Switcher */}
         <button
           type="button"
-          className="studio-header__badge"
+          className={`studio-header__demo-btn ${isDemoMounted ? "studio-header__demo-btn--active" : ""}`}
           id="header-toggle-demo-btn"
-          title={isDemoMounted ? "Clear canvas to blank for AI creation" : "Mount Showcase Demo to present features"}
+          aria-label={isDemoMounted ? "Clear showcase demo" : "Mount Showcase Demo"}
+          title={isDemoMounted ? "Clear the showcase demo and return to a blank canvas" : "Load the showcase demo project"}
           onClick={() => {
             if (isDemoMounted) {
               clearToBlankCanvas();
@@ -390,28 +364,16 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               mountDemoProject();
             }
           }}
-          style={{
-            cursor: "pointer",
-            backgroundColor: isDemoMounted ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
-            border: isDemoMounted ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(255, 255, 255, 0.1)",
-            color: isDemoMounted ? "#10b981" : "inherit",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "4px 10px",
-            borderRadius: "6px",
-            fontSize: "12px",
-            fontWeight: 500,
-            transition: "all 0.15s ease",
-          }}
         >
-          <Sparkles size={12} style={{ color: isDemoMounted ? "#10b981" : "#94a3b8" }} />
-          <span>{isDemoMounted ? "Showcase Active (Click to Clear)" : "Mount Showcase Demo"}</span>
+          <Sparkles size={12} />
+          <span className="studio-header__demo-label">{isDemoMounted ? "Clear Showcase" : "Showcase Demo"}</span>
         </button>
+
+        <span className="studio-header__divider" aria-hidden="true" />
 
         <button
           type="button"
-          className="studio-header__icon-btn"
+          className="studio-header__icon-btn studio-header__icon-btn--help"
           title="Engine Documentation (F1)"
           onClick={() => handleMenuTriggerClick("help")}
         >
@@ -425,11 +387,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             title="Close Settings & Return to Viewport (Esc)"
             onClick={onCloseSettings || onToggleSettings || onOpenSettings}
             id="studio-header-close-settings-btn"
-            style={{
-              color: "#F59E0B",
-              backgroundColor: "rgba(245, 158, 11, 0.15)",
-              border: "1px solid rgba(245, 158, 11, 0.35)",
-            }}
           >
             <X size={14} />
           </button>

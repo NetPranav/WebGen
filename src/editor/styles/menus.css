@@ -13,16 +13,20 @@
  */
 
 /* ----------------------------------------------------------------------------
- * Studio Header (Top Tier, 36px)
+ * Studio Header (Top Tier, 40px)
+ * Three-column grid: [brand · project · menus] [device switcher] [actions].
+ * The outer columns are equal (1fr) so the device switcher is truly centred
+ * over the window, Wix-Studio style, instead of drifting with the left content.
  * ---------------------------------------------------------------------------- */
 .studio-header {
-  height: 38px;
+  height: 40px;
   background: var(--surface-panel-solid);
   border-bottom: 1px solid var(--border-default);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--space-md);
+  gap: var(--space-md);
+  padding: 0 var(--space-md) 0 var(--space-sm);
   user-select: none;
   font-family: var(--font-sans);
   position: relative;
@@ -32,7 +36,8 @@
 .studio-header__left {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  min-width: 0;
 }
 
 .studio-header__center {
@@ -41,13 +46,23 @@
   justify-content: center;
 }
 
+.studio-header__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
 .studio-header__brand {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  cursor: pointer;
-  padding: 2px var(--space-xs);
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--space-xs);
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
   transition: background var(--transition-fast);
 }
 
@@ -55,75 +70,302 @@
   background: var(--surface-panel-hover);
 }
 
-.studio-header__logo {
-  font-size: 15px;
-  line-height: 1;
-  filter: drop-shadow(0 1px 2px rgba(32, 104, 89, 0.4));
-}
-
 .studio-header__title {
-  font-size: var(--text-sm);
+  font-size: 13px;
   font-weight: var(--font-bold);
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
-.studio-header__project-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  background: var(--surface-panel-active);
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border-subtle);
+.studio-header__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-default);
+  flex-shrink: 0;
 }
 
-.studio-header__project-dirty {
+/* Project pill — name + save dot, with the copyable ID as an attached suffix */
+.studio-header__project {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 3px 0 var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--surface-panel-active);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.studio-header__project:not(:has(.studio-header__project-id-chip)) {
+  padding-right: var(--space-sm);
+}
+
+.studio-header__project-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: var(--accent-success);
+  flex-shrink: 0;
+}
+
+.studio-header__project-dot--dirty {
   background: var(--accent-warning);
 }
 
-.studio-header__right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+.studio-header__project-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.studio-header__badge {
+.studio-header__project-id-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  background: var(--surface-panel-hover);
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-sm);
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-panel-solid);
+  color: var(--accent-primary);
   border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.studio-header__project-id-chip:hover {
+  border-color: var(--border-active);
+  background: var(--accent-primary-light);
+}
+
+.studio-header__demo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--surface-panel-solid);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.studio-header__demo-btn:hover {
+  border-color: var(--border-active);
+  color: var(--accent-primary);
+  background: var(--accent-primary-light);
+}
+
+.studio-header__demo-btn--active {
+  background: var(--accent-primary-light);
+  border-color: var(--border-active);
+  color: var(--accent-primary);
+}
+
+.studio-header__right > .studio-header__divider {
+  margin: 0 var(--space-xs);
 }
 
 .studio-header__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
+  flex-shrink: 0;
   transition: all var(--transition-fast);
 }
 
 .studio-header__icon-btn:hover {
   background: var(--surface-panel-hover);
   color: var(--text-primary);
+}
+
+.studio-header__icon-btn--close-settings,
+.studio-header__icon-btn--close-settings:hover {
+  color: var(--accent-warning);
+  background: var(--accent-warning-light);
+  border-color: var(--accent-warning);
+}
+
+/* ----------------------------------------------------------------------------
+ * Workspace Tab Strip (Blender workspace-tabs equivalent, directly under the
+ * main header row): workspace tabs · Motion tool shelf · command search.
+ * ---------------------------------------------------------------------------- */
+.studio-header-workspaces {
+  height: 32px;
+  background: var(--surface-panel-hover);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-sm);
+  padding: 0 var(--space-sm);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+.studio-header-workspaces::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-header-workspaces__tabs,
+.studio-header-workspaces__shelf {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* Blender-style tabs: the active tab is a raised white sheet with an accent underline */
+.studio-header-workspaces__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 10px;
+  border: none;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.studio-header-workspaces__tab:hover {
+  color: var(--text-primary);
+  background: var(--surface-panel-active);
+}
+
+.studio-header-workspaces__tab--active,
+.studio-header-workspaces__tab--active:hover {
+  background: var(--surface-panel-solid);
+  color: var(--accent-primary);
+  font-weight: var(--font-semibold);
+  border-left-color: var(--border-default);
+  border-right-color: var(--border-default);
+}
+
+.studio-header-workspaces__tab--active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent-primary);
+}
+
+.studio-header-workspaces__shelf {
+  padding-left: var(--space-sm);
+  border-left: 1px solid var(--border-default);
+  margin: 6px 0;
+}
+
+.studio-header-workspaces__shelf-title {
+  font-size: 9.5px;
+  font-weight: var(--font-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding-right: 4px;
+}
+
+.studio-header-workspaces__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.studio-header-workspaces__tool:hover {
+  background: var(--surface-panel-solid);
   border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.studio-header-workspaces__tool--active,
+.studio-header-workspaces__tool--active:hover {
+  background: var(--accent-primary-light);
+  border-color: var(--border-active);
+  color: var(--accent-primary);
+}
+
+.studio-header-workspaces__search {
+  margin: 4px 0 4px auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 240px;
+  padding: 0 4px 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--surface-panel-solid);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  cursor: text;
+  flex-shrink: 0;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.studio-header-workspaces__search:hover {
+  border-color: var(--border-strong);
+}
+
+.studio-header-workspaces__search:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-light);
+}
+
+.studio-header-workspaces__search-text {
+  flex: 1;
+  text-align: left;
+}
+
+.studio-header-workspaces__kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface-panel-active);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
 }
 
 /* ----------------------------------------------------------------------------
@@ -141,8 +383,9 @@
 }
 
 .menu-bar__trigger {
-  padding: 3px var(--space-sm);
-  border-radius: var(--radius-xs);
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   font-size: var(--text-xs);
@@ -190,7 +433,10 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  min-width: 220px;
+  min-width: 260px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
   background: var(--surface-panel-solid);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -219,6 +465,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-lg);
+  white-space: nowrap;
   padding: 6px var(--space-md);
   font-size: var(--text-xs);
   color: var(--text-primary);
@@ -268,6 +516,7 @@
 }
 
 .menu-item__shortcut {
+  flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-tertiary);
@@ -572,15 +821,14 @@
   position: absolute;
   top: 48px;
   right: 48px;
-  width: 240px;
-  background: var(--surface-panel-solid, #18181B);
-  border: 1px solid var(--border-default, #27272A);
-  border-radius: 12px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  padding: 12px;
-  z-index: 50;
+  width: 248px;
+  max-width: calc(100% - 24px);
+  background: var(--surface-panel-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: var(--space-md);
+  z-index: var(--z-dropdown);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -598,14 +846,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-subtle, #27272A);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .viewport-env-popover-title {
   font-size: 11px;
-  font-weight: 700;
-  color: var(--text-primary, #F4F4F5);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -617,39 +865,56 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-sm);
   font-size: 11px;
-  color: var(--text-secondary, #A1A1AA);
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .viewport-env-popover-segmented {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: var(--surface-canvas, #09090B);
+  background: var(--surface-panel-active);
   padding: 2px;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle, #27272A);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
 }
 
 .viewport-env-popover-seg-btn {
   background: transparent;
-  border: none;
-  color: var(--text-muted, #71717A);
+  border: 1px solid transparent;
+  color: var(--text-muted);
   font-size: 10px;
-  font-weight: 600;
-  padding: 3px 6px;
-  border-radius: 4px;
+  font-weight: var(--font-semibold);
+  padding: 3px 7px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 120ms ease;
+  transition: all var(--transition-fast);
 }
 
 .viewport-env-popover-seg-btn:hover {
-  color: var(--text-primary, #F4F4F5);
+  color: var(--text-primary);
 }
 
 .viewport-env-popover-seg-btn--active {
-  background: var(--surface-panel-hover, #27272A);
-  color: var(--text-primary, #F4F4F5);
+  background: var(--surface-panel-solid);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Standalone on/off toggles (not inside a segmented group) read as pills */
+.viewport-env-popover-row > .viewport-env-popover-seg-btn {
+  min-width: 56px;
+  border-color: var(--border-default);
+  background: var(--surface-panel-solid);
+}
+
+.viewport-env-popover-row > .viewport-env-popover-seg-btn--active {
+  background: var(--accent-primary-light);
+  border-color: var(--border-active);
+  color: var(--accent-primary);
+  box-shadow: none;
 }
 
 .viewport-env-popover-btn {
@@ -659,21 +924,126 @@
   gap: 6px;
   width: 100%;
   padding: 7px 10px;
-  background: var(--surface-panel-hover, #27272A);
-  color: var(--text-primary, #F4F4F5);
-  border: 1px solid var(--border-subtle, #3F3F46);
-  border-radius: 6px;
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: all 140ms ease;
+  transition: all var(--transition-fast);
   margin-top: 4px;
 }
 
 .viewport-env-popover-btn:hover {
-  background: var(--accent-primary, #6366F1);
-  color: #FFFFFF;
-  border-color: var(--accent-primary, #6366F1);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  border-color: var(--accent-primary);
 }
 
 
+
+/* ----------------------------------------------------------------------------
+ * Header responsiveness — shed the lowest-priority chrome first as the window
+ * narrows, so File/Edit/View/Window/Help and the device switcher never get
+ * pushed off-screen or wrapped onto two lines.
+ * ---------------------------------------------------------------------------- */
+.studio-header__left,
+.studio-header__center,
+.studio-header__right,
+.menu-bar,
+.toolbar-segmented {
+  white-space: nowrap;
+}
+
+.menu-bar,
+.toolbar-segmented {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1600px) {
+  /* Project ID collapses to its icon + copy affordance (full ID in the tooltip) */
+  .studio-header__project-id-chip > span {
+    display: none;
+  }
+}
+
+@media (max-width: 1360px) {
+  /* Not enough room for a truly-centred switcher: let it sit after the menus */
+  .studio-header {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .studio-header-workspaces__search {
+    width: auto;
+  }
+
+  .studio-header-workspaces__search-text {
+    display: none;
+  }
+}
+
+@media (max-width: 1280px) {
+  .studio-header-workspaces__shelf .studio-header-workspaces__label,
+  .studio-header-workspaces__shelf-title {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .studio-header__demo-label {
+    display: none;
+  }
+
+  .studio-header__demo-btn {
+    width: 28px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .toolbar-segmented__label {
+    display: none;
+  }
+
+  .toolbar-segmented__btn {
+    padding: 0 7px;
+  }
+
+  .studio-header__project-id-chip {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  /* Brand collapses to the logo mark only once its text would crowd the menus */
+  .studio-header__title {
+    display: none;
+  }
+
+  .studio-header-workspaces__tab:not(.studio-header-workspaces__tab--active) .studio-header-workspaces__label {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .studio-header {
+    padding: 0 var(--space-sm) 0 4px;
+    gap: var(--space-xs);
+  }
+
+  .studio-header__left,
+  .studio-header__right {
+    gap: 2px;
+  }
+
+  .studio-header__project,
+  .studio-header__left > .studio-header__divider,
+  .studio-header__right > .studio-header__divider,
+  .studio-header__icon-btn--help {
+    display: none;
+  }
+
+  .menu-bar__trigger {
+    padding: 3px 5px;
+  }
+}

@@ -22,7 +22,7 @@ export async function waitSaved(page: Page) {
 
 /** Focus the app (not an input or the stage iframe) so shortcuts reach the window. */
 export async function focusApp(page: Page) {
-  await page.locator(".studio-header").first().click({ position: { x: 700, y: 10 } });
+  await page.locator(".studio-header__brand").first().click();
 }
 
 export async function openFileMenu(page: Page) {

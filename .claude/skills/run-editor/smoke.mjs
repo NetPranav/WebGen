@@ -61,11 +61,11 @@ await step("04-global-search", async () => {
   await search().press("Enter");
   return hit ? "BuyButton found and selected" : "BuyButton not found";
 });
-await step("05-copilot-selection", async () => {
+await step("05-lazylayout-ai", async () => {
   await page.locator("text=LazyLayout").first().click(); // focus back out of the sandbox iframe
   await page.keyboard.press("Control+Shift+I");
   await page.waitForTimeout(700);
-  return (await page.locator("text=BuyButton (button)").count()) ? "co-pilot sees selection" : "co-pilot has no selection";
+  return (await page.locator(".ai-copilot-dock-col").count()) ? "LazyLayout AI docked" : "LazyLayout AI did not open";
 });
 await step("06-sequencer", async () => {
   await page.keyboard.press("Control+Shift+M");
