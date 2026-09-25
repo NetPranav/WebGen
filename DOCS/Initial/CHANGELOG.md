@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.8.0] — 2026-09-25
 
-### Phase 6 (Scope, Naming & Docs Cleanup): implementation complete, CI pending
+### Phase 6 (Scope, Naming & Docs Cleanup): complete — CI green on PR #9
 
 #### Added
 - **`src/core/flags.ts`**: the `edition: "initial" | "full"` build flag, read from `process.env.NEXT_PUBLIC_EDITION` so Next's webpack config can inline the literal at build time.
@@ -37,7 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The full PRD-v2 content rewrite of `UI.md`, `PANELS.md`, `SCHEMA_REFERENCE.md`, `CONVENTIONS.md`, `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` did **not** happen — only the naming/version truth pass ran on them. Their "pending v2 update" banners are still up; reconciling 11–140 KB of doc content against current code is its own pass, not something to rush inside Phase 6. See the ROADMAP Phase 6 progress log for the reasoning.
 
 #### Docs
-- ROADMAP: Phase 6 checklist ([x] for everything except the v2 content rewrite, marked [~]) and progress log. AUDIT: AUD-22 through AUD-27 closed (CI pending).
+- ROADMAP: Phase 6 checklist ([x] for everything except the v2 content rewrite, marked [~]) and progress log. AUDIT: AUD-22 through AUD-27 closed (CI green on PR #9).
 
 ---
 

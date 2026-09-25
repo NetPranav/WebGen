@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.1.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phases 1–5 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, all 3 browsers). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then Phase 6 ∥ 42. See §5.1.
+**Status:** Active. Phases 1–6 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, all 3 browsers). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then 42, then 43 → 44. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -124,7 +124,7 @@ A phase is **✅ COMPLETE** only when:
 | 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | ✅ (CI green on PR #7) |
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | ✅ (CI green on PR #7) |
 | 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | ✅ (CI green on PR #8) |
-| 6 | A | Scope, Naming & Docs Cleanup | Initial bundle excludes After-track panels; one name; docs fixed | 1 | 📋 |
+| 6 | A | Scope, Naming & Docs Cleanup | Initial bundle excludes After-track panels; one name; docs fixed | 1 | ✅ (CI green on PR #9; gate met — one sub-item deferred, see log) |
 | 7 | B · Motion Core | Motion Primitives: Tracks, Clips, States, Triggers, Behaviours | Formal animation model inside MDM | 2 | 📋 |
 | 8 | B | Executable Motion Rules Engine | Grammar + engine spec compiled into one rule table | 7 | 📋 |
 | 9 | B | Deterministic Evaluation Kernel | Pure `evaluate(t)`, easing and spring library | 7 | 📋 |
@@ -440,10 +440,10 @@ Bugs found and fixed along the way:
 
 **Verification Gate:** The `edition=initial` production bundle contains none of the After-track panel modules (checked with the bundle analyzer in CI). A link checker over `DOCS/Initial` reports 0 broken links.
 - `npm run check:bundle-scope` (new script, wired into `.github/workflows/ci.yml`'s `verify` job after `npm run build`): resolves the actual chunk graph Next registers for the `/editor` and `/editor/detach/[panelId]` routes from their build/client-reference manifests, and confirms a marker string unique to each gated panel's source is absent from every referenced chunk. **PASS** — 16 chunks referenced, 0/6 gated panels present, with `NEXT_PUBLIC_EDITION` unset (CI's default).
-- `npm run check:doc-links` (new script, same CI job): checks markdown links and backtick doc-filename references under `DOCS/Initial/`, skipping table rows and unchecked checklist lines (which in this roadmap's style quote bug examples or name not-yet-created future artifacts, not real links). **PASS** — 108 links checked, 0 broken.
+- `npm run check:doc-links` (new script, same CI job): checks markdown links and backtick doc-filename references under `DOCS/Initial/`, skipping table rows and checklist lines of any state (which in this roadmap's style quote bug examples, name not-yet-created future artifacts, or describe a rename by quoting the old name — none of them real links to check). **PASS** — 123 links checked, 0 broken.
 
 ### Phase 6 Progress Log
-**2026-09-25:** Implementation complete on branch `phase-6-scope-naming-docs`, PR opened against `main`. Not marked ✅ here — that happens in a follow-up commit once CI is confirmed green (same pattern as Phases 3–5).
+**2026-09-25: ✅ Phase 6 complete. CI green on PR #9** (`https://github.com/NetPranav/WebGen/pull/9`, `verify` + `e2e` + `export-harness` jobs, both push and pull_request triggers, all passing, plus Vercel deploy + preview-comments). One CI round-trip: the first push's `check:doc-links` gate flagged 7 false positives from this phase's own prose (describing the old-to-new roadmap-file rename and quoting old filenames); fixed by broadening the checklist-line skip and rewording two CHANGELOG mentions (`3649dc9`), re-verified locally (123 links, 0 broken) before the gate passed.
 - `npm run typecheck`: 0 errors.
 - `npm run lint`: 455/463 warnings (unchanged from Phase 5 — this phase touched no lint-relevant logic, only strings/imports/comments/docs).
 - `npm run test:unit`: 655/655 passing (unchanged from Phase 5).
