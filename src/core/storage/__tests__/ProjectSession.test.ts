@@ -46,7 +46,7 @@ describe("ProjectSession (Phase 3.2)", () => {
     assert.ok(created);
     const blank = getDocument();
 
-    for (let i = 0; i < 20; i++) documentCommands.updateProps(ROOT, { [`edit${i}`]: i }, `Edit ${i}`);
+    for (let i = 0; i < 20; i++) documentCommands.updateProps(ROOT, { "layout.gap": i }, `Edit ${i}`);
     const edited = getDocument();
     await wait(DELAY * 4);
     assert.equal(useSaveStatus.getState().state, "saved");
@@ -72,7 +72,7 @@ describe("ProjectSession (Phase 3.2)", () => {
     const start = (await db.getProject("prj_gate"))!.revision;
 
     gestureCoalescing.press();
-    for (let x = 0; x < 30; x++) documentCommands.updateProps(ROOT, { x }, "Drag");
+    for (let x = 0; x < 30; x++) documentCommands.updateProps(ROOT, { "transform.x": x }, "Drag");
     await wait(DELAY * 4);
     assert.equal((await db.getProject("prj_gate"))!.revision, start, "no write while the pointer is down");
 
@@ -80,14 +80,14 @@ describe("ProjectSession (Phase 3.2)", () => {
     await wait(DELAY * 4);
     const saved = (await db.getProject("prj_gate"))!;
     assert.equal(saved.revision, start + 1, "exactly one write for the whole drag");
-    assert.equal(saved.snapshot.document.layers[ROOT].properties.x, 29);
+    assert.equal(saved.snapshot.document.layers[ROOT].properties["transform.x"], 29);
     assert.equal((await db.loadHistory("prj_gate"))!.past.length, 1);
   });
 
   it("crash recovery: unsaved edits are offered on the next open, and restore as one undo step", async () => {
     const tab1 = newTab(60_000); // autosave never fires before the "crash"
     await tab1.session.open("prj_gate", { create });
-    documentCommands.updateProps(ROOT, { title: "Unsaved" }, "Edit title");
+    documentCommands.updateProps(ROOT, { "a11y.label": "Unsaved" }, "Edit title");
     documentCommands.addLayer({ archetype: "button", parentId: ROOT }, "Add button");
     const lost = getDocument();
     tab1.session.close(); // the tab dies without saving
@@ -113,7 +113,7 @@ describe("ProjectSession (Phase 3.2)", () => {
     const tab1 = newTab(60_000);
     await tab1.session.open("prj_gate", { create });
     const saved = getDocument();
-    documentCommands.updateProps(ROOT, { title: "Unsaved" }, "Edit title");
+    documentCommands.updateProps(ROOT, { "a11y.label": "Unsaved" }, "Edit title");
     tab1.session.close();
 
     const tab2 = newTab();
@@ -126,7 +126,7 @@ describe("ProjectSession (Phase 3.2)", () => {
   it("changes that were saved are not offered again (the journal is trimmed by each save)", async () => {
     const tab1 = newTab();
     await tab1.session.open("prj_gate", { create });
-    documentCommands.updateProps(ROOT, { title: "Saved" }, "Edit title");
+    documentCommands.updateProps(ROOT, { "a11y.label": "Saved" }, "Edit title");
     await tab1.session.flush();
     tab1.session.close();
     assert.equal((await newTab().session.open("prj_gate")).recovery, null);
@@ -135,8 +135,8 @@ describe("ProjectSession (Phase 3.2)", () => {
   it("undo is journaled too, so recovery replays undo correctly", async () => {
     const tab1 = newTab(60_000);
     await tab1.session.open("prj_gate", { create });
-    documentCommands.updateProps(ROOT, { a: 1 }, "A");
-    documentCommands.updateProps(ROOT, { b: 2 }, "B");
+    documentCommands.updateProps(ROOT, { "layout.gap": 1 }, "A");
+    documentCommands.updateProps(ROOT, { "layout.padding": 2 }, "B");
     historyCommands.undo();
     const expected = getDocument();
     tab1.session.close();
@@ -155,7 +155,7 @@ describe("ProjectSession (Phase 3.2)", () => {
     db.putProject = async () => {
       throw new StorageQuotaError();
     };
-    documentCommands.updateProps(ROOT, { big: "x" }, "Edit");
+    documentCommands.updateProps(ROOT, { "a11y.label": "x" }, "Edit");
     await wait(DELAY * 4);
     const status = useSaveStatus.getState();
     assert.equal(status.state, "error");

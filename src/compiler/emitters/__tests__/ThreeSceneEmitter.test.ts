@@ -11,7 +11,7 @@ test("Sub-Phase 8.5 Verification Gate: Zero 3D content produces zero Three.js co
       archetype: "button",
       parentId: null,
       children: [],
-      properties: { textContent: "Click Me" },
+      properties: { "content.label": "Click Me" },
     },
     cont_1: {
       id: "cont_1",
@@ -19,7 +19,7 @@ test("Sub-Phase 8.5 Verification Gate: Zero 3D content produces zero Three.js co
       archetype: "container",
       parentId: null,
       children: ["btn_1"],
-      properties: { padding: 16 },
+      properties: { "layout.padding": 16 },
     },
   };
 
@@ -40,9 +40,9 @@ test("ThreeSceneEmitter: Emits declarative React-Three-Fiber (R3F) JSX with mesh
       parentId: null,
       children: [],
       properties: {
-        fov: 75,
-        near: 0.1,
-        far: 500,
+        "scene3d.camera.fov": 75,
+        "scene3d.camera.near": 0.1,
+        "scene3d.camera.far": 500,
       },
     },
     sun_dir: {
@@ -52,10 +52,10 @@ test("ThreeSceneEmitter: Emits declarative React-Three-Fiber (R3F) JSX with mesh
       parentId: null,
       children: [],
       properties: {
-        lightType: "directional",
-        color: "#fef08a",
-        intensity: 1.5,
-        castShadow: true,
+        "scene3d.light.type": "directional",
+        "scene3d.light.color": "#fef08a",
+        "scene3d.light.intensity": 1.5,
+        "scene3d.light.castShadow": true,
       },
     },
     mesh_cube: {
@@ -65,19 +65,17 @@ test("ThreeSceneEmitter: Emits declarative React-Three-Fiber (R3F) JSX with mesh
       parentId: null,
       children: [],
       properties: {
-        position3D: [0, 1, 0],
-        scale3D: [2, 2, 2],
-        geometry: {
+        "scene3d.position": [0, 1, 0],
+        "scene3d.scale": [2, 2, 2],
+        "scene3d.geometry": {
           type: "box",
           dimensions: [2, 2, 2],
         },
-        material: {
-          color: "#6366f1",
-          roughness: 0.2,
-          metalness: 0.8,
-          wireframe: false,
-        },
-        castShadow: true,
+        "scene3d.material.color": "#6366f1",
+        "scene3d.material.roughness": 0.2,
+        "scene3d.material.metalness": 0.8,
+        "scene3d.material.wireframe": false,
+        "scene3d.castShadow": true,
       },
     },
   };
@@ -112,11 +110,9 @@ test("ThreeSceneEmitter: Emits Lite Mode CSS 3D transforms without external bund
       parentId: null,
       children: [],
       properties: {
-        position3D: [20, 40, -100],
-        scale3D: [1.2, 1.2, 1],
-        material: {
-          color: "#ec4899",
-        },
+        "scene3d.position": [20, 40, -100],
+        "scene3d.scale": [1.2, 1.2, 1],
+        "scene3d.material.color": "#ec4899",
       },
     },
   };

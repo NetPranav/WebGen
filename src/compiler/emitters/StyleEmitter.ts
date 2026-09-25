@@ -13,6 +13,17 @@
 import { ColorTokens, WireColorTokens } from "@/core/types/theme";
 import { StyleEmitterOptions, EmittedFile } from "@/core/types/compiler";
 import type { Layer } from "@/core/document/schema";
+import { getPropertyDefinition } from "@/core/document/properties";
+
+/** Property groups whose registry `css` mapping is a direct, emit-as-is CSS declaration. */
+const CSS_DIRECT_GROUPS = ["appearance.", "typography.", "layout.", "frame.width", "frame.height", "transform.", "filter.", "media.filter.", "media.objectFit", "media.objectPosition", "media.aspectRatio", "svg.stroke", "svg.fill"];
+
+/** CSS transform function per canonical path (the rest use the path's last segment). */
+const TRANSFORM_FUNCTIONS: Record<string, string> = {
+  "transform.x": "translateX",
+  "transform.y": "translateY",
+  "transform.z": "translateZ",
+};
 
 /** The part of a theme that `emitTokens` reads. Partial token maps are allowed. */
 export interface TokenThemeInput {
@@ -41,28 +52,48 @@ export class StyleEmitter {
   }
 
   /**
-   * Formats a CSS value, appending "px" to unitless dimensional numbers.
+   * Formats a value for the canonical property `path` using its registry value
+   * type: lengths get `px`, angles `deg`, plain numbers stay unitless.
    */
-  public static formatCssValue(propKey: string, val: unknown): string {
+  public static formatCssValue(path: string, val: unknown): string {
     if (val === null || val === undefined) return "";
-    if (typeof val === "number") {
-      // Unitless CSS properties
-      const unitlessProps = new Set([
-        "opacity",
-        "fontWeight",
-        "zIndex",
-        "flex",
-        "flexGrow",
-        "flexShrink",
-        "order",
-        "lineHeight",
-      ]);
-      if (unitlessProps.has(propKey)) {
-        return String(val);
-      }
-      return `${val}px`;
-    }
+    if (typeof val !== "number") return String(val);
+    const def = getPropertyDefinition(path);
+    if (def?.valueType === "length") return `${val}px`;
+    if (def?.valueType === "angle") return `${val}deg`;
     return String(val);
+  }
+
+  /**
+   * CSS declarations for a bag of canonical props. Paths with no direct CSS
+   * mapping (content, media sources, behaviour flags) are skipped; the
+   * `transform.*` and filter paths are combined into one declaration each.
+   */
+  public static cssDeclarations(props: Record<string, unknown>, indent: string): string[] {
+    const out: string[] = [];
+    const transforms: string[] = [];
+    const filters: string[] = [];
+    for (const [path, val] of Object.entries(props)) {
+      if (val === undefined || val === null || val === "") continue;
+      const def = getPropertyDefinition(path);
+      if (!def || def.css === null || def.css === "offset-path" || !CSS_DIRECT_GROUPS.some((g) => path.startsWith(g))) continue;
+      // A companion `<path>Unit` (e.g. `typography.fontSizeUnit: "rem"`) overrides the default unit.
+      const unit = props[`${path}Unit`];
+      const formatted =
+        typeof val === "number" && def.valueType === "length" && typeof unit === "string" && unit !== "auto"
+          ? `${val}${unit}`
+          : StyleEmitter.formatCssValue(path, val);
+      if (def.css === "transform") {
+        transforms.push(`${TRANSFORM_FUNCTIONS[path] ?? path.slice("transform.".length)}(${formatted})`);
+      } else if (def.css === "filter") {
+        filters.push(`${path.slice(path.lastIndexOf(".") + 1)}(${formatted})`);
+      } else {
+        out.push(`${indent}${def.css}: ${formatted};`);
+      }
+    }
+    if (transforms.length) out.push(`${indent}transform: ${transforms.join(" ")};`);
+    if (filters.length) out.push(`${indent}filter: ${filters.join(" ")};`);
+    return out;
   }
 
   /**
@@ -152,24 +183,6 @@ export class StyleEmitter {
     const className = StyleEmitter.getElementClassName(element, options);
     const props = element.properties || {};
 
-    // Keys that map directly to CSS properties
-    const ignoredKeys = new Set([
-      "textContent",
-      "label",
-      "placeholder",
-      "src",
-      "alt",
-      "href",
-      "disabled",
-      "type",
-      "ariaLabel",
-      "semanticTag",
-      "hoverStyles",
-      "activeStyles",
-      "focusStyles",
-      "mediaQueries",
-    ]);
-
     const declarations: string[] = [];
 
     // Default base styles based on archetype
@@ -195,14 +208,7 @@ export class StyleEmitter {
       declarations.push(`${indent}transition: border-color 0.15s ease;`);
     }
 
-    for (const [key, val] of Object.entries(props)) {
-      if (ignoredKeys.has(key) || val === undefined || val === null || val === "") {
-        continue;
-      }
-      const cssProp = StyleEmitter.toKebabCase(key);
-      const cssVal = StyleEmitter.formatCssValue(key, val);
-      declarations.push(`${indent}${cssProp}: ${cssVal};`);
-    }
+    declarations.push(...StyleEmitter.cssDeclarations(props, indent));
 
     const rules: string[] = [];
     rules.push(`.${className} {`);
@@ -210,45 +216,30 @@ export class StyleEmitter {
     rules.push("}");
 
     // Pseudo-class: :hover
-    if (props.hoverStyles && typeof props.hoverStyles === "object") {
-      const hoverDecls: string[] = [];
-      for (const [k, v] of Object.entries(props.hoverStyles as Record<string, unknown>)) {
-        hoverDecls.push(`${indent}${StyleEmitter.toKebabCase(k)}: ${StyleEmitter.formatCssValue(k, v)};`);
-      }
-      if (hoverDecls.length > 0) {
-        rules.push("");
-        rules.push(`.${className}:hover {`);
-        rules.push(hoverDecls.join("\n"));
-        rules.push("}");
-      }
+    const hoverDecls = StyleEmitter.cssDeclarations(options?.stateStyles?.hover ?? {}, indent);
+    if (hoverDecls.length > 0) {
+      rules.push("");
+      rules.push(`.${className}:hover {`);
+      rules.push(hoverDecls.join("\n"));
+      rules.push("}");
     }
 
     // Pseudo-class: :active
-    if (props.activeStyles && typeof props.activeStyles === "object") {
-      const activeDecls: string[] = [];
-      for (const [k, v] of Object.entries(props.activeStyles as Record<string, unknown>)) {
-        activeDecls.push(`${indent}${StyleEmitter.toKebabCase(k)}: ${StyleEmitter.formatCssValue(k, v)};`);
-      }
-      if (activeDecls.length > 0) {
-        rules.push("");
-        rules.push(`.${className}:active {`);
-        rules.push(activeDecls.join("\n"));
-        rules.push("}");
-      }
+    const activeDecls = StyleEmitter.cssDeclarations(options?.stateStyles?.active ?? {}, indent);
+    if (activeDecls.length > 0) {
+      rules.push("");
+      rules.push(`.${className}:active {`);
+      rules.push(activeDecls.join("\n"));
+      rules.push("}");
     }
 
     // Pseudo-class: :focus-visible
-    if (props.focusStyles && typeof props.focusStyles === "object") {
-      const focusDecls: string[] = [];
-      for (const [k, v] of Object.entries(props.focusStyles as Record<string, unknown>)) {
-        focusDecls.push(`${indent}${StyleEmitter.toKebabCase(k)}: ${StyleEmitter.formatCssValue(k, v)};`);
-      }
-      if (focusDecls.length > 0) {
-        rules.push("");
-        rules.push(`.${className}:focus-visible {`);
-        rules.push(focusDecls.join("\n"));
-        rules.push("}");
-      }
+    const focusDecls = StyleEmitter.cssDeclarations(options?.stateStyles?.focus ?? {}, indent);
+    if (focusDecls.length > 0) {
+      rules.push("");
+      rules.push(`.${className}:focus-visible {`);
+      rules.push(focusDecls.join("\n"));
+      rules.push("}");
     }
 
     // Pseudo-class: :disabled
@@ -261,26 +252,17 @@ export class StyleEmitter {
       rules.push("}");
     }
 
-    // Responsive media queries
-    if (props.mediaQueries && typeof props.mediaQueries === "object") {
-      for (const [breakpoint, overrides] of Object.entries(
-        props.mediaQueries as Record<string, Record<string, unknown>>
-      )) {
-        if (overrides && typeof overrides === "object") {
-          const bpDecls: string[] = [];
-          for (const [k, v] of Object.entries(overrides)) {
-            bpDecls.push(`${indent}${indent}${StyleEmitter.toKebabCase(k)}: ${StyleEmitter.formatCssValue(k, v)};`);
-          }
-          if (bpDecls.length > 0) {
-            const maxWidth = options?.responsiveBreakpoints?.[breakpoint] ?? (breakpoint === "mobile" ? 640 : 768);
-            rules.push("");
-            rules.push(`@media (max-width: ${maxWidth}px) {`);
-            rules.push(`${indent}.${className} {`);
-            rules.push(bpDecls.join("\n"));
-            rules.push(`${indent}}`);
-            rules.push("}");
-          }
-        }
+    // Responsive breakpoint overrides
+    for (const [breakpoint, overrides] of Object.entries(options?.breakpointOverrides ?? {})) {
+      const bpDecls = StyleEmitter.cssDeclarations(overrides, indent + indent);
+      if (bpDecls.length > 0) {
+        const maxWidth = options?.responsiveBreakpoints?.[breakpoint] ?? (breakpoint === "mobile" ? 640 : 768);
+        rules.push("");
+        rules.push(`@media (max-width: ${maxWidth}px) {`);
+        rules.push(`${indent}.${className} {`);
+        rules.push(bpDecls.join("\n"));
+        rules.push(`${indent}}`);
+        rules.push("}");
       }
     }
 

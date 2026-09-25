@@ -54,8 +54,8 @@ export const AnimationEditor: React.FC<AnimationEditorProps> = ({
 
   const [isBezierModalOpen, setIsBezierModalOpen] = useState(false);
 
-  const attachedSampleId = element?.properties?.attachedAnimationSampleId as string | undefined;
-  const attachedTrigger = (element?.properties?.animationTrigger as AnimationTrigger) || "onMount";
+  const attachedSampleId = element?.properties?.["motion.attachedSampleId"] as string | undefined;
+  const attachedTrigger = (element?.properties?.["motion.trigger"] as AnimationTrigger) || "onMount";
 
   const allSamples = Object.values(animationSamples);
   const activeSample = attachedSampleId ? animationSamples[attachedSampleId] : allSamples[0];
@@ -71,15 +71,15 @@ export const AnimationEditor: React.FC<AnimationEditorProps> = ({
   }, [activeSample, archetype, elementId, elementName]);
 
   const handleAttachSample = (sampleId: string) => {
-    documentCommands.updateProps(elementId, { attachedAnimationSampleId: sampleId }, `Attach animation '${sampleId}'`);
+    documentCommands.updateProps(elementId, { "motion.attachedSampleId": sampleId }, `Attach animation '${sampleId}'`);
   };
 
   const handleDetachSample = () => {
-    documentCommands.updateProps(elementId, { attachedAnimationSampleId: undefined }, "Detach animation");
+    documentCommands.updateProps(elementId, { "motion.attachedSampleId": undefined }, "Detach animation");
   };
 
   const handleTriggerChange = (trigger: AnimationTrigger) => {
-    documentCommands.updateProps(elementId, { animationTrigger: trigger }, `Set animation trigger to '${trigger}'`);
+    documentCommands.updateProps(elementId, { "motion.trigger": trigger }, `Set animation trigger to '${trigger}'`);
   };
 
   const handleCurveChange = (curve: CubicBezierHandle) => {

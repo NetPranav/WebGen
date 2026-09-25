@@ -35,7 +35,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
       },
       tracks: [
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: 20, ease: "power3.out" },
             { time: 0.8, value: 0, ease: "power3.out" },
@@ -114,7 +114,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
           ],
         },
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: 14, ease: "power2.out" },
             { time: 1.0, value: 0, ease: "power2.out" },
@@ -267,7 +267,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
       },
       tracks: [
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: 24, ease: "back.out(2.5)" },
             { time: 1.1, value: 0, ease: "back.out(2.5)" },
@@ -361,7 +361,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
       enabled: true,
       tracks: [
         {
-          property: "transform.translateX",
+          property: "transform.x",
           keyframes: [
             { time: 0, value: 0, ease: "linear" },
             { time: 0.06, value: -3, ease: "linear" },
@@ -392,7 +392,7 @@ export const TEXT_PRESETS: MotionPreset[] = [
       enabled: true,
       tracks: [
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: 24, ease: "power2.out" },
             { time: 0.85, value: 0, ease: "power2.out" },

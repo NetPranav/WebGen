@@ -124,10 +124,10 @@ describe("Sub-Phase 6.4: Standalone Git Project Exporter & ZipPacker", () => {
         parentId: null,
         children: ["title_text", "cta_btn"],
         properties: {
-          display: "flex",
-          flexDirection: "column",
-          padding: 24,
-          backgroundColor: "#1E293B",
+          "layout.display": "flex",
+          "layout.flexDirection": "column",
+          "layout.padding": 24,
+          "appearance.background.color": "#1E293B",
         },
       },
       title_text: {
@@ -136,7 +136,7 @@ describe("Sub-Phase 6.4: Standalone Git Project Exporter & ZipPacker", () => {
         archetype: "text",
         parentId: "hero_section",
         children: [],
-        properties: { text: "Welcome to Next.js 15", fontSize: 32, color: "#FFFFFF" },
+        properties: { "content.text": "Welcome to Next.js 15", "typography.fontSize": 32, "typography.color": "#FFFFFF" },
       },
       cta_btn: {
         id: "cta_btn",
@@ -144,7 +144,7 @@ describe("Sub-Phase 6.4: Standalone Git Project Exporter & ZipPacker", () => {
         archetype: "button",
         parentId: "hero_section",
         children: [],
-        properties: { label: "Get Started", padding: 12, backgroundColor: "#206859" },
+        properties: { "content.label": "Get Started", "layout.padding": 12, "appearance.background.color": "#206859" },
       },
     };
 

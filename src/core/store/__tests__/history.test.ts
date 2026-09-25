@@ -24,7 +24,7 @@ import type { DiagnosticEvent } from "../../types/diagnostics";
 const blank = (): MotionDocument =>
   createDocumentFromLayers([
     createLayer({ id: "root", archetype: "container", children: ["title"] }),
-    createLayer({ id: "title", archetype: "text", parentId: "root", properties: { textContent: "Hello" } }),
+    createLayer({ id: "title", archetype: "text", parentId: "root", properties: { "content.text": "Hello" } }),
   ]);
 
 function reset() {
@@ -57,7 +57,7 @@ describe("Phase 3.1: patch-based history", () => {
   it("20 distinct edits undo back to the starting document and redo forward again", () => {
     const start = getDocument();
     for (let i = 0; i < 20; i++) {
-      documentCommands.updateProps("title", { [`p${i}`]: i }, `Set p${i}`);
+      documentCommands.updateProps("title", { "typography.fontSize": i }, `Set p${i}`);
     }
     const end = getDocument();
     assert.equal(useHistoryStore.getState().past.length, 20);
@@ -73,7 +73,7 @@ describe("Phase 3.1: patch-based history", () => {
   it("stores patches, not snapshots: an entry's size doesn't grow with the document", () => {
     for (let i = 0; i < 300; i++) documentCommands.addLayer({ archetype: "text", parentId: "root" }, `Add ${i}`);
     ageLastEntry();
-    documentCommands.updateProps("title", { textContent: "Hi" }, "Rename");
+    documentCommands.updateProps("title", { "content.text": "Hi" }, "Rename");
     const entry = useHistoryStore.getState().past.at(-1)!;
     const entrySize = JSON.stringify(entry.change).length;
     const docSize = JSON.stringify(getDocument()).length;
@@ -84,20 +84,20 @@ describe("Phase 3.1: patch-based history", () => {
 
   it("caps the stack at maxStackSize", () => {
     const cap = useHistoryStore.getState().maxStackSize;
-    for (let i = 0; i < cap + 25; i++) documentCommands.updateProps("title", { [`k${i}`]: i }, `Edit ${i}`);
+    for (let i = 0; i < cap + 25; i++) documentCommands.updateProps("title", { "typography.fontSize": i }, `Edit ${i}`);
     assert.equal(useHistoryStore.getState().past.length, cap);
   });
 
   it("a new edit clears the redo stack", () => {
-    documentCommands.updateProps("title", { a: 1 }, "A");
+    documentCommands.updateProps("title", { "typography.letterSpacing": 1 }, "A");
     historyCommands.undo();
     assert.equal(useHistoryStore.getState().future.length, 1);
-    documentCommands.updateProps("title", { b: 2 }, "B");
+    documentCommands.updateProps("title", { "typography.lineHeight": 2 }, "B");
     assert.equal(useHistoryStore.getState().future.length, 0);
   });
 
   it("undo and redo emit durable document changes (autosave and the crash journal rely on them)", () => {
-    documentCommands.updateProps("title", { a: 1 }, "A");
+    documentCommands.updateProps("title", { "typography.letterSpacing": 1 }, "A");
     const seen: DocumentChange[] = [];
     const off = subscribeToDocumentChanges((c) => seen.push(c));
     historyCommands.undo();
@@ -113,18 +113,18 @@ describe("Phase 3.1: patch-based history", () => {
   });
 
   it("jumpTo moves across several entries in either direction", () => {
-    documentCommands.updateProps("title", { step: 1 }, "Step 1");
-    documentCommands.updateProps("title", { step: 2 }, "Step 2");
-    documentCommands.updateProps("title", { step: 3 }, "Step 3");
+    documentCommands.updateProps("title", { "typography.letterSpacing": 1 }, "Step 1");
+    documentCommands.updateProps("title", { "typography.letterSpacing": 2 }, "Step 2");
+    documentCommands.updateProps("title", { "typography.letterSpacing": 3 }, "Step 3");
     ageLastEntry();
     const [first, , third] = useHistoryStore.getState().past;
 
     historyCommands.jumpTo(first.id);
-    assert.equal(getDocument().layers.title.properties.step, undefined);
+    assert.equal(getDocument().layers.title.properties["typography.letterSpacing"], undefined);
     assert.equal(useHistoryStore.getState().future.length, 3);
 
     historyCommands.jumpTo(third.id);
-    assert.equal(getDocument().layers.title.properties.step, 3);
+    assert.equal(getDocument().layers.title.properties["typography.letterSpacing"], 3);
     assert.equal(useHistoryStore.getState().past.length, 3);
   });
 
@@ -158,8 +158,8 @@ describe("Phase 3.1: gesture coalescing", () => {
     const seen: DocumentChange[] = [];
     const off = subscribeToDocumentChanges((c) => seen.push(c));
     const tx = documentCommands.begin("Drag");
-    for (let x = 1; x <= 60; x++) documentCommands.updateProps("title", { x }, "Move");
-    assert.equal(getDocument().layers.title.properties.x, 60, "the stage sees every step");
+    for (let x = 1; x <= 60; x++) documentCommands.updateProps("title", { "transform.x": x }, "Move");
+    assert.equal(getDocument().layers.title.properties["transform.x"], 60, "the stage sees every step");
     assert.equal(useHistoryStore.getState().past.length, 0, "nothing reaches history mid-gesture");
     tx.commit();
     off();
@@ -172,13 +172,13 @@ describe("Phase 3.1: gesture coalescing", () => {
     assert.ok(seen.at(-1)!.summary);
 
     historyCommands.undo();
-    assert.equal(getDocument().layers.title.properties.x, undefined);
+    assert.equal(getDocument().layers.title.properties["transform.x"], undefined);
   });
 
   it("cancel restores the document from before the transaction and records nothing", () => {
     const before = getDocument();
     const tx = documentCommands.begin("Drag");
-    documentCommands.updateProps("title", { x: 10 });
+    documentCommands.updateProps("title", { "transform.x": 10 });
     documentCommands.addLayer({ archetype: "badge", parentId: "root" });
     tx.cancel();
     assert.equal(getDocument(), before);
@@ -189,7 +189,7 @@ describe("Phase 3.1: gesture coalescing", () => {
   it("nested begin joins the outer transaction", () => {
     const outer = documentCommands.begin("Outer");
     const inner = documentCommands.begin("Inner");
-    documentCommands.updateProps("title", { a: 1 });
+    documentCommands.updateProps("title", { "typography.letterSpacing": 1 });
     assert.equal(inner.commit(), null);
     assert.equal(isTransactionOpen(), true);
     outer.commit();
@@ -201,8 +201,8 @@ describe("Phase 3.1: gesture coalescing", () => {
 
   it("a pointer press coalesces every command until release (scrub, slider, drag)", () => {
     gestureCoalescing.press();
-    for (let v = 0; v < 30; v++) documentCommands.updateProps("title", { opacity: v / 30 }, "Update opacity");
-    documentCommands.updateProps("title", { blur: 2 }, "Update blur");
+    for (let v = 0; v < 30; v++) documentCommands.updateProps("title", { "appearance.opacity": v / 30 }, "Update opacity");
+    documentCommands.updateProps("title", { "filter.blur": 2 }, "Update blur");
     assert.equal(useHistoryStore.getState().past.length, 0);
     gestureCoalescing.release();
 
@@ -210,40 +210,40 @@ describe("Phase 3.1: gesture coalescing", () => {
     assert.equal(past.length, 1);
     assert.equal(past[0].actionLabel, "Update opacity", "the first command names the gesture");
     historyCommands.undo();
-    assert.equal(getDocument().layers.title.properties.opacity, undefined);
-    assert.equal(getDocument().layers.title.properties.blur, undefined);
+    assert.equal(getDocument().layers.title.properties["appearance.opacity"], undefined);
+    assert.equal(getDocument().layers.title.properties["filter.blur"], undefined);
   });
 
   it("a gesture that ends where it started records nothing", () => {
     gestureCoalescing.press();
-    documentCommands.updateProps("title", { x: 5 }, "Move");
-    documentCommands.updateProps("title", { x: undefined }, "Move");
+    documentCommands.updateProps("title", { "transform.x": 5 }, "Move");
+    documentCommands.updateProps("title", { "transform.x": undefined }, "Move");
     gestureCoalescing.release();
     assert.equal(useHistoryStore.getState().past.length, 0);
   });
 
   it("undo during a gesture commits the gesture first, then undoes it", () => {
     gestureCoalescing.press();
-    documentCommands.updateProps("title", { x: 5 }, "Move");
+    documentCommands.updateProps("title", { "transform.x": 5 }, "Move");
     historyCommands.undo();
-    assert.equal(getDocument().layers.title.properties.x, undefined);
+    assert.equal(getDocument().layers.title.properties["transform.x"], undefined);
     assert.equal(useHistoryStore.getState().future.length, 1);
     gestureCoalescing.release();
   });
 
   it("repeated edits to the same target merge (typing); different targets don't", () => {
-    for (const text of ["H", "He", "Hel", "Hell", "Hello!"]) documentCommands.updateProps("title", { textContent: text }, "Edit text");
+    for (const text of ["H", "He", "Hel", "Hell", "Hello!"]) documentCommands.updateProps("title", { "content.text": text }, "Edit text");
     let past = useHistoryStore.getState().past;
     assert.equal(past.length, 1);
     assert.equal(past[0].groupCount, 5);
 
-    documentCommands.updateProps("title", { fontSize: 20 }, "Edit size");
+    documentCommands.updateProps("title", { "typography.fontSize": 20 }, "Edit size");
     past = useHistoryStore.getState().past;
     assert.equal(past.length, 2);
 
     historyCommands.undo();
     historyCommands.undo();
-    assert.equal(getDocument().layers.title.properties.textContent, "Hello");
+    assert.equal(getDocument().layers.title.properties["content.text"], "Hello");
   });
 
   it("structural edits never merge, however fast (e.g. clicking + Keyframe 5 times)", () => {
@@ -256,9 +256,9 @@ describe("Phase 3.1: gesture coalescing", () => {
   });
 
   it("edits outside the merge window stay separate", () => {
-    documentCommands.updateProps("title", { textContent: "A" }, "Edit text");
+    documentCommands.updateProps("title", { "content.text": "A" }, "Edit text");
     ageLastEntry();
-    documentCommands.updateProps("title", { textContent: "B" }, "Edit text");
+    documentCommands.updateProps("title", { "content.text": "B" }, "Edit text");
     assert.equal(useHistoryStore.getState().past.length, 2);
   });
 });
@@ -273,10 +273,10 @@ describe("Phase 3.1: project-state entries", () => {
     const pageRoot = useProjectStore.getState().pages[pageId].rootElementId;
     assert.ok(getDocument().layers[pageRoot], "addPage also creates the page's root layer");
 
-    documentCommands.updateProps("title", { textContent: "After" }, "Edit text");
+    documentCommands.updateProps("title", { "content.text": "After" }, "Edit text");
 
     historyCommands.undo();
-    assert.equal(getDocument().layers.title.properties.textContent, "Hello");
+    assert.equal(getDocument().layers.title.properties["content.text"], "Hello");
     historyCommands.undo();
     assert.equal(useProjectStore.getState().pages[pageId], undefined);
     assert.equal(getDocument().layers[pageRoot], undefined, "the page root layer goes with the page");
@@ -285,7 +285,7 @@ describe("Phase 3.1: project-state entries", () => {
     assert.ok(useProjectStore.getState().pages[pageId]);
     assert.ok(getDocument().layers[pageRoot]);
     historyCommands.redo();
-    assert.equal(getDocument().layers.title.properties.textContent, "After");
+    assert.equal(getDocument().layers.title.properties["content.text"], "After");
   });
 
   it("mounting the demo project can be undone (it used to record the demo itself as the 'before' state)", () => {

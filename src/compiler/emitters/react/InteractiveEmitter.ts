@@ -16,6 +16,7 @@
  */
 
 import type { Layer } from "@/core/document/schema";
+import { propReader } from "@/core/document/properties";
 
 export interface InteractiveEmitterOptions {
   stylingSystem?: "tailwind" | "css-modules" | "vanilla";
@@ -45,7 +46,8 @@ export class InteractiveEmitter {
     const refProp = options.useAnimationHook ? ` ref={elementRef as any}` : "";
 
     const props = element.properties || {};
-    const label = String(props.label || props.text || element.name || "Click Me");
+    const get = propReader(element.properties);
+    const label = String(get("content.label") || get("content.text") || element.name || "Click Me");
     const isToggle = element.archetype === "toggle";
     const isBadge = element.archetype === "badge";
     const isFab = element.archetype === "fab";
@@ -73,12 +75,12 @@ export class InteractiveEmitter {
 
     const tailwindClasses = [
       "inline-flex items-center justify-center font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2",
-      props.variant === "secondary"
+      props["appearance.variant"] === "secondary"
         ? "bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-400"
-        : props.variant === "outline"
+        : props["appearance.variant"] === "outline"
         ? "border border-gray-300 bg-transparent text-gray-800 hover:bg-gray-50 focus:ring-emerald-500"
         : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm focus:ring-emerald-500",
-      props.size === "sm" ? "px-3 py-1.5 text-xs rounded-md" : props.size === "lg" ? "px-6 py-3 text-base rounded-xl" : "px-4 py-2 text-sm rounded-lg",
+      props["button.size"] === "sm" ? "px-3 py-1.5 text-xs rounded-md" : props["button.size"] === "lg" ? "px-6 py-3 text-base rounded-xl" : "px-4 py-2 text-sm rounded-lg",
     ].join(" ");
 
     const tsxCode = `"use client";

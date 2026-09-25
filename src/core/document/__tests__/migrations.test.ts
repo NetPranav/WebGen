@@ -84,7 +84,9 @@ describe("MDM v1 → v2 migration", () => {
     const [clip] = getLayerClips(doc, "node");
     assert.equal(clip.trigger, "scrollProgress");
     assert.equal(clip.enabled, false);
-    assert.deepEqual(doc.layers.node.properties.layout, { width: 100 });
+    // v3: the v1 `layout: { width }` style block is unpacked onto its canonical path.
+    assert.equal(doc.layers.node.properties["frame.width"], 100);
+    assert.equal(doc.layers.node.properties.layout, undefined);
   });
 
   it("repairs broken tree links and unknown archetypes", () => {
@@ -137,8 +139,8 @@ describe("Archetype registry", () => {
 
   it("returns fresh default props each call", () => {
     const a = getDefaultProps("image");
-    (a.filter as Record<string, number>).blur = 99;
-    assert.equal((getDefaultProps("image").filter as Record<string, number>).blur, 0);
+    a["media.filter.blur"] = 99;
+    assert.equal(getDefaultProps("image")["media.filter.blur"], 0);
   });
 
   it("maps the 10 starting archetypes onto the 4 PRD families", () => {

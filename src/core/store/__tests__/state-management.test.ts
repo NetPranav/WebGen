@@ -22,13 +22,13 @@ test("useProjectStore: Mutates element properties and pushes undo history", () =
   useHistoryStore.getState().clearHistory();
 
   // Initial title
-  const initialTitle = useProjectStore.getState().document.layers["el_hero_heading"].properties.textContent;
+  const initialTitle = useProjectStore.getState().document.layers["el_hero_heading"].properties["content.text"];
 
   // Mutate with history label
-  documentCommands.updateProps("el_hero_heading", { textContent: "NextGen Studio" }, "Edit Hero Heading");
+  documentCommands.updateProps("el_hero_heading", { "content.text": "NextGen Studio" }, "Edit Hero Heading");
 
   assert.equal(
-    useProjectStore.getState().document.layers["el_hero_heading"].properties.textContent,
+    useProjectStore.getState().document.layers["el_hero_heading"].properties["content.text"],
     "NextGen Studio"
   );
   assert.equal(useHistoryStore.getState().canUndo(), true);
@@ -37,7 +37,7 @@ test("useProjectStore: Mutates element properties and pushes undo history", () =
   // Undo
   historyCommands.undo();
   assert.equal(
-    useProjectStore.getState().document.layers["el_hero_heading"].properties.textContent,
+    useProjectStore.getState().document.layers["el_hero_heading"].properties["content.text"],
     initialTitle
   );
   assert.equal(useHistoryStore.getState().canRedo(), true);
@@ -45,7 +45,7 @@ test("useProjectStore: Mutates element properties and pushes undo history", () =
   // Redo
   historyCommands.redo();
   assert.equal(
-    useProjectStore.getState().document.layers["el_hero_heading"].properties.textContent,
+    useProjectStore.getState().document.layers["el_hero_heading"].properties["content.text"],
     "NextGen Studio"
   );
 });

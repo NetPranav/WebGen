@@ -38,7 +38,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
           ],
         },
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: 0, ease: "linear" },
             { time: 0.3, value: -2, ease: "spring(stiffness: 400, damping: 25)" },
@@ -154,7 +154,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
       enabled: true,
       tracks: [
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: 0, ease: "power1.in" },
             { time: 0.08, value: 3, ease: "power1.in" },
@@ -190,7 +190,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
       enabled: true,
       tracks: [
         {
-          property: "transform.translateX",
+          property: "transform.x",
           keyframes: [
             { time: 0, value: 0, ease: "spring(stiffness: 350, damping: 20)" },
             { time: 0.4, value: 24, ease: "spring(stiffness: 350, damping: 20)" },
@@ -285,7 +285,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
       enabled: true,
       tracks: [
         {
-          property: "transform.translateX",
+          property: "transform.x",
           keyframes: [
             { time: 0, value: 0, ease: "linear" },
             { time: 0.03, value: -2, ease: "linear" },
@@ -390,7 +390,7 @@ export const INTERACTIVE_PRESETS: MotionPreset[] = [
       enabled: true,
       tracks: [
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: 0, ease: "sine.inOut" },
             { time: 1.5, value: -6, ease: "sine.inOut" },

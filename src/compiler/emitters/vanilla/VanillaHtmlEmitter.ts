@@ -11,6 +11,7 @@
  */
 
 import type { Layer } from "@/core/document/schema";
+import { propReader } from "@/core/document/properties";
 
 
 export interface VanillaEmitterOptions {
@@ -39,7 +40,7 @@ export class VanillaHtmlEmitter {
   ): EmittedVanillaPackage {
     const name = options.componentName || element.name || "element";
     const cssClass = this.toKebabCase(name);
-    const props = element.properties || {};
+    const get = propReader(element.properties);
 
     let htmlMarkup = "";
     let cssStyles = "";
@@ -47,7 +48,7 @@ export class VanillaHtmlEmitter {
 
     switch (element.archetype) {
       case "button": {
-        const label = (props.label as string) || (props.textContent as string) || "Button";
+        const label = (get("content.label") as string) || (get("content.text") as string) || "Button";
         htmlMarkup = `<button type="button" class="btn-${cssClass}" id="${element.id}">\n  ${label}\n</button>`;
         cssStyles = `.btn-${cssClass} {
   display: inline-flex;
@@ -75,7 +76,7 @@ export class VanillaHtmlEmitter {
         break;
       }
       case "toggle": {
-        const label = (props.label as string) || "Toggle Switch";
+        const label = (get("content.label") as string) || "Toggle Switch";
         htmlMarkup = `<button type="button" role="switch" aria-checked="true" class="toggle-${cssClass}" id="${element.id}">\n  <span class="toggle-track"><span class="toggle-thumb"></span></span>\n  <span class="toggle-label">${label}</span>\n</button>`;
         cssStyles = `.toggle-${cssClass} {
   display: inline-flex;
@@ -106,7 +107,7 @@ export class VanillaHtmlEmitter {
         break;
       }
       case "badge": {
-        const label = (props.label as string) || "Badge";
+        const label = (get("content.label") as string) || "Badge";
         htmlMarkup = `<span class="badge-${cssClass}" id="${element.id}">\n  ${label}\n</span>`;
         cssStyles = `.badge-${cssClass} {
   display: inline-flex;
@@ -143,8 +144,8 @@ export class VanillaHtmlEmitter {
         break;
       }
       case "image": {
-        const src = (props.src as string) || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe";
-        const alt = (props.alt as string) || "Media";
+        const src = (get("media.src") as string) || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe";
+        const alt = (get("media.alt") as string) || "Media";
         htmlMarkup = `<div class="img-wrapper-${cssClass}" id="${element.id}">\n  <img src="${src}" alt="${alt}" loading="lazy" class="img-content" />\n</div>`;
         cssStyles = `.img-wrapper-${cssClass} {
   position: relative;
@@ -167,7 +168,7 @@ export class VanillaHtmlEmitter {
         break;
       }
       case "icon": {
-        const path = (props.path as string) || (props.d as string) || "M12 2L2 7l10 5 10-5-10-5z";
+        const path = (get("svg.path") as string) || "M12 2L2 7l10 5 10-5-10-5z";
         htmlMarkup = `<svg class="icon-${cssClass}" id="${element.id}" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n  <path d="${path}" />\n</svg>`;
         cssStyles = `.icon-${cssClass} {
   display: inline-block;
@@ -215,7 +216,7 @@ export class VanillaHtmlEmitter {
         break;
       }
       case "text": {
-        const text = (props.textContent as string) || "Visual Typography";
+        const text = (get("content.text") as string) || "Visual Typography";
         htmlMarkup = `<h2 class="text-${cssClass}" id="${element.id}">\n  ${text}\n</h2>`;
         cssStyles = `.text-${cssClass} {
   font-family: inherit;

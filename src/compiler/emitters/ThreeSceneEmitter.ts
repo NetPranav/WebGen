@@ -11,14 +11,8 @@
  * ============================================================================
  */
 
-import {
-  Object3DProperties,
-  Camera3DProperties,
-  Light3DProperties,
-  DEFAULT_OBJECT3D_PROPERTIES,
-  DEFAULT_CAMERA3D_PROPERTIES,
-  DEFAULT_LIGHT3D_PROPERTIES,
-} from "@/core/types/scene3d";
+import { DEFAULT_OBJECT3D_PROPERTIES, DEFAULT_LIGHT3D_PROPERTIES } from "@/core/types/scene3d";
+import { readProps } from "@/core/document/props";
 import { Scene3DEngine } from "@/core/engine/Scene3DEngine";
 import type { Layer } from "@/core/document/schema";
 
@@ -116,10 +110,10 @@ export class ThreeSceneEmitter {
 
     for (const el of elements) {
       if (el.archetype !== "object3D") continue;
-      const props = (el.properties || {}) as Partial<Object3DProperties>;
-      const pos = props.position3D || DEFAULT_OBJECT3D_PROPERTIES.position3D;
-      const scl = props.scale3D || DEFAULT_OBJECT3D_PROPERTIES.scale3D;
-      const col = props.material?.color || "#4f46e5";
+      const props = readProps(el, "object3D");
+      const pos = props.position || DEFAULT_OBJECT3D_PROPERTIES.position3D;
+      const scl = props.scale || DEFAULT_OBJECT3D_PROPERTIES.scale3D;
+      const col = props.material.color || "#4f46e5";
 
       const transformStr = `translate3d(${pos[0]}px, ${pos[1]}px, ${pos[2]}px) scale3d(${scl[0]}, ${scl[1]}, ${scl[2]})`;
 
@@ -147,13 +141,13 @@ export class ThreeSceneEmitter {
     options: ThreeSceneEmitterOptions
   ): string {
     const cameraEl = all3D.find((el) => el.archetype === "camera3D");
-    const camProps = ((cameraEl?.properties || {}) as Partial<Camera3DProperties>) || DEFAULT_CAMERA3D_PROPERTIES;
+    const camProps = readProps(cameraEl, "camera3D");
     const fov = camProps.fov ?? 60;
     const near = camProps.near ?? 0.1;
     const far = camProps.far ?? 1000;
 
     const hasGltf = all3D.some((el) => {
-      const g = (el.properties?.geometry as { type?: string } | undefined)?.type;
+      const g = readProps(el, "object3D").geometry?.type;
       return g === "gltf";
     });
 
@@ -194,8 +188,8 @@ export class ThreeSceneEmitter {
       );
     } else {
       for (const light of lights) {
-        const lp = (light.properties || {}) as Partial<Light3DProperties>;
-        const lType = lp.lightType || DEFAULT_LIGHT3D_PROPERTIES.lightType;
+        const lp = readProps(light, "light3D");
+        const lType = lp.type || DEFAULT_LIGHT3D_PROPERTIES.lightType;
         const color = lp.color || DEFAULT_LIGHT3D_PROPERTIES.color;
         const intensity = lp.intensity ?? DEFAULT_LIGHT3D_PROPERTIES.intensity;
         const castShadow = lp.castShadow ? " castShadow" : "";
@@ -237,11 +231,11 @@ export class ThreeSceneEmitter {
    * Emits JSX for a single 3D mesh object.
    */
   private static emitMeshJSX(obj: Layer, indent: string): string {
-    const props = (obj.properties || {}) as Partial<Object3DProperties>;
-    const pos = props.position3D || DEFAULT_OBJECT3D_PROPERTIES.position3D;
-    const scl = props.scale3D || DEFAULT_OBJECT3D_PROPERTIES.scale3D;
+    const props = readProps(obj, "object3D");
+    const pos = props.position || DEFAULT_OBJECT3D_PROPERTIES.position3D;
+    const scl = props.scale || DEFAULT_OBJECT3D_PROPERTIES.scale3D;
     const geom = props.geometry || DEFAULT_OBJECT3D_PROPERTIES.geometry;
-    const mat = props.material || DEFAULT_OBJECT3D_PROPERTIES.material;
+    const mat = props.material;
 
     const lines: string[] = [];
     lines.push(`${indent}{/* ${obj.name} */}`);

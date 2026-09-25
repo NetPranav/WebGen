@@ -16,6 +16,7 @@ import { Sparkles, Layers } from "lucide-react";
 import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
 import type { PropValue } from "@/core/document/registry";
 import { readProps } from "@/core/document/props";
+import type { PropertyPath } from "@/core/document/properties";
 
 export interface BackgroundSectionProps {
   elementId: string;
@@ -30,7 +31,7 @@ export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
   const currentElement = elements[elementId];
   const props = readProps(currentElement, "background");
 
-  const updateProp = (key: string, val: PropValue) => {
+  const updateProp = (key: PropertyPath, val: PropValue) => {
     documentCommands.updateProps(elementId, { [key]: val }, `Update background ${key}`);
   };
 
@@ -48,7 +49,7 @@ export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
         <select
           className="form-select"
           value={bgType}
-          onChange={(e) => updateProp("type", e.target.value)}
+          onChange={(e) => updateProp("background.type", e.target.value)}
         >
           <option value="solid">Solid Color</option>
           <option value="gradient">Linear Gradient</option>
@@ -68,7 +69,7 @@ export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
             type="text"
             className="form-input"
             value={color}
-            onChange={(e) => updateProp("color", e.target.value)}
+            onChange={(e) => updateProp("background.color", e.target.value)}
           />
         </div>
       </div>
@@ -85,7 +86,7 @@ export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
           step="5"
           className="form-slider"
           value={gradientAngle}
-          onChange={(e) => updateProp("gradientAngle", Number(e.target.value))}
+          onChange={(e) => updateProp("background.gradient.angle", Number(e.target.value))}
         />
       </div>
 
@@ -101,7 +102,7 @@ export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
           step="0.1"
           className="form-slider"
           value={parallaxSpeed}
-          onChange={(e) => updateProp("parallaxSpeed", Number(e.target.value))}
+          onChange={(e) => updateProp("background.parallax.speed", Number(e.target.value))}
         />
       </div>
 
@@ -110,7 +111,7 @@ export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
         <select
           className="form-select"
           value={blendMode}
-          onChange={(e) => updateProp("blendMode", e.target.value)}
+          onChange={(e) => updateProp("background.blendMode", e.target.value)}
         >
           <option value="normal">normal</option>
           <option value="multiply">multiply</option>
@@ -132,7 +133,7 @@ export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
           step="0.01"
           className="form-slider"
           value={noiseOpacity}
-          onChange={(e) => updateProp("noiseOpacity", Number(e.target.value))}
+          onChange={(e) => updateProp("background.noise.opacity", Number(e.target.value))}
         />
       </div>
     </div>

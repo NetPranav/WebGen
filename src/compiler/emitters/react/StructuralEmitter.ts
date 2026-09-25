@@ -15,6 +15,7 @@
  */
 
 import type { Layer } from "@/core/document/schema";
+import { propReader } from "@/core/document/properties";
 
 export interface StructuralEmitterOptions {
   framework?: "nextjs" | "react";
@@ -60,10 +61,10 @@ export class StructuralEmitter {
       : "";
     const refProp = options.useAnimationHook ? ` ref={dividerRef}` : "";
 
-    const props = element.properties || {};
-    const orientation = String(props.orientation || "horizontal");
-    const styleType = String(props.styleType || props.style || "solid");
-    const thickness = Number(props.thickness) || 1;
+    const get = propReader(element.properties);
+    const orientation = String(get("divider.orientation") || "horizontal");
+    const styleType = String(get("divider.style") || "solid");
+    const thickness = Number(get("divider.thickness")) || 1;
     const isGradient = styleType === "gradient";
 
     const tsxCode = `"use client";
@@ -158,8 +159,8 @@ export default ${name};
       : "";
     const refProp = options.useAnimationHook ? ` ref={bgRef}` : "";
 
-    const props = element.properties || {};
-    const blendMode = String(props.blendMode || "normal");
+    const get = propReader(element.properties);
+    const blendMode = String(get("background.blendMode") || "normal");
 
     const tsxCode = `"use client";
 

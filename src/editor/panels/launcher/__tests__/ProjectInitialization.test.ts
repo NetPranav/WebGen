@@ -67,11 +67,11 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
 
       // Verify image default properties
       const props = rootEl.properties;
-      assert.ok(props.src, "Image must have a default source URL");
-      assert.strictEqual(props.objectFit, "cover");
-      assert.strictEqual(props.aspectRatio, "16:9");
-      assert.ok(props.filter, "Image must have filter properties");
-      assert.ok(props.overlay, "Image must have overlay properties");
+      assert.ok(props["media.src"], "Image must have a default source URL");
+      assert.strictEqual(props["media.objectFit"], "cover");
+      assert.strictEqual(props["media.aspectRatio"], "16:9");
+      assert.ok(props["media.filter.brightness"] !== undefined, "Image must have filter properties");
+      assert.ok(props["media.overlay.color"] !== undefined, "Image must have overlay properties");
 
       // Verify active stage page references this root element
       assert.strictEqual(state.activePageId, "page_stage");

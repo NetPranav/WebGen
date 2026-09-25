@@ -23,6 +23,7 @@
 
 import { ARCHETYPE_IDS, ARCHETYPE_REGISTRY, type ArchetypeId, type PropValue } from "./registry";
 import type { DetailSectionId } from "../types/element-sections";
+import type { AnimationTrackId } from "../types/animations";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,7 +136,7 @@ const LIGHT3D = only("light3D");
 const SCENE3D = only("object3D", "camera3D", "light3D");
 const ALL = only(...ARCHETYPE_IDS);
 
-const DEFS: Record<string, Def> = {
+const DEFS = {
   // --- Geometry (Phase 42.3): layout, what the canvas edits -----------------
   "frame.x": px(0, "left", "layout", VISUAL),
   "frame.y": px(0, "top", "layout", VISUAL),
@@ -160,6 +161,8 @@ const DEFS: Record<string, Def> = {
   "transform.rotateY": deg(0, "transform", "gpu", VISUAL),
   "transform.skewX": deg(0, "transform", "gpu", VISUAL),
   "transform.skewY": deg(0, "transform", "gpu", VISUAL),
+  /** CSS motion path (`offset-path`); the layer travels along it as `transform` does. */
+  "transform.motionPath": { valueType: "pathData", default: "", css: "offset-path", compositing: "gpu", animatable: true, scope: VISUAL },
 
   // --- Appearance (CONVENTIONS §4.1 / §4.2) ---------------------------------
   "appearance.opacity": num(1, "opacity", "gpu", VISUAL),
@@ -168,17 +171,24 @@ const DEFS: Record<string, Def> = {
   "appearance.border.color": color("transparent", "border-color", "paint", VISUAL),
   "appearance.border.width": px(0, "border-width", "layout", VISUAL),
   "appearance.border.style": oneOf(["none", "solid", "dashed", "dotted"], "none", "border-style", "paint", VISUAL),
+  /** CSS `border` shorthand, e.g. `1px solid #e2e8f0`. */
+  "appearance.border": str("none", "border", "paint", VISUAL),
+  "appearance.border.bottom": str("none", "border-bottom", "paint", VISUAL),
+  "appearance.backdropFilter": str("none", "backdrop-filter", "paint", VISUAL),
   "appearance.blendMode": oneOf(null, "normal", "mix-blend-mode", "paint", VISUAL),
   "appearance.variant": oneOf(null, "primary", null, "paint", only("button", "badge")),
-  "appearance.elevation": oneOf(["none", "sm", "md", "lg", "xl"], "none", "box-shadow", "paint", VISUAL),
+  "appearance.elevation": oneOf(["none", "sm", "md", "lg", "xl"], "none", null, "paint", VISUAL),
+  "appearance.shadow": str("none", "box-shadow", "paint", VISUAL),
   "appearance.cursor": oneOf(null, "auto", "cursor", "none", VISUAL),
   "appearance.pointerEvents": oneOf(["auto", "none"], "auto", "pointer-events", "none", VISUAL),
   "appearance.userSelect": oneOf(["auto", "none", "text", "all"], "auto", "user-select", "none", VISUAL),
+  "appearance.willChange": oneOf(["auto", "transform", "opacity"], "auto", "will-change", "none", VISUAL),
   "filter.blur": px(0, "filter", "paint", VISUAL),
 
   // --- Typography (CONVENTIONS §4.2) ----------------------------------------
-  // The FAB has no typography section but its `color` tints its icon glyph.
-  "typography.color": color("#0f172a", "color", "paint", sectionPlus(["typography", "text_content"], ["fab"])),
+  // The FAB has no typography section but its `color` tints its icon glyph; containers
+  // and forms set text colour/alignment for the text they contain (CSS inheritance).
+  "typography.color": color("#0f172a", "color", "paint", sectionPlus(["typography", "text_content"], ["fab", "container", "form"])),
   "typography.fontSize": px(16, "font-size", "layout", TYPOGRAPHY),
   "typography.fontSizeUnit": unitOf(TYPOGRAPHY),
   "typography.fontWeight": oneOf(null, "400", "font-weight", "layout", TYPOGRAPHY),
@@ -190,7 +200,7 @@ const DEFS: Record<string, Def> = {
   "typography.lineHeightUnit": unitOf(TYPOGRAPHY),
   "typography.wordSpacing": px(0, "word-spacing", "layout", TYPOGRAPHY),
   "typography.wordSpacingUnit": unitOf(TYPOGRAPHY),
-  "typography.textAlign": oneOf(["left", "center", "right", "justify"], "left", "text-align", "layout", TYPOGRAPHY),
+  "typography.textAlign": oneOf(["left", "center", "right", "justify"], "left", "text-align", "layout", sectionPlus(["typography", "text_content"], ["container", "form"])),
   "typography.textTransform": oneOf(["none", "uppercase", "lowercase", "capitalize"], "none", "text-transform", "layout", TYPOGRAPHY),
   "typography.textDecoration": oneOf(null, "none", "text-decoration-line", "paint", TYPOGRAPHY),
   "typography.textDecorationColor": color("currentColor", "text-decoration-color", "paint", TYPOGRAPHY),
@@ -205,7 +215,8 @@ const DEFS: Record<string, Def> = {
 
   // --- Content ---------------------------------------------------------------
   "content.text": str("", null, "layout", only("text", "svgText", "generic")),
-  "content.label": str("", null, "layout", only("button", "badge")),
+  // The FAB's label shows when it expands on hover (`button.expandOnHover`).
+  "content.label": str("", null, "layout", only("button", "badge", "toggle", "fab")),
   "content.isRichText": flag(false, "layout", only("text")),
   "content.icon": str("plus", null, "layout", only("fab")),
   "content.iconName": str("Sparkles", null, "layout", only("icon")),
@@ -221,14 +232,18 @@ const DEFS: Record<string, Def> = {
   "layout.gapUnit": unitOf(FLEX),
   "layout.rowGap": px(0, "row-gap", "layout", FLEX),
   "layout.columnGap": px(0, "column-gap", "layout", FLEX),
-  "layout.gridColumns": num(2, "grid-template-columns", "layout", FLEX, false),
-  "layout.gridRows": num(1, "grid-template-rows", "layout", FLEX, false),
+  "layout.gridColumns": num(2, null, "layout", FLEX, false),
+  "layout.gridRows": num(1, null, "layout", FLEX, false),
   "layout.gridTemplateColumns": str("", "grid-template-columns", "layout", FLEX),
   "layout.gridTemplateRows": str("", "grid-template-rows", "layout", FLEX),
   "layout.padding": px(0, "padding", "layout", LAYOUT),
   "layout.paddingX": px(0, "padding-inline", "layout", LAYOUT),
   "layout.paddingY": px(0, "padding-block", "layout", LAYOUT),
   "layout.margin": px(0, "margin", "layout", LAYOUT),
+  "layout.marginTop": px(0, "margin-top", "layout", LAYOUT),
+  "layout.marginBottom": px(0, "margin-bottom", "layout", LAYOUT),
+  "layout.alignSelf": oneOf(null, "auto", "align-self", "layout", LAYOUT),
+  "layout.flex": str("", "flex", "layout", LAYOUT),
   "layout.flexGrow": num(0, "flex-grow", "layout", LAYOUT, false),
   "layout.flexShrink": num(1, "flex-shrink", "layout", LAYOUT, false),
   "layout.position": oneOf(["static", "relative", "absolute", "fixed", "sticky"], "static", "position", "layout", LAYOUT),
@@ -249,8 +264,11 @@ const DEFS: Record<string, Def> = {
   "interaction.disabled": flag(false, "paint", INTERACTIVE),
   "a11y.label": str("", null, "none", ALL),
   "a11y.role": str("", null, "none", ALL),
+  /** Explicit semantic tag for export (overrides the archetype's inferred tag). */
+  "export.tag": str("", null, "none", ALL),
 
   // --- Button & FAB states (button_states) -----------------------------------
+  "button.type": oneOf(["button", "submit", "reset"], "button", null, "none", only("button")),
   "button.size": px(56, "width", "layout", BUTTON),
   "button.hoverBgColor": color("#174f43", "background-color", "paint", BUTTON),
   "button.activeBgColor": color("#123f36", "background-color", "paint", BUTTON),
@@ -276,6 +294,7 @@ const DEFS: Record<string, Def> = {
   // --- Input & form (input_validation) ---------------------------------------
   "input.type": oneOf(null, "text", null, "none", only("input")),
   "input.placeholder": str("", null, "paint", only("input")),
+  "input.value": str("", null, "paint", only("input")),
   "input.required": flag(false, "none", only("input", "form")),
   "input.readOnly": flag(false, "none", only("input")),
   "input.pattern": str("", null, "none", only("input")),
@@ -312,6 +331,9 @@ const DEFS: Record<string, Def> = {
   "svg.strokeDashoffset": num(0, "stroke-dashoffset", "paint", SVG_STROKED),
   "svg.href": str("", null, "paint", only("svgUse")),
   "svg.viewBox": str("0 0 24 24", null, "layout", only("icon", "svgGroup")),
+  "svg.filter.gaussianBlur": num(0, "filter", "paint", SVG_STROKED),
+  "svg.filter.colorMatrix": str("", "filter", "paint", SVG_STROKED),
+  "svg.filter.displacementScale": num(0, "filter", "paint", SVG_STROKED),
 
   // --- Divider (CONVENTIONS §4.4) ---------------------------------------------
   "divider.orientation": oneOf(["horizontal", "vertical"], "horizontal", null, "layout", only("divider")),
@@ -329,6 +351,7 @@ const DEFS: Record<string, Def> = {
   "background.gradient.stops": { valueType: "gradientStops", default: [], css: "background-image", compositing: "paint", animatable: false, scope: only("background") },
   "background.gradient.angle": deg(135, "background-image", "paint", only("background")),
   "background.gradient.stopOffset": num(0, "background-image", "paint", only("background")),
+  "background.gradient.stopColor": color("#0f172a", "background-image", "paint", only("background")),
   "background.parallax.speed": num(0, null, "gpu", only("background")),
   "background.blendMode": oneOf(null, "normal", "mix-blend-mode", "paint", only("background")),
   "background.noise.opacity": num(0, "opacity", "paint", only("background")),
@@ -366,10 +389,15 @@ const DEFS: Record<string, Def> = {
   // --- Editor metadata stored on layers ------------------------------------------
   "motion.attachedSampleId": str("", null, "none", ALL),
   "motion.trigger": str("", null, "none", ALL),
-};
+  /** Logic Blueprint graph this layer's events run (After-track; read by the dependency graph). */
+  "logic.blueprintGraphId": str("", null, "none", ALL),
+} satisfies Record<string, Def>;
+
+/** Every canonical property path, as a type: readers index props with these. */
+export type PropertyPath = keyof typeof DEFS;
 
 export const PROPERTY_REGISTRY: Readonly<Record<string, PropertyDefinition>> = Object.fromEntries(
-  Object.entries(DEFS).map(([path, { scope, ...def }]) => [path, { path, ...def, archetypes: resolveScope(scope) }])
+  Object.entries(DEFS as Record<string, Def>).map(([path, { scope, ...def }]) => [path, { path, ...def, archetypes: resolveScope(scope) }])
 );
 
 export const PROPERTY_PATHS: readonly string[] = Object.keys(PROPERTY_REGISTRY);
@@ -411,6 +439,17 @@ export const LEGACY_ALIASES: Readonly<Record<string, LegacyAlias>> = {
   borderRadius: { to: "appearance.radius" },
   borderColor: { to: "appearance.border.color" },
   borderWidth: { to: "appearance.border.width" },
+  border: { to: "appearance.border" },
+  borderBottom: { to: "appearance.border.bottom" },
+  boxShadow: { to: "appearance.shadow" },
+  shadow: { to: "appearance.shadow" },
+  blur: { to: "filter.blur", byArchetype: { image: "media.filter.blur" } },
+  backdropFilter: { to: "appearance.backdropFilter" },
+  marginTop: { to: "layout.marginTop" },
+  marginBottom: { to: "layout.marginBottom" },
+  alignSelf: { to: "layout.alignSelf" },
+  flex: { to: "layout.flex" },
+  styleType: { to: "divider.style" },
   color: { to: "typography.color", byArchetype: TEXT_COLOR_OWNERS },
   blendMode: { to: "appearance.blendMode", byArchetype: { background: "background.blendMode" } },
   variant: { to: "appearance.variant" },
@@ -418,6 +457,7 @@ export const LEGACY_ALIASES: Readonly<Record<string, LegacyAlias>> = {
   cursor: { to: "appearance.cursor" },
   pointerEvents: { to: "appearance.pointerEvents" },
   userSelect: { to: "appearance.userSelect" },
+  willChange: { to: "appearance.willChange" },
 
   fontSize: { to: "typography.fontSize" },
   fontSizeUnit: { to: "typography.fontSizeUnit" },
@@ -443,9 +483,10 @@ export const LEGACY_ALIASES: Readonly<Record<string, LegacyAlias>> = {
   formatCode: { to: "typography.format.code" },
   splitText: { to: "typography.split" },
 
-  textContent: { to: "content.text" },
-  content: { to: "content.text" },
-  text: { to: "content.text" },
+  // Text on a button or badge is its label.
+  textContent: { to: "content.text", byArchetype: { button: "content.label", badge: "content.label", fab: "content.label" } },
+  content: { to: "content.text", byArchetype: { button: "content.label", badge: "content.label", fab: "content.label" } },
+  text: { to: "content.text", byArchetype: { button: "content.label", badge: "content.label", fab: "content.label" } },
   label: { to: "content.label" },
   isRichText: { to: "content.isRichText" },
   icon: { to: "content.icon" },
@@ -492,8 +533,9 @@ export const LEGACY_ALIASES: Readonly<Record<string, LegacyAlias>> = {
   disabled: { to: "interaction.disabled" },
   ariaLabel: { to: "a11y.label" },
   role: { to: "a11y.role" },
+  semanticTag: { to: "export.tag" },
 
-  size: { byArchetype: { fab: "button.size", toggle: "toggle.size", icon: "svg.size" } },
+  size: { byArchetype: { fab: "button.size", button: "button.size", toggle: "toggle.size", icon: "svg.size" } },
   hoverBgColor: { to: "button.hoverBgColor" },
   activeBgColor: { to: "button.activeBgColor" },
   focusRingColor: { to: "button.focusRingColor" },
@@ -510,10 +552,12 @@ export const LEGACY_ALIASES: Readonly<Record<string, LegacyAlias>> = {
   expandOnHover: { to: "button.expandOnHover" },
 
   checked: { to: "toggle.checked" },
+  defaultChecked: { to: "toggle.checked" },
   activeColor: { to: "toggle.activeColor" },
   inactiveColor: { to: "toggle.inactiveColor" },
 
   inputType: { to: "input.type" },
+  value: { to: "input.value" },
   placeholder: { to: "input.placeholder", byArchetype: { image: "media.placeholder" } },
   required: { to: "input.required" },
   readOnly: { to: "input.readOnly" },
@@ -549,7 +593,7 @@ export const LEGACY_ALIASES: Readonly<Record<string, LegacyAlias>> = {
   style: { to: "divider.style" },
   capStyle: { to: "divider.capStyle" },
 
-  type: { byArchetype: { background: "background.type", input: "input.type" } },
+  type: { byArchetype: { background: "background.type", input: "input.type", button: "button.type" } },
   gradientStops: { to: "background.gradient.stops" },
   gradientAngle: { to: "background.gradient.angle", byArchetype: { divider: "divider.gradient.angle" } },
   parallaxSpeed: { to: "background.parallax.speed" },
@@ -576,6 +620,52 @@ export const LEGACY_ALIASES: Readonly<Record<string, LegacyAlias>> = {
 
   attachedAnimationSampleId: { to: "motion.attachedSampleId" },
   animationTrigger: { to: "motion.trigger" },
+  blueprintGraphId: { to: "logic.blueprintGraphId" },
+};
+
+/**
+ * The legacy animation-sample vocabulary (`AnimationSample` tracks, used by the
+ * sample library and the GSAP emitter) mapped onto canonical paths. Typed
+ * against the full `AnimationTrackId` union, so a new id without a mapping
+ * fails to compile. The sample model itself retires in Phase 57.
+ */
+export const ANIMATION_TRACK_ID_PATHS: Readonly<Record<AnimationTrackId, PropertyPath>> = {
+  translateX: "transform.x",
+  translateY: "transform.y",
+  translateZ: "transform.z",
+  scale: "transform.scale",
+  scaleX: "transform.scaleX",
+  scaleY: "transform.scaleY",
+  rotate: "transform.rotate",
+  rotateX: "transform.rotateX",
+  rotateY: "transform.rotateY",
+  skewX: "transform.skewX",
+  skewY: "transform.skewY",
+  opacity: "appearance.opacity",
+  backgroundColor: "appearance.background.color",
+  borderRadius: "appearance.radius",
+  boxShadow: "appearance.shadow",
+  filterBlur: "filter.blur",
+  filterBrightness: "media.filter.brightness",
+  filterContrast: "media.filter.contrast",
+  letterSpacing: "typography.letterSpacing",
+  lineHeight: "typography.lineHeight",
+  color: "typography.color",
+  fontSize: "typography.fontSize",
+  pathMorph: "svg.path",
+  strokeDashoffset: "svg.strokeDashoffset",
+  motionPath: "transform.motionPath",
+  feGaussianBlur: "svg.filter.gaussianBlur",
+  feColorMatrix: "svg.filter.colorMatrix",
+  feDisplacementMap: "svg.filter.displacementScale",
+  gradientStopOffset: "background.gradient.stopOffset",
+  gradientStopColor: "background.gradient.stopColor",
+  position3D: "scene3d.position",
+  rotation3D: "scene3d.rotation",
+  scale3D: "scene3d.scale",
+  cameraFov: "scene3d.camera.fov",
+  lightIntensity: "scene3d.light.intensity",
+  lightColor: "scene3d.light.color",
 };
 
 // ---------------------------------------------------------------------------
@@ -700,4 +790,106 @@ export function validateLayerProps(archetype: ArchetypeId, props: Record<string,
     }
   }
   return issues;
+}
+
+// ---------------------------------------------------------------------------
+// Canonicalization (the v2 → v3 migration and the store's write boundary)
+// ---------------------------------------------------------------------------
+
+/** v1 node-shaped style blocks (see `migrations/v1-to-v2.ts` NODE_STYLE_FIELDS). */
+const STYLE_BLOCKS = ["layout", "appearance", "transform", "typography"] as const;
+
+export interface CanonicalizeResult {
+  props: Record<string, PropValue>;
+  /** Keys that could not be kept: unknown, or not a property of this archetype. */
+  dropped: PropIssue[];
+}
+
+function scaleValue(value: PropValue, scale: number | undefined): PropValue {
+  // `|| 0` folds a rounded -0 into 0 so a rescaled value survives JSON unchanged.
+  return scale !== undefined && typeof value === "number" ? Math.round(value * scale * 1e6) / 1e6 || 0 : value;
+}
+
+/**
+ * Rewrites a props bag onto canonical paths for `archetype`: legacy keys are
+ * renamed (per archetype), split legacy objects become leaf paths, and values
+ * are rescaled where the unit changed. When two keys land on one path, an
+ * already-canonical key wins over a legacy one, then the first key wins.
+ */
+export function canonicalizeProps(archetype: ArchetypeId, props: Record<string, PropValue>): CanonicalizeResult {
+  const out: Record<string, PropValue> = {};
+  const fromCanonical = new Set<string>();
+  const dropped: PropIssue[] = [];
+
+  const place = (path: string, value: PropValue, canonicalSource: boolean) => {
+    if (path in out && (fromCanonical.has(path) || !canonicalSource)) return;
+    out[path] = value;
+    if (canonicalSource) fromCanonical.add(path);
+  };
+
+  for (const [key, value] of Object.entries(props)) {
+    // v1 node-shaped elements stored style blocks (`layout: { width }`, `transform: { x }`).
+    // Unpack them: `<block>.<sub>` when that is canonical, else the sub-key as a legacy name.
+    if ((STYLE_BLOCKS as readonly string[]).includes(key) && value && typeof value === "object" && !Array.isArray(value)) {
+      for (const [sub, subValue] of Object.entries(value)) {
+        const nested = `${key}.${sub}`;
+        const res = isPropertyLegalFor(nested, archetype) ? resolvePropertyPath(nested, archetype) : resolvePropertyPath(sub, archetype);
+        if (res.ok && res.definition.archetypes.includes(archetype)) place(res.path, scaleValue(subValue, res.scale), false);
+        else dropped.push({ key: nested, message: res.ok ? `"${res.path}" is not a property of ${archetype}.` : res.reason });
+      }
+      continue;
+    }
+    const alias = Object.prototype.hasOwnProperty.call(LEGACY_ALIASES, key) ? LEGACY_ALIASES[key] : undefined;
+    if (alias?.split && value && typeof value === "object" && !Array.isArray(value)) {
+      const base = aliasTarget(alias, archetype);
+      for (const [sub, subValue] of Object.entries(value)) {
+        // The split object's own target wins (an image's `filter.blur` is
+        // `media.filter.blur`, not the universal `filter.blur`).
+        const direct = base ? `${base}.${sub}` : undefined;
+        if (direct && isPropertyLegalFor(direct, archetype)) {
+          place(direct, subValue, false);
+          continue;
+        }
+        const res = resolvePropertyPath(`${key}.${sub}`, archetype);
+        if (res.ok && res.definition.archetypes.includes(archetype)) place(res.path, subValue, false);
+        else dropped.push({ key: `${key}.${sub}`, message: res.ok ? `"${res.path}" is not a property of ${archetype}.` : res.reason });
+      }
+      continue;
+    }
+    const res = resolvePropertyPath(key, archetype);
+    if (!res.ok) {
+      dropped.push({ key, message: res.reason });
+    } else if (!res.definition.archetypes.includes(archetype)) {
+      dropped.push({ key, message: `"${res.path}" is not a property of ${archetype}.` });
+    } else {
+      place(res.path, scaleValue(value, res.ok ? res.scale : undefined), !res.aliasedFrom);
+    }
+  }
+  return { props: out, dropped };
+}
+
+/** The canonical path for a track property on `archetype`, or null when it has none. */
+export function canonicalizeTrackPath(path: string, archetype: ArchetypeId): { path: string; scale?: number } | null {
+  const res = resolvePropertyPath(path, archetype);
+  if (!res.ok || !res.definition.archetypes.includes(archetype)) return null;
+  return res.scale !== undefined ? { path: res.path, scale: res.scale } : { path: res.path };
+}
+
+/** Rescales a keyframe value when its track was renamed across a unit change. */
+export function rescaleValue(value: PropValue, scale: number | undefined): PropValue {
+  return scaleValue(value, scale);
+}
+
+// ---------------------------------------------------------------------------
+// Typed reads
+// ---------------------------------------------------------------------------
+
+/**
+ * A reader over a props bag that only accepts canonical paths, so a legacy
+ * name at a call site is a compile error: `const get = propReader(layer.properties);
+ * get("appearance.background.color")`.
+ */
+export function propReader(props: Record<string, PropValue> | undefined) {
+  const bag = props ?? {};
+  return (path: PropertyPath): PropValue | undefined => bag[path];
 }

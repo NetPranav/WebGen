@@ -10,7 +10,7 @@ test("Sub-Phase 8.2: Interactive Family (Button) exports cleanly across all 4 fr
     archetype: "button",
     parentId: null,
     children: [],
-    properties: { label: "Subscribe Now" },
+    properties: { "content.label": "Subscribe Now" },
   };
 
   // 1. Next.js 15
@@ -47,7 +47,7 @@ test("Sub-Phase 8.2: Media Family (Image) exports cleanly across all 4 framework
     archetype: "image",
     parentId: null,
     children: [],
-    properties: { src: "https://images.unsplash.com/photo-1", alt: "Hero Banner" },
+    properties: { "media.src": "https://images.unsplash.com/photo-1", "media.alt": "Hero Banner" },
   };
 
   const frameworks: ("nextjs-app" | "react-vite" | "vue" | "vanilla")[] = [
@@ -75,7 +75,7 @@ test("Sub-Phase 8.2: Structural Family (Divider) exports cleanly across all 4 fr
     archetype: "divider",
     parentId: null,
     children: [],
-    properties: { orientation: "horizontal" },
+    properties: { "divider.orientation": "horizontal" },
   };
 
   const frameworks: ("nextjs-app" | "react-vite" | "vue" | "vanilla")[] = [
@@ -99,7 +99,7 @@ test("Sub-Phase 8.2: Text Family (Text) exports cleanly across all 4 frameworks"
     archetype: "text",
     parentId: null,
     children: [],
-    properties: { textContent: "Designed with Precision" },
+    properties: { "content.text": "Designed with Precision" },
   };
 
   const frameworks: ("nextjs-app" | "react-vite" | "vue" | "vanilla")[] = [

@@ -33,7 +33,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
           parentId: null,
           children: ["el_btn"],
           properties: {
-            padding: 16,
+            "layout.padding": 16,
           },
         },
         el_btn: {
@@ -43,8 +43,8 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
           parentId: "el_root",
           children: [],
           properties: {
-            label: "Submit",
-            variant: "outline",
+            "content.label": "Submit",
+            "appearance.variant": "outline",
           },
         },
       } }),
@@ -114,8 +114,8 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     const targetSnapshot: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
 
     // 1. Modify property on el_btn
-    targetSnapshot.document.layers.el_btn.properties.variant = "primary";
-    targetSnapshot.document.layers.el_btn.properties.fontSize = 14;
+    targetSnapshot.document.layers.el_btn.properties["appearance.variant"] = "primary";
+    targetSnapshot.document.layers.el_btn.properties["typography.fontSize"] = 14;
 
     // 2. Add a new text element
     targetSnapshot.document.layers.el_txt = {
@@ -124,7 +124,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
       archetype: "text",
       parentId: "el_root",
       children: [],
-      properties: { content: "Welcome" },
+      properties: { "content.text": "Welcome" },
     };
 
     // 3. Remove database collection col_users
@@ -151,13 +151,13 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     assert.strictEqual(elBtnDiff.status, "modified");
     assert.strictEqual(elBtnDiff.propertyDiffs.length, 2);
 
-    const variantDiff = elBtnDiff.propertyDiffs.find((p) => p.key === "variant");
+    const variantDiff = elBtnDiff.propertyDiffs.find((p) => p.key === "appearance.variant");
     assert.ok(variantDiff);
     assert.strictEqual(variantDiff.oldValue, "outline");
     assert.strictEqual(variantDiff.newValue, "primary");
     assert.strictEqual(variantDiff.status, "modified");
 
-    const fontSizeDiff = elBtnDiff.propertyDiffs.find((p) => p.key === "fontSize");
+    const fontSizeDiff = elBtnDiff.propertyDiffs.find((p) => p.key === "typography.fontSize");
     assert.ok(fontSizeDiff);
     assert.strictEqual(fontSizeDiff.newValue, 14);
     assert.strictEqual(fontSizeDiff.status, "added");
@@ -224,11 +224,11 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
 
     // Current branch changes button variant to "primary"
     const currentHead: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
-    currentHead.document.layers.el_btn.properties.variant = "primary";
+    currentHead.document.layers.el_btn.properties["appearance.variant"] = "primary";
 
     // Incoming branch changes button variant to "secondary"
     const incomingHead: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
-    incomingHead.document.layers.el_btn.properties.variant = "secondary";
+    incomingHead.document.layers.el_btn.properties["appearance.variant"] = "secondary";
 
     const result = VersionControlEngine.detectMergeConflicts(baseSnapshot, currentHead, incomingHead);
 
@@ -250,7 +250,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
 
     // Current branch changes button variant
     const currentHead: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
-    currentHead.document.layers.el_btn.properties.variant = "primary";
+    currentHead.document.layers.el_btn.properties["appearance.variant"] = "primary";
 
     // Incoming branch adds a new container element
     const incomingHead: ProjectStateSnapshot = JSON.parse(JSON.stringify(baselineSnapshot));
@@ -260,7 +260,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
       archetype: "container",
       parentId: "el_root",
       children: [],
-      properties: { shadow: "md" },
+      properties: { "appearance.shadow": "md" },
     };
 
     const result = VersionControlEngine.detectMergeConflicts(baseSnapshot, currentHead, incomingHead);
@@ -270,7 +270,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     assert.ok(result.mergedSnapshot);
 
     // Merged snapshot should have BOTH the button variant update AND the new card element
-    assert.strictEqual(result.mergedSnapshot.document.layers.el_btn.properties.variant, "primary");
+    assert.strictEqual(result.mergedSnapshot.document.layers.el_btn.properties["appearance.variant"], "primary");
     assert.ok(result.mergedSnapshot.document.layers.el_card);
     assert.strictEqual(result.mergedSnapshot.document.layers.el_card.name, "Profile Card");
   });
@@ -297,6 +297,6 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     // 4. Confirm project store has restored elements and original project name
     assert.strictEqual(useProjectStore.getState().projectName, "Versioned Web App");
     assert.ok(useProjectStore.getState().document.layers.el_btn);
-    assert.strictEqual(useProjectStore.getState().document.layers.el_btn.properties.label, "Submit");
+    assert.strictEqual(useProjectStore.getState().document.layers.el_btn.properties["content.label"], "Submit");
   });
 });

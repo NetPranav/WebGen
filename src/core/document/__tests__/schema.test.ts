@@ -12,7 +12,8 @@ import {
   type MotionDocument,
 } from "../schema";
 import { createDocumentFromLayers, createLayer } from "../factories";
-import { ARCHETYPE_IDS, type PropValue } from "../registry";
+import { ARCHETYPE_IDS, type ArchetypeId, type PropValue } from "../registry";
+import { PROPERTY_PATHS, PROPERTY_REGISTRY, isPropertyLegalFor } from "../properties";
 
 function sampleDocument(): MotionDocument {
   const doc = createDocumentFromLayers([
@@ -120,11 +121,16 @@ const propValueArb: fc.Arbitrary<PropValue> = fc
   .jsonValue({ noUnicodeString: false })
   .map((v) => JSON.parse(JSON.stringify(v)) as PropValue)
   .filter((v) => !JSON.stringify(v).includes('"__proto__"')); // rejected by design; tested separately
-const keyArb = fc.string({ minLength: 1, maxLength: 8 }).filter((k) => k !== "__proto__");
-const propsArb = fc.dictionary(keyArb, propValueArb, {
-  maxKeys: 4,
+// v3: prop keys are canonical paths. Draw candidate keys from the registry; each
+// layer keeps only the ones legal for its archetype (see the `.map` below).
+const propsArb = fc.dictionary(fc.constantFrom(...PROPERTY_PATHS), propValueArb, {
+  maxKeys: 6,
   noNullPrototype: true,
 });
+
+/** First animatable canonical path legal for the archetype (every archetype has one). */
+const trackPathFor = (archetype: ArchetypeId) =>
+  PROPERTY_PATHS.find((p) => PROPERTY_REGISTRY[p].animatable && PROPERTY_REGISTRY[p].archetypes.includes(archetype))!;
 
 /** A random valid document: a forest where each layer's parent comes earlier in the list. */
 const documentArb: fc.Arbitrary<MotionDocument> = fc
@@ -154,22 +160,24 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
     layerIds.forEach((id, i) => {
       const pick = parentPicks[i] ?? 0;
       const parentId = i > 0 && pick % 3 !== 0 ? layerIds[pick % i] : null;
+      const archetype = archetypes[i] ?? "generic";
       doc.layers[id] = {
         id,
         name: `Layer ${i}`,
-        archetype: archetypes[i] ?? "generic",
+        archetype,
         parentId,
         children: [],
-        properties: props[i] ?? {},
+        properties: Object.fromEntries(Object.entries(props[i] ?? {}).filter(([path]) => isPropertyLegalFor(path, archetype))),
       };
       if (parentId) doc.layers[parentId].children.push(id);
     });
     if (layerIds.length > 0) {
       clips.forEach((clip, i) => {
         const id = `clip_${i.toString(16).padStart(8, "0")}`;
+        const layerId = layerIds[clip.owner % layerIds.length];
         doc.clips[id] = {
           id,
-          layerId: layerIds[clip.owner % layerIds.length],
+          layerId,
           name: clip.name,
           type: clip.type,
           trigger: clip.trigger,
@@ -180,7 +188,7 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
           tracks: [
             {
               id: `trk_${i.toString(16).padStart(8, "0")}`,
-              property: "transform.x",
+              property: trackPathFor(doc.layers[layerId].archetype),
               keyframes: clip.keyframes.map((k, j) => ({ id: `kf_${j.toString(16).padStart(8, "0")}`, ...k })),
             },
           ],
@@ -190,7 +198,7 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
     return doc;
   });
 
-describe("MDM v2 schema: property-based round trip", () => {
+describe("MDM v3 schema: property-based round trip", () => {
   it("500 random documents survive validate → serialise → parse → validate unchanged", () => {
     fc.assert(
       fc.property(documentArb, (doc) => {

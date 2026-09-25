@@ -321,7 +321,7 @@ export class MotionAiEngine {
         },
         tracks: [
           {
-            property: "transform.translateY",
+            property: "transform.y",
             keyframes: [
               { time: 0, value: 24, ease: "power3.out" },
               { time: 0.85, value: 0, ease: "power3.out" },
@@ -379,7 +379,7 @@ export class MotionAiEngine {
             ],
           },
           {
-            property: "transform.translateY",
+            property: "transform.y",
             keyframes: [
               { time: 0, value: 0, ease: "linear" },
               { time: 0.3, value: -3, ease: "spring(stiffness: 400, damping: 22)" },
@@ -400,7 +400,7 @@ export class MotionAiEngine {
       enabled: true,
       tracks: [
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: 16, ease: "power2.out" },
             { time: 0.6, value: 0, ease: "power2.out" },

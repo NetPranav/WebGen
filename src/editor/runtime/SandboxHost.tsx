@@ -50,6 +50,7 @@ import { executionTracer } from "@/runtime/ExecutionTracer";
 import { hotReloadEngine } from "@/runtime/HotReloadEngine";
 import { ExecutionRun } from "@/core/types/trace";
 import type { Layer } from "@/core/document/schema";
+import { propReader } from "@/core/document/properties";
 import { useLayers } from "@/core/store/useDocumentStore";
 
 export interface SandboxHostProps {
@@ -84,7 +85,7 @@ export function generateElementMarkup(
   const el = elements[elementId];
   if (!el) return "";
 
-  const props = el.properties || {};
+  const get = propReader(el.properties);
   const childrenHtml = (el.children || [])
     .map((childId) => generateElementMarkup(childId, elements, stateVars))
     .join("\n");
@@ -101,15 +102,15 @@ export function generateElementMarkup(
   switch (el.archetype) {
     case "container":
     case "form": {
-      const isCard = props.isCard || el.name.toLowerCase().includes("card");
-      const display = props.display || "flex";
-      const flexDirection = props.flexDirection || "column";
-      const gap = props.gap !== undefined ? `${props.gap}px` : "16px";
-      const padding = props.padding !== undefined ? `${props.padding}px` : "20px";
-      const bg = props.backgroundColor || (isCard ? "#FFFFFF" : "transparent");
+      const isCard = el.name.toLowerCase().includes("card");
+      const display = get("layout.display") || "flex";
+      const flexDirection = get("layout.flexDirection") || "column";
+      const gap = get("layout.gap") !== undefined ? `${get("layout.gap")}px` : "16px";
+      const padding = get("layout.padding") !== undefined ? `${get("layout.padding")}px` : "20px";
+      const bg = get("appearance.background.color") || (isCard ? "#FFFFFF" : "transparent");
       const radius =
-        props.borderRadius !== undefined
-          ? `${props.borderRadius}px`
+        get("appearance.radius") !== undefined
+          ? `${get("appearance.radius")}px`
           : isCard
           ? "8px"
           : "0px";
@@ -140,11 +141,11 @@ export function generateElementMarkup(
     }
 
     case "text": {
-      const text = interpolate(props.textContent || el.name || "Text Content");
-      const fontSize = props.fontSize ? `${props.fontSize}px` : "15px";
-      const fontWeight = props.fontWeight || 500;
-      const color = props.color || "#0F172A";
-      const textAlign = props.textAlign || "left";
+      const text = interpolate(get("content.text") || el.name || "Text Content");
+      const fontSize = get("typography.fontSize") ? `${get("typography.fontSize")}px` : "15px";
+      const fontWeight = get("typography.fontWeight") || 500;
+      const color = get("typography.color") || "#0F172A";
+      const textAlign = get("typography.textAlign") || "left";
 
       return `
         <div
@@ -167,10 +168,10 @@ export function generateElementMarkup(
     }
 
     case "button": {
-      const label = interpolate(props.label || el.name || "Button");
-      const bg = props.backgroundColor || "#206859";
-      const color = props.color || "#FFFFFF";
-      const disabled = Boolean(props.disabled);
+      const label = interpolate(get("content.label") || el.name || "Button");
+      const bg = get("appearance.background.color") || "#206859";
+      const color = get("typography.color") || "#FFFFFF";
+      const disabled = Boolean(get("interaction.disabled"));
 
       return `
         <button
@@ -206,8 +207,8 @@ export function generateElementMarkup(
     }
 
     case "input": {
-      const placeholder = interpolate(props.placeholder || "Type here...");
-      const value = interpolate(props.value || "");
+      const placeholder = interpolate(get("input.placeholder") || "Type here...");
+      const value = interpolate(get("input.value") || "");
 
       return `
         <div
@@ -241,9 +242,9 @@ export function generateElementMarkup(
 
     case "image": {
       const src =
-        props.src ||
+        get("media.src") ||
         "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80";
-      const alt = props.alt || "Application Asset";
+      const alt = get("media.alt") || "Application Asset";
 
       return `
         <img

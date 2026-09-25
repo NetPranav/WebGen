@@ -55,7 +55,7 @@ const FALLBACK_ELEMENT: Layer = {
   id: "elem_btn",
   name: "Interactive Button",
   archetype: "button",
-  properties: { label: "Click Me", variant: "primary", size: "md" },
+  properties: { "content.label": "Click Me", "appearance.variant": "primary", "button.size": "md" },
   children: [],
   parentId: null,
 };

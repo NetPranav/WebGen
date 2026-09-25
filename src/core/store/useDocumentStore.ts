@@ -34,7 +34,8 @@ import { createId } from "../ids";
 import { diffPatches } from "../document/diff";
 import type { HistoryTransaction } from "../types/history";
 import { attachClip, createLayer, getLayerClips, getSubtreeIds, type NewLayerInput } from "../document/factories";
-import { type LayerProps, type PropValue } from "../document/registry";
+import { type ArchetypeId, type LayerProps, type PropValue } from "../document/registry";
+import { canonicalizeProps, canonicalizeTrackPath, resolvePropertyPath } from "../document/properties";
 import {
   validateMotionDocument,
   type Clip,
@@ -393,6 +394,10 @@ function requireLayer(draft: Draft<MotionDocument>, layerId: string): Draft<Laye
   return layer;
 }
 
+function clipArchetype(draft: Draft<MotionDocument>, layerId: string): ArchetypeId {
+  return requireLayer(draft, layerId).archetype;
+}
+
 function requireClip(draft: Draft<MotionDocument>, clipId: string): Draft<Clip> {
   const clip = draft.clips[clipId];
   if (!clip) throw new Error(`Clip "${clipId}" does not exist.`);
@@ -418,6 +423,39 @@ function detachChild(draft: Draft<MotionDocument>, layer: Draft<Layer>) {
   if (parent) parent.children = parent.children.filter((id) => id !== layer.id);
 }
 
+// ---------------------------------------------------------------------------
+// Property-name boundary (Phase 42): whatever a caller passes, only canonical,
+// archetype-legal paths reach the document. Writers should already use
+// canonical names; a legacy one is renamed and an unknown one is dropped with
+// a warning instead of corrupting a saved project.
+// ---------------------------------------------------------------------------
+
+function warnDropped(where: string, keys: { key: string; message: string }[]) {
+  if (keys.length > 0 && process.env.NODE_ENV !== "production") {
+    console.warn(`[document] ${where}: dropped ${keys.map((k) => k.message).join(" ")}`);
+  }
+}
+
+function canonicalProps(archetype: ArchetypeId, props: LayerProps, where: string): LayerProps {
+  const { props: out, dropped } = canonicalizeProps(archetype, props);
+  warnDropped(where, dropped);
+  return out;
+}
+
+function canonicalTracks<T extends { property: string }>(archetype: ArchetypeId, tracks: T[], where: string): T[] {
+  const out: T[] = [];
+  for (const track of tracks) {
+    const resolved = canonicalizeTrackPath(track.property, archetype);
+    if (resolved) out.push({ ...track, property: resolved.path });
+    else warnDropped(where, [{ key: track.property, message: `track "${track.property}" is not a property of ${archetype}.` }]);
+  }
+  return out;
+}
+
+function canonicalClip<T extends { tracks: Track[] }>(archetype: ArchetypeId, clip: T, where: string): T {
+  return { ...clip, tracks: canonicalTracks(archetype, clip.tracks, where) };
+}
+
 export const documentCommands = {
   /** Opens a transaction for a gesture (see the file header). Nested calls join the open one. */
   begin(label: string): DocumentTransaction {
@@ -429,6 +467,7 @@ export const documentCommands = {
   /** Adds a new layer of `archetype` (registry defaults unless props are given). Returns its id. */
   addLayer(input: NewLayerInput & { index?: number }, label = "Add layer"): string {
     const layer = createLayer(input);
+    layer.properties = canonicalProps(layer.archetype, layer.properties, "addLayer");
     commit(label, (draft) => {
       if (draft.layers[layer.id]) throw new Error(`Layer "${layer.id}" already exists.`);
       draft.layers[layer.id] = layer;
@@ -444,11 +483,16 @@ export const documentCommands = {
   insertLayers(layers: Layer[], clips: Clip[] = [], label = "Insert layers") {
     commit(label, (draft) => {
       const batch = new Set(layers.map((l) => l.id));
-      for (const layer of layers) draft.layers[layer.id] = layer;
+      for (const layer of layers) {
+        draft.layers[layer.id] = { ...layer, properties: canonicalProps(layer.archetype, layer.properties, "insertLayers") };
+      }
       for (const layer of layers) {
         if (layer.parentId !== null && !batch.has(layer.parentId)) insertChild(draft, layer.parentId, layer.id);
       }
-      for (const clip of clips) draft.clips[clip.id] = clip;
+      for (const clip of clips) {
+        const owner = draft.layers[clip.layerId];
+        draft.clips[clip.id] = owner ? canonicalClip(owner.archetype, clip, "insertLayers") : clip;
+      }
     });
   },
 
@@ -478,18 +522,26 @@ export const documentCommands = {
   /** Shallow-merges `patch` into the layer's props. An `undefined` value deletes that prop. */
   updateProps(layerId: string, patch: Record<string, PropValue | undefined>, label?: string) {
     commit(label, (draft) => {
-      const props = requireLayer(draft, layerId).properties;
+      const layer = requireLayer(draft, layerId);
+      const props = layer.properties;
+      const defined: LayerProps = {};
       for (const [key, value] of Object.entries(patch)) {
-        if (value === undefined) delete props[key];
-        else props[key] = value;
+        if (value !== undefined) {
+          defined[key] = value;
+          continue;
+        }
+        const res = resolvePropertyPath(key, layer.archetype);
+        delete props[res.ok ? res.path : key];
       }
+      Object.assign(props, canonicalProps(layer.archetype, defined, "updateProps"));
     });
   },
 
   /** Replaces all of the layer's props. */
   replaceProps(layerId: string, properties: LayerProps, label?: string) {
     commit(label, (draft) => {
-      requireLayer(draft, layerId).properties = properties;
+      const layer = requireLayer(draft, layerId);
+      layer.properties = canonicalProps(layer.archetype, properties, "replaceProps");
     });
   },
 
@@ -517,8 +569,8 @@ export const documentCommands = {
   addClip(layerId: string, template: ClipTemplate, label = "Add animation"): string {
     const clip = attachClip(template, layerId);
     commit(label, (draft) => {
-      requireLayer(draft, layerId);
-      draft.clips[clip.id] = clip;
+      const layer = requireLayer(draft, layerId);
+      draft.clips[clip.id] = canonicalClip(layer.archetype, clip, "addClip");
     });
     return clip.id;
   },
@@ -538,11 +590,11 @@ export const documentCommands = {
   /** Replaces a layer's whole animation stack, keeping the given order. */
   setLayerClips(layerId: string, templates: ClipTemplate[], label?: string) {
     commit(label, (draft) => {
-      requireLayer(draft, layerId);
+      const layer = requireLayer(draft, layerId);
       for (const clip of getLayerClips(draft as MotionDocument, layerId)) delete draft.clips[clip.id];
       for (const template of templates) {
         const clip = attachClip(template, layerId);
-        draft.clips[clip.id] = clip;
+        draft.clips[clip.id] = canonicalClip(layer.archetype, clip, "setLayerClips");
       }
     });
   },
@@ -552,14 +604,24 @@ export const documentCommands = {
   addTrack(clipId: string, track: Omit<Track, "id"> & { id?: string }, label = "Add track"): string {
     const id = track.id ?? createId("trk");
     commit(label, (draft) => {
-      requireClip(draft, clipId).tracks.push({ ...track, id });
+      const clip = requireClip(draft, clipId);
+      const [canonical] = canonicalTracks(clipArchetype(draft, clip.layerId), [{ ...track, id }], "addTrack");
+      if (canonical) clip.tracks.push(canonical);
     });
     return id;
   },
 
   updateTrack(clipId: string, trackId: string, patch: Partial<Omit<Track, "id" | "keyframes">>, label?: string) {
     commit(label, (draft) => {
-      Object.assign(requireTrack(draft, clipId, trackId), patch);
+      const next = { ...patch };
+      if (next.property !== undefined) {
+        const resolved = canonicalizeTrackPath(next.property, clipArchetype(draft, requireClip(draft, clipId).layerId));
+        if (!resolved) {
+          warnDropped("updateTrack", [{ key: next.property, message: `track "${next.property}" is not a property of this layer.` }]);
+          delete next.property;
+        } else next.property = resolved.path;
+      }
+      Object.assign(requireTrack(draft, clipId, trackId), next);
     });
   },
 
@@ -572,7 +634,8 @@ export const documentCommands = {
 
   setTracks(clipId: string, tracks: Track[], label?: string) {
     commit(label, (draft) => {
-      requireClip(draft, clipId).tracks = tracks;
+      const clip = requireClip(draft, clipId);
+      clip.tracks = canonicalTracks(clipArchetype(draft, clip.layerId), tracks, "setTracks");
     });
   },
 
@@ -598,8 +661,8 @@ export const documentCommands = {
   addState(layerId: string, name: string, props: LayerProps = {}, label = "Add state"): string {
     const state: LayerState = { id: createId("state"), layerId, name, props };
     commit(label, (draft) => {
-      requireLayer(draft, layerId);
-      draft.states[state.id] = state;
+      const layer = requireLayer(draft, layerId);
+      draft.states[state.id] = { ...state, props: canonicalProps(layer.archetype, props, "addState") };
     });
     return state.id;
   },
