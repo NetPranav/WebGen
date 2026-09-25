@@ -164,7 +164,7 @@
   /* --------------------------------------------------------------------------
    * Dock Zone Sizing & Dimensions
    * -------------------------------------------------------------------------- */
-  --header-height: 72px; /* studio-header (38px + border) + studio-header-workspaces (32px + border) */
+  --header-height: 74px; /* studio-header (40px + border) + studio-header-workspaces (32px + border) */
   --toolbar-height: 44px;
   --statusbar-height: 28px;
   --dock-left-width: 300px;

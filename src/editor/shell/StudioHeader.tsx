@@ -10,7 +10,7 @@
  *       - Brand Logo & Title ("LazyLayout Studio")
  *       - Project filename tag ("MyProject.uweb") with dirty state
  *       - Desktop Menu Bar (File, Edit, View, Window, Help)
- *       - Environment status indicators (Git branch, Wasm badge, Settings)
+ *       - Device preview switcher, Showcase demo toggle, Help & Settings
  * Styling Source: `@/editor/styles/menus.css` (`.studio-header`, `.menu-bar`)
  * ============================================================================
  */
@@ -18,10 +18,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import "@/editor/styles/menus.css";
 import {
-  GitBranch,
   Settings,
   HelpCircle,
-  Activity,
   Monitor,
   Tablet,
   Smartphone,
@@ -85,7 +83,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   projectId,
   projectName = "MyProject.uweb",
   isDirty = false,
-  branchName = "main",
   deviceMode = "desktop",
   onSelectDeviceMode,
   leftOpen = true,
@@ -179,27 +176,29 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <span className="studio-header__title">LazyLayout</span>
         </div>
 
-        <div className="studio-header__project-tag" title="Active Project File">
-          {isDirty && <span className="studio-header__project-dirty" title="Unsaved changes" />}
-          <span>{projectName}</span>
+        {/* Project pill: file name + save state, with the copyable project ID as a suffix */}
+        <div className="studio-header__project" title="Active Project File">
+          <span
+            className={`studio-header__project-dot ${isDirty ? "studio-header__project-dot--dirty" : ""}`}
+            title={isDirty ? "Unsaved changes" : "All changes saved"}
+          />
+          <span className="studio-header__project-name">{projectName}</span>
+          {projectId && (
+            <button
+              type="button"
+              className="studio-header__project-id-chip"
+              onClick={handleCopyProjectLink}
+              title={`Project ID: ${projectId} (Click to copy project link)`}
+              aria-label="Copy project link"
+            >
+              <Hash size={10} />
+              <span>{projectId}</span>
+              {copiedId ? <Check size={10} /> : <Copy size={10} />}
+            </button>
+          )}
         </div>
 
-        {projectId && (
-          <button
-            type="button"
-            className="studio-header__project-id-chip"
-            onClick={handleCopyProjectLink}
-            title={`Project ID: ${projectId} (Click to copy project link)`}
-          >
-            <Hash size={10} style={{ opacity: 0.8 }} />
-            <span>{projectId}</span>
-            {copiedId ? (
-              <Check size={10} style={{ color: "var(--accent-success)" }} />
-            ) : (
-              <Copy size={10} style={{ opacity: 0.7 }} />
-            )}
-          </button>
-        )}
+        <span className="studio-header__divider" aria-hidden="true" />
 
         {/* Desktop Menu Bar */}
         <nav className="menu-bar" aria-label="Engine Menus">
@@ -349,20 +348,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
       </div>
 
       {/* Right: Git Branch, Engine Badge, Settings */}
+      {/* Right: Showcase demo toggle, then help/settings (branch + engine stats live in the status bar) */}
       <div className="studio-header__right">
-        <div className="studio-header__badge studio-header__badge--branch" title={`Working on branch ${branchName}`}>
-          <GitBranch size={12} />
-          <span>{branchName}</span>
-        </div>
-
-        <div
-          className="studio-header__badge studio-header__badge--engine"
-          title="TypeScript spline/physics engine running at 120 FPS"
-        >
-          <Activity size={12} style={{ color: "var(--accent-success)" }} />
-          <span>TypeScript 120 FPS</span>
-        </div>
-
         {/* Demo Stash / Canvas State Switcher */}
         <button
           type="button"
@@ -379,8 +366,10 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           }}
         >
           <Sparkles size={12} />
-          <span className="studio-header__demo-label">{isDemoMounted ? "Clear Showcase" : "Mount Showcase Demo"}</span>
+          <span className="studio-header__demo-label">{isDemoMounted ? "Clear Showcase" : "Showcase Demo"}</span>
         </button>
+
+        <span className="studio-header__divider" aria-hidden="true" />
 
         <button
           type="button"
@@ -398,11 +387,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             title="Close Settings & Return to Viewport (Esc)"
             onClick={onCloseSettings || onToggleSettings || onOpenSettings}
             id="studio-header-close-settings-btn"
-            style={{
-              color: "var(--accent-warning)",
-              backgroundColor: "var(--accent-warning-light)",
-              border: "1px solid var(--accent-warning)",
-            }}
           >
             <X size={14} />
           </button>

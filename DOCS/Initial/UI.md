@@ -45,6 +45,17 @@
 > - **Showcase demo** heading was white text on a white page. Now slate (`#0F172A`).
 > - Updated the `run-editor` smoke skill for the consolidated LazyLayout AI panel (step 05 now checks the panel docks).
 > - Verified: `tsc --noEmit` (0 errors), `npm run lint` (0 errors, 449/463 warnings), `npm run test:unit` (655/655), the `run-editor` smoke suite (all 8 steps pass), and a Playwright pass at all five widths with no horizontal page overflow and no console errors.
+>
+> **2026-09-25 (same session, fifth pass) — Top bar, workspace strip, status bar and LazyLayout AI docking.**
+> - **AI left drop slot** was drawn at `leftWidth + 4` — the width of a left Outliner dock that isn't rendered — so it floated mid-canvas. Both slots are now measured from the live layout (`.dock-layout__body` and the Details dock's left edge). The pulsing keyframe animation had also been overriding the inline 30% fill; the tint now lives in the CSS.
+> - **Left-docked AI panel couldn't be resized**: its splitter was always rendered *before* the panel with `invert`, i.e. at the window edge and dragging backwards. The splitter now sits on the canvas-facing edge for either side.
+> - **AI panel ignored dock focus**: it had a fixed `zIndex: 25`, so it never took part in the click / 2s-hover-dwell layering the Details dock and bottom drawer use. It is now its own `"ai"` dock layer: focused on dock, on click, or after a 2s hover it goes full-height over the bottom drawer; clicking the drawer sends it back under. The drop-slot preview is full height to match.
+> - **AI panel header** wrapped its title onto 2–3 lines (no `min-width: 0`/`nowrap` in the flex title group) and was crowded by Replace / Split Beside / Healthy controls. Those were removed; the header is a container query that drops the subtitle ≤300px and collapses to the logo mark ≤230px.
+> - **Header** is now a three-column grid, so the device switcher is truly centred (Wix Studio style) at ≥1361px and sits after the menus below that. Project name + ID merged into one pill; the branch and "TypeScript 120 FPS" badges moved to the status bar (the latter duplicated, and contradicted, the status bar's FPS read-out). The brand wordmark stays until ≤860px.
+> - **Workspace strip**: Blender-style raised active tab; a **Motion** tool shelf (Presets, Timeline, Easing, Export → the matching bottom-drawer tab, highlighted when open); and a command-palette search field (Ctrl K) on the right.
+> - **Status bar**: one flat ghost-button style throughout. Left = panels toggle, save state ("All changes saved" / "Unsaved changes"), selection, Output Log, Execution Trace. Right = branch, FPS, memory, AST version. The duplicate zoom controls (whose "Fit to Stage" only reset zoom) were removed; the canvas zoom pill owns zoom.
+> - e2e `focusApp` now clicks the brand mark instead of header coordinate (700, 10), which is the centred device switcher at 1280px.
+> - Verified: tsc 0 errors, lint 0 errors (446 warnings), 655/655 unit, smoke 8/8, chromium e2e 14/14 against a production build, doc-links and bundle-scope clean, and a Playwright pass at 1920–390px with no header clipping or horizontal overflow.
 
 ## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"

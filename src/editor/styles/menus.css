@@ -13,34 +13,211 @@
  */
 
 /* ----------------------------------------------------------------------------
- * Studio Header (Top Tier, 36px)
+ * Studio Header (Top Tier, 40px)
+ * Three-column grid: [brand · project · menus] [device switcher] [actions].
+ * The outer columns are equal (1fr) so the device switcher is truly centred
+ * over the window, Wix-Studio style, instead of drifting with the left content.
  * ---------------------------------------------------------------------------- */
 .studio-header {
-  height: 38px;
+  height: 40px;
   background: var(--surface-panel-solid);
   border-bottom: 1px solid var(--border-default);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-md);
-  padding: 0 var(--space-md);
+  padding: 0 var(--space-md) 0 var(--space-sm);
   user-select: none;
   font-family: var(--font-sans);
   position: relative;
   z-index: var(--z-header);
 }
 
+.studio-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.studio-header__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-header__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.studio-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.studio-header__brand:hover {
+  background: var(--surface-panel-hover);
+}
+
+.studio-header__title {
+  font-size: 13px;
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.studio-header__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-default);
+  flex-shrink: 0;
+}
+
+/* Project pill — name + save dot, with the copyable ID as an attached suffix */
+.studio-header__project {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 3px 0 var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--surface-panel-active);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.studio-header__project:not(:has(.studio-header__project-id-chip)) {
+  padding-right: var(--space-sm);
+}
+
+.studio-header__project-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-success);
+  flex-shrink: 0;
+}
+
+.studio-header__project-dot--dirty {
+  background: var(--accent-warning);
+}
+
+.studio-header__project-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.studio-header__project-id-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-panel-solid);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.studio-header__project-id-chip:hover {
+  border-color: var(--border-active);
+  background: var(--accent-primary-light);
+}
+
+.studio-header__demo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--surface-panel-solid);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.studio-header__demo-btn:hover {
+  border-color: var(--border-active);
+  color: var(--accent-primary);
+  background: var(--accent-primary-light);
+}
+
+.studio-header__demo-btn--active {
+  background: var(--accent-primary-light);
+  border-color: var(--border-active);
+  color: var(--accent-primary);
+}
+
+.studio-header__right > .studio-header__divider {
+  margin: 0 var(--space-xs);
+}
+
+.studio-header__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.studio-header__icon-btn:hover {
+  background: var(--surface-panel-hover);
+  color: var(--text-primary);
+}
+
+.studio-header__icon-btn--close-settings,
+.studio-header__icon-btn--close-settings:hover {
+  color: var(--accent-warning);
+  background: var(--accent-warning-light);
+  border-color: var(--accent-warning);
+}
+
 /* ----------------------------------------------------------------------------
  * Workspace Tab Strip (Blender workspace-tabs equivalent, directly under the
- * main header row) — always-visible alternative to Window > Workspace Presets.
+ * main header row): workspace tabs · Motion tool shelf · command search.
  * ---------------------------------------------------------------------------- */
 .studio-header-workspaces {
   height: 32px;
-  background: var(--surface-dock-bar);
+  background: var(--surface-panel-hover);
   border-bottom: 1px solid var(--border-default);
   display: flex;
-  align-items: center;
-  gap: 2px;
+  align-items: stretch;
+  gap: var(--space-sm);
   padding: 0 var(--space-sm);
   overflow-x: auto;
   scrollbar-width: none;
@@ -51,14 +228,25 @@
   display: none;
 }
 
+.studio-header-workspaces__tabs,
+.studio-header-workspaces__shelf {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* Blender-style tabs: the active tab is a raised white sheet with an accent underline */
 .studio-header-workspaces__tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 24px;
-  padding: 0 var(--space-sm);
-  border-radius: var(--radius-sm);
+  height: 100%;
+  padding: 0 10px;
   border: none;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
   font-size: var(--text-xs);
@@ -70,165 +258,114 @@
 }
 
 .studio-header-workspaces__tab:hover {
-  background: var(--surface-panel-hover);
   color: var(--text-primary);
+  background: var(--surface-panel-active);
 }
 
-.studio-header-workspaces__tab--active {
-  background: var(--accent-primary-light);
+.studio-header-workspaces__tab--active,
+.studio-header-workspaces__tab--active:hover {
+  background: var(--surface-panel-solid);
   color: var(--accent-primary);
   font-weight: var(--font-semibold);
+  border-left-color: var(--border-default);
+  border-right-color: var(--border-default);
 }
 
-.studio-header__left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
+.studio-header-workspaces__tab--active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent-primary);
 }
 
-.studio-header__center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.studio-header-workspaces__shelf {
+  padding-left: var(--space-sm);
+  border-left: 1px solid var(--border-default);
+  margin: 6px 0;
 }
 
-.studio-header__brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  cursor: pointer;
-  padding: 2px var(--space-xs);
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
-}
-
-.studio-header__brand:hover {
-  background: var(--surface-panel-hover);
-}
-
-.studio-header__logo {
-  font-size: 15px;
-  line-height: 1;
-  filter: drop-shadow(0 1px 2px rgba(32, 104, 89, 0.4));
-}
-
-.studio-header__title {
-  font-size: var(--text-sm);
+.studio-header-workspaces__shelf-title {
+  font-size: 9.5px;
   font-weight: var(--font-bold);
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding-right: 4px;
 }
 
-.studio-header__project-tag {
-  white-space: nowrap;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  background: var(--surface-panel-active);
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border-subtle);
-}
-
-.studio-header__project-dirty {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-warning);
-}
-
-.studio-header__right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.studio-header__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  background: var(--surface-panel-hover);
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.studio-header__project-id-chip {
+.studio-header-workspaces__tool {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10.5px;
-  font-family: var(--font-mono);
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-xs);
-  background: var(--accent-primary-light);
-  color: var(--accent-primary);
-  border: 1px solid var(--border-active);
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
-}
-
-.studio-header__project-id-chip:hover {
-  border-color: var(--accent-primary);
-}
-
-.studio-header__demo-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 var(--space-sm);
+  height: 22px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-default);
-  background: var(--surface-panel-solid);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-secondary);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
   white-space: nowrap;
-  flex-shrink: 0;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.studio-header__demo-btn:hover {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
+.studio-header-workspaces__tool:hover {
+  background: var(--surface-panel-solid);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
 }
 
-.studio-header__demo-btn--active {
+.studio-header-workspaces__tool--active,
+.studio-header-workspaces__tool--active:hover {
   background: var(--accent-primary-light);
   border-color: var(--border-active);
   color: var(--accent-primary);
 }
 
-.studio-header__icon-btn {
+.studio-header-workspaces__search {
+  margin: 4px 0 4px auto;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
+  gap: 6px;
+  width: 240px;
+  padding: 0 4px 0 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  border: 1px solid var(--border-default);
+  background: var(--surface-panel-solid);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  cursor: text;
+  flex-shrink: 0;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.studio-header__icon-btn:hover {
-  background: var(--surface-panel-hover);
-  color: var(--text-primary);
-  border-color: var(--border-subtle);
+.studio-header-workspaces__search:hover {
+  border-color: var(--border-strong);
+}
+
+.studio-header-workspaces__search:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-light);
+}
+
+.studio-header-workspaces__search-text {
+  flex: 1;
+  text-align: left;
+}
+
+.studio-header-workspaces__kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface-panel-active);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
 }
 
 /* ----------------------------------------------------------------------------
@@ -246,8 +383,9 @@
 }
 
 .menu-bar__trigger {
-  padding: 3px var(--space-sm);
-  border-radius: var(--radius-xs);
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   font-size: var(--text-xs);
@@ -815,56 +953,92 @@
 .studio-header__right,
 .menu-bar,
 .toolbar-segmented {
-  flex-shrink: 0;
   white-space: nowrap;
 }
 
-@media (max-width: 1360px) {
-  .studio-header__badge--engine {
+.menu-bar,
+.toolbar-segmented {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1600px) {
+  /* Project ID collapses to its icon + copy affordance (full ID in the tooltip) */
+  .studio-header__project-id-chip > span {
     display: none;
   }
 }
 
-@media (max-width: 1200px) {
-  .studio-header__badge--branch,
-  .studio-header__project-id-chip {
-    display: none;
+@media (max-width: 1360px) {
+  /* Not enough room for a truly-centred switcher: let it sit after the menus */
+  .studio-header {
+    grid-template-columns: minmax(0, 1fr) auto auto;
   }
 
+  .studio-header-workspaces__search {
+    width: auto;
+  }
+
+  .studio-header-workspaces__search-text {
+    display: none;
+  }
+}
+
+@media (max-width: 1280px) {
+  .studio-header-workspaces__shelf .studio-header-workspaces__label,
+  .studio-header-workspaces__shelf-title {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
   .studio-header__demo-label {
     display: none;
   }
 
   .studio-header__demo-btn {
-    width: 26px;
+    width: 28px;
     padding: 0;
     justify-content: center;
   }
-}
 
-@media (max-width: 1024px) {
   .toolbar-segmented__label {
     display: none;
   }
 
   .toolbar-segmented__btn {
-    padding: 0 6px;
+    padding: 0 7px;
+  }
+
+  .studio-header__project-id-chip {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  /* Brand collapses to the logo mark only once its text would crowd the menus */
+  .studio-header__title {
+    display: none;
+  }
+
+  .studio-header-workspaces__tab:not(.studio-header-workspaces__tab--active) .studio-header-workspaces__label {
+    display: none;
   }
 }
 
 @media (max-width: 640px) {
   .studio-header {
-    padding: 0 var(--space-sm);
-    gap: var(--space-sm);
+    padding: 0 var(--space-sm) 0 4px;
+    gap: var(--space-xs);
   }
 
   .studio-header__left,
   .studio-header__right {
-    gap: 4px;
+    gap: 2px;
   }
 
-  .studio-header__title,
-  .studio-header__project-tag,
+  .studio-header__project,
+  .studio-header__left > .studio-header__divider,
+  .studio-header__right > .studio-header__divider,
   .studio-header__icon-btn--help {
     display: none;
   }

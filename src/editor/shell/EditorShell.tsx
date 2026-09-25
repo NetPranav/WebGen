@@ -124,7 +124,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
 
-  type DockLayer = "left" | "right" | "bottom";
+  type DockLayer = "left" | "right" | "bottom" | "ai";
   const [activeLayer, setActiveLayer] = useState<DockLayer>("bottom");
   const activeLayerRef = useLatestRef<DockLayer>(activeLayer);
   const layerTimerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -213,6 +213,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [dragCursorPos, setDragCursorPos] = useState({ x: 0, y: 0 });
   const [aiDockSide, setAiDockSide] = useState<"left" | "right">("right");
   const [activeHoverDropSide, setActiveHoverDropSide] = useState<"left" | "right" | null>(null);
+  /** Measured dock-body geometry while dragging LazyLayout AI, so the drop slots sit exactly
+   * where the panel will land (flush left of the canvas, or tucked left of the Details dock). */
+  const [dropSlotBounds, setDropSlotBounds] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
 
   // On a narrow (mobile/tablet-portrait) viewport, panels dock as overlays over the
   // canvas rather than squeezing it (see dock.css's <=860px media block), so default
@@ -265,27 +268,40 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const toggleAiCoPilot = useCallback(() => {
     setIsDraggingAi(false);
     setActiveHoverDropSide(null);
-    setIsAiCoPilotOpen((prev) => !prev);
-  }, []);
+    if (!isAiCoPilotOpen) setActiveLayer("ai");
+    setIsAiCoPilotOpen(!isAiCoPilotOpen);
+  }, [isAiCoPilotOpen]);
 
   // Pointer tracking for dragging LayoutAI — proximity-based dual-side detection
   useEffect(() => {
     if (!isDraggingAi) return;
 
+    // The slots cover the dock body (below the header + workspace strip, above the status
+    // bar). The left slot is flush with the body's left edge — there is no left dock — and
+    // the right slot ends where the Details dock begins.
+    const measure = () => {
+      const body = document.querySelector(".dock-layout__body")?.getBoundingClientRect();
+      const top = body?.top ?? 0;
+      // Full body height: a freshly docked column is focused, so it sits above the bottom drawer.
+      const bottom = body?.bottom ?? window.innerHeight;
+      const left = body?.left ?? 0;
+      const rightDock = rightZoneRef.current?.getBoundingClientRect();
+      const right = !rightCollapsed && rightDock && rightDock.width > 0 ? rightDock.left : body?.right ?? window.innerWidth;
+      return { top, bottom, left, right };
+    };
+    let bounds = measure();
+    setDropSlotBounds(bounds);
+
     const detectSide = (clientX: number, clientY: number): "left" | "right" | null => {
-      const slotTop = 48;
-      const slotBottom = window.innerHeight - 26;
-      if (clientY < slotTop || clientY > slotBottom) return null;
-
-      // Left proximity: near the Outliner right edge
-      const leftEdge = leftCollapsed ? 32 : leftWidth + 4;
-      if (clientX <= leftEdge + aiPanelWidth + 40) return "left";
-
-      // Right proximity: near the Details left edge
-      const rightEdge = rightCollapsed ? window.innerWidth : window.innerWidth - rightWidth - 4;
-      if (clientX >= rightEdge - aiPanelWidth - 40) return "right";
-
+      if (clientY < bounds.top || clientY > bounds.bottom) return null;
+      if (clientX <= bounds.left + aiPanelWidth + 40) return "left";
+      if (clientX >= bounds.right - aiPanelWidth - 40) return "right";
       return null;
+    };
+
+    const handleResize = () => {
+      bounds = measure();
+      setDropSlotBounds(bounds);
     };
 
     const handlePointerMove = (e: PointerEvent) => {
@@ -299,6 +315,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         setAiDockSide(side);
         setAiDockMode("split-left");
         setIsAiCoPilotOpen(true);
+        setActiveLayer("ai");
       }
       setIsDraggingAi(false);
       setActiveHoverDropSide(null);
@@ -314,13 +331,15 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", handleResize);
     };
-  }, [isDraggingAi, leftWidth, rightWidth, leftCollapsed, rightCollapsed, aiPanelWidth]);
+  }, [isDraggingAi, rightWidth, rightCollapsed, aiPanelWidth]);
 
   const [zoomLevel, setZoomLevel] = useState(100);
   const saveState = useSaveStatus((s) => s.state);
@@ -1137,24 +1156,33 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     />
   );
 
-  /** The LayoutAI dock column (splitter + panel) — same JSX regardless of which
-   * of the 4 layout branches (full-page/normal × left/right) is currently active. */
-  const renderAiDockColumn = (side: "left" | "right") =>
-    isAiCoPilotOpen && aiDockSide === side && (
+  /** The LayoutAI dock column (panel + splitter) — same JSX regardless of which
+   * of the 4 layout branches (full-page/normal × left/right) is currently active.
+   * The splitter always sits on the edge facing the canvas: after the panel when
+   * docked left (drag right = wider), before it when docked right (inverted). */
+  const renderAiDockColumn = (side: "left" | "right") => {
+    if (!isAiCoPilotOpen || aiDockSide !== side) return null;
+    const splitter = (
+      <DockSplitter
+        orientation="vertical"
+        targetRef={aiZoneRef}
+        value={aiPanelWidth}
+        min={260}
+        max={600}
+        invert={side === "right"}
+        onCommit={setAiPanelWidth}
+        style={{ zIndex: activeLayer === "ai" ? 36 : 28 }}
+      />
+    );
+    return (
       <React.Fragment key={`ai-dock-${side}`}>
-        <DockSplitter
-          orientation="vertical"
-          targetRef={aiZoneRef}
-          value={aiPanelWidth}
-          min={260}
-          max={600}
-          invert
-          onCommit={setAiPanelWidth}
-          style={{ zIndex: activeLayer === side ? 29 : 28 }}
-        />
+        {side === "right" && splitter}
         <div
           ref={aiZoneRef}
-          className={`dock-zone ai-copilot-dock-col ai-copilot-dock-col--${side} ${side === "right" ? "anim-slide-right" : "anim-slide-left"}`}
+          className={`dock-zone ai-copilot-dock-col ai-copilot-dock-col--${side} ${side === "right" ? "anim-slide-right" : "anim-slide-left"} ${activeLayer === "ai" ? "dock-zone--elevated" : ""}`}
+          onMouseEnter={() => handleZoneMouseEnter("ai")}
+          onMouseLeave={() => handleZoneMouseLeave("ai")}
+          onMouseDown={() => handleZoneClick("ai")}
           style={{
             width: aiPanelWidth,
             minWidth: aiPanelWidth,
@@ -1163,14 +1191,19 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             flexDirection: "column",
             height: "100%",
             backgroundColor: "var(--surface-panel-solid)",
-            borderLeft: "1px solid var(--border-default)",
-            zIndex: 25,
+            [side === "right" ? "borderLeft" : "borderRight"]: "1px solid var(--border-default)",
+            position: "relative",
+            // Same layering contract as the Details dock: under the bottom drawer until
+            // focused (click, or 2s hover dwell), then full-height on top of it.
+            zIndex: activeLayer === "ai" ? 35 : 20,
           }}
         >
           {renderAiDockContent()}
         </div>
+        {side === "left" && splitter}
       </React.Fragment>
     );
+  };
 
   return (
     <div className="dock-layout">
@@ -1243,7 +1276,13 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             isAIOpen={isAiCoPilotOpen}
           />
         )}
-        <WorkspaceTabStrip activeWorkspace={activeWorkspace} onSelectWorkspace={handleSelectWorkspace} />
+        <WorkspaceTabStrip
+          activeWorkspace={activeWorkspace}
+          onSelectWorkspace={handleSelectWorkspace}
+          onOpenBottomTab={(tabId) => handleOpenPanel("bottom", tabId)}
+          activeBottomTab={bottomCollapsed ? null : bottomActiveTab}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        />
       </div>
 
       {/* Main Dock Body (Left, Center Column, Right, and Overlapping Bottom Drawer) */}
@@ -1795,7 +1834,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     left: 0,
                     right: 0,
                     bottom: `${bottomHeight}px`,
-                    zIndex: activeLayer === "right" ? 21 : 30,
+                    zIndex: activeLayer === "right" || activeLayer === "ai" ? 21 : 30,
                   }}
                 />
               )}
@@ -1830,7 +1869,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                   bottom: 0,
                   width: "100%",
                   height: `${bottomHeight}px`,
-                  zIndex: activeLayer === "right" ? 22 : 29,
+                  zIndex: activeLayer === "right" || activeLayer === "ai" ? 22 : 29,
                 }}
               >
                 {bottomPanels[bottomActiveTab] || (
@@ -1997,20 +2036,16 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         <div
           className="layoutai-drop-slot-highlight"
           style={{
-            position: "fixed",
-            top: 48,
-            bottom: 26,
-            right: "auto",
-            left: leftCollapsed ? 32 : leftWidth + 4,
+            top: dropSlotBounds.top,
+            height: dropSlotBounds.bottom - dropSlotBounds.top,
+            left: dropSlotBounds.left,
             width: aiPanelWidth,
-            zIndex: 9000,
-            borderColor: "#2DD4BF",
-            backgroundColor: "rgba(32, 104, 89, 0.3)",
           }}
           onClick={() => {
             setAiDockSide("left");
             setAiDockMode("split-left");
             setIsAiCoPilotOpen(true);
+            setActiveLayer("ai");
             setIsDraggingAi(false);
             setActiveHoverDropSide(null);
           }}
@@ -2033,20 +2068,16 @@ export const EditorShell: React.FC<EditorShellProps> = ({
         <div
           className="layoutai-drop-slot-highlight"
           style={{
-            position: "fixed",
-            top: 48,
-            bottom: 26,
-            left: "auto",
-            right: rightCollapsed ? 0 : rightWidth + 4,
+            top: dropSlotBounds.top,
+            height: dropSlotBounds.bottom - dropSlotBounds.top,
+            left: dropSlotBounds.right - aiPanelWidth,
             width: aiPanelWidth,
-            zIndex: 9000,
-            borderColor: "#2DD4BF",
-            backgroundColor: "rgba(32, 104, 89, 0.3)",
           }}
           onClick={() => {
             setAiDockSide("right");
             setAiDockMode("split-left");
             setIsAiCoPilotOpen(true);
+            setActiveLayer("ai");
             setIsDraggingAi(false);
             setActiveHoverDropSide(null);
           }}
