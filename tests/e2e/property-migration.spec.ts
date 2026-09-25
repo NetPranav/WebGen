@@ -20,8 +20,11 @@ const FIXTURE = "tests/e2e/fixtures/showcase-v2.lazy.json";
 async function stageShot(page: import("@playwright/test").Page, outDir: string, label: string) {
   await page.mouse.move(5, 995); // no hover states
   await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
+  // Editor chrome animates (the stage toolbar's pulsing "HOT RELOAD" / "SIMULATION ACTIVE" dots).
+  // `animations: "disabled"` did not pin them on Linux Chromium in CI (9 px at the HOT RELOAD dot),
+  // so remove animations and transitions outright: the comparison is about rendering the document.
+  await page.addStyleTag({ content: "*, *::before, *::after { animation: none !important; transition: none !important; }" });
   await page.waitForTimeout(800);
-  // Freeze CSS animations (the stage toolbar's pulsing "simulation active" dot) so only rendering is compared.
   const png = await page.locator(".dock-zone--center").first().screenshot({ animations: "disabled" });
   writeFileSync(`${outDir}/${label}.png`, png);
   return png;
