@@ -36,8 +36,14 @@ const FIXTURES = join(__dirname, "fixtures");
 
 let failures = 0;
 function check(name: string, ok: boolean, detail = "") {
-  console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? `  (${detail})` : ""}`);
-  if (!ok) failures++;
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name}`);
+  if (!ok) {
+    failures++;
+    // Surface *why* — a bare PASS/FAIL swallowed the real tsc/build error,
+    // which is exactly the kind of silent, undiagnosable gate Phase 4 exists
+    // to replace (AUD-15). CI logs need the actual compiler/bundler output.
+    if (detail) console.log(detail.split("\n").map((l) => `    ${l}`).join("\n"));
+  }
 }
 
 function npmScript(cwd: string, script: string) {
@@ -188,16 +194,20 @@ async function main() {
   const selfTest = process.argv.includes("--self-test");
 
   console.log("== nextjs-app (Next 16 App Router, output: export)");
-  check("compiles and builds", buildNextjs(referenceElements, false).ok);
+  const nextResult = buildNextjs(referenceElements, false);
+  check("compiles and builds", nextResult.ok, nextResult.output);
 
   console.log("\n== react-vite (Vite + React 19)");
-  check("compiles and builds", buildViteReact(referenceElements).ok);
+  const viteResult = buildViteReact(referenceElements);
+  check("compiles and builds", viteResult.ok, viteResult.output);
 
   console.log("\n== vue (Vite + Vue 3)");
-  check("compiles and builds", buildVue(referenceElements).ok);
+  const vueResult = buildVue(referenceElements);
+  check("compiles and builds", vueResult.ok, vueResult.output);
 
   console.log("\n== vanilla (no build step; syntax + markup check)");
-  check("emits valid, id-addressable markup and script", buildVanilla(referenceElements).ok);
+  const vanillaResult = buildVanilla(referenceElements);
+  check("emits valid, id-addressable markup and script", vanillaResult.ok, vanillaResult.output);
 
   if (selfTest) {
     console.log("\n== self-test: a syntactically broken emit must fail the harness");
