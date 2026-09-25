@@ -11,14 +11,18 @@
  *      the referencing file's own directory, DOCS/Initial/, and the repo
  *      root, in that order.
  *
- * The backtick check skips markdown table rows (`| ... |`) and unchecked
- * checklist lines (`- [ ]` / `- [~]`), because in this roadmap's own style
- * those two contexts routinely name a file *without* asserting it exists yet:
- * table rows quote stale-path examples inside audit-finding descriptions
- * (e.g. AUD-26's own text), and unchecked checklist items name a decision
- * doc a future sub-phase will create (e.g. "record the decision in
- * `decisions/0002-time-model.md`" under a `- [ ]` Phase 46 item). Checking
- * those would produce permanent false failures for work not done yet.
+ * The backtick check skips markdown table rows (`| ... |`) and checklist
+ * lines (`- [ ]` / `- [x]` / `- [~]`, any state), because in this roadmap's
+ * own style both contexts routinely name a file *without* asserting it
+ * exists (or still exists) right now: table rows quote stale-path examples
+ * inside audit-finding descriptions (e.g. AUD-26's own text), and checklist
+ * items name a decision doc a future sub-phase will create (e.g. "record
+ * the decision in `decisions/0002-time-model.md`" under a `- [ ]` Phase 46
+ * item) or describe a rename by quoting the *old* name alongside the new
+ * one, even once checked off (e.g. a completed Phase 6 item that reads
+ * "Rename `Roadmap_after.md` -> `X.md`" — the old name never resolves, and
+ * never should). Checking either context would produce false failures for
+ * work not done yet, or for accurate descriptions of work already done.
  */
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
@@ -67,7 +71,7 @@ for (const file of files) {
   for (const line of text.split("\n")) {
     const trimmed = line.trimStart();
     if (trimmed.startsWith("|")) continue; // table row: often quotes an example path, not a link
-    if (/^-\s*\[[ ~]\]/.test(trimmed)) continue; // unchecked/in-progress item: may name a future artifact
+    if (/^-\s*\[[ x~]\]/i.test(trimmed)) continue; // checklist item, any state: may name a future or renamed-away artifact
 
     for (const m of line.matchAll(/`([A-Za-z0-9_./-]+\.md)`/g)) {
       const target = m[1].trim();

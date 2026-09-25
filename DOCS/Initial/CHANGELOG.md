@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 #### Changed
 - **One name: LazyLayout.** `package.json` `"name"`: `"engine"` → `"lazylayout"`. Page titles/metadata (`src/app/layout.tsx` and the `/editor` and `/editor/detach/[panelId]` layouts). Compiler emitter output headers that ship inside every exported user project (`PrismaSchemaEmitter`, `GSAPAnimationEmitter`, `StyleEmitter`, `ReactComponentEmitter`, `LogicFlowEmitter`, `ApiRouteEmitter`, `GitExporter`, `AssetFileEditor`) renamed from "WebAPPBuilder"/"WebGen" variants. All `DOCS/Initial/*.md` "Project Name:" headers and prose.
 - "Next.js 15" → "Next.js 16" in `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md`, `PANELS.md`, `UI.md` (current-state docs; dated `CHANGELOG.md` log entries describing past phases were left as accurate history).
-- Every file under `DOCS/After/` (15 files) now carries a "Full-vision track. Not the active roadmap" banner. `Roadmap_after.md` → `DOCS/After/ROADMAP_EXISTING_PROJECT_IMPORT.md` (`git mv`), including fixing its own stale self-reference to a `DOCS/ROADMAP_EXISTING.md` path that never existed.
+- Every file under `DOCS/After/` (15 files) now carries a "Full-vision track. Not the active roadmap" banner. The old *Roadmap_after.md* → `DOCS/After/ROADMAP_EXISTING_PROJECT_IMPORT.md` (`git mv`), including fixing its own stale self-reference to a *DOCS/ROADMAP_EXISTING.md* path that never existed.
 - Two `file:///Users/pranav/...` absolute links in `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (hardcoded to one contributor's home directory — would 404 in CI or for anyone else) converted to relative links.
 
 #### Fixed
