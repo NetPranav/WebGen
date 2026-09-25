@@ -2,6 +2,11 @@
   "name": "engine",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "tests/export-harness/fixtures/nextjs-app",
+    "tests/export-harness/fixtures/vite-react",
+    "tests/export-harness/fixtures/vue"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,6 +15,8 @@
     "lint": "eslint --max-warnings=463",
     "test": "npm run typecheck && npm run test:unit",
     "test:unit": "tsx --test \"src/**/__tests__/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "export-harness": "tsx tests/export-harness/build.mts",
     "build:wasm": "cd wasm && make release"
   },
   "dependencies": {
@@ -23,13 +30,17 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "fake-indexeddb": "^6.2.5",
     "fast-check": "^4.10.2",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
     "tsx": "^4.23.13",
     "typescript": "^5"
   }

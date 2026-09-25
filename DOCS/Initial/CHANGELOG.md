@@ -9,6 +9,32 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.0] — 2026-09-24
+
+### Phase 4 (Real-Environment Verification Harness): gate passed locally in 3 browsers, CI pending
+
+#### Added
+- **Playwright harness** (`playwright.config.ts`): Chromium, Firefox and WebKit projects sharing one `next build && next start` server. `tests/e2e/support/{editor,clock}.ts` are the shared helpers (open/save/export the project, seek the Sequencer ruler exactly, install Playwright's native Clock API).
+- **`tests/e2e/phase3-persistence.spec.ts`**: Phase 3's gate, moved off the `PW_DIR`-driven `phase3-persistence.mjs` script and into this harness, so it now runs in CI.
+- **`tests/e2e/deterministic-clock.spec.ts`**: proves the fake-clock helper controls `requestAnimationFrame`/`performance.now` deterministically in isolation, that `seekRuler` reaches an exact playhead time repeatably, and keeps AUD-41 (below) falsifiable.
+- **Export build harness** (`tests/export-harness/`): `fixtures/{nextjs-app,vite-react,vue}` are pinned, minimal apps registered as npm workspaces (hoisting `next`/`react` from the root install); `fixtures/vanilla` needs no build step. `build.mts` writes real `CrossFrameworkExporter`/`VanillaHtmlEmitter` output for 4 reference elements (one per emitter family) into each fixture and runs `typecheck` + `build`; `--self-test` injects a syntax error and asserts the harness catches it.
+- **Pixel parity** (`tests/export-harness/parity.spec.ts`): the real `VanillaHtmlEmitter` markup animated two ways — an independent linear-interpolation oracle vs. the real `GSAPAnimationEmitter` output seeked with `tl.seek(t)` — diffed with `pixelmatch` at 5 sampled times (0/25/50/75/100%), ≤ 1% by default. A wrong-easing injection fails the mid-sample; the correct export passes all 5, on all 3 browsers. Screenshots and diffs are `testInfo.attach()`ed for the CI report.
+- **CI:** `.github/workflows/ci.yml` gets an `e2e` job (installs Playwright browsers, runs the full suite, uploads the HTML report). New `.github/workflows/export-harness.yml`: nightly, plus PRs touching `src/compiler/**`.
+- Dev dependencies: `@playwright/test`, `pixelmatch`, `pngjs`. New root `workspaces` field for the 3 buildable fixtures.
+
+#### Fixed
+- **`TextEmitter.emit()` threw `ReferenceError: name is not defined`** for every text/heading export with `stylingSystem: "css-modules"` (`TextEmitter.ts:87`, a stray `${name}` where the variable is `componentName`). Invisible to the existing emitter tests, which only ever used the default Tailwind styling — found by the export build harness within minutes of its first real run. Regression test added (`ArchetypeEmitters.test.ts`).
+
+#### Docs
+- ROADMAP: Phase 4 checklist and progress log; §5 and §5.1 updated (4 now runs between 3 and 5, not in parallel with them). AUDIT: new finding AUD-41 (the Sequencer's playback loop can't be driven deterministically by a fake clock — pre-existing, closed by Phase 45).
+
+#### Known gaps
+- The literal Phase 4.3 wording ("the editor Playground") doesn't apply yet — Phase 24 hasn't built it. The parity harness uses an independent oracle instead, same re-scoping pattern as Phase 3's AUD-05/AUD-40 note. The full editor-vs-export comparison is Phase 27's.
+- Only the vanilla + GSAP path carries animation through export end to end (what the parity harness needs). The React/Vue/Next exporters still don't wire `document.clips` into their output — that gap is tracked separately (AUD-40) and isn't Phase 4's to close.
+- The gates run locally against a production build; CI needs to go green on the PR before ✅.
+
+---
+
 ## [2.4.0] — 2026-09-24
 
 ### Phase 3 (Store, History & Persistence): gate passed locally in 3 browsers, CI pending

@@ -46,3 +46,17 @@ wasm/tests/*_test
 *.wasm
 saved/
 generated/
+
+# export-harness fixtures (built per run; see tests/export-harness/build.mjs)
+tests/export-harness/fixtures/*/node_modules/
+tests/export-harness/fixtures/*/.next/
+tests/export-harness/fixtures/*/out/
+tests/export-harness/fixtures/*/dist/
+tests/export-harness/fixtures/*/next-env.d.ts
+tests/export-harness/fixtures/nextjs-app/tsconfig.json.bak
+tests/export-harness/report/
+
+# playwright
+/playwright-report/
+/test-results/
+/blob-report/

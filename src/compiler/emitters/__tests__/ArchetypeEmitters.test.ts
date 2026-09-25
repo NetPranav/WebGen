@@ -285,6 +285,21 @@ describe("Phase 6: Professional Clean Code Emitter & Exporter", () => {
       const resultChars = TextEmitter.emit(splitElement, { splitTextMode: "chars" });
       assert.ok(resultChars.tsxCode.includes('text.split("").map'));
     });
+
+    it("emits a valid CSS Modules import (regression: emit() threw ReferenceError, found by the Phase 4.2 export harness)", () => {
+      const labelElement: Layer = {
+        id: "txt-4",
+        name: "Form Label",
+        archetype: "text",
+        properties: { content: "Email address", fontSize: 14 },
+        children: [],
+        parentId: null,
+      };
+
+      const result = TextEmitter.emit(labelElement, { stylingSystem: "css-modules" });
+      assert.ok(result.tsxCode.includes(`import styles from "./${result.componentName}.module.css";`));
+      assert.ok(!result.tsxCode.includes("undefined.module.css"));
+    });
   });
 
   // ==========================================================================

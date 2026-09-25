@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.1.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phases 1–2 ✅. Phase 3 gate passed locally in Chromium, Firefox and WebKit (✅ once CI is green on its PR). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then Phases 4 ∥ 5 ∥ 6 ∥ 42. See §5.1.
+**Status:** Active. Phases 1–2 ✅. Phases 3 and 4 gates passed locally in Chromium, Firefox and WebKit (✅ once CI is green on their PR). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then Phases 5 ∥ 6 ∥ 42. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -122,7 +122,7 @@ A phase is **✅ COMPLETE** only when:
 | 1 | A · Solid Ground | Build Health & CI | 0 TS / 0 lint errors, CI, `next build` green | — | ✅ (enforcement by convention) |
 | 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | ✅ |
 | 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | 🟡 gate passed locally; CI pending |
-| 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | 📋 |
+| 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | 🟡 gate passed locally; CI pending |
 | 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | 📋 |
 | 6 | A | Scope, Naming & Docs Cleanup | Initial bundle excludes After-track panels; one name; docs fixed | 1 | 📋 |
 | 7 | B · Motion Core | Motion Primitives: Tracks, Clips, States, Triggers, Behaviours | Formal animation model inside MDM | 2 | 📋 |
@@ -184,7 +184,7 @@ Follow this order, not the phase numbers. Phases on the same line can run in par
 
 | Stage | Order | Why this order |
 |---|---|---|
-| **1 · Foundation** | 41 → 3 · then 4 ∥ 5 ∥ 6 ∥ 42 · then 43 → 44 *(actual: 3 ran first and shipped 41.2 transactions; 41.1/41.3 follow)* | Transactions (41) must exist before undo is rebuilt on them (3). Geometry and property paths (42) must exist before the motion primitives (7) are written against them. |
+| **1 · Foundation** | 41 → 3 → 4 · then 5 ∥ 6 ∥ 42 · then 43 → 44 *(actual: 3 then 4 ran first, in that order, and shipped 41.2 transactions; 41.1/41.3 follow)* | Transactions (41) must exist before undo is rebuilt on them (3). Geometry and property paths (42) must exist before the motion primitives (7) are written against them. |
 | **2 · Motion core** | 7 → 46 → (8 ∥ 9) → 45 ∥ 48 → 10 → (11 ∥ 12 ∥ 13) · 47 after 9 · 56 after 45 | The time model (46) is part of the document the rules and kernel read. The clock (45) and the renderer (48) are what the adapters (10) run on. |
 | **3 · Engines** | 14 ∥ 15 ∥ 16 ∥ 17 ∥ 18 ∥ 19 | Unchanged. |
 | **4 · Studio** | 49 → 20 → (21 ∥ 22 ∥ 50) · 52 → 23 → 53 · 51 · 24 → 25 → 26 · 54 any time after 3 | The viewport engine (49) replaces the stage foundation Phase 20 assumed. The AE workspace (52) is the container that the Phase 23 keyframing lives in. |
@@ -348,20 +348,31 @@ Known gaps:
 ## Phase 4: Real-Environment Verification Harness
 **Goal:** The test infrastructure every later gate relies on: browser tests, export builds and pixel parity.
 **Closes:** AUD-15, AUD-16 (infrastructure) · **Depends on:** 1
+> **v2.1 amendment:** the Verification Gate's own "editor Playground" doesn't exist yet (Phase 24). Phase 4.3 uses an independent oracle instead (see its progress log) — the same re-scoping pattern Phase 3 used for its Playground-dependent checks. The real editor-vs-export comparison is Phase 27's job once the exporters carry animation.
 
 ### Sub-Phase 4.1: Browser E2E
-- [ ] Playwright set up with Chromium, WebKit and Firefox projects, running against `next build && next start`.
-- [ ] Deterministic time: a test clock that controls `requestAnimationFrame`, `performance.now`, and the MDM playhead, so animations can be screenshotted at an exact `t`.
+- [x] Playwright set up with Chromium, WebKit and Firefox projects, running against `next build && next start` (`playwright.config.ts`; `webServer` builds once, all three projects share it).
+- [x] Deterministic time: a test clock (`tests/e2e/support/clock.ts`, wrapping Playwright's native Clock API) that controls `requestAnimationFrame` and `performance.now`, and `seekRuler` (`tests/e2e/support/editor.ts`) for the MDM playhead, so animations can be screenshotted at an exact `t`. *Finding (AUD-41):* combining the fake clock with the Sequencer's pre-Phase-45 always-on `requestAnimationFrame` loop is not deterministic (up to 3× swings, measured); exact-time seeking uses a direct ruler click instead, which is exact. `deterministic-clock.spec.ts` proves both the isolated clock (works) and the entangled loop (doesn't, on purpose — it's the falsifier for AUD-41, closed by Phase 45).
 
 ### Sub-Phase 4.2: Export Build Harness
-- [ ] `tests/export-harness/`: fixture apps (Next 16 App Router, Vite React, Vue 3, vanilla). The harness writes exported files in, installs pinned deps (cached), and runs `tsc` + `build`.
-- [ ] Runs on CI for every exporter change. It is too slow for every commit, so it runs nightly plus on PRs that touch `src/compiler/**`.
+- [x] `tests/export-harness/`: fixture apps (Next 16 App Router with `output: "export"`, Vite React, Vite Vue 3, vanilla — no build step, it is the target) as npm workspaces sharing root's `next`/`react`. The harness (`build.mts`) writes real `CrossFrameworkExporter` / `VanillaHtmlEmitter` output for 4 reference elements (one per emitter family) into each fixture and runs `typecheck` + `build`.
+- [x] Runs on CI for every exporter change: `.github/workflows/export-harness.yml`, nightly plus on PRs touching `src/compiler/**` (and the schema/animation types the emitters read).
 
 ### Sub-Phase 4.3: Pixel Parity
-- [ ] Render the editor Playground and the exported build at the same size and at the same sampled times (0, 25, 50, 75, 100%), then diff with `pixelmatch`. The threshold is configurable (default ≤ 1%).
-- [ ] Parity reports are stored as CI artifacts (images plus diff heatmaps).
+- [x] `tests/export-harness/parity.spec.ts`: the real `VanillaHtmlEmitter` markup, animated two ways — an independent oracle (`oracleValueAt`, linear interpolation computed in the test) and the real `GSAPAnimationEmitter` output, seeked with `tl.seek(t)` — rendered at the same size and sampled times (0, 25, 50, 75, 100%), diffed with `pixelmatch` at a configurable threshold (default ≤ 1%, `MAX_DIFF_RATIO`).
+- [x] Parity reports are stored as CI artifacts: diff/oracle/export screenshots are `testInfo.attach()`ed (surface in the Playwright HTML report) and the report is uploaded by the `e2e` CI job.
 
-**Verification Gate:** A deliberately broken exporter (e.g. a wrong easing name) fails the parity job. A correct one passes, on all three browsers.
+**Verification Gate:** ✅ A deliberately broken exporter (the gate's own example: a wrong easing name, injected into the real `GSAPAnimationEmitter` output) fails the parity job at the mid-timeline sample; the correct one passes at all 5 sampled times. Both proven on Chromium, Firefox and WebKit (`parity.spec.ts`, 18/18 passing across the 3 browsers, locally against a production build; CI pending — see progress log).
+
+### Phase 4 Progress Log
+**2026-09-24: gate passed locally in Chromium, Firefox and WebKit; ✅ once CI is green on the PR.** `npx playwright test` (42 tests: `phase3-persistence.spec.ts` ×5 cases, `deterministic-clock.spec.ts` ×3, `parity.spec.ts` ×6, on 3 browser projects, D skipped on non-Chromium) — 40 passed, 2 skipped, against `next build && next start`. `npm run export-harness -- --self-test` — 5/5 checks, including the self-test. `typecheck` 0 · `lint` 0 errors / 463 warnings (no growth) · 655/655 unit tests (+1) · `next build` green.
+
+- **Phase 3's own gate moved into this harness** (`tests/e2e/phase3-persistence.spec.ts`, replacing the `PW_DIR`-driven `.mjs` script), so it now runs in CI. That also flips Phase 3's "CI pending" caveat to "pending the same CI run as Phase 4."
+- **Bug found and fixed:** `TextEmitter.emit()` threw `ReferenceError: name is not defined` for every text/heading export with `stylingSystem: "css-modules"` (a stray `${name}` where the variable is `componentName`, `TextEmitter.ts:87`). Invisible to `ArchetypeEmitters.test.ts` because every existing TextEmitter test used the default (Tailwind) styling. Found within minutes of the export build harness's first run, on a fixture app calling the real emitter with real props — exactly the class of bug AUD-15 named ("exported code is never compiled, built, or run"). Fixed, and a regression test added.
+- **AUD-41 (new):** the Sequencer's `requestAnimationFrame` playback loop starts unconditionally at mount and reads real `performance.now()`, so it can't be driven deterministically by a fake clock installed mid-session (measured up to 3× variance for an identical virtual-time request). `deterministic-clock.spec.ts` Case 3 keeps this failure mode falsifiable (the assertion flips if it's ever fixed). Closed by Phase 45 (Transport & Frame Scheduler), which replaces this loop with the shared clock. Exact-time seeking for the pixel-parity work uses `seekRuler` (a direct ruler click) instead, which is unaffected and exact.
+- **Re-scope, same pattern as Phase 3's AUD-05/AUD-40 note:** 4.3's Verification Gate text says "the editor Playground" — Phase 24 hasn't built it yet. `parity.spec.ts` uses an independent oracle (linear interpolation computed in the test) as the ground truth instead, so the gate is provable now; the literal editor-vs-export comparison is Phase 27's job once the exporters carry animation end to end.
+- **Export build harness runs on real npm workspaces** (`tests/export-harness/fixtures/{nextjs-app,vite-react,vue}`), not hand-rolled installs: `next`/`react`/`react-dom` hoist from the root install (same pinned versions), so only Vite/Vue/their plugins are new downloads. The harness writes real `CrossFrameworkExporter` output into each fixture, runs `typecheck` then `build`, and restores the fixture's committed placeholder afterward — proven by a `--self-test` flag that injects a syntax error and asserts the harness catches it, so a pass is meaningful.
+- Deliberately not done here (Phase 4 is infrastructure only, per its own "Closes: AUD-15, AUD-16 (infrastructure)"): the exporters still don't carry animation into React/Vue/Next output end to end (only the vanilla + GSAP path used by the parity harness does, and only for this one reference element). That gap, and the full editor-vs-export comparison, belong to Phase 27.
 
 ---
 
