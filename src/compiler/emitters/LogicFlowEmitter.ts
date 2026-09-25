@@ -302,7 +302,7 @@ export class LogicFlowEmitter {
     // Header
     lines.push("/* ==========================================================================");
     lines.push(` * LOGIC FLOW: ${graph.name} (${graph.type})`);
-    lines.push(" * WebAPPBuilder Visual Compiler — Async TypeScript Engine");
+    lines.push(" * LazyLayout Compiler — Async TypeScript Engine");
     lines.push(" * ========================================================================== */");
     lines.push("");
 

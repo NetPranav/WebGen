@@ -2,7 +2,7 @@
 
 > **⚠️ Pending v2 update:** This document still describes Initial Phase v1.1. Where it conflicts with `PRD.md` v2.0.0 or `ROADMAP.md` v2.0.0, those documents win. It will be rewritten in ROADMAP v2 Phase 6.3 (schema content in Phase 2). See `AUDIT.md` for known gaps between this spec and the code.
 
-## Project Name: Visual Motion & Frontend Design Studio
+## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"
 **Document Version:** 1.1.0
 **Phase:** Initial Phase (Element Animation Studio)

@@ -1,5 +1,5 @@
 {
-  "name": "engine",
+  "name": "lazylayout",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -16,7 +16,9 @@
     "test": "npm run typecheck && npm run test:unit",
     "test:unit": "tsx --test \"src/**/__tests__/*.test.ts\"",
     "test:e2e": "playwright test",
-    "export-harness": "tsx tests/export-harness/build.mts"
+    "export-harness": "tsx tests/export-harness/build.mts",
+    "check:bundle-scope": "tsx scripts/check-bundle-scope.mts",
+    "check:doc-links": "tsx scripts/check-doc-links.mts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

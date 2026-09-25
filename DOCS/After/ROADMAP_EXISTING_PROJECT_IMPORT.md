@@ -1,10 +1,12 @@
 # IMPLEMENTATION ROADMAP & MILESTONES — EXISTING PROJECT IMPORT
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 ## Project Name: Visual Web Application Engine — Legacy/Existing Project Import Subsystem
 **Internal Codename:** "Salvage Engine"
 **Document Version:** 1.0.0
 **Status:** Planned — Not Started
-**File Location:** `DOCS/ROADMAP_EXISTING.md`
+**File Location:** `DOCS/After/ROADMAP_EXISTING_PROJECT_IMPORT.md`
 **Relationship to `DOCS/ROADMAP.md`:** This is a standalone phase track, not a renumbering of the main roadmap. It does not modify, reorder, or reopen any phase in `ROADMAP.md`. It is written to be read *alongside* `ROADMAP.md` v3.0.0 and assumes several of its systems already exist (see §2, Dependencies).
 
 ---

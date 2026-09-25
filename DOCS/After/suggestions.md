@@ -1,5 +1,7 @@
 # Architectural UX Suggestions: 3x Velocity & Layout Optimization
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 > **Vision:** Enable creators and engineering teams to construct production-ready, full-stack web applications in **10 days instead of 30 days** by eliminating cognitive friction, optimizing spatial layouts, and replacing repetitive coding with high-leverage visual systems.
 
 ---

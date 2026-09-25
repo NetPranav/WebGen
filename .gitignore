@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# duplicates the DOCS/ folder (AUD-27) — not tracked, keep local copies out
+DOCS.zip
+
 # debug
 npm-debug.log*
 yarn-debug.log*

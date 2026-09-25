@@ -1,5 +1,7 @@
 # UI & WORKSPACE ARCHITECTURE SPECIFICATION
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 ## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Web Applications"  
 **AI Assistant Codename:** LayoutAI  

@@ -1,34 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LazyLayout
+
+LazyLayout is an AI-native motion design studio: a visual editor for authoring interactive
+motion, effects, and components with GSAP, Framer Motion, SVG, and CSS, that compiles to
+clean, production-grade code you can drop into any external codebase.
+
+This repository is currently in its **Initial Phase** — the motion/animation editor. The
+full-vision product (logic blueprints, a database studio, deployment, plugins, collaboration)
+is tracked separately and gated out of this build behind the `edition` flag (see
+`src/core/flags.ts`); none of it ships in the Initial Phase bundle.
+
+## Requirements
+
+This is not the Next.js you may know — it runs on Next 16 / React 19, which has breaking API
+changes from earlier versions. See `AGENTS.md` at the repo root before making framework-level
+changes.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the launcher, and
+[http://localhost:3000/editor](http://localhost:3000/editor) for the studio itself.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-## Learn More
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the Next.js dev server |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint (warning budget enforced — see `package.json`) |
+| `npm run test` | Typecheck + unit tests |
+| `npm run test:unit` | Unit tests only (`src/**/__tests__/*.test.ts`) |
+| `npm run test:e2e` | Playwright end-to-end tests |
+| `npm run export-harness` | Builds the export-harness fixtures under `tests/export-harness/` |
 
-To learn more about Next.js, take a look at the following resources:
+## Documentation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The living docs for the Initial Phase — PRD, roadmap, audit, conventions, panel reference,
+schema reference, licensing register, and folder structure — live under `DOCS/Initial/`
+(same directory as `docs/initial/` on this case-insensitive filesystem). Start with
+`DOCS/Initial/ROADMAP.md` for what's built and what's next, and `DOCS/Initial/AUDIT.md` for
+known gaps.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`DOCS/After/` holds the full-vision track. It is not the active roadmap — see the banner on
+each file there.

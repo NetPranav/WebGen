@@ -1,5 +1,7 @@
 # JSON SCHEMA CONTRACTS REFERENCE
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 ## Project Name: Visual Web Application Engine
 **Internal Codename:** "Unreal Engine for Web Applications"  
 **Document Version:** 1.0.0  

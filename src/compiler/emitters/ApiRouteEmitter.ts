@@ -34,7 +34,7 @@ export class ApiRouteEmitter {
     lines.push("/* ==========================================================================");
     lines.push(` * NEXT.JS 15 API ROUTE: /api/${colLower}`);
     lines.push(` * Collection: ${colName} (${schema.displayName})`);
-    lines.push(" * WebAPPBuilder Visual Compiler — Next.js 15 App Router & Prisma ORM");
+    lines.push(" * LazyLayout Compiler — Next.js 15 App Router & Prisma ORM");
     lines.push(" * ========================================================================== */");
     lines.push("");
 
@@ -125,7 +125,7 @@ export class ApiRouteEmitter {
     lines.push("/* ==========================================================================");
     lines.push(` * NEXT.JS 15 API ROUTE: /api/${colLower}/[id]`);
     lines.push(` * Collection Item: ${colName} (${schema.displayName})`);
-    lines.push(" * WebAPPBuilder Visual Compiler — Next.js 15 App Router & Prisma ORM");
+    lines.push(" * LazyLayout Compiler — Next.js 15 App Router & Prisma ORM");
     lines.push(" * ========================================================================== */");
     lines.push("");
 
@@ -209,7 +209,7 @@ export class ApiRouteEmitter {
     lines.push("/* ==========================================================================");
     lines.push(` * CUSTOM API ROUTE: /api/${cleanSlug}`);
     lines.push(` * Blueprint Graph: ${graph.name}`);
-    lines.push(" * WebAPPBuilder Visual Compiler — Next.js 15 App Router");
+    lines.push(" * LazyLayout Compiler — Next.js 15 App Router");
     lines.push(" * ========================================================================== */");
     lines.push("");
 

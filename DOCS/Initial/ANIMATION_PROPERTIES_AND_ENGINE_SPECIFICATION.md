@@ -1,7 +1,7 @@
 # LazyLayout Animation Property & Engine Reconciliation Specification
 
 **Version:** 1.0 (Comprehensive Reference)  
-**Companion Document:** [`DOCS/Initial/lazylayout_element_grammer.md`](file:///Users/pranav/Project%20Folder/WebAPPBuilder/DOCS/Initial/lazylayout_element_grammer.md)  
+**Companion Document:** [`DOCS/Initial/lazylayout_element_grammer.md`](./lazylayout_element_grammer.md)  
 **Scope:** Exhaustive catalog of GSAP 3.x, Framer Motion (Motion for React), and Native CSS animatable properties, browser rendering pipeline costs, engine conflict rules, and the definitive best-in-class engine arbitration matrix for 120 FPS buttery-smooth performance.  
 **Audience:** Engine and editor architects building the Visual Web Application Engine, Motion Sequencer, Content Browser, and Runtime Exporter.
 
@@ -1410,7 +1410,7 @@ Media types represent rich raster, vector, or WebGL rendering surfaces.
 
 ## 8. Engine Adapter Architecture & Runtime Implementation Specification
 
-To decouple the editor's visual authoring interface from any single animation library and ensure 100% pluggable runtime targets, LazyLayout implements a clean **Engine Adapter Architecture** located in [`src/core/runtime/EngineAdapters.ts`](file:///Users/pranav/Project%20Folder/WebAPPBuilder/src/core/runtime/EngineAdapters.ts).
+To decouple the editor's visual authoring interface from any single animation library and ensure 100% pluggable runtime targets, LazyLayout implements a clean **Engine Adapter Architecture** located in [`src/core/runtime/EngineAdapters.ts`](../../src/core/runtime/EngineAdapters.ts).
 
 ---
 

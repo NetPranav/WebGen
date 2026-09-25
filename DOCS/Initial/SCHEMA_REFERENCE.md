@@ -2,7 +2,7 @@
 
 > **Status:** §0 (Motion Document Model v2) is current and authoritative as of ROADMAP Phase 2. §1–§8 below still describe Initial Phase v1.1 (the `elements` map, `animationStack`, v1 trigger names); they are kept for reference and rewritten in ROADMAP v2 Phase 6.3. Where they conflict with §0, §0 wins.
 
-## Project Name: Visual Motion & Frontend Design Studio
+## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"
 **Document Version:** 1.1.0
 **Phase:** Initial Phase (Element Animation Studio)
@@ -70,7 +70,7 @@ Only through `documentCommands` (`src/core/store/useDocumentStore.ts`): typed co
 
 ## 1. Overview
 
-This document specifies the declarative JSON schema contracts that govern all serialized data in the Visual Motion & Frontend Design Studio's Initial Phase.
+This document specifies the declarative JSON schema contracts that govern all serialized data in LazyLayout's Initial Phase.
 
 Every schema defined here is strictly validated at runtime by Zod / TypeScript contracts before committing to the project store or code emitter. Archetype-specific fragments (§3.1–3.4) are validated with a **discriminated union on `archetype`**, so a small model implementing this need only switch on that one field to know which optional block (`media`, `divider`, `background`) is required.
 

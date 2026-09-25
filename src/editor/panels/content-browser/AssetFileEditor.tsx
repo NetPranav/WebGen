@@ -168,7 +168,7 @@ export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
 
   const codeSource =
     MOCK_CODES[assetId] ||
-    `// ${assetTitle}\n// Component asset registered in WebAPPBuilder AST\nexport default function Asset() {\n  return <div>${assetTitle}</div>;\n}`;
+    `// ${assetTitle}\n// Component asset registered in LazyLayout AST\nexport default function Asset() {\n  return <div>${assetTitle}</div>;\n}`;
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(codeSource);

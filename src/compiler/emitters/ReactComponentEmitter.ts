@@ -236,7 +236,7 @@ export class ReactComponentEmitter {
 
     lines.push("/* ==========================================================================");
     lines.push(` * COMPONENT: ${compName}`);
-    lines.push(" * WebAPPBuilder Visual Compiler — Next.js 15 & React 19");
+    lines.push(" * LazyLayout Compiler — Next.js 15 & React 19");
     lines.push(" * ========================================================================== */");
     lines.push("");
 
@@ -316,7 +316,7 @@ export class ReactComponentEmitter {
 
     lines.push("/* ==========================================================================");
     lines.push(` * PAGE: ${page.name} (${page.slug})`);
-    lines.push(" * WebAPPBuilder Visual Compiler — Next.js 15 (App Router)");
+    lines.push(" * LazyLayout Compiler — Next.js 15 (App Router)");
     lines.push(" * ========================================================================== */");
     lines.push("");
 
