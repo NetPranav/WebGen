@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.1.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phases 1–6 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, all 3 browsers). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then 42, then 43 → 44. See §5.1.
+**Status:** Active. Phases 1–6 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, all 3 browsers). In progress: Phase 42 (started ahead of the rest of 41 because it blocks Phase 7). Then 7, with 41.1/41.3 and 43 → 44 still open from Stage 1. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -160,7 +160,7 @@ A phase is **✅ COMPLETE** only when:
 | 39 | G | Simple Mode & Guided Flow | Draw → Pick motion → Export in 3 steps; new onboarding | 22, 25, 37 | 📋 |
 | 40 | H · Release | Initial Phase v2 Release Gate | PRD §11 DoD proven end to end | all (incl. 58) | 📋 |
 | 41 | S · Studio Architecture | Store Decomposition & Transaction API | Small document store, gesture transactions, per-layer subscriptions | 2 · *before 3* | 🚧 41.2 done (with Phase 3) |
-| 42 | S | Canonical Property Paths & Geometry Model | One property vocabulary; `frame` + sizing on every layer; schema v3 | 2 · *before 7, 20, 48* | 📋 |
+| 42 | S | Canonical Property Paths & Geometry Model | One property vocabulary; `frame` + sizing on every layer; schema v3 | 2 · *before 7, 20, 48* | 🚧 42.1 registry + 42.4 decision drafted |
 | 43 | S | Command Bus, Tool State Machine & Keymap | One command registry, focus-aware keys, tool state machines | 41 · *before 20* | 📋 |
 | 44 | S | Workspace Architecture & Layout Presets | Figma-style side panels + AE bottom timeline; Design / Animate / Code presets | 6, 43 · *before 20* | 📋 |
 | 45 | S | Transport, Global Clock & Frame Scheduler | One clock, one rAF loop, no per-frame React renders | 9, 41 · *before 10* | 📋 |
@@ -1138,7 +1138,7 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 **Closes:** AUD-31, AUD-32 · **Depends on:** 2 · **Runs before:** 7, 20, 48
 
 ### Sub-Phase 42.1: Property Registry
-- [ ] `src/core/document/properties.ts`: for each canonical path (`frame.x`, `transform.y`, `fill.color`, `corner.radius`, `text.fontSize`, …) it declares the value type, unit, default, CSS mapping, compositing class (GPU / paint / layout), whether it is animatable, and the archetypes that have it.
+- [~] `src/core/document/properties.ts`: for each canonical path (`frame.x`, `transform.y`, `fill.color`, `corner.radius`, `text.fontSize`, …) it declares the value type, unit, default, CSS mapping, compositing class (GPU / paint / layout), whether it is animatable, and the archetypes that have it.
 - [ ] Static props, state snapshots, tracks, links and the inspector all address properties by these paths. The per-archetype prop validation left open in Phase 2 lands here.
 
 ### Sub-Phase 42.2: Migration to Schema v3
@@ -1150,10 +1150,24 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 - [ ] The artboard/frame is a layer with geometry, not a document-level special case, which prepares multi-frame canvases (Phase 49).
 
 ### Sub-Phase 42.4: Layout vs Motion Transform (Decision Record)
-- [ ] `decisions/0003-geometry-vs-transform.md`: `frame` is **layout** (what Figma edits: moving a layer on the canvas changes `frame`). `transform.*` is **motion offset** (what the timeline animates, composed on top of `frame`, GPU-only). This keeps animation off layout properties by default, the web equivalent of AE's Position and Anchor. Animating `frame.*` is allowed only when the rules (Phase 8) accept the layout cost.
+- [~] `decisions/0003-geometry-vs-transform.md`: `frame` is **layout** (what Figma edits: moving a layer on the canvas changes `frame`). `transform.*` is **motion offset** (what the timeline animates, composed on top of `frame`, GPU-only). This keeps animation off layout properties by default, the web equivalent of AE's Position and Anchor. Animating `frame.*` is allowed only when the rules (Phase 8) accept the layout cost.
 
 **Key files:** `src/core/document/properties.ts`, `src/core/document/schema.ts`, `src/core/document/migrations/v2-to-v3.ts`, `src/core/motion/presets/*`
 **Verification Gate:** A test walks every preset, factory, fixture and emitter template and finds no property path outside the registry. 500 random v2 documents migrate to v3 and round-trip unchanged. A Playwright screenshot of the migrated demo project matches the pre-migration one. Scrubbing a preset that uses `translateY` now moves the layer (regression for §4.1 row 4).
+
+### Phase 42 Progress Log
+**2026-09-25: 🚧 started (user chose 42 ahead of the rest of 41 and 43/44 because it is Phase 7's hard prerequisite: 7.1's registry *is* 42's).** Not ✅: the gate needs 42.2 (migration) and 42.3 (geometry).
+- **42.1 `[~]`**: `src/core/document/properties.ts` added. It holds 198 canonical paths. Each declares its value type, unit, default, CSS mapping, compositing class (gpu/paint/layout/none), animatability, enum options and owning archetypes. The owning archetypes are derived from the archetype registry's Details sections, so the two can't drift. It also has a legacy alias table covering the flat v2 keys and the `transform.translateX/Y` preset dialect. Aliases can be per-archetype (`color`, `size`, `placeholder`, `pattern`, `type`, `castShadow` mean different things on different layers). They can carry value scaling (image `opacity` 0–100 → 0–1) and split legacy objects into leaf paths (`filter`, `overlay`, `focalPoint`, `material`). `resolvePropertyPath()`, `suggestPropertyPath()` (edit distance) and `validateLayerProps()` are the per-archetype check Phase 2 left open. Not yet wired into `validateMotionDocument`: stored documents still use v2 keys until 42.2's migration rewrites them.
+- **Naming source:** CONVENTIONS §4, not the illustrative `fill.color`/`corner.radius` in this phase's text. 66 of 81 preset tracks and the runtime already use §4 names. Recorded in `decisions/0003-geometry-vs-transform.md`.
+- **42.4 `[~]`**: `decisions/0003-geometry-vs-transform.md` written (frame = layout, transform = GPU motion offset; animating `frame.*` gated by Phase 8 rules).
+- Tests (`src/core/document/__tests__/properties.test.ts`, 15):
+  - every CONVENTIONS §4 path is in the registry (parsed from the doc);
+  - every preset track resolves and is legal for every archetype the preset targets;
+  - every archetype's default props and every prop in the showcase demo resolve;
+  - archetype-specific aliases resolve correctly;
+  - unknown paths get a suggestion (`transfrom.y` → `transform.y`);
+  - prototype keys aren't treated as aliases.
+- Next: 42.2 (v2 → v3 migration of layer props, tracks, states, presets, plus readers: SandboxHost, emitters, inspectors, adapters), then 42.3 (`frame`/`sizing`/`positioning` on layers, artboard as a layer).
 
 ---
 

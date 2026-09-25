@@ -9,6 +9,15 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Phase 42 (Canonical Property Paths & Geometry Model): in progress
+
+#### Added
+- **`src/core/document/properties.ts`** (Phase 42.1): the canonical property registry. It has 198 dot-paths, each with value type, unit, default, CSS mapping, compositing class, animatability and owning archetypes. It includes a legacy alias table (flat v2 keys and the `transform.translateX/Y` preset dialect, per-archetype where meanings differ, with value scaling and object splitting), plus `resolvePropertyPath`, `suggestPropertyPath` and `validateLayerProps`. Additive only: no stored data or reader changes yet (that is 42.2).
+- **`DOCS/Initial/decisions/0003-geometry-vs-transform.md`** (Phase 42.4): `frame` is layout, `transform.*` is the GPU motion offset. CONVENTIONS §4 is the naming source.
+- `src/core/document/__tests__/properties.test.ts`: 15 tests covering the registry against CONVENTIONS §4, all 51 presets, every archetype default and the showcase demo.
+
 ## [2.8.0] — 2026-09-25
 
 ### Phase 6 (Scope, Naming & Docs Cleanup): complete — CI green on PR #9
