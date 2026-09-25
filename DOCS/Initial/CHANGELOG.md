@@ -9,6 +9,29 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.0] — 2026-09-25
+
+### Phase 5 (Dependency Reality & Wasm Decision): gate passed locally, CI pending
+
+#### Added
+- Real dependencies: `motion@13.4.3`, `three@0.186.1`, `@react-three/fiber@9.8.1`, `@react-three/drei@10.7.8`, `@gsap/react@2.1.2`, `@types/three` (dev). `npm ls motion three @react-three/fiber` resolves; none are imported anywhere yet, so bundle growth is 0%.
+- **`DOCS/Initial/decisions/0001-wasm.md`**: the Wasm go/no-go decision record — **No-Go**. Per-wire calls (the app's actual default pattern): Wasm ~0.67x TS speed. Batched into one JS↔Wasm crossing (Wasm's best case): ~1.93x, only 3/5 runs even reached the required 2x. Real Chromium (Playwright), not simulated; reproducible benchmark script included.
+- **`DOCS/Initial/decisions/0001-wasm-archive/`**: the former `wasm/` — C++ source, headers, build system, and the benchmark harness that produced the numbers above.
+
+#### Fixed
+- **The C++ Wasm kernel had never actually compiled**, on any prior commit: `SplineSolver.cpp` used SIMD intrinsics without `#include <wasm_simd128.h>`; `WasmBindings.cpp` was missing `using namespace WebAppEngine;` (so its own type references didn't resolve) and separately bound several methods, fields and enum members that don't exist on the current C++ headers at all. Fixed to make an honest benchmark possible; the fixes live in the archive, not in an active build.
+- **`Scene3DViewport.tsx`** claimed "WebGL canvas rendering" while drawing hand-rolled 3D-to-2D projection math on `canvas.getContext("2d")`, with `webglcontextlost`/`webglcontextrestored` listeners that can never fire there. Deleted; replaced with an honest placeholder. The component was unmounted anywhere in the app, and its `object3D`/`camera3D`/`light3D` archetypes were already unreachable (no add-layer UI lists them) — no feature flag was needed.
+- **`StudioHeader.tsx`**'s "Wasm 120 FPS" badge was hardcoded to claim "C++ WebAssembly Engine linked" unconditionally — nothing in the app ever called `WasmBridge.init()`. Now a static, honest "TypeScript 120 FPS".
+- **`ProjectSettings.tsx`**'s "C++ WebAssembly Optimization Level" dropdown had zero effect on any build. Removed (permanently inapplicable after the No-Go decision, not merely unwired).
+
+#### Removed
+- `wasm/` (moved to `DOCS/Initial/decisions/0001-wasm-archive/`). `build:wasm` npm script.
+
+#### Docs
+- ROADMAP: Phase 5 checklist and progress log. AUDIT: AUD-10, AUD-11, AUD-12 closed (CI pending); doc comments in `SplineSolver.ts`/`WasmBridge.ts`/`WasmWorkerPool.ts`/`CurveEditor.tsx` updated from "decision pending" to recording the concluded decision.
+
+---
+
 ## [2.6.0] — 2026-09-25
 
 ### Phases 3 & 4: ✅ complete — CI green on PR #7

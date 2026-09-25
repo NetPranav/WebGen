@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body>
+<script src="./engine.js"></script>
+<script src="./spline-solver.bundle.js"></script>
+<script>
+/**
+ * ROADMAP Sub-Phase 5.3 — Wasm vs TypeScript benchmark.
+ *
+ * Workload: "200 tracks x 120 samples" (the ROADMAP's own sizing) — 200
+ * wire splines, each with a 120-sample arc-length table, run once per
+ * frame. That is exactly what the Blueprint canvas (WasmCableCanvas.tsx)
+ * and the Sequencer's per-frame path sampling both do.
+ *
+ * window.runBenchmark() returns { wasm, ts } timing stats after warming up
+ * both paths (JIT/Wasm-instantiation warmup) and then timing FRAMES
+ * repetitions of the full 200x120 workload, each rep timed with
+ * performance.now().
+ */
+const WIRE_COUNT = 200;
+const SAMPLES_PER_WIRE = 120;
+const WARMUP_FRAMES = 20;
+const TIMED_FRAMES = 60;
+
+function makeWires(count) {
+  const wires = [];
+  for (let i = 0; i < count; i++) {
+    wires.push({
+      start: { x: (i * 37) % 900, y: (i * 53) % 600 },
+      end: { x: ((i * 37) + 260) % 900, y: ((i * 53) + 180) % 600 },
+    });
+  }
+  return wires;
+}
+
+const wires = makeWires(WIRE_COUNT);
+
+function runTsFrame() {
+  const S = TSEngine.SplineSolver;
+  let acc = 0;
+  for (const w of wires) {
+    const result = S.calculateWireSpline(w.start, w.end, { tension: 0.5, minTangent: 45, loopOffset: 60 });
+    const table = S.buildArcLengthTable(result.p0, result.p1, result.p2, result.p3, SAMPLES_PER_WIRE);
+    // Touch the table so V8 can't dead-code-eliminate the work.
+    acc += table.totalLength;
+    const pts = S.sampleUniformPoints(result.p0, result.p1, result.p2, result.p3, 12, table);
+    acc += pts.length;
+  }
+  return acc;
+}
+
+function runWasmFrame(Module) {
+  const S = Module.SplineSolver;
+  let acc = 0;
+  for (const w of wires) {
+    const cfg = { tension: 0.5, minTangent: 45, loopOffset: 60 };
+    const result = S.calculateWireSpline(w.start, w.end, cfg);
+    const table = S.buildArcLengthTable(result.p0, result.p1, result.p2, result.p3, SAMPLES_PER_WIRE);
+    acc += table.totalLength;
+    const pts = S.sampleUniformPoints(result.p0, result.p1, result.p2, result.p3, 12, table);
+    acc += pts.size();
+    pts.delete?.();
+  }
+  return acc;
+}
+
+function timeFrames(frameFn, warmup, timed) {
+  for (let i = 0; i < warmup; i++) frameFn();
+  const samples = [];
+  for (let i = 0; i < timed; i++) {
+    const t0 = performance.now();
+    frameFn();
+    samples.push(performance.now() - t0);
+  }
+  samples.sort((a, b) => a - b);
+  const sum = samples.reduce((a, b) => a + b, 0);
+  return {
+    meanMs: sum / samples.length,
+    medianMs: samples[Math.floor(samples.length / 2)],
+    minMs: samples[0],
+    maxMs: samples[samples.length - 1],
+    samples,
+  };
+}
+
+// Batch variant: one JS<->Wasm boundary crossing for all 200 wires (the
+// path WasmBridge.getSplineSolver().calculateBatchSplines() actually takes
+// with useSimd=true), instead of ~3 crossings x 200 wires above. Tests
+// whether marshalling overhead (not raw math) explains the per-wire result.
+function runTsBatchFrame() {
+  const S = TSEngine.SplineSolver;
+  const input = wires.map((w, i) => ({ id: String(i), start: w.start, end: w.end }));
+  const out = S.calculateBatchVectorized(input);
+  return out.size;
+}
+
+function runWasmBatchFrame(Module) {
+  const S = Module.SplineSolver;
+  const starts = new Module.VectorPoint2D();
+  const ends = new Module.VectorPoint2D();
+  for (const w of wires) {
+    starts.push_back(w.start);
+    ends.push_back(w.end);
+  }
+  const cfg = { tension: 0.5, minTangent: 45, loopOffset: 60 };
+  const out = S.calculateBatchSIMD(starts, ends, cfg);
+  const n = out.size();
+  starts.delete();
+  ends.delete();
+  out.delete();
+  return n;
+}
+
+window.runBenchmark = async function () {
+  const Module = await createEngineWasmModule();
+  const ts = timeFrames(runTsFrame, WARMUP_FRAMES, TIMED_FRAMES);
+  const wasm = timeFrames(() => runWasmFrame(Module), WARMUP_FRAMES, TIMED_FRAMES);
+  const tsBatch = timeFrames(runTsBatchFrame, WARMUP_FRAMES, TIMED_FRAMES);
+  const wasmBatch = timeFrames(() => runWasmBatchFrame(Module), WARMUP_FRAMES, TIMED_FRAMES);
+  return {
+    workload: { wireCount: WIRE_COUNT, samplesPerWire: SAMPLES_PER_WIRE, timedFrames: TIMED_FRAMES },
+    perWireCalls: { ts, wasm, speedup: ts.medianMs / wasm.medianMs },
+    batchCall: { ts: tsBatch, wasm: wasmBatch, speedup: tsBatch.medianMs / wasmBatch.medianMs },
+  };
+};
+</script>
+</body>
+</html>

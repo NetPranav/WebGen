@@ -1,8 +1,15 @@
 /**
  * ============================================================================
- * MULTITHREADED WASM WORKER POOL & FRAME SYNCHRONIZATION ENGINE
+ * MULTITHREADED WORKER POOL & FRAME SYNCHRONIZATION ENGINE
  * ============================================================================
  * Architecture Ref: Detailed Roadmap.md §Sub-Phase 4.6
+ *
+ * The "Wasm" in this class's name is permanently aspirational, not current:
+ * the workers run the real, genuinely multithreaded `SplineSolver` — as
+ * TypeScript, same as everywhere else. ROADMAP Sub-Phase 5.3 (AUD-12)
+ * benchmarked the C++ kernel and decided **No-Go**; see
+ * `DOCS/Initial/decisions/0001-wasm.md`. Nothing here loads a compiled Wasm
+ * module, and nothing ever will unless that decision is revisited.
  *
  * Capabilities:
  *   1. Dedicated Web Worker pool (2-8 workers, auto-scaled to hardware concurrency)

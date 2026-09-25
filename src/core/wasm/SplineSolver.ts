@@ -1,9 +1,13 @@
 /**
  * ============================================================================
- * SPLINE SOLVER (C++ WebAssembly Math Bridge - Unreal Engine FConnectionDrawingPolicy)
+ * SPLINE SOLVER (TypeScript — Unreal Engine FConnectionDrawingPolicy port)
  * ============================================================================
- * Zero-latency TypeScript implementation matching wasm/src/SplineSolver.cpp 1-to-1.
- * 
+ * This is the real, only implementation, permanently: ROADMAP Sub-Phase 5.3
+ * (AUD-12) benchmarked the C++ port of this file against Wasm and decided
+ * **No-Go** (never reliably ≥ 2x faster; see `DOCS/Initial/decisions/0001-wasm.md`).
+ * The C++ source is archived at `DOCS/Initial/decisions/0001-wasm-archive/`,
+ * not built by anything.
+ *
  * Features:
  * - Dynamic Hermite/Bezier tangent scaling based on distance (tension: 0.5)
  * - Minimum tangent clamping (minTangent: 45px) for crisp horizontal exit from pins

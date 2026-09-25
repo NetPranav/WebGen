@@ -369,9 +369,12 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <span>{branchName}</span>
         </div>
 
-        <div className="studio-header__badge" title="C++ WebAssembly Engine linked">
+        <div
+          className="studio-header__badge"
+          title="TypeScript spline/physics engine (ROADMAP Sub-Phase 5.3 decided against Wasm: DOCS/Initial/decisions/0001-wasm.md)"
+        >
           <Activity size={12} style={{ color: "var(--accent-success)" }} />
-          <span>Wasm 120 FPS</span>
+          <span>TypeScript 120 FPS</span>
         </div>
 
         {/* Demo Stash / Canvas State Switcher */}
