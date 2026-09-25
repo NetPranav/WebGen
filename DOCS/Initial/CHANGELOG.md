@@ -9,9 +9,9 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [2.9.0] — 2026-09-25
 
-### Phase 42 (Canonical Property Paths & Geometry Model): implemented, awaiting CI
+### Phase 42 (Canonical Property Paths & Geometry Model): complete — CI green on PR #11
 
 #### Changed
 - **Schema v3** (`SCHEMA_VERSION = 3`). Layer prop keys, state keys and track paths must be canonical `properties.ts` paths legal for the layer's archetype. `document.artboard` is removed: top-level layers are frames. Geometry (`frame.*`, `sizing.*`, `positioning`) is stored on layers, and its values are type-checked.

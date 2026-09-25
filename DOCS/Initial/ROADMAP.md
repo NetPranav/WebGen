@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.1.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phases 1–6 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, all 3 browsers). In progress: Phase 42 (started ahead of the rest of 41 because it blocks Phase 7). Then 7, with 41.1/41.3 and 43 → 44 still open from Stage 1. See §5.1.
+**Status:** Active. Phases 1–6 and 42 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, PR #11 for 42, all 3 browsers). Next: Phase 7 (its prerequisite 42 is done). 41.1/41.3 and 43 → 44 are still open from Stage 1. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -160,7 +160,7 @@ A phase is **✅ COMPLETE** only when:
 | 39 | G | Simple Mode & Guided Flow | Draw → Pick motion → Export in 3 steps; new onboarding | 22, 25, 37 | 📋 |
 | 40 | H · Release | Initial Phase v2 Release Gate | PRD §11 DoD proven end to end | all (incl. 58) | 📋 |
 | 41 | S · Studio Architecture | Store Decomposition & Transaction API | Small document store, gesture transactions, per-layer subscriptions | 2 · *before 3* | 🚧 41.2 done (with Phase 3) |
-| 42 | S | Canonical Property Paths & Geometry Model | One property vocabulary; `frame` + sizing on every layer; schema v3 | 2 · *before 7, 20, 48* | 🚧 implemented, gate passes locally; awaiting CI |
+| 42 | S | Canonical Property Paths & Geometry Model | One property vocabulary; `frame` + sizing on every layer; schema v3 | 2 · *before 7, 20, 48* | ✅ (CI green on PR #11) |
 | 43 | S | Command Bus, Tool State Machine & Keymap | One command registry, focus-aware keys, tool state machines | 41 · *before 20* | 📋 |
 | 44 | S | Workspace Architecture & Layout Presets | Figma-style side panels + AE bottom timeline; Design / Animate / Code presets | 6, 43 · *before 20* | 📋 |
 | 45 | S | Transport, Global Clock & Frame Scheduler | One clock, one rAF loop, no per-frame React renders | 9, 41 · *before 10* | 📋 |
@@ -1138,19 +1138,19 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 **Closes:** AUD-31, AUD-32 · **Depends on:** 2 · **Runs before:** 7, 20, 48
 
 ### Sub-Phase 42.1: Property Registry
-- [~] `src/core/document/properties.ts`: for each canonical path (`frame.x`, `transform.y`, `fill.color`, `corner.radius`, `text.fontSize`, …) it declares the value type, unit, default, CSS mapping, compositing class (GPU / paint / layout), whether it is animatable, and the archetypes that have it.
-- [~] Static props, state snapshots, tracks, links and the inspector all address properties by these paths. The per-archetype prop validation left open in Phase 2 lands here. *(Links arrive with Phase 47 and will use the same paths.)*
+- [x] `src/core/document/properties.ts`: for each canonical path (`frame.x`, `transform.y`, `fill.color`, `corner.radius`, `text.fontSize`, …) it declares the value type, unit, default, CSS mapping, compositing class (GPU / paint / layout), whether it is animatable, and the archetypes that have it.
+- [x] Static props, state snapshots, tracks, links and the inspector all address properties by these paths. The per-archetype prop validation left open in Phase 2 lands here. *(Links arrive with Phase 47 and will use the same paths.)*
 
 ### Sub-Phase 42.2: Migration to Schema v3
-- [~] An alias table (`transform.translateY → transform.y`, `backgroundColor → fill.color`, `borderRadius → corner.radius`, …) and a `v2 → v3` migration covering layer props, tracks, states and the 51 presets.
-- [~] Unknown paths are a validation error with the closest valid path suggested.
+- [x] An alias table (`transform.translateY → transform.y`, `backgroundColor → fill.color`, `borderRadius → corner.radius`, …) and a `v2 → v3` migration covering layer props, tracks, states and the 51 presets.
+- [x] Unknown paths are a validation error with the closest valid path suggested.
 
 ### Sub-Phase 42.3: Geometry
-- [~] Every visual layer has `frame { x, y, width, height, rotation }` in parent space, `sizing { horizontal, vertical: "fixed" | "hug" | "fill" }` and `positioning: "absolute" | "flow"` (flow means it sits inside an auto-layout parent, Phase 50).
-- [~] The artboard/frame is a layer with geometry, not a document-level special case, which prepares multi-frame canvases (Phase 49).
+- [x] Every visual layer has `frame { x, y, width, height, rotation }` in parent space, `sizing { horizontal, vertical: "fixed" | "hug" | "fill" }` and `positioning: "absolute" | "flow"` (flow means it sits inside an auto-layout parent, Phase 50).
+- [x] The artboard/frame is a layer with geometry, not a document-level special case, which prepares multi-frame canvases (Phase 49).
 
 ### Sub-Phase 42.4: Layout vs Motion Transform (Decision Record)
-- [~] `decisions/0003-geometry-vs-transform.md`: `frame` is **layout** (what Figma edits: moving a layer on the canvas changes `frame`). `transform.*` is **motion offset** (what the timeline animates, composed on top of `frame`, GPU-only). This keeps animation off layout properties by default, the web equivalent of AE's Position and Anchor. Animating `frame.*` is allowed only when the rules (Phase 8) accept the layout cost.
+- [x] `decisions/0003-geometry-vs-transform.md`: `frame` is **layout** (what Figma edits: moving a layer on the canvas changes `frame`). `transform.*` is **motion offset** (what the timeline animates, composed on top of `frame`, GPU-only). This keeps animation off layout properties by default, the web equivalent of AE's Position and Anchor. Animating `frame.*` is allowed only when the rules (Phase 8) accept the layout cost.
 
 **Key files:** `src/core/document/properties.ts`, `src/core/document/schema.ts`, `src/core/document/migrations/v2-to-v3.ts`, `src/core/motion/presets/*`
 **Verification Gate:** A test walks every preset, factory, fixture and emitter template and finds no property path outside the registry. 500 random v2 documents migrate to v3 and round-trip unchanged. A Playwright screenshot of the migrated demo project matches the pre-migration one. Scrubbing a preset that uses `translateY` now moves the layer (regression for §4.1 row 4).
@@ -1168,7 +1168,9 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
   - unknown paths get a suggestion (`transfrom.y` → `transform.y`);
   - prototype keys aren't treated as aliases.
 
-**2026-09-25: 🚧 all four sub-phases implemented and the gate passes locally; waiting on CI (all items `[~]` until then).**
+**2026-09-25: ✅ Phase 42 complete. CI green on PR #11** (`verify`, `e2e` on push and pull_request, `export-harness`, all 3 browsers). One CI round-trip: Linux Chromium showed 9 px differing in the migration pixel test, at the stage toolbar's pulsing HOT RELOAD dot (editor chrome; the document render and the migrated document were identical). Playwright's `animations: "disabled"` didn't pin that dot there, so the test now removes chrome animations before capturing. It passed 9/9 locally (3 repeats × 3 browsers), then in CI.
+
+**Implementation notes (written before CI):**
 - **42.2 schema v3 `[~]`**: `migrations/v2-to-v3.ts` is chained after v1 → v2. Every layer prop key, state key and track path moves onto its canonical path, resolved per archetype. The migration also:
   - splits legacy objects and v1 style blocks into leaf paths;
   - rescales image `opacity`, including its keyframes.
