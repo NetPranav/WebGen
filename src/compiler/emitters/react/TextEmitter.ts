@@ -84,7 +84,7 @@ export class TextEmitter {
     const tsxCode = `"use client";
 
 import React from "react";
-${!isTailwind ? `import styles from "./${name}.module.css";\n` : ""}
+${!isTailwind ? `import styles from "./${componentName}.module.css";\n` : ""}
 export interface ${componentName}Props {
   text?: string;
   className?: string;

@@ -123,6 +123,49 @@ export interface ProjectStateSnapshot {
 /** A stored snapshot from any schema version (v1 kept an `elements` map and `target`). */
 export type LegacyProjectSnapshot = Omit<ProjectStateSnapshot, "document"> & DocumentSource;
 
+/** Snapshot keys that project history entries swap: everything except the project's identity and the document. */
+const PROJECT_STATE_KEYS = [
+  "projectName",
+  "scope",
+  "rootArchetype",
+  "activePageId",
+  "pages",
+  "databaseSchemas",
+  "databaseRecords",
+  "stateVariables",
+  "animationSamples",
+  "bindings",
+  "databaseLatches",
+  "blueprintGraphs",
+  "activeBlueprintGraphId",
+  "redirectRules",
+  "environment",
+] as const satisfies readonly (keyof ProjectStateSnapshot)[];
+
+function pickProjectState(snapshot: ProjectStateSnapshot, includeDocument: boolean): Record<string, unknown> {
+  const state: Record<string, unknown> = {};
+  for (const key of PROJECT_STATE_KEYS) state[key] = snapshot[key];
+  if (includeDocument) state.document = snapshot.document;
+  return state;
+}
+
+/** The live non-document project state (plus the document when asked), for history swaps. */
+export function captureProjectState(includeDocument = false): Record<string, unknown> {
+  return pickProjectState(useProjectStore.getState().getSnapshot(), includeDocument);
+}
+
+/**
+ * Records an undo step for a project-level action (pages, blueprints,
+ * databases …) from the snapshot taken *before* it. Pass `includesDocument`
+ * when the action also writes document data outside the document commands.
+ */
+function recordProjectChange(label: string, before: ProjectStateSnapshot, options: { includesDocument?: boolean } = {}) {
+  useHistoryStore.getState().record({
+    actionLabel: label,
+    change: { kind: "project", state: pickProjectState(before, options.includesDocument ?? false) },
+  });
+}
+
 export interface ProjectStoreState extends ProjectStateSnapshot {
   environment: WorldEnvironmentSettings;
 
@@ -266,9 +309,6 @@ export interface ProjectStoreState extends ProjectStateSnapshot {
   getSnapshot: () => ProjectStateSnapshot;
   /** Restores a snapshot; v1 snapshots (with `elements`) are migrated on the way in. */
   restoreSnapshot: (snapshot: ProjectStateSnapshot | LegacyProjectSnapshot) => void;
-  undo: () => void;
-  redo: () => void;
-  jumpToHistoryState: (transactionId: string) => void;
 }
 
 const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
@@ -676,20 +716,19 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   },
 
   mountDemoProject: () => {
-    const showcase = createShowcaseSnapshot();
-    get().restoreSnapshot(showcase);
-    useHistoryStore.getState().pushState("Mount Showcase Demo", showcase);
+    const before = get().getSnapshot();
+    get().restoreSnapshot(createShowcaseSnapshot());
+    recordProjectChange("Mount Showcase Demo", before, { includesDocument: true });
   },
 
   clearToBlankCanvas: () => {
-    const blank = createBlankCanvasSnapshot();
-    get().restoreSnapshot(blank);
-    useHistoryStore.getState().pushState("Clear Canvas", blank);
+    const before = get().getSnapshot();
+    get().restoreSnapshot(createBlankCanvasSnapshot());
+    recordProjectChange("Clear Canvas", before, { includesDocument: true });
   },
 
   insertGeneratedComponent: (layers, rootId, actionLabel = "Insert AI Component") => {
-    const snapshot = get().getSnapshot();
-    useHistoryStore.getState().pushState(actionLabel, snapshot);
+    recordProjectChange(actionLabel, get().getSnapshot(), { includesDocument: true });
 
     set((state) => {
       const nextLayers = { ...state.document.layers };
@@ -727,7 +766,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
 
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => ({
@@ -760,7 +799,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
 
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -788,7 +827,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   deleteStateVariable: (id, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -801,7 +840,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   addDatabaseCollection: (schema, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => ({
@@ -817,7 +856,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   deleteDatabaseCollection: (collectionName, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -834,7 +873,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   addFieldToCollection: (collectionName, field, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -861,7 +900,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   deleteFieldFromCollection: (collectionName, fieldName, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -888,7 +927,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   addDatabaseRecord: (collectionName, record, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -911,7 +950,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   updateDatabaseRecord: (collectionName, recordIndex, updatedFields, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -941,7 +980,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   deleteDatabaseRecord: (collectionName, recordIndex, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -966,7 +1005,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   addDatabaseLatch: (latch, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     set((state) => ({
       databaseLatches: {
@@ -980,7 +1019,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   removeDatabaseLatch: (targetKey, latchId, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     set((state) => ({
       databaseLatches: {
@@ -994,7 +1033,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   registerBinding: (binding, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => ({
@@ -1012,7 +1051,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   unregisterBinding: (bindingId, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => {
@@ -1027,7 +1066,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   registerAnimationSample: (sample, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((state) => ({
@@ -1044,7 +1083,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     const newGraph = ASTManager.createGraph(graphId, name, type);
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     set((state) => ({
       blueprintGraphs: {
@@ -1068,7 +1107,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     }
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     const { graph: updatedGraph, node } = ASTManager.addNode(graph, typeId, position, customParams);
     set((s) => ({
@@ -1086,7 +1125,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     if (!graph) return;
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     const updatedGraph = ASTManager.removeNode(graph, nodeId);
     set((s) => ({
@@ -1103,7 +1142,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     if (!graph) return;
     if (actionLabel) {
       const snapshot = state.getSnapshot();
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     const updatedGraph = ASTManager.moveNode(graph, nodeId, position);
     set((s) => ({
@@ -1124,7 +1163,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       return { success: false, error: result.error || "Failed to connect pins." };
     }
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     set((s) => ({
       blueprintGraphs: {
@@ -1141,7 +1180,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     if (!graph) return;
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     const updatedGraph = ASTManager.disconnectWire(graph, wireId);
     set((s) => ({
@@ -1158,7 +1197,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     if (!graph) return;
     if (actionLabel) {
       const snapshot = state.getSnapshot();
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     const updatedGraph = ASTManager.setPinLiteralValue(graph, nodeId, pinId, value);
     set((s) => ({
@@ -1175,7 +1214,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     if (!graph) return;
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     const { graph: updatedGraph } = ASTManager.addVariable(graph, variable);
     set((s) => ({
@@ -1192,7 +1231,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     if (!graph) return;
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     const updatedGraph = ASTManager.updateVariable(graph, varId, updates);
     set((s) => ({
@@ -1209,7 +1248,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     if (!graph) return;
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     const updatedGraph = ASTManager.removeVariable(graph, varId);
     set((s) => ({
@@ -1242,7 +1281,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   loadBlueprintGraph: (graph, actionLabel) => {
     const snapshot = get().getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
     set((s) => ({
       blueprintGraphs: {
@@ -1294,7 +1333,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       });
 
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot, { includesDocument: true });
     }
 
     set((s) => ({
@@ -1317,7 +1356,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
 
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     const updatedSlug = updates.slug !== undefined ? normalizeRouteSlug(updates.slug) : existingPage.slug;
@@ -1351,7 +1390,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
 
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     const nextPages = { ...state.pages };
@@ -1397,7 +1436,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       : createLayer({ id: newRootId, archetype: "container", name: `${duplicatedPage.name} Container`, properties: {} });
 
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot, { includesDocument: true });
     }
 
     set((s) => ({
@@ -1464,7 +1503,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     };
 
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((s) => ({
@@ -1484,7 +1523,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
 
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     set((s) => ({
@@ -1504,36 +1543,12 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     const state = get();
     const snapshot = state.getSnapshot();
     if (actionLabel) {
-      useHistoryStore.getState().pushState(actionLabel, snapshot);
+      recordProjectChange(actionLabel, snapshot);
     }
 
     const nextRules = { ...state.redirectRules };
     delete nextRules[id];
 
     set({ redirectRules: nextRules });
-  },
-
-  undo: () => {
-    const currentSnapshot = get().getSnapshot();
-    const previousSnapshot = useHistoryStore.getState().undo(currentSnapshot) as ProjectStateSnapshot | null;
-    if (previousSnapshot) {
-      get().restoreSnapshot(previousSnapshot);
-    }
-  },
-
-  redo: () => {
-    const currentSnapshot = get().getSnapshot();
-    const nextSnapshot = useHistoryStore.getState().redo(currentSnapshot) as ProjectStateSnapshot | null;
-    if (nextSnapshot) {
-      get().restoreSnapshot(nextSnapshot);
-    }
-  },
-
-  jumpToHistoryState: (transactionId: string) => {
-    const currentSnapshot = get().getSnapshot();
-    const targetSnapshot = useHistoryStore.getState().jumpToState(transactionId, currentSnapshot) as ProjectStateSnapshot | null;
-    if (targetSnapshot) {
-      get().restoreSnapshot(targetSnapshot);
-    }
   },
 }));

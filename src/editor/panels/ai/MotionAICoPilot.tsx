@@ -196,9 +196,11 @@ export const MotionAICoPilot: React.FC<MotionAICoPilotProps> = ({ onClose, style
     if (!issue.fixAction) return;
     if (!activeElement) return;
     const { propsPatch, updatedAnimations } = issue.fixAction();
-    // One undo step: the labelled command records the snapshot before both changes.
-    documentCommands.updateProps(activeElement.id, propsPatch, `Auto-fix: ${issue.title}`);
+    // One undo step for both changes.
+    const tx = documentCommands.begin(`Auto-fix: ${issue.title}`);
+    documentCommands.updateProps(activeElement.id, propsPatch);
     documentCommands.setLayerClips(activeElement.id, updatedAnimations);
+    tx.commit();
     setNotification(`Resolved: ${issue.title}`);
     setTimeout(() => setNotification(null), 3000);
   };

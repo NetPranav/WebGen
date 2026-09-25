@@ -1,0 +1,38 @@
+# ROADMAP Phase 4.2 — the export build harness compiles real emitter output
+# through 4 pinned fixture apps (Next 16 App Router, Vite React, Vite Vue,
+# vanilla). It's too slow for every commit, so per the phase spec it runs
+# nightly plus on PRs that touch the exporters themselves.
+name: Export Build Harness
+
+on:
+  schedule:
+    - cron: "17 4 * * *" # nightly
+  pull_request:
+    paths:
+      - "src/compiler/**"
+      - "src/core/document/schema.ts"
+      - "src/core/types/animations.ts"
+      - "tests/export-harness/**"
+  workflow_dispatch:
+
+concurrency:
+  group: export-harness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install (root + fixture workspaces)
+        run: npm ci
+
+      - name: Export build harness (with self-test)
+        run: npm run export-harness -- --self-test

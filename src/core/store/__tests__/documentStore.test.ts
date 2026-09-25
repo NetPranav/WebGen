@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { applyPatches } from "immer";
 import { useProjectStore } from "../useProjectStore";
 import { useHistoryStore } from "../useHistoryStore";
-import { documentCommands, getDocument, subscribeToDocumentChanges, type DocumentChange } from "../useDocumentStore";
+import { documentCommands, getDocument, historyCommands, subscribeToDocumentChanges, type DocumentChange } from "../useDocumentStore";
 import { createDocumentFromLayers, createLayer, getLayerClips } from "../../document/factories";
 import { validateMotionDocument, type ClipTemplate } from "../../document/schema";
 
@@ -107,12 +107,12 @@ describe("documentCommands", () => {
     assert.equal(getDocument().layers.bad, undefined);
   });
 
-  it("labelled commands record one undo step; unlabelled ones do not", () => {
+  it("every command records one undo step (unlabelled ones as \"Edit\")", () => {
     documentCommands.updateProps("label", { textContent: "draft" });
-    assert.equal(useHistoryStore.getState().past.length, 0);
+    assert.equal(useHistoryStore.getState().getLastActionLabel(), "Edit");
     documentCommands.updateProps("label", { textContent: "final" }, "Edit text");
-    assert.equal(useHistoryStore.getState().past.length, 1);
-    useProjectStore.getState().undo();
+    assert.equal(useHistoryStore.getState().past.length, 2);
+    historyCommands.undo();
     assert.equal(getDocument().layers.label.properties.textContent, "draft");
   });
 });

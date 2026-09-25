@@ -7,7 +7,7 @@ import { EventBus } from "../../events/EventBus";
 import { ConnectionPipeline } from "../../engine/ConnectionPipeline";
 import { DiagnosticBus } from "../../engine/DiagnosticBus";
 import { StateVariableValidator } from "../../engine/StateVariableValidator";
-import { documentCommands } from "@/core/store/useDocumentStore";
+import { documentCommands, historyCommands } from "@/core/store/useDocumentStore";
 
 test("useProjectStore: Initializes with default pages, elements, and schemas", () => {
   const state = useProjectStore.getState();
@@ -35,7 +35,7 @@ test("useProjectStore: Mutates element properties and pushes undo history", () =
   assert.equal(useHistoryStore.getState().getLastActionLabel(), "Edit Hero Heading");
 
   // Undo
-  useProjectStore.getState().undo();
+  historyCommands.undo();
   assert.equal(
     useProjectStore.getState().document.layers["el_hero_heading"].properties.textContent,
     initialTitle
@@ -43,7 +43,7 @@ test("useProjectStore: Mutates element properties and pushes undo history", () =
   assert.equal(useHistoryStore.getState().canRedo(), true);
 
   // Redo
-  useProjectStore.getState().redo();
+  historyCommands.redo();
   assert.equal(
     useProjectStore.getState().document.layers["el_hero_heading"].properties.textContent,
     "NextGen Studio"

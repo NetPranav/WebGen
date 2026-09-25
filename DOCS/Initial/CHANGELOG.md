@@ -9,6 +9,95 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.0] — 2026-09-25
+
+### Phases 3 & 4: ✅ complete — CI green on PR #7
+
+Phase 3 (Store, History & Persistence) and Phase 4 (Real-Environment Verification Harness) close together: Phase 3's own persistence gate moved into the Phase 4 Playwright harness, so both shipped on one branch/PR and one CI run.
+
+#### Fixed (found by the first real CI run, ubuntu-latest — everything before this had only run on macOS)
+- **AUD-42:** `parity.spec.ts`'s pixel-diff threshold (1%) was too tight for real cross-platform headless-Chromium rendering — 0% match on all 5 samples locally, a deterministic 2.39% diff at one sample on Linux CI. Not an exporter bug (confirmed against the much larger divergence the "wrong easing" regression test produces). Raised to 4%.
+- **AUD-43:** the `nextjs-app` export-harness fixture typechecked *before* `next build`/`next dev` ever ran there, so on a genuinely fresh checkout it never had `next-env.d.ts` (gitignored, auto-generated) and every `*.module.css` import failed with `TS2307`. Every prior local pass was really testing a stale leftover file from an earlier manual `next build`. Fixed by committing a static `next-env.d.ts` for that one fixture.
+- `tests/export-harness/build.mts`'s `check()` swallowed the actual `tsc`/bundler error on failure, showing only a bare "FAIL" — the first CI failure was undiagnosable until this was fixed. Failures now print the captured output.
+
+#### Docs
+- ROADMAP: Phase 3 and Phase 4 marked ✅ with the CI evidence (PR #7, all 3 browser projects, `verify` + `e2e` + `export-harness` jobs). AUDIT: AUD-05, AUD-08, AUD-15, AUD-16 close out their CI-pending caveats; new findings AUD-42 and AUD-43, both closed in this same PR.
+
+---
+
+## [2.5.0] — 2026-09-24
+
+### Phase 4 (Real-Environment Verification Harness): gate passed locally in 3 browsers, CI pending
+
+#### Added
+- **Playwright harness** (`playwright.config.ts`): Chromium, Firefox and WebKit projects sharing one `next build && next start` server. `tests/e2e/support/{editor,clock}.ts` are the shared helpers (open/save/export the project, seek the Sequencer ruler exactly, install Playwright's native Clock API).
+- **`tests/e2e/phase3-persistence.spec.ts`**: Phase 3's gate, moved off the `PW_DIR`-driven `phase3-persistence.mjs` script and into this harness, so it now runs in CI.
+- **`tests/e2e/deterministic-clock.spec.ts`**: proves the fake-clock helper controls `requestAnimationFrame`/`performance.now` deterministically in isolation, that `seekRuler` reaches an exact playhead time repeatably, and keeps AUD-41 (below) falsifiable.
+- **Export build harness** (`tests/export-harness/`): `fixtures/{nextjs-app,vite-react,vue}` are pinned, minimal apps registered as npm workspaces (hoisting `next`/`react` from the root install); `fixtures/vanilla` needs no build step. `build.mts` writes real `CrossFrameworkExporter`/`VanillaHtmlEmitter` output for 4 reference elements (one per emitter family) into each fixture and runs `typecheck` + `build`; `--self-test` injects a syntax error and asserts the harness catches it.
+- **Pixel parity** (`tests/export-harness/parity.spec.ts`): the real `VanillaHtmlEmitter` markup animated two ways — an independent linear-interpolation oracle vs. the real `GSAPAnimationEmitter` output seeked with `tl.seek(t)` — diffed with `pixelmatch` at 5 sampled times (0/25/50/75/100%), ≤ 1% by default. A wrong-easing injection fails the mid-sample; the correct export passes all 5, on all 3 browsers. Screenshots and diffs are `testInfo.attach()`ed for the CI report.
+- **CI:** `.github/workflows/ci.yml` gets an `e2e` job (installs Playwright browsers, runs the full suite, uploads the HTML report). New `.github/workflows/export-harness.yml`: nightly, plus PRs touching `src/compiler/**`.
+- Dev dependencies: `@playwright/test`, `pixelmatch`, `pngjs`. New root `workspaces` field for the 3 buildable fixtures.
+
+#### Fixed
+- **`TextEmitter.emit()` threw `ReferenceError: name is not defined`** for every text/heading export with `stylingSystem: "css-modules"` (`TextEmitter.ts:87`, a stray `${name}` where the variable is `componentName`). Invisible to the existing emitter tests, which only ever used the default Tailwind styling — found by the export build harness within minutes of its first real run. Regression test added (`ArchetypeEmitters.test.ts`).
+
+#### Docs
+- ROADMAP: Phase 4 checklist and progress log; §5 and §5.1 updated (4 now runs between 3 and 5, not in parallel with them). AUDIT: new finding AUD-41 (the Sequencer's playback loop can't be driven deterministically by a fake clock — pre-existing, closed by Phase 45).
+
+#### Known gaps
+- The literal Phase 4.3 wording ("the editor Playground") doesn't apply yet — Phase 24 hasn't built it. The parity harness uses an independent oracle instead, same re-scoping pattern as Phase 3's AUD-05/AUD-40 note. The full editor-vs-export comparison is Phase 27's.
+- Only the vanilla + GSAP path carries animation through export end to end (what the parity harness needs). The React/Vue/Next exporters still don't wire `document.clips` into their output — that gap is tracked separately (AUD-40) and isn't Phase 4's to close.
+- The gates run locally against a production build; CI needs to go green on the PR before ✅.
+
+---
+
+## [2.4.0] — 2026-09-24
+
+### Phase 3 (Store, History & Persistence): gate passed locally in 3 browsers, CI pending
+
+#### Added
+- **Patch-based undo/redo** (`historyCommands` in `useDocumentStore.ts`, `useHistoryStore.ts`): document entries are Immer patches; After-track actions keep project-state entries that no longer copy the document. The stack holds 200 entries, and a corrupt entry is dropped with `[UNDO_STACK_CORRUPT]`.
+- **Transactions and gesture coalescing** (Phase 41.2): `documentCommands.begin(label)` with `commit()` / `cancel()`, transient vs durable change events, and `installGestureCoalescing(window)` so every pointer press is one undo step. Repeated value edits within 1 s merge; structural edits don't.
+- **`diffPatches`** (`src/core/document/diff.ts`): a structural diff to Immer patches that squashes transactions and merges.
+- **IndexedDB storage** (`src/core/storage/idb.ts`, `ProjectDatabase.ts`): projects, summaries and undo history, a one-time move from localStorage, and an in-memory fallback.
+- **`ProjectSession`**: load, debounced autosave (never mid-gesture), flush on tab hide and Cmd+S, a crash-recovery journal with a "Restore unsaved changes?" prompt, save status, and storage-full errors.
+- **`.lazy.json` files** (`lazyFile.ts`): versioned export/import with migration and validation. File → Export Project File / Import Project File, and drag-and-drop onto the window.
+- Global Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Ctrl+Y.
+- `tests/e2e/phase3-persistence.mjs` (browser gate), and 5 new unit suites. Dev dependency: `fake-indexeddb`.
+
+#### Changed
+- `useProjectStore` no longer has `undo` / `redo` / `jumpToHistoryState`; use `historyCommands`. Commands without a label are recorded as "Edit" (every durable change is undoable).
+- `ProjectDatabase` is async.
+- The Project Hub waits for the new project to be saved before navigating.
+
+#### Fixed
+- The undo/redo buttons and Cmd+Z did nothing. Undoing "Mount Showcase Demo" or "Clear Canvas" restored the demo instead of the previous state. A drag recorded ~60 full-project snapshots. There was no autosave, and the unsaved indicator never lit. The Co-pilot auto-fix took two undo steps.
+
+#### Docs
+- ROADMAP: Phase 3 checklist and progress log; 41.2 marked done; the AUD-05 Code view and Playground checks moved to Phases 27 and 24. AUDIT: AUD-05 and AUD-08 closed (CI pending); new findings AUD-39 and AUD-40.
+
+---
+
+## [2.3.0] — 2026-09-24
+
+### Roadmap v2.1: Track S (Studio Architecture), Phases 41–58
+
+Docs only; no code changed.
+
+#### Added
+- **ROADMAP §4.1 Architecture Review v2.1:** what stands between today's code and a Figma / Wix Studio canvas with an After Effects timeline, with code evidence and a target architecture diagram.
+- **Laws 8–11:** One Clock, Hot-Path, Document-Space, One Renderer.
+- **Track S, 18 phases:** 41 Store Decomposition & Transactions · 42 Canonical Property Paths & Geometry · 43 Command Bus & Tool State Machine · 44 Workspace Architecture & Layout Presets · 45 Transport, Global Clock & Frame Scheduler · 46 Compositions, Layer Time Bars & Nesting · 47 Property Links & Expressions · 48 Stage Renderer v2 · 49 Viewport Engine · 50 Auto-Layout, Constraints & Breakpoints · 51 Layer Compositing · 52 After Effects–Style Timeline · 53 On-Canvas Motion Editing · 54 Asset Pipeline & Media Layers · 55 Render Queue (video/GIF/Lottie) · 56 Workers & Hot-Path Performance · 57 Legacy Runtime Retirement · 58 Studio Architecture Integration Gate.
+- **§5.1 Execution Order:** phase numbers stay stable; the new phases slot in between existing ones (41 before 3, 48 before 10, 49 before 20, 52 before 23, 58 before 40).
+- **AUDIT §2.I:** AUD-29 … AUD-38 (string-iframe stage, no global clock, no geometry, three property vocabularies, `postMessage("*")` broadcast, one store for everything, shell layout state, no composition model, no asset pipeline, linear-only scrubbing).
+
+#### Changed
+- Phases 3, 7, 9, 10, 20, 22, 23, 24, 27, 35 and 40 carry a "v2.1 amendment" note describing how Track S changes them. Phase 23's timeline structure moves to Phase 52.
+- Milestones M1, M2, M4 and M5 now include Track S phases. New milestone M7.5 (Studio Proven).
+- Next phase is now 41, then 3.
+
+---
+
 ## [2.2.0] — 2026-09-24
 
 ### Phase 2 (Unified Motion Document Model): complete (CI green on PR #6)

@@ -2,13 +2,18 @@
 
 /**
  * ============================================================================
- * ADVANCED HISTORY & TRANSACTION SYSTEM CONTRACTS
+ * HISTORY CONTRACTS
  * ============================================================================
- * Pure TypeScript contracts for granular transaction tracking, action categories,
- * diff metadata, arbitrary state jumping, and action grouping.
- * Architecture Ref: ROADMAP.md §Sub-Phase 8.1 & PANELS.md §Panel 23
+ * ROADMAP Phase 3.1. A history entry records one undoable change:
+ *   - `document`: Immer patches plus inverse patches for the Motion Document.
+ *   - `project`:  a snapshot of non-document project state (pages, blueprints,
+ *                 databases …), swapped with the live state on undo/redo.
+ *                 It carries the document only when the action also replaced
+ *                 document data outside the document commands.
  * ============================================================================
  */
+
+import type { Patch } from "immer";
 
 export type HistoryActionCategory =
   | "canvas"
@@ -20,35 +25,29 @@ export type HistoryActionCategory =
   | "variable"
   | "general";
 
-export interface HistoryTransaction<T = unknown> {
+export type HistoryChange =
+  | { kind: "document"; patches: Patch[]; inversePatches: Patch[] }
+  | { kind: "project"; state: Record<string, unknown> };
+
+export interface HistoryTransaction {
   id: string;
   actionLabel: string;
   actionCategory: HistoryActionCategory;
   timestamp: number;
-  snapshot: T;
+  change: HistoryChange;
   entityId?: string;
   entityName?: string;
   propertyKey?: string;
   diffSummary?: string;
-  groupKey?: string;
+  /** Consecutive document entries with the same merge key (within the merge window) become one entry. */
+  mergeKey?: string;
   groupCount?: number;
 }
 
-export interface TransactionOptions<T = unknown> {
-  actionLabel: string;
-  actionCategory?: HistoryActionCategory;
-  snapshot: T;
-  entityId?: string;
-  entityName?: string;
-  propertyKey?: string;
-  diffSummary?: string;
-  groupKey?: string;
-}
-
-export interface HistoryTimeline<T = unknown> {
-  past: HistoryTransaction<T>[];
-  present: HistoryTransaction<T> | null;
-  future: HistoryTransaction<T>[];
+export interface HistoryTimeline {
+  past: HistoryTransaction[];
+  present: Pick<HistoryTransaction, "id" | "actionLabel" | "actionCategory" | "timestamp"> | null;
+  future: HistoryTransaction[];
   totalCount: number;
 }
 

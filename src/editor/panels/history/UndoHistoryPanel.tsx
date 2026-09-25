@@ -12,7 +12,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { useHistoryStore } from "@/core/store/useHistoryStore";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { historyCommands } from "@/core/store/useDocumentStore";
 import { HistoryActionCategory, HistoryTransaction } from "@/core/types/history";
 import {
   History,
@@ -109,9 +109,9 @@ export const UndoHistoryPanel: React.FC = () => {
   const maxStackSize = useHistoryStore((s) => s.maxStackSize);
   const clearHistory = useHistoryStore((s) => s.clearHistory);
 
-  const undo = useProjectStore((s) => s.undo);
-  const redo = useProjectStore((s) => s.redo);
-  const jumpToHistoryState = useProjectStore((s) => s.jumpToHistoryState);
+  const undo = historyCommands.undo;
+  const redo = historyCommands.redo;
+  const jumpToHistoryState = historyCommands.jumpTo;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<HistoryActionCategory | "all">("all");
