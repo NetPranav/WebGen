@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.7.0] — 2026-09-25
 
-### Phase 5 (Dependency Reality & Wasm Decision): gate passed locally, CI pending
+### Phase 5 (Dependency Reality & Wasm Decision): ✅ complete — CI green on PR #8
 
 #### Added
 - Real dependencies: `motion@13.4.3`, `three@0.186.1`, `@react-three/fiber@9.8.1`, `@react-three/drei@10.7.8`, `@gsap/react@2.1.2`, `@types/three` (dev). `npm ls motion three @react-three/fiber` resolves; none are imported anywhere yet, so bundle growth is 0%.

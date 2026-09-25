@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.1.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phases 1–4 ✅ (CI green on PR #7, all 3 browsers). Phase 5 gate passed locally (✅ once CI is green on its PR). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then Phases 6 ∥ 42. See §5.1.
+**Status:** Active. Phases 1–5 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, all 3 browsers). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then Phase 6 ∥ 42. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -123,7 +123,7 @@ A phase is **✅ COMPLETE** only when:
 | 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | ✅ |
 | 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | ✅ (CI green on PR #7) |
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | ✅ (CI green on PR #7) |
-| 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | 🟡 gate passed locally; CI pending |
+| 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | ✅ (CI green on PR #8) |
 | 6 | A | Scope, Naming & Docs Cleanup | Initial bundle excludes After-track panels; one name; docs fixed | 1 | 📋 |
 | 7 | B · Motion Core | Motion Primitives: Tracks, Clips, States, Triggers, Behaviours | Formal animation model inside MDM | 2 | 📋 |
 | 8 | B | Executable Motion Rules Engine | Grammar + engine spec compiled into one rule table | 7 | 📋 |
@@ -405,7 +405,7 @@ None of these were exporter or animation bugs — all three are the harness's ow
 **Verification Gate:** `npm ls motion three @react-three/fiber` resolves. The editor's initial JS bundle grows ≤ 5% (engines are lazy). The Wasm decision record exists with benchmark numbers.
 
 ### Phase 5 Progress Log
-**2026-09-25: gate passed locally; ✅ once CI is green on the PR.**
+**2026-09-25: ✅ Phase 5 complete. CI green on PR #8** (`https://github.com/NetPranav/WebGen/pull/8`, `verify` + `e2e` jobs, both push and pull_request triggers, all passing).
 - `npm ls motion three @react-three/fiber` resolves clean (`motion@13.4.3`, `three@0.186.1`, `@react-three/fiber@9.8.1`, plus `@react-three/drei@10.7.8`, `@gsap/react@2.1.2`, `@types/three@0.186.0` as a devDependency since `three` ships no bundled types).
 - Bundle growth: 0%, not just ≤ 5% — verified by grepping `.next/static/chunks` for `three`/`motion` signature strings (`WebGLRenderer`, etc.) after a production build; none present, since nothing imports them yet.
 - `typecheck` 0 · `lint` 0 errors / 455 warnings (budget 463, **down** from 463 — deleting `Scene3DViewport.tsx`'s fake renderer removed more lint surface than this phase's other edits added) · 655/655 unit tests (unchanged — this phase touched no tested logic, only UI labels, a dead component's internals, and archived, previously-uncompiled C++) · `next build` green.
