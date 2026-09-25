@@ -28,6 +28,8 @@
   background-color: var(--canvas-bg);
   cursor: default;
   touch-action: none; /* Disables browser-level native document pinch-to-zoom */
+  container-type: inline-size;
+  container-name: stage;
 }
 
 .whiteboard-stage--panning,
@@ -130,8 +132,14 @@
 /* ----------------------------------------------------------------------------
  * Responsive Device Frame (Desktop, Tablet, Mobile)
  * ---------------------------------------------------------------------------- */
+/* Centered on world (0, 0) — the same point "recenter" brings to the middle of
+ * the viewport and the origin marker sits on — so the page preview opens
+ * centered instead of hanging off into the bottom-right quarter. */
 .device-frame-container {
   position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -697,11 +705,14 @@
   pointer-events: none;
 }
 
+/* Axis thickness and the origin marker are counter-scaled by the zoom so they
+ * stay a constant on-screen size (like Blender's 3D cursor) instead of fading
+ * to nothing when zoomed out. --canvas-zoom is inherited from .whiteboard-stage. */
 .canvas-axis-line--x {
   top: 0;
   left: -50000px;
   width: 100000px;
-  height: 1px;
+  height: calc(1px / var(--canvas-zoom, 1));
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -717,7 +728,7 @@
 .canvas-axis-line--y {
   top: -50000px;
   left: 0;
-  width: 1px;
+  width: calc(1px / var(--canvas-zoom, 1));
   height: 100000px;
   background: linear-gradient(
     180deg,
@@ -735,7 +746,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(calc(1 / var(--canvas-zoom, 1)));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -766,3 +777,44 @@
   transition: color 0.2s ease, opacity 0.2s ease;
 }
 
+/* ----------------------------------------------------------------------------
+ * Mobile & Narrow-Viewport Layout (<= 860px)
+ * The tool dock pill can exceed a phone's width once every tool is visible;
+ * cap it to the viewport and let it scroll horizontally instead of spilling
+ * off both edges.
+ * ---------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+  .floating-dock-wrapper {
+    left: 12px;
+    right: 12px;
+    transform: none;
+    display: flex;
+    justify-content: center;
+    pointer-events: none; /* the full-width wrapper shouldn't swallow canvas clicks */
+  }
+
+  .floating-dock {
+    pointer-events: auto;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .floating-dock::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+
+/* ----------------------------------------------------------------------------
+ * Narrow Stage (container query on .whiteboard-stage, not the window)
+ * When the stage gets narrow — small window, or a wide side panel — the
+ * centered tool dock and the bottom-right zoom pill collide. Stack the zoom
+ * pill above the dock on the right instead.
+ * ---------------------------------------------------------------------------- */
+@container stage (max-width: 900px) {
+  .zoom-controls {
+    bottom: 72px;
+    right: 12px;
+  }
+}

@@ -94,17 +94,17 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         }
         title={
           isAIOpen
-            ? "LayoutAI is currently docked. Click to remove from workspace."
-            : "Click to drag and attach LayoutAI into its designated right slot"
+            ? "LazyLayout AI is currently docked. Click to remove from workspace."
+            : "Click, then move toward the left or right edge to choose where LazyLayout AI docks"
         }
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon" style={{ color: "#206859" }}>
+          <span className="menu-item__icon" style={{ color: "var(--accent-primary)" }}>
             <Sparkles size={13} />
           </span>
-          <span style={{ fontWeight: 600, color: "#206859" }}>LayoutAI Assistant</span>
+          <span style={{ fontWeight: 600, color: "var(--accent-primary)" }}>LazyLayout AI</span>
         </span>
-        {isAIOpen && <Check size={13} className="menu-item__check" style={{ color: "#206859" }} />}
+        {isAIOpen && <Check size={13} className="menu-item__check" style={{ color: "var(--accent-primary)" }} />}
       </button>
 
       <button
@@ -207,7 +207,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "code") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><Code size={13} style={{ color: "#34D399" }} /></span>
+          <span className="menu-item__icon"><Code size={13} /></span>
           <span>Live Code Inspector</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+Shift+G</span>
@@ -219,7 +219,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "pages-manager") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><Compass size={13} style={{ color: "#38BDF8" }} /></span>
+          <span className="menu-item__icon"><Compass size={13} /></span>
           <span>Pages & Routing Manager</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+Shift+P</span>
@@ -231,7 +231,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "deploy") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><Rocket size={13} style={{ color: "#818CF8" }} /></span>
+          <span className="menu-item__icon"><Rocket size={13} /></span>
           <span>Deployment & Cloud Studio</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+Shift+D</span>
@@ -243,7 +243,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "global-search") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><Search size={13} style={{ color: "#6366F1" }} /></span>
+          <span className="menu-item__icon"><Search size={13} /></span>
           <span>Global Search (Find in Blueprints)</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+Shift+F</span>
@@ -255,7 +255,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "plugins") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><Boxes size={13} style={{ color: "#F59E0B" }} /></span>
+          <span className="menu-item__icon"><Boxes size={13} /></span>
           <span>Plugin Manager</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+Shift+X</span>
@@ -267,7 +267,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "history") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><History size={13} style={{ color: "#818CF8" }} /></span>
+          <span className="menu-item__icon"><History size={13} /></span>
           <span>Undo History</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+Shift+H</span>
@@ -279,7 +279,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "versioning") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><GitBranch size={13} style={{ color: "#A78BFA" }} /></span>
+          <span className="menu-item__icon"><GitBranch size={13} /></span>
           <span>Version Control & Snapshots</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+Shift+V</span>
@@ -291,7 +291,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("center", "dependencies") : undefined)}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><Network size={13} style={{ color: "#38BDF8" }} /></span>
+          <span className="menu-item__icon"><Network size={13} /></span>
           <span>Reference Viewer & Dependency Graph</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+Shift+R</span>
@@ -303,14 +303,14 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
         onClick={() => handleAction(() => window.dispatchEvent(new CustomEvent("antigravity:open_command_palette")))}
       >
         <span className="menu-item__left">
-          <span className="menu-item__icon"><Terminal size={13} style={{ color: "#34D399" }} /></span>
+          <span className="menu-item__icon"><Terminal size={13} /></span>
           <span>Command Palette...</span>
         </span>
         <span className="menu-item__shortcut">Ctrl+P</span>
       </button>
 
       <div className="menu-separator" />
-      <span className="menu-header-label">Workspace Presets (UI.md §5.2)</span>
+      <span className="menu-header-label">Workspace Presets</span>
 
       <button
         type="button"
@@ -334,6 +334,18 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
           <span>Design Workspace</span>
         </span>
         {activeWorkspace === "design" && <Check size={13} className="menu-item__check" />}
+      </button>
+
+      <button
+        type="button"
+        className="menu-item"
+        onClick={() => handleAction(() => onSelectWorkspace && onSelectWorkspace("animate"))}
+      >
+        <span className="menu-item__left">
+          <span className="menu-item__icon"><Film size={13} /></span>
+          <span>Animation Workspace</span>
+        </span>
+        {activeWorkspace === "animate" && <Check size={13} className="menu-item__check" />}
       </button>
 
       <button

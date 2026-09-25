@@ -25,6 +25,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { SectionRail, type SectionRailItem } from "./SectionRail";
 import {
   THEME_PALETTES,
   PaletteThemeId,
@@ -112,6 +113,20 @@ export const EnvironmentInspector: React.FC = () => {
     setSectionsOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  /** Rail click: expand the section (if collapsed) and scroll it into view. */
+  const jumpToSection = (key: string) => {
+    setSectionsOpen((prev) => ({ ...prev, [key]: true }));
+    document.getElementById(`env-section-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const railItems: SectionRailItem[] = [
+    { id: "viewport", icon: <Grid size={14} />, label: "Viewport & Grid" },
+    { id: "elements", icon: <Move size={14} />, label: "Element Interaction" },
+    { id: "snapping", icon: <Magnet size={14} />, label: "Snapping" },
+    { id: "theme", icon: <Palette size={14} />, label: "Theme & Tokens" },
+    { id: "motion", icon: <Gauge size={14} />, label: "Motion" },
+  ];
+
   const { viewport, elements, snapping, theme, motion, diagnostics } = environment;
 
   return (
@@ -161,8 +176,10 @@ export const EnvironmentInspector: React.FC = () => {
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="panel-content" style={{ padding: "12px", background: "#FFFFFF" }}>
+      {/* Section Rail + Scrollable Content */}
+      <div className="panel-body">
+        <SectionRail items={railItems} onSelect={jumpToSection} />
+        <div className="panel-content" style={{ padding: "12px", background: "#FFFFFF" }}>
         {/* ====================================================================
          * SECTION 7 / HERO: INSPECT MODE (PROP 20 - CHROME DEVTOOLS STYLE)
          * ==================================================================== */}
@@ -184,11 +201,12 @@ export const EnvironmentInspector: React.FC = () => {
               transition: "all 0.2s ease",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
               <div
                 style={{
                   width: "32px",
                   height: "32px",
+                  flexShrink: 0,
                   borderRadius: "8px",
                   background: diagnostics.inspectMode ? "#206859" : "#EBF5F3",
                   color: diagnostics.inspectMode ? "#FFFFFF" : "#206859",
@@ -200,8 +218,8 @@ export const EnvironmentInspector: React.FC = () => {
               >
                 <Eye size={16} />
               </div>
-              <div>
-                <div style={{ fontSize: "12.5px", fontWeight: 700, color: "#206859" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "12.5px", fontWeight: 700, color: "#206859", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   Inspect Mode (DevTools)
                 </div>
                 <div style={{ fontSize: "11px", color: "#475569" }}>
@@ -223,7 +241,7 @@ export const EnvironmentInspector: React.FC = () => {
         {/* ====================================================================
          * SECTION 1: VIEWPORT & GRID (PROPS 1-4)
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.viewport ? "panel-section--open" : ""}`} style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
+        <div id="env-section-viewport" className={`panel-section ${sectionsOpen.viewport ? "panel-section--open" : ""}`} style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
           <button type="button" className="panel-section__header" onClick={() => toggleSection("viewport")}>
             <div className="panel-section__title-group">
               <ChevronRight size={13} className="panel-section__chevron" style={{ color: sectionsOpen.viewport ? "#206859" : "#94A3B8" }} />
@@ -428,7 +446,7 @@ export const EnvironmentInspector: React.FC = () => {
         {/* ====================================================================
          * SECTION 2: ELEMENT TRANSFORM & CANVAS FLOW (PROPS 5-8)
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.elements ? "panel-section--open" : ""}`} style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
+        <div id="env-section-elements" className={`panel-section ${sectionsOpen.elements ? "panel-section--open" : ""}`} style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
           <button type="button" className="panel-section__header" onClick={() => toggleSection("elements")}>
             <div className="panel-section__title-group">
               <ChevronRight size={13} className="panel-section__chevron" style={{ color: sectionsOpen.elements ? "#206859" : "#94A3B8" }} />
@@ -567,7 +585,7 @@ export const EnvironmentInspector: React.FC = () => {
         {/* ====================================================================
          * SECTION 3: SNAPPING & ALIGNMENT (PROPS 9-11)
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.snapping ? "panel-section--open" : ""}`} style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
+        <div id="env-section-snapping" className={`panel-section ${sectionsOpen.snapping ? "panel-section--open" : ""}`} style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
           <button type="button" className="panel-section__header" onClick={() => toggleSection("snapping")}>
             <div className="panel-section__title-group">
               <ChevronRight size={13} className="panel-section__chevron" style={{ color: sectionsOpen.snapping ? "#206859" : "#94A3B8" }} />
@@ -743,7 +761,7 @@ export const EnvironmentInspector: React.FC = () => {
         {/* ====================================================================
          * SECTION 4: THEME & DESIGN SYSTEM DNA (PROPS 12-16)
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.theme ? "panel-section--open" : ""}`} style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
+        <div id="env-section-theme" className={`panel-section ${sectionsOpen.theme ? "panel-section--open" : ""}`} style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
           <button type="button" className="panel-section__header" onClick={() => toggleSection("theme")}>
             <div className="panel-section__title-group">
               <ChevronRight size={13} className="panel-section__chevron" style={{ color: sectionsOpen.theme ? "#206859" : "#94A3B8" }} />
@@ -953,7 +971,7 @@ export const EnvironmentInspector: React.FC = () => {
         {/* ====================================================================
          * SECTION 5: MOTION & SPRING PHYSICS (PROPS 17-19)
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.motion ? "panel-section--open" : ""}`}>
+        <div id="env-section-motion" className={`panel-section ${sectionsOpen.motion ? "panel-section--open" : ""}`}>
           <button type="button" className="panel-section__header" onClick={() => toggleSection("motion")}>
             <div className="panel-section__title-group">
               <ChevronRight size={13} className="panel-section__chevron" style={{ color: sectionsOpen.motion ? "#206859" : "#94A3B8" }} />
@@ -1144,6 +1162,7 @@ export const EnvironmentInspector: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

@@ -1,0 +1,168 @@
+/**
+ * ============================================================================
+ * LIVE CODE INSPECTOR STYLES
+ * ============================================================================
+ * UI Element: Panel 07 — Live Code Inspector Split-View
+ * Screen / Scope: `/editor` (Window > Live Code Inspector, Ctrl+Shift+G)
+ * Role: Dark code-viewer chrome (toolbar, tabs, code body, status bar).
+ * Styling Source: this file only — governs `.code-inspector` and children.
+ *
+ * NOTE: this file replaces a set of Tailwind utility classNames that never
+ * had any effect (Tailwind isn't installed in this project), which left the
+ * panel effectively unstyled at runtime.
+ * ============================================================================
+ */
+
+.code-inspector {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  background-color: var(--surface-code);
+  color: var(--text-code);
+  border-top: 1px solid var(--border-code);
+  font-family: var(--font-sans);
+}
+
+.code-inspector__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  border-bottom: 1px solid var(--border-code);
+  background: var(--surface-code-toolbar);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--text-xs);
+}
+
+.code-inspector__tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.code-inspector__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-weight: var(--font-medium);
+  color: var(--text-code-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.code-inspector__tab:hover {
+  background: var(--surface-code-hover);
+  color: var(--text-code);
+}
+
+.code-inspector__tab--active {
+  background: var(--accent-primary);
+  color: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+
+.code-inspector__options {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.code-inspector__select {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-code);
+  background: var(--surface-code-hover);
+  padding: 4px var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--text-code);
+}
+
+.code-inspector__select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.code-inspector__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.code-inspector__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--surface-code-hover);
+  padding: 6px 12px;
+  font-weight: var(--font-medium);
+  color: var(--text-code);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.code-inspector__btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.code-inspector__btn:active {
+  transform: scale(0.96);
+}
+
+.code-inspector__btn--primary {
+  background: var(--accent-primary);
+  color: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+
+.code-inspector__btn--primary:hover {
+  background: var(--accent-primary-hover);
+}
+
+.code-inspector__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.code-inspector__body {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-lg);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--text-code);
+}
+
+.code-inspector__pre {
+  margin: 0;
+  overflow-x: auto;
+}
+
+.code-inspector__statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-code);
+  background: var(--surface-code-statusbar);
+  padding: 5px var(--space-lg);
+  font-size: 11px;
+  color: var(--text-code-muted);
+}
+
+.code-inspector__statusbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.code-inspector__statusbar-filename {
+  font-weight: var(--font-semibold);
+  color: var(--accent-success);
+}

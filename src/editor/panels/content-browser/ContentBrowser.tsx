@@ -1087,6 +1087,248 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
     }));
   };
 
+  /** "Add Animation" picker — renders as the left half of a split `.cb-cards-pane`
+   * (Animation Library) instead of a global modal, so the right half keeps showing
+   * whatever the Content Browser was already displaying there. */
+  const addPresetPickerContent = isAddPresetOpen && (
+    <div className="cb-cards-pane__picker-half anim-fade-in">
+      <div
+        style={{
+          padding: "8px 10px",
+          background: "var(--surface-panel-hover)",
+          borderBottom: "1px solid var(--border-default)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>
+          <Sparkles size={12} style={{ color: "var(--accent-primary)" }} />
+          <span>Add Animation to {activeElementType}</span>
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 600,
+              color: "var(--text-muted)",
+              background: "var(--surface-panel-active)",
+              padding: "1px 5px",
+              borderRadius: 4,
+            }}
+          >
+            {activeTracks.length}/{activeContract?.maxSimultaneousTracks || 4} slots
+          </span>
+        </div>
+        <button
+          type="button"
+          style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
+          onClick={() => setIsAddPresetOpen(false)}
+        >
+          <X size={12} />
+        </button>
+      </div>
+
+      {/* Tab switch between Grammar Offers and Curated Presets */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          borderBottom: "1px solid var(--border-default)",
+          background: "var(--surface-panel-solid)",
+          padding: "2px 8px 0",
+          flexShrink: 0,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setPickerTab("candidates")}
+          style={{
+            padding: "6px 10px",
+            fontSize: 10,
+            fontWeight: pickerTab === "candidates" ? 700 : 500,
+            color: pickerTab === "candidates" ? "var(--accent-primary)" : "var(--text-muted)",
+            borderBottom: pickerTab === "candidates" ? "2px solid var(--accent-primary)" : "2px solid transparent",
+            background: "transparent",
+            borderTop: "none",
+            borderLeft: "none",
+            borderRight: "none",
+            cursor: "pointer",
+          }}
+        >
+          Grammar Offers ({plusDecision.candidates?.length || 0})
+        </button>
+        <button
+          type="button"
+          onClick={() => setPickerTab("presets")}
+          style={{
+            padding: "6px 10px",
+            fontSize: 10,
+            fontWeight: pickerTab === "presets" ? 700 : 500,
+            color: pickerTab === "presets" ? "var(--accent-primary)" : "var(--text-muted)",
+            borderBottom: pickerTab === "presets" ? "2px solid var(--accent-primary)" : "2px solid transparent",
+            background: "transparent",
+            borderTop: "none",
+            borderLeft: "none",
+            borderRight: "none",
+            cursor: "pointer",
+          }}
+        >
+          Curated Presets ({ANIMATION_PRESETS.length})
+        </button>
+      </div>
+
+      <div className="eas-preset-grid" style={{ flex: 1, overflowY: "auto" }}>
+        {pickerTab === "candidates" ? (
+          plusDecision.candidates && plusDecision.candidates.length > 0 ? (
+            plusDecision.candidates.map((offer, idx) => {
+              const pInfo = getCategoryPriorityInfo(offer.category);
+              return (
+                <div
+                  key={`${offer.category}_${offer.defaultTrigger}_${idx}`}
+                  className="eas-preset-item"
+                  onClick={() => handleAddCandidateOffer(offer)}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#0F172A" }}>
+                        {offer.category} Motion
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 8,
+                          fontWeight: 700,
+                          padding: "1px 4px",
+                          borderRadius: 3,
+                          background: pInfo.bg,
+                          color: pInfo.color,
+                        }}
+                        title={`Priority rank ${pInfo.priority}`}
+                      >
+                        {pInfo.badge}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 8.5,
+                        fontWeight: 600,
+                        padding: "1px 5px",
+                        borderRadius: 3,
+                        background: "rgba(32, 104, 89, 0.1)",
+                        color: "var(--accent-primary, #206859)",
+                      }}
+                    >
+                      {offer.defaultTrigger}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 9.5, color: "#64748B", lineHeight: 1.3 }}>
+                    {offer.description}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2, flexWrap: "wrap" }}>
+                    {offer.suggestedProperties.map((prop) => {
+                      const tier = getPropertyRenderingTier(prop);
+                      return (
+                        <span
+                          key={prop}
+                          style={{
+                            fontSize: 8,
+                            fontWeight: 600,
+                            padding: "1px 4px",
+                            borderRadius: 3,
+                            background: tier.bg,
+                            color: tier.color,
+                            border: `1px solid ${tier.border}`,
+                          }}
+                          title={`${prop} — ${tier.label} (${tier.badge})`}
+                        >
+                          {prop}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div style={{ gridColumn: "1 / -1", padding: "18px 12px", textAlign: "center", color: "#64748B", fontSize: 10 }}>
+              <AlertCircle size={16} style={{ margin: "0 auto 6px", color: "#DC2626" }} />
+              <div style={{ fontWeight: 600, color: "#0F172A", marginBottom: 2 }}>No Available Offers</div>
+              <div>{plusDecision.reason || "All allowed animation slots are occupied."}</div>
+            </div>
+          )
+        ) : (
+          ANIMATION_PRESETS.map((preset) => {
+            let cat: AnimationCategory = "Entrance";
+            if (preset.trigger === "hover") cat = "Hover";
+            else if (preset.trigger === "click") cat = "Press";
+            else if (preset.trigger === "scroll") cat = "ScrollLinked";
+            else if (preset.trigger === "state") cat = "StateTransition";
+
+            const isCategoryAllowed = activeContract?.allowedCategories.includes(cat);
+            const isBlocked = activeContract?.blockedCategories.includes(cat);
+            const hasSlot = activeTracks.length < (activeContract?.maxSimultaneousTracks || 4);
+            const canAdd = isCategoryAllowed && !isBlocked && hasSlot;
+
+            return (
+              <div
+                key={preset.id}
+                className={`eas-preset-item ${!canAdd ? "eas-preset-item--disabled" : ""}`}
+                onClick={() => {
+                  if (!canAdd) {
+                    if (!hasSlot) {
+                      setToastMessage(`Max tracks reached (${activeTracks.length}/${activeContract?.maxSimultaneousTracks})`);
+                    } else {
+                      setToastMessage(`${cat} animations aren't allowed on ${activeElementType}`);
+                    }
+                    return;
+                  }
+                  handleAddPreset(preset);
+                }}
+                style={{
+                  opacity: canAdd ? 1 : 0.45,
+                  cursor: canAdd ? "pointer" : "not-allowed",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#0F172A" }}>{preset.name}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    {!canAdd && (
+                      <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "rgba(220, 38, 38, 0.1)", color: "#DC2626" }}>
+                        {!hasSlot ? "Full" : "Blocked"}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 8.5, fontWeight: 600, padding: "1px 4px", borderRadius: 3, background: "rgba(32, 104, 89, 0.1)", color: "var(--accent-primary, #206859)" }}>
+                      {preset.badge}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 9.5, color: "#64748B", lineHeight: 1.3 }}>
+                  {preset.description}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 600,
+                      padding: "1px 5px",
+                      borderRadius: 10,
+                      background: TRIGGER_CONFIGS[preset.trigger].bg,
+                      color: TRIGGER_CONFIGS[preset.trigger].color,
+                    }}
+                  >
+                    {TRIGGER_CONFIGS[preset.trigger].icon} {TRIGGER_CONFIGS[preset.trigger].label}
+                  </span>
+                  <span style={{ fontSize: 9, color: "#94A3B8" }}>
+                    {preset.duration}s • {preset.easing.split("(")[0]}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="cb-main-area" role="region" aria-label="Content & Asset Browser">
       {/* ===================================================================
@@ -1409,250 +1651,14 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
 
               {/* Content Area: Tracks List */}
               <div className="eas-content-area">
-                {/* Preset & Grammar Offers Picker Modal when open */}
-                {isAddPresetOpen && (
-                  <div className="eas-preset-picker-overlay" onClick={() => setIsAddPresetOpen(false)}>
-                    <div className="eas-preset-picker-card" onClick={(e) => e.stopPropagation()}>
-                      <div
-                        style={{
-                          padding: "8px 10px",
-                          background: "#F8FAFC",
-                          borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#0F172A" }}>
-                          <Sparkles size={12} style={{ color: "var(--accent-primary, #206859)" }} />
-                          <span>Add Animation to {activeElementType}</span>
-                          <span
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 600,
-                              color: "#64748B",
-                              background: "rgba(15, 23, 42, 0.06)",
-                              padding: "1px 5px",
-                              borderRadius: 4,
-                            }}
-                          >
-                            {activeTracks.length}/{activeContract?.maxSimultaneousTracks || 4} slots
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748B" }}
-                          onClick={() => setIsAddPresetOpen(false)}
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-
-                      {/* Tab switch between Grammar Offers and Curated Presets */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
-                          background: "#FFFFFF",
-                          padding: "2px 8px 0",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setPickerTab("candidates")}
-                          style={{
-                            padding: "6px 10px",
-                            fontSize: 10,
-                            fontWeight: pickerTab === "candidates" ? 700 : 500,
-                            color: pickerTab === "candidates" ? "var(--accent-primary, #206859)" : "#64748B",
-                            borderBottom: pickerTab === "candidates" ? "2px solid var(--accent-primary, #206859)" : "2px solid transparent",
-                            background: "transparent",
-                            borderTop: "none",
-                            borderLeft: "none",
-                            borderRight: "none",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Grammar Offers ({plusDecision.candidates?.length || 0})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPickerTab("presets")}
-                          style={{
-                            padding: "6px 10px",
-                            fontSize: 10,
-                            fontWeight: pickerTab === "presets" ? 700 : 500,
-                            color: pickerTab === "presets" ? "var(--accent-primary, #206859)" : "#64748B",
-                            borderBottom: pickerTab === "presets" ? "2px solid var(--accent-primary, #206859)" : "2px solid transparent",
-                            background: "transparent",
-                            borderTop: "none",
-                            borderLeft: "none",
-                            borderRight: "none",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Curated Presets ({ANIMATION_PRESETS.length})
-                        </button>
-                      </div>
-
-                      <div style={{ maxHeight: 250, overflowY: "auto" }}>
-                        {pickerTab === "candidates" ? (
-                          plusDecision.candidates && plusDecision.candidates.length > 0 ? (
-                            plusDecision.candidates.map((offer, idx) => {
-                              const pInfo = getCategoryPriorityInfo(offer.category);
-                              return (
-                                <div
-                                  key={`${offer.category}_${offer.defaultTrigger}_${idx}`}
-                                  className="eas-preset-item"
-                                  onClick={() => handleAddCandidateOffer(offer)}
-                                >
-                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                      <span style={{ fontSize: 11, fontWeight: 700, color: "#0F172A" }}>
-                                        {offer.category} Motion
-                                      </span>
-                                      <span
-                                        style={{
-                                          fontSize: 8,
-                                          fontWeight: 700,
-                                          padding: "1px 4px",
-                                          borderRadius: 3,
-                                          background: pInfo.bg,
-                                          color: pInfo.color,
-                                        }}
-                                        title={`Cross-Category Priority Order §6.2: Rank ${pInfo.priority}`}
-                                      >
-                                        {pInfo.badge}
-                                      </span>
-                                    </div>
-                                    <span
-                                      style={{
-                                        fontSize: 8.5,
-                                        fontWeight: 600,
-                                        padding: "1px 5px",
-                                        borderRadius: 3,
-                                        background: "rgba(32, 104, 89, 0.1)",
-                                        color: "var(--accent-primary, #206859)",
-                                      }}
-                                    >
-                                      {offer.defaultTrigger}
-                                    </span>
-                                  </div>
-                                  <div style={{ fontSize: 9.5, color: "#64748B", lineHeight: 1.3 }}>
-                                    {offer.description}
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2, flexWrap: "wrap" }}>
-                                    {offer.suggestedProperties.map((prop) => {
-                                      const tier = getPropertyRenderingTier(prop);
-                                      return (
-                                        <span
-                                          key={prop}
-                                          style={{
-                                            fontSize: 8,
-                                            fontWeight: 600,
-                                            padding: "1px 4px",
-                                            borderRadius: 3,
-                                            background: tier.bg,
-                                            color: tier.color,
-                                            border: `1px solid ${tier.border}`,
-                                          }}
-                                          title={`${prop} — ${tier.label} (${tier.badge})`}
-                                        >
-                                          {prop}
-                                        </span>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div style={{ padding: "18px 12px", textAlign: "center", color: "#64748B", fontSize: 10 }}>
-                              <AlertCircle size={16} style={{ margin: "0 auto 6px", color: "#DC2626" }} />
-                              <div style={{ fontWeight: 600, color: "#0F172A", marginBottom: 2 }}>No Available Offers</div>
-                              <div>{plusDecision.reason || "All allowed animation slots are occupied."}</div>
-                            </div>
-                          )
-                        ) : (
-                          ANIMATION_PRESETS.map((preset) => {
-                            let cat: AnimationCategory = "Entrance";
-                            if (preset.trigger === "hover") cat = "Hover";
-                            else if (preset.trigger === "click") cat = "Press";
-                            else if (preset.trigger === "scroll") cat = "ScrollLinked";
-                            else if (preset.trigger === "state") cat = "StateTransition";
-
-                            const isCategoryAllowed = activeContract?.allowedCategories.includes(cat);
-                            const isBlocked = activeContract?.blockedCategories.includes(cat);
-                            const hasSlot = activeTracks.length < (activeContract?.maxSimultaneousTracks || 4);
-                            const canAdd = isCategoryAllowed && !isBlocked && hasSlot;
-
-                            return (
-                              <div
-                                key={preset.id}
-                                className={`eas-preset-item ${!canAdd ? "eas-preset-item--disabled" : ""}`}
-                                onClick={() => {
-                                  if (!canAdd) {
-                                    if (!hasSlot) {
-                                      setToastMessage(`Max tracks reached (${activeTracks.length}/${activeContract?.maxSimultaneousTracks})`);
-                                    } else {
-                                      setToastMessage(`${cat} category blocked on ${activeElementType} (Grammar §6.1)`);
-                                    }
-                                    return;
-                                  }
-                                  handleAddPreset(preset);
-                                }}
-                                style={{
-                                  opacity: canAdd ? 1 : 0.45,
-                                  cursor: canAdd ? "pointer" : "not-allowed",
-                                }}
-                              >
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: "#0F172A" }}>{preset.name}</span>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                    {!canAdd && (
-                                      <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "rgba(220, 38, 38, 0.1)", color: "#DC2626" }}>
-                                        {!hasSlot ? "Full" : "Blocked §6.1"}
-                                      </span>
-                                    )}
-                                    <span style={{ fontSize: 8.5, fontWeight: 600, padding: "1px 4px", borderRadius: 3, background: "rgba(32, 104, 89, 0.1)", color: "var(--accent-primary, #206859)" }}>
-                                      {preset.badge}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div style={{ fontSize: 9.5, color: "#64748B", lineHeight: 1.3 }}>
-                                  {preset.description}
-                                </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                                  <span
-                                    style={{
-                                      fontSize: 9,
-                                      fontWeight: 600,
-                                      padding: "1px 5px",
-                                      borderRadius: 10,
-                                      background: TRIGGER_CONFIGS[preset.trigger].bg,
-                                      color: TRIGGER_CONFIGS[preset.trigger].color,
-                                    }}
-                                  >
-                                    {TRIGGER_CONFIGS[preset.trigger].icon} {TRIGGER_CONFIGS[preset.trigger].label}
-                                  </span>
-                                  <span style={{ fontSize: 9, color: "#94A3B8" }}>
-                                    {preset.duration}s • {preset.easing.split("(")[0]}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Save Preset Dialog Modal */}
                 {savingTrackPreset && (
-                  <div className="eas-preset-picker-overlay" onClick={() => setSavingTrackPreset(null)}>
-                    <div className="eas-preset-picker-card" onClick={(e) => e.stopPropagation()} style={{ padding: 12, gap: 10 }}>
+                  <div className="eas-preset-picker-overlay anim-fade-in" onClick={() => setSavingTrackPreset(null)}>
+                    <div
+                      className="eas-preset-picker-card anim-scale-in"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ padding: 12, gap: 10, width: "min(360px, 92vw)" }}
+                    >
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#0F172A" }}>
                         <Save size={13} style={{ color: "var(--accent-primary, #206859)" }} />
                         <span>Save as Reusable Preset</span>
@@ -2040,9 +2046,10 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
           </>
         )}
 
-        {/* Content Cards Area */}
-        <div className="cb-cards-pane">
-          <div className="panel-content" style={{ flex: 1, overflowY: "auto" }}>
+        {/* Content Cards Area — splits in half while the Add Animation picker is open */}
+        <div className={`cb-cards-pane ${isAddPresetOpen ? "cb-cards-pane--split" : ""}`}>
+          {addPresetPickerContent}
+          <div className="panel-content" style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
         {projectAssets.length === 0 ? (
           <div
             style={{

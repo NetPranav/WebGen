@@ -41,6 +41,7 @@ import { TextEmitter } from "@/compiler/emitters/react/TextEmitter";
 import { multiEngineAnimationRuntime } from "@/core/runtime/MultiEngineAnimationRuntime";
 import { ZipPacker } from "@/compiler/export/ZipPacker";
 import type { Layer } from "@/core/document/schema";
+import "@/editor/styles/code-inspector.css";
 
 export interface CodeInspectorProps {
   className?: string;
@@ -257,90 +258,68 @@ export default function Example() {
   };
 
   return (
-    <div
-      className={`flex h-full flex-col bg-[#0F172A] text-gray-200 border-t border-gray-800 ${className}`}
-      style={style}
-    >
+    <div className={`code-inspector ${className}`} style={style}>
       {/* Top Controls Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 bg-[#1E293B]/80 px-4 py-2 text-xs">
+      <div className="code-inspector__toolbar">
         {/* Left: Tab selectors */}
-        <div className="flex items-center gap-1">
+        <div className="code-inspector__tabs">
           <button
             onClick={() => setActiveTab("component")}
-            className={`flex items-center gap-1.5 rounded px-3 py-1.5 font-medium transition ${
-              activeTab === "component"
-                ? "bg-[#206859] text-white shadow-sm"
-                : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-            }`}
+            className={`code-inspector__tab ${activeTab === "component" ? "code-inspector__tab--active" : ""}`}
           >
-            <Code className="h-3.5 w-3.5" />
+            <Code size={14} />
             <span>{componentName}.tsx</span>
           </button>
 
           <button
             onClick={() => setActiveTab("animation")}
-            className={`flex items-center gap-1.5 rounded px-3 py-1.5 font-medium transition ${
-              activeTab === "animation"
-                ? "bg-[#206859] text-white shadow-sm"
-                : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-            }`}
+            className={`code-inspector__tab ${activeTab === "animation" ? "code-inspector__tab--active" : ""}`}
           >
-            <Zap className="h-3.5 w-3.5" />
+            <Zap size={14} />
             <span>Animation ({animationEngine.toUpperCase()})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("styles")}
-            className={`flex items-center gap-1.5 rounded px-3 py-1.5 font-medium transition ${
-              activeTab === "styles"
-                ? "bg-[#206859] text-white shadow-sm"
-                : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-            }`}
+            className={`code-inspector__tab ${activeTab === "styles" ? "code-inspector__tab--active" : ""}`}
           >
-            <Layers className="h-3.5 w-3.5" />
+            <Layers size={14} />
             <span>Styles</span>
           </button>
 
           <button
             onClick={() => setActiveTab("readme")}
-            className={`flex items-center gap-1.5 rounded px-3 py-1.5 font-medium transition ${
-              activeTab === "readme"
-                ? "bg-[#206859] text-white shadow-sm"
-                : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-            }`}
+            className={`code-inspector__tab ${activeTab === "readme" ? "code-inspector__tab--active" : ""}`}
           >
-            <FileCode className="h-3.5 w-3.5" />
+            <FileCode size={14} />
             <span>README</span>
           </button>
         </div>
 
         {/* Center: Configuration Options */}
-        <div className="flex items-center gap-2">
-          {/* Framework */}
+        <div className="code-inspector__options">
           <select
             value={framework}
             onChange={(e) => setFramework(e.target.value as typeof framework)}
-            className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="code-inspector__select"
           >
             <option value="nextjs">Next.js 15</option>
             <option value="react">React 19 (Vite)</option>
           </select>
 
-          {/* Styling */}
           <select
             value={stylingSystem}
             onChange={(e) => setStylingSystem(e.target.value as typeof stylingSystem)}
-            className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="code-inspector__select"
           >
             <option value="tailwind">Tailwind CSS</option>
             <option value="css-modules">CSS Modules</option>
           </select>
 
-          {/* Animation */}
           <select
             value={animationEngine}
             onChange={(e) => setAnimationEngine(e.target.value as typeof animationEngine)}
-            className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="code-inspector__select"
           >
             <option value="gsap">GSAP 3</option>
             <option value="framer">Framer Motion</option>
@@ -349,19 +328,16 @@ export default function Example() {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1.5 rounded bg-gray-800 px-3 py-1.5 font-medium text-gray-200 transition hover:bg-gray-700 active:scale-95"
-          >
+        <div className="code-inspector__actions">
+          <button onClick={handleCopy} className="code-inspector__btn">
             {copied ? (
               <>
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Copied!</span>
+                <Check size={14} style={{ color: "var(--accent-success)" }} />
+                <span style={{ color: "var(--accent-success)" }}>Copied!</span>
               </>
             ) : (
               <>
-                <Copy className="h-3.5 w-3.5 text-gray-400" />
+                <Copy size={14} />
                 <span>Copy Code</span>
               </>
             )}
@@ -370,32 +346,32 @@ export default function Example() {
           <button
             onClick={handleDownloadZip}
             disabled={isDownloading}
-            className="flex items-center gap-1.5 rounded bg-[#206859] px-3 py-1.5 font-medium text-white shadow transition hover:bg-[#185246] active:scale-95 disabled:opacity-50"
+            className="code-inspector__btn code-inspector__btn--primary"
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download size={14} />
             <span>{isDownloading ? "Bundling..." : "Download ZIP"}</span>
           </button>
         </div>
       </div>
 
       {/* Code Viewer Body */}
-      <div className="relative flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed text-gray-300">
-        <pre className="overflow-x-auto">
+      <div className="code-inspector__body">
+        <pre className="code-inspector__pre">
           <code>{currentDisplayCode}</code>
         </pre>
       </div>
 
       {/* Bottom Info Status Bar */}
-      <div className="flex items-center justify-between border-t border-gray-800 bg-[#0B1120] px-4 py-1.5 text-[11px] text-gray-400">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-emerald-400">{currentFileName}</span>
+      <div className="code-inspector__statusbar">
+        <div className="code-inspector__statusbar-left">
+          <span className="code-inspector__statusbar-filename">{currentFileName}</span>
           <span>•</span>
           <span>Archetype: {archetype}</span>
           <span>•</span>
           <span>Zero proprietary runtime imports</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-emerald-500">● Clean AST Drop-In Ready</span>
+        <div>
+          <span style={{ color: "var(--accent-success)" }}>● Clean AST Drop-In Ready</span>
         </div>
       </div>
     </div>

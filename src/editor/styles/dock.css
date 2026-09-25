@@ -159,6 +159,7 @@ body.is-resizing .dock-corner-splitter {
   overflow-x: auto;
   overflow-y: hidden;
   height: 100%;
+  min-width: 0;
   scrollbar-width: none;
 }
 
@@ -247,6 +248,7 @@ body.is-resizing .dock-corner-splitter {
   overflow-x: auto;
   overflow-y: hidden;
   height: 100%;
+  min-width: 0;
   scrollbar-width: none;
 }
 
@@ -465,6 +467,9 @@ body.is-resizing .dock-corner-splitter {
   font-size: var(--text-xs);
   color: var(--text-muted);
   user-select: none;
+  gap: var(--space-md);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .statusbar__left,
@@ -473,6 +478,38 @@ body.is-resizing .dock-corner-splitter {
   display: flex;
   align-items: center;
   gap: var(--space-md);
+  flex-shrink: 0;
+}
+
+.statusbar__left {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* Status bar responsiveness — informational items go first, actions last. */
+@media (max-width: 1280px) {
+  .statusbar .statusbar__item--ast,
+  .statusbar .statusbar__drawer-count {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .statusbar .statusbar__center,
+  .statusbar .statusbar__item--target {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .statusbar .statusbar__drawer-label,
+  .statusbar .statusbar__log-label {
+    display: none;
+  }
+
+  .statusbar {
+    padding: 0 var(--space-sm);
+  }
 }
 
 .statusbar__item {
@@ -818,6 +855,49 @@ body.is-resizing .dock-corner-splitter {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Mobile & Narrow-Viewport Layout (<= 860px)
+ * Side and LayoutAI docks become overlay drawers above the canvas instead of
+ * squeezing it (their width is state-driven inline px, sized for desktop, so
+ * it's capped here with !important); the header scrolls instead of clipping.
+ * ---------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+  .dock-zone--right:not(.dock-zone--collapsed),
+  .ai-copilot-dock-col {
+    position: fixed !important;
+    top: var(--header-height);
+    bottom: var(--statusbar-height);
+    width: min(86vw, 340px) !important;
+    min-width: 0 !important;
+    max-width: 86vw;
+    box-shadow: var(--shadow-xl);
+    z-index: var(--z-modal);
+    right: 0;
+  }
+
+  .ai-copilot-dock-col--left {
+    right: auto;
+    left: 0;
+  }
+
+  /* Side/AI splitters are pointless once the zone floats above the canvas instead of pushing it */
+  .dock-layout__body > .dock-splitter--vertical {
+    display: none;
+  }
+
+  .dock-zone--bottom {
+    max-height: 60vh;
+  }
+
+  .dock-corner-splitter {
+    display: none;
+  }
+
+  .viewport-env-quick-popover {
+    max-width: calc(100vw - 24px);
   }
 }
 

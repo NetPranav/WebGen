@@ -868,7 +868,7 @@ export const MotionSequencer: React.FC = () => {
           {/* Ruler */}
           <div
             className="sequencer-ruler-wrap"
-            style={{ width: `${pixelsPerSecond * totalDuration + 120}px` }}
+            style={{ width: `${pixelsPerSecond * totalDuration + 120}px`, minWidth: "100%" }}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const clickX = e.clientX - rect.left;
@@ -889,7 +889,7 @@ export const MotionSequencer: React.FC = () => {
           </div>
 
           {/* Keyframe Lanes */}
-          <div className="sequencer-lanes-stage" style={{ width: `${pixelsPerSecond * totalDuration + 120}px` }}>
+          <div className="sequencer-lanes-stage" style={{ width: `${pixelsPerSecond * totalDuration + 120}px`, minWidth: "100%" }}>
             {tracks.map((track) => (
               <KeyframeTrack
                 key={track.id || track.property}

@@ -43,6 +43,7 @@ import { BackgroundSection } from "./sections/BackgroundSection";
 import { SvgVectorSection } from "./sections/SvgVectorSection";
 import { MaterialInspectorSection } from "./sections/MaterialInspectorSection";
 import { EnvironmentInspector } from "./EnvironmentInspector";
+import { SectionRail, type SectionRailItem } from "./SectionRail";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
 import { useLayers } from "@/core/store/useDocumentStore";
@@ -89,6 +90,28 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
   const toggleSection = (key: string) => {
     setSectionsOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  /** Rail click: expand the section (if collapsed) and scroll it into view. */
+  const jumpToSection = (key: string) => {
+    setSectionsOpen((prev) => ({ ...prev, [key]: true }));
+    document.getElementById(`details-section-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const railItems: SectionRailItem[] = [
+    { id: "transform", icon: <Maximize2 size={14} />, label: "Transform" },
+    { id: "layout", icon: <Layers size={14} />, label: "Layout & Flexbox" },
+    { id: "appearance", icon: <Feather size={14} />, label: "Appearance" },
+    ...(archetype === "image" ? [{ id: "media", icon: <ImageIcon size={14} />, label: "Media" }] : []),
+    ...(archetype === "divider" ? [{ id: "divider", icon: <Minus size={14} />, label: "Divider" }] : []),
+    ...(archetype === "background" ? [{ id: "background", icon: <Globe size={14} />, label: "Background" }] : []),
+    ...(archetype === "icon" ? [{ id: "svgVector", icon: <Box size={14} />, label: "SVG / Vector" }] : []),
+    ...(archetype === "object3D" ? [{ id: "material", icon: <RotateCw size={14} />, label: "Material" }] : []),
+    ...(["text", "button", "badge", "toggle", "fab", "generic", "input"].includes(archetype)
+      ? [{ id: "typography", icon: <AlignLeft size={14} />, label: "Typography" }]
+      : []),
+    { id: "bindings", icon: <Link size={14} />, label: "Data Bindings" },
+    { id: "motion", icon: <Sparkles size={14} />, label: "Motion & Animation" },
+  ];
 
   // Transform states
   const [posX, setPosX] = useState(0);
@@ -162,12 +185,14 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         </div>
       </div>
 
-      {/* Scrollable Inspector Body */}
-      <div className="panel-content">
+      {/* Section Rail + Scrollable Inspector Body */}
+      <div className="panel-body">
+        <SectionRail items={railItems} onSelect={jumpToSection} />
+        <div className="panel-content">
         {/* ====================================================================
          * SECTION 1: TRANSFORM
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.transform ? "panel-section--open" : ""}`}>
+        <div id="details-section-transform" className={`panel-section ${sectionsOpen.transform ? "panel-section--open" : ""}`}>
           <button
             type="button"
             className="panel-section__header"
@@ -280,7 +305,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         {/* ====================================================================
          * SECTION 2: LAYOUT & FLEXBOX
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.layout ? "panel-section--open" : ""}`}>
+        <div id="details-section-layout" className={`panel-section ${sectionsOpen.layout ? "panel-section--open" : ""}`}>
           <button
             type="button"
             className="panel-section__header"
@@ -410,7 +435,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         {/* ====================================================================
          * SECTION 3: APPEARANCE & STYLING
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.appearance ? "panel-section--open" : ""}`}>
+        <div id="details-section-appearance" className={`panel-section ${sectionsOpen.appearance ? "panel-section--open" : ""}`}>
           <button
             type="button"
             className="panel-section__header"
@@ -514,7 +539,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
          * ARCHETYPE-SPECIFIC SECTION: MEDIA (Image)
          * ==================================================================== */}
         {archetype === "image" && (
-          <div className={`panel-section ${sectionsOpen.media ? "panel-section--open" : ""}`} data-testid="section-media">
+          <div id="details-section-media" className={`panel-section ${sectionsOpen.media ? "panel-section--open" : ""}`} data-testid="section-media">
             <button
               type="button"
               className="panel-section__header"
@@ -542,7 +567,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
          * ARCHETYPE-SPECIFIC SECTION: DIVIDER
          * ==================================================================== */}
         {archetype === "divider" && (
-          <div className={`panel-section ${sectionsOpen.divider ? "panel-section--open" : ""}`} data-testid="section-divider">
+          <div id="details-section-divider" className={`panel-section ${sectionsOpen.divider ? "panel-section--open" : ""}`} data-testid="section-divider">
             <button
               type="button"
               className="panel-section__header"
@@ -570,7 +595,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
          * ARCHETYPE-SPECIFIC SECTION: BACKGROUND
          * ==================================================================== */}
         {archetype === "background" && (
-          <div className={`panel-section ${sectionsOpen.background ? "panel-section--open" : ""}`} data-testid="section-background">
+          <div id="details-section-background" className={`panel-section ${sectionsOpen.background ? "panel-section--open" : ""}`} data-testid="section-background">
             <button
               type="button"
               className="panel-section__header"
@@ -598,7 +623,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
          * ARCHETYPE-SPECIFIC SECTION: SVG VECTOR (Icon)
          * ==================================================================== */}
         {archetype === "icon" && (
-          <div className={`panel-section ${sectionsOpen.svgVector ? "panel-section--open" : ""}`} data-testid="section-svg-vector">
+          <div id="details-section-svgVector" className={`panel-section ${sectionsOpen.svgVector ? "panel-section--open" : ""}`} data-testid="section-svg-vector">
             <button
               type="button"
               className="panel-section__header"
@@ -627,6 +652,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
          * ==================================================================== */}
         {archetype === "object3D" && (
           <div
+            id="details-section-material"
             className={`panel-section ${sectionsOpen.material ? "panel-section--open" : ""}`}
             data-testid="pbr-material-accordion"
           >
@@ -663,7 +689,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
           archetype === "fab" ||
           archetype === "generic" ||
           archetype === "input") && (
-          <div className={`panel-section ${sectionsOpen.typography ? "panel-section--open" : ""}`} data-testid="section-typography">
+          <div id="details-section-typography" className={`panel-section ${sectionsOpen.typography ? "panel-section--open" : ""}`} data-testid="section-typography">
             <button
               type="button"
               className="panel-section__header"
@@ -760,7 +786,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         {/* ====================================================================
          * SECTION 5: DATA BINDINGS & BLUEPRINTS
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.bindings ? "panel-section--open" : ""}`}>
+        <div id="details-section-bindings" className={`panel-section ${sectionsOpen.bindings ? "panel-section--open" : ""}`}>
           <button
             type="button"
             className="panel-section__header"
@@ -787,7 +813,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         {/* ====================================================================
          * SECTION 6: MOTION & ANIMATION
          * ==================================================================== */}
-        <div className={`panel-section ${sectionsOpen.motion ? "panel-section--open" : ""}`}>
+        <div id="details-section-motion" className={`panel-section ${sectionsOpen.motion ? "panel-section--open" : ""}`}>
           <button
             type="button"
             className="panel-section__header"
@@ -809,6 +835,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
               />
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

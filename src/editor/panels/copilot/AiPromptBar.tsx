@@ -75,7 +75,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
     {
       id: "welcome",
       role: "assistant",
-      content: `### ⚡ LayoutAI Co-Pilot Ready\n\nI am grounded in your **LazyLayout** project's active **AST**, **DiagnosticBus**, and **Execution Trace**.\n\nAsk me to diagnose errors, repair data bindings, or generate layout & blueprint nodes. All modifications require your **explicit approval** before applying!`,
+      content: `### ⚡ LazyLayout AI Ready\n\nI am grounded in your **LazyLayout** project's active **AST**, **DiagnosticBus**, and **Execution Trace**.\n\nAsk me to diagnose errors, repair data bindings, or generate layout & blueprint nodes. All modifications require your **explicit approval** before applying!`,
       timestamp: Date.now(),
     },
   ]);
@@ -203,7 +203,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
                 e.preventDefault();
                 onStartDrag();
               }}
-              title="Drag to relocate LayoutAI to another dock side"
+              title="Drag to relocate LazyLayout AI to another dock side"
             >
               <GripVertical size={14} />
             </button>
@@ -212,7 +212,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
             <Sparkles size={14} color="#FFFFFF" />
           </div>
           <div>
-            <div className="ai-copilot-title">LayoutAI Assistant</div>
+            <div className="ai-copilot-title">LazyLayout AI</div>
             <div className="ai-copilot-subtitle">Intelligent Layout & AST Reasoning</div>
           </div>
         </div>
@@ -260,7 +260,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
               type="button"
               className="ai-copilot-mode-btn"
               onClick={onClose}
-              title="Close LayoutAI"
+              title="Close LazyLayout AI"
             >
               <X size={14} />
             </button>
@@ -409,7 +409,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
               handleSendMessage();
             }
           }}
-          placeholder="Ask LayoutAI to diagnose, fix, or generate logic..."
+          placeholder="Ask LazyLayout AI to diagnose, fix, or generate logic..."
           disabled={isThinking}
           className="ai-copilot-input"
         />
@@ -433,7 +433,7 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <ShieldCheck size={16} color="#206859" />
                 <span style={{ fontSize: "12px", fontWeight: 700, color: "#0F172A" }}>
-                  Review Proposed LayoutAI AST Diff
+                  Review Proposed LazyLayout AI AST Diff
                 </span>
               </div>
               <span

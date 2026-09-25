@@ -606,9 +606,9 @@ export function init${targetName.replace(/[^a-zA-Z0-9]/g, "")}Animation(targetEl
         style={{
           flex: 1,
           overflowY: "auto",
-          backgroundColor: "#0F172A",
-          color: "#F8FAFC",
-          fontFamily: 'ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace',
+          backgroundColor: "var(--surface-code)",
+          color: "var(--text-code)",
+          fontFamily: "var(--font-mono)",
           fontSize: 12,
           lineHeight: 1.6,
           padding: "12px 16px",

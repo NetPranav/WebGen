@@ -6,8 +6,10 @@
  * ============================================================================
  * UI Element: 2D Corner Splitter Handle (Intersection of Vertical & Horizontal Edges)
  * Screen / Scope: Entire IDE Studio Shell (`/editor`)
- * Role: Allows simultaneous 2D resizing of two merging panels (e.g. Left + Bottom, Right + Bottom)
- *       when dragging at the intersection point where their edges meet.
+ * Role: Allows simultaneous 2D resizing of two merging panels (Right + Bottom)
+ *       when dragging at the intersection point where their edges meet. Writes
+ *       directly to both zones' DOM nodes while dragging (rAF-batched), then
+ *       commits both final sizes to state once on release.
  * Styling Source: `@/editor/styles/dock.css` (`.dock-corner-splitter`)
  * ============================================================================
  */
@@ -16,10 +18,17 @@ import React, { useState, useCallback } from "react";
 
 interface DockCornerSplitterProps {
   corner: "bottom-left" | "bottom-right";
+  /** Positioning anchor for the handle itself (current committed widths/height). */
   left?: number;
   right?: number;
   bottom: number;
-  onResize: (deltaX: number, deltaY: number) => void;
+  rightRef: React.RefObject<HTMLElement | null>;
+  bottomRef: React.RefObject<HTMLElement | null>;
+  rightMin: number;
+  rightMax: number;
+  bottomMin: number;
+  bottomMax: number;
+  onCommit: (values: { right: number; bottom: number }) => void;
   onResizeEnd?: () => void;
   className?: string;
   style?: React.CSSProperties;
@@ -30,7 +39,13 @@ export const DockCornerSplitter: React.FC<DockCornerSplitterProps> = ({
   left,
   right,
   bottom,
-  onResize,
+  rightRef,
+  bottomRef,
+  rightMin,
+  rightMax,
+  bottomMin,
+  bottomMax,
+  onCommit,
   onResizeEnd,
   className,
   style,
@@ -45,19 +60,43 @@ export const DockCornerSplitter: React.FC<DockCornerSplitterProps> = ({
       e.stopPropagation();
       setIsDragging(true);
 
-      let lastX = e.clientX;
-      let lastY = e.clientY;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startRight = right ?? 0;
+      const startBottom = bottom;
+      let latestRight = startRight;
+      let latestBottom = startBottom;
+      let rafId: number | null = null;
 
       document.body.classList.add("is-resizing");
       document.body.style.cursor = cursorType;
       document.body.style.userSelect = "none";
 
+      const applyLive = () => {
+        const rightEl = rightRef.current;
+        if (rightEl) {
+          rightEl.style.width = `${latestRight}px`;
+          rightEl.style.minWidth = `${latestRight}px`;
+        }
+        const bottomEl = bottomRef.current;
+        if (bottomEl) {
+          bottomEl.style.height = `${latestBottom}px`;
+          bottomEl.style.minHeight = `${latestBottom}px`;
+        }
+      };
+
       const handleMouseMove = (moveEvent: MouseEvent) => {
-        const deltaX = moveEvent.clientX - lastX;
-        const deltaY = moveEvent.clientY - lastY;
-        lastX = moveEvent.clientX;
-        lastY = moveEvent.clientY;
-        onResize(deltaX, deltaY);
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        // Right zone shrinks as the corner moves right; bottom zone shrinks as it moves down.
+        latestRight = Math.min(Math.max(startRight - deltaX, rightMin), rightMax);
+        latestBottom = Math.min(Math.max(startBottom - deltaY, bottomMin), bottomMax);
+        if (rafId == null) {
+          rafId = requestAnimationFrame(() => {
+            applyLive();
+            rafId = null;
+          });
+        }
       };
 
       const handleMouseUp = () => {
@@ -65,6 +104,8 @@ export const DockCornerSplitter: React.FC<DockCornerSplitterProps> = ({
         document.body.classList.remove("is-resizing");
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
+        if (rafId != null) cancelAnimationFrame(rafId);
+        onCommit({ right: latestRight, bottom: latestBottom });
         if (onResizeEnd) onResizeEnd();
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
@@ -73,7 +114,7 @@ export const DockCornerSplitter: React.FC<DockCornerSplitterProps> = ({
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
     },
-    [cursorType, onResize, onResizeEnd]
+    [cursorType, right, bottom, rightRef, bottomRef, rightMin, rightMax, bottomMin, bottomMax, onCommit, onResizeEnd]
   );
 
   const positionStyle: React.CSSProperties = {

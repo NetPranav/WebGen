@@ -16,7 +16,7 @@
  * ============================================================================
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import "@/editor/styles/dock.css";
 import { DockZone } from "./DockZone";
 import { DockSplitter } from "./DockSplitter";
@@ -24,6 +24,7 @@ import { DockCornerSplitter } from "./DockCornerSplitter";
 import { DockTabBar } from "./DockTabBar";
 import { StatusBar } from "./StatusBar";
 import { StudioHeader } from "./StudioHeader";
+import { WorkspaceTabStrip } from "./WorkspaceTabStrip";
 import { WhiteboardCanvas } from "@/editor/canvas/WhiteboardCanvas";
 import { OutlinerTree } from "@/editor/panels/outliner/OutlinerTree";
 import { ElementOutliner } from "@/editor/panels/outliner/ElementOutliner";
@@ -55,7 +56,6 @@ import {
 import { CommandPalette } from "./CommandPalette";
 import { ShortcutRegistry } from "@/runtime/ShortcutRegistry";
 import { AiPromptBar } from "@/editor/panels/copilot/AiPromptBar";
-import { MotionAICoPilot } from "@/editor/panels/ai/MotionAICoPilot";
 import { useTearOff, TearOffDragSource } from "@/core/events/useTearOff";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
 import { useProjectStore } from "@/core/store/useProjectStore";
@@ -114,9 +114,16 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [rightWidth, setRightWidth] = useState(320);
   const [bottomHeight, setBottomHeight] = useState(290);
 
+  // DOM handles the splitters write live px values to while dragging (no
+  // React re-render mid-drag — see DockSplitter/DockCornerSplitter).
+  const rightZoneRef = useRef<HTMLElement | null>(null);
+  const bottomZoneRef = useRef<HTMLElement | null>(null);
+  const aiZoneRef = useRef<HTMLDivElement | null>(null);
+
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
+
   type DockLayer = "left" | "right" | "bottom";
   const [activeLayer, setActiveLayer] = useState<DockLayer>("bottom");
   const activeLayerRef = useLatestRef<DockLayer>(activeLayer);
@@ -179,9 +186,27 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const toggleInspectMode = useProjectStore((s) => s.toggleInspectMode);
   const [isWorldEnvPopoverOpen, setIsWorldEnvPopoverOpen] = useState(false);
 
-  // Sub-Phase 5.4 & Phase 7: AI Assistant State (MotionAI & LayoutAI)
+  // Dismiss the World Quick Controls popover on outside click or Escape
+  useEffect(() => {
+    if (!isWorldEnvPopoverOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (target?.closest("#world-env-quick-popover, #canvas-world-env-quick-btn")) return;
+      setIsWorldEnvPopoverOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsWorldEnvPopoverOpen(false);
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isWorldEnvPopoverOpen]);
+
+  // Sub-Phase 5.4 & Phase 7: LazyLayout AI Assistant State
   const [isAiCoPilotOpen, setIsAiCoPilotOpen] = useState(false);
-  const [aiAssistantMode, setAiAssistantMode] = useState<"motion" | "layout">("motion");
   const [aiDockMode, setAiDockMode] = useState<"replace" | "split-left">("split-left");
   const [aiPanelWidth, setAiPanelWidth] = useState(340);
   const [isDraggingAi, setIsDraggingAi] = useState(false);
@@ -189,13 +214,30 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [aiDockSide, setAiDockSide] = useState<"left" | "right">("right");
   const [activeHoverDropSide, setActiveHoverDropSide] = useState<"left" | "right" | null>(null);
 
-  const handleAiResize = useCallback((delta: number) => {
-    setAiPanelWidth((prev) => Math.max(260, Math.min(prev - delta, 600)));
+  // On a narrow (mobile/tablet-portrait) viewport, panels dock as overlays over the
+  // canvas rather than squeezing it (see dock.css's <=860px media block), so default
+  // them to closed — otherwise the first paint is a full-screen panel hiding the
+  // canvas. Re-collapses whenever the viewport crosses into that range, but doesn't
+  // keep fighting a panel the user manually reopens while still narrow.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 860px)");
+    const applyMobileDefaults = () => {
+      setRightCollapsed(true);
+      setBottomCollapsed(true);
+      setIsAiCoPilotOpen(false);
+    };
+    if (mq.matches) applyMobileDefaults();
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (e.matches) applyMobileDefaults();
+    };
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
   }, []);
 
+  /** Window menu entry point: start the drag-to-dock gesture (or unplug if already open) */
   const handleStartDragAI = useCallback(() => {
     if (isAiCoPilotOpen) {
-      // If already open, clicking removes / unplugs AI from the workspace!
       setIsAiCoPilotOpen(false);
       setIsDraggingAi(false);
       setActiveHoverDropSide(null);
@@ -1010,11 +1052,28 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       setLeftActiveTab("outliner");
       setRightActiveTab("details");
       setCenterActiveTab("viewport");
+    } else if (preset === "animate") {
+      setLeftCollapsed(true);
+      setRightCollapsed(false);
+      setRightWidth(340);
+      setRightActiveTab("details");
+      setBottomCollapsed(false);
+      setBottomHeight(420);
+      setBottomActiveTab("sequencer");
+      setCenterActiveTab("viewport");
+      handleZoneClick("bottom");
     } else if (preset === "logic") {
       setLeftCollapsed(true);
       setRightCollapsed(false);
       setBottomCollapsed(true);
       handleDockFullPage("blueprint", "Logic Blueprint");
+    } else if (preset === "data") {
+      setLeftCollapsed(true);
+      setRightCollapsed(false);
+      setBottomCollapsed(false);
+      setBottomActiveTab("content-browser");
+      setBottomHeight(420);
+      handleZoneClick("bottom");
     } else if (preset === "debug") {
       setLeftCollapsed(false);
       setRightCollapsed(false);
@@ -1056,82 +1115,62 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   ];
 
   /* --------------------------------------------------------------------------
-   * Splitter Resize Handlers
+   * Splitter Resize Handlers — DockSplitter/DockCornerSplitter already clamp
+   * to min/max and write live px directly to the zone's DOM node while
+   * dragging, so these just commit the final value to state once on release.
    * -------------------------------------------------------------------------- */
-  const handleLeftResize = (delta: number) => {
-    if (leftCollapsed) setLeftCollapsed(false);
-    setLeftWidth((prev) => Math.min(Math.max(prev + delta, 220), 550));
-  };
+  const commitRightWidth = useCallback((v: number) => setRightWidth(v), []);
+  const commitBottomHeight = useCallback((v: number) => setBottomHeight(v), []);
+  const commitRightAndBottom = useCallback(({ right, bottom }: { right: number; bottom: number }) => {
+    setRightWidth(right);
+    setBottomHeight(bottom);
+  }, []);
 
-  const handleRightResize = (delta: number) => {
-    if (rightCollapsed) setRightCollapsed(false);
-    setRightWidth((prev) => Math.min(Math.max(prev - delta, 240), 550));
-  };
-
-  const handleBottomResize = (delta: number) => {
-    if (bottomCollapsed) setBottomCollapsed(false);
-    setBottomHeight((prev) => Math.min(Math.max(prev - delta, 140), 480));
-  };
-
+  /** LazyLayout AI panel content — a single consolidated assistant (no more MotionAI/LayoutAI
+   * mode switcher: one tool, one theme, matching the rest of the light shell). */
   const renderAiDockContent = () => (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", overflow: "hidden" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          background: "#0c1012",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-          padding: "4px 8px",
-          gap: "4px",
-        }}
-      >
-        <button
-          onClick={() => setAiAssistantMode("motion")}
-          style={{
-            flex: 1,
-            padding: "5px 8px",
-            fontSize: "11px",
-            fontWeight: aiAssistantMode === "motion" ? 700 : 500,
-            color: aiAssistantMode === "motion" ? "#34d399" : "#9ca3af",
-            background: aiAssistantMode === "motion" ? "rgba(32, 104, 89, 0.35)" : "transparent",
-            border: aiAssistantMode === "motion" ? "1px solid #206859" : "1px solid transparent",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          ⚡ MotionAI
-        </button>
-        <button
-          onClick={() => setAiAssistantMode("layout")}
-          style={{
-            flex: 1,
-            padding: "5px 8px",
-            fontSize: "11px",
-            fontWeight: aiAssistantMode === "layout" ? 700 : 500,
-            color: aiAssistantMode === "layout" ? "#34d399" : "#9ca3af",
-            background: aiAssistantMode === "layout" ? "rgba(32, 104, 89, 0.35)" : "transparent",
-            border: aiAssistantMode === "layout" ? "1px solid #206859" : "1px solid transparent",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          🧩 LayoutAI
-        </button>
-      </div>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-        {aiAssistantMode === "motion" ? (
-          <MotionAICoPilot onClose={() => setIsAiCoPilotOpen(false)} />
-        ) : (
-          <AiPromptBar
-            dockMode="split-left"
-            onToggleDockMode={setAiDockMode}
-            onClose={() => setIsAiCoPilotOpen(false)}
-            onStartDrag={handleStartRedockAI}
-          />
-        )}
-      </div>
-    </div>
+    <AiPromptBar
+      dockMode="split-left"
+      onToggleDockMode={setAiDockMode}
+      onClose={() => setIsAiCoPilotOpen(false)}
+      onStartDrag={handleStartRedockAI}
+    />
   );
+
+  /** The LayoutAI dock column (splitter + panel) — same JSX regardless of which
+   * of the 4 layout branches (full-page/normal × left/right) is currently active. */
+  const renderAiDockColumn = (side: "left" | "right") =>
+    isAiCoPilotOpen && aiDockSide === side && (
+      <React.Fragment key={`ai-dock-${side}`}>
+        <DockSplitter
+          orientation="vertical"
+          targetRef={aiZoneRef}
+          value={aiPanelWidth}
+          min={260}
+          max={600}
+          invert
+          onCommit={setAiPanelWidth}
+          style={{ zIndex: activeLayer === side ? 29 : 28 }}
+        />
+        <div
+          ref={aiZoneRef}
+          className={`dock-zone ai-copilot-dock-col ai-copilot-dock-col--${side} ${side === "right" ? "anim-slide-right" : "anim-slide-left"}`}
+          style={{
+            width: aiPanelWidth,
+            minWidth: aiPanelWidth,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            backgroundColor: "var(--surface-panel-solid)",
+            borderLeft: "1px solid var(--border-default)",
+            zIndex: 25,
+          }}
+        >
+          {renderAiDockContent()}
+        </div>
+      </React.Fragment>
+    );
 
   return (
     <div className="dock-layout">
@@ -1204,6 +1243,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             isAIOpen={isAiCoPilotOpen}
           />
         )}
+        <WorkspaceTabStrip activeWorkspace={activeWorkspace} onSelectWorkspace={handleSelectWorkspace} />
       </div>
 
       {/* Main Dock Body (Left, Center Column, Right, and Overlapping Bottom Drawer) */}
@@ -1214,30 +1254,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             {/* Full-page mode without left dock */}
 
             {/* LayoutAI docked on LEFT (beside Outliner) — Full-Page Layout */}
-            {isAiCoPilotOpen && aiDockSide === "left" && (
-              <>
-                <DockSplitter
-                  orientation="vertical"
-                  onResize={handleAiResize}
-                  style={{ zIndex: activeLayer === "left" ? 29 : 28 }}
-                />
-                <div
-                  className="dock-zone ai-copilot-dock-col"
-                  style={{
-                    width: aiPanelWidth,
-                    flexShrink: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "100%",
-                    backgroundColor: "var(--surface-panel-solid, #FFFFFF)",
-                    borderLeft: "1px solid var(--border-default, rgba(15,23,42,0.08))",
-                    zIndex: 25,
-                  }}
-                >
-                  {renderAiDockContent()}
-                </div>
-              </>
-            )}
+            {renderAiDockColumn("left")}
 
             {/* Center fills wide workspace with browser-like multi-tab FullPageDock */}
             <div
@@ -1366,42 +1383,25 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             </div>
 
             {/* LayoutAI docked on RIGHT (beside Details) — Full-Page Layout */}
-            {isAiCoPilotOpen && aiDockSide === "right" && (
-              <>
-                <DockSplitter
-                  orientation="vertical"
-                  onResize={handleAiResize}
-                  style={{ zIndex: activeLayer === "right" ? 29 : 28 }}
-                />
-                <div
-                  className="dock-zone ai-copilot-dock-col"
-                  style={{
-                    width: aiPanelWidth,
-                    flexShrink: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "100%",
-                    backgroundColor: "var(--surface-panel-solid, #FFFFFF)",
-                    borderLeft: "1px solid var(--border-default, rgba(15,23,42,0.08))",
-                    zIndex: 25,
-                  }}
-                >
-                  {renderAiDockContent()}
-                </div>
-              </>
-            )}
+            {renderAiDockColumn("right")}
 
             {/* Right vertical splitter */}
             {!rightCollapsed && (
               <DockSplitter
                 orientation="vertical"
-                onResize={handleRightResize}
+                targetRef={rightZoneRef}
+                value={rightWidth}
+                min={240}
+                max={550}
+                invert
+                onCommit={commitRightWidth}
                 style={{ zIndex: activeLayer === "right" ? 29 : 28 }}
               />
             )}
 
             {/* Right Dock Zone displaying Details */}
             <DockZone
+              ref={rightZoneRef}
               zoneId="right"
               size={rightWidth}
               isCollapsed={rightCollapsed}
@@ -1459,30 +1459,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             {/* Center Column: Full-width Center Stage (Canvas begins from left edge) */}
 
             {/* LayoutAI docked on LEFT (beside Outliner) — Normal Layout */}
-            {isAiCoPilotOpen && aiDockSide === "left" && (
-              <>
-                <DockSplitter
-                  orientation="vertical"
-                  onResize={handleAiResize}
-                  style={{ zIndex: activeLayer === "left" ? 29 : 28 }}
-                />
-                <div
-                  className="dock-zone ai-copilot-dock-col"
-                  style={{
-                    width: aiPanelWidth,
-                    flexShrink: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "100%",
-                    backgroundColor: "var(--surface-panel-solid, #FFFFFF)",
-                    borderLeft: "1px solid var(--border-default, rgba(15,23,42,0.08))",
-                    zIndex: 25,
-                  }}
-                >
-                  {renderAiDockContent()}
-                </div>
-              </>
-            )}
+            {renderAiDockColumn("left")}
 
             {/* Center Column: Center Stage */}
             <div
@@ -1540,7 +1517,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                       onClick={handleCloseSettings}
                       title="Close Settings & Return to Viewport (Esc)"
                       id="viewport-close-settings-btn"
-                      style={{ color: "#F59E0B" }}
+                      style={{ color: "var(--accent-warning)" }}
                     >
                       <X size={14} />
                     </button>
@@ -1574,10 +1551,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     title="World Environment & Viewport Settings"
                     id="canvas-world-env-quick-btn"
                     aria-label="World Environment Quick Settings"
-                    style={{
-                      color: environment.diagnostics.inspectMode ? "#10B981" : undefined,
-                      borderColor: environment.diagnostics.inspectMode ? "rgba(16, 185, 129, 0.4)" : undefined,
-                    }}
                   >
                     <Globe size={14} />
                   </button>
@@ -1592,7 +1565,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                   >
                     <div className="viewport-env-popover-header">
                       <span className="viewport-env-popover-title">
-                        <Globe size={13} style={{ color: "#6366F1" }} />
+                        <Globe size={13} style={{ color: "var(--accent-primary)" }} />
                         World Quick Controls
                       </span>
                       <button
@@ -1609,17 +1582,12 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     {/* DevTools Inspect Mode */}
                     <div className="viewport-env-popover-row">
                       <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <Eye size={12} style={{ color: environment.diagnostics.inspectMode ? "#10B981" : "#A1A1AA" }} />
+                        <Eye size={12} style={{ color: environment.diagnostics.inspectMode ? "var(--accent-primary)" : "var(--text-tertiary)" }} />
                         Inspect Mode
                       </span>
                       <button
                         type="button"
                         className={`viewport-env-popover-seg-btn ${environment.diagnostics.inspectMode ? "viewport-env-popover-seg-btn--active" : ""}`}
-                        style={{
-                          background: environment.diagnostics.inspectMode ? "rgba(16, 185, 129, 0.2)" : undefined,
-                          color: environment.diagnostics.inspectMode ? "#10B981" : undefined,
-                          border: environment.diagnostics.inspectMode ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid var(--border-subtle)",
-                        }}
                         onClick={toggleInspectMode}
                         id="quick-toggle-inspect-mode"
                       >
@@ -1756,42 +1724,25 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             </div>
 
             {/* LayoutAI docked on RIGHT (beside Details) — Normal Layout */}
-            {isAiCoPilotOpen && aiDockSide === "right" && (
-              <>
-                <DockSplitter
-                  orientation="vertical"
-                  onResize={handleAiResize}
-                  style={{ zIndex: activeLayer === "right" ? 29 : 28 }}
-                />
-                <div
-                  className="dock-zone ai-copilot-dock-col"
-                  style={{
-                    width: aiPanelWidth,
-                    flexShrink: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "100%",
-                    backgroundColor: "var(--surface-panel-solid, #FFFFFF)",
-                    borderLeft: "1px solid var(--border-default, rgba(15,23,42,0.08))",
-                    zIndex: 25,
-                  }}
-                >
-                  {renderAiDockContent()}
-                </div>
-              </>
-            )}
+            {renderAiDockColumn("right")}
 
             {/* Right Vertical Splitter */}
             {!rightCollapsed && (
               <DockSplitter
                 orientation="vertical"
-                onResize={handleRightResize}
+                targetRef={rightZoneRef}
+                value={rightWidth}
+                min={240}
+                max={550}
+                invert
+                onCommit={commitRightWidth}
                 style={{ zIndex: activeLayer === "right" ? 29 : 28 }}
               />
             )}
 
             {/* Right Dock Zone */}
             <DockZone
+              ref={rightZoneRef}
               zoneId="right"
               size={rightWidth}
               isCollapsed={rightCollapsed}
@@ -1833,7 +1784,12 @@ export const EditorShell: React.FC<EditorShellProps> = ({
               {!bottomCollapsed && (
                 <DockSplitter
                   orientation="horizontal"
-                  onResize={handleBottomResize}
+                  targetRef={bottomZoneRef}
+                  value={bottomHeight}
+                  min={140}
+                  max={480}
+                  invert
+                  onCommit={commitBottomHeight}
                   style={{
                     position: "absolute",
                     left: 0,
@@ -1846,6 +1802,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
 
               {/* Bottom Drawer Zone */}
               <DockZone
+                ref={bottomZoneRef}
                 zoneId="bottom"
                 size={bottomHeight}
                 isCollapsed={bottomCollapsed || visibleBottomTabs.length === 0}
@@ -1923,10 +1880,13 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                   corner="bottom-right"
                   right={rightWidth}
                   bottom={bottomHeight}
-                  onResize={(deltaX, deltaY) => {
-                    handleRightResize(deltaX);
-                    handleBottomResize(deltaY);
-                  }}
+                  rightRef={rightZoneRef}
+                  bottomRef={bottomZoneRef}
+                  rightMin={240}
+                  rightMax={550}
+                  bottomMin={140}
+                  bottomMax={480}
+                  onCommit={commitRightAndBottom}
                 />
               )}
             </>
@@ -2045,7 +2005,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             width: aiPanelWidth,
             zIndex: 9000,
             borderColor: "#2DD4BF",
-            backgroundColor: "rgba(32, 104, 89, 0.16)",
+            backgroundColor: "rgba(32, 104, 89, 0.3)",
           }}
           onClick={() => {
             setAiDockSide("left");
@@ -2058,11 +2018,11 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           <div className="layoutai-drop-slot-card">
             <div className="layoutai-drop-slot-badge">
               <Sparkles size={14} />
-              <span>Release to Dock LayoutAI</span>
+              <span>Release to Dock LazyLayout AI</span>
             </div>
-            <span className="layoutai-drop-slot-target-tag">Dock Beside Outliner</span>
+            <span className="layoutai-drop-slot-target-tag">Dock on Left</span>
             <span className="layoutai-drop-slot-subtext">
-              Release here to anchor panel beside Outliner
+              Release here to anchor panel on the left
             </span>
           </div>
         </div>
@@ -2081,7 +2041,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             width: aiPanelWidth,
             zIndex: 9000,
             borderColor: "#2DD4BF",
-            backgroundColor: "rgba(32, 104, 89, 0.16)",
+            backgroundColor: "rgba(32, 104, 89, 0.3)",
           }}
           onClick={() => {
             setAiDockSide("right");
@@ -2094,7 +2054,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
           <div className="layoutai-drop-slot-card">
             <div className="layoutai-drop-slot-badge">
               <Sparkles size={14} />
-              <span>Release to Dock LayoutAI</span>
+              <span>Release to Dock LazyLayout AI</span>
             </div>
             <span className="layoutai-drop-slot-target-tag">Dock Beside Details</span>
             <span className="layoutai-drop-slot-subtext">
@@ -2117,10 +2077,10 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             <Sparkles size={14} color="#FFFFFF" />
           </div>
           <div className="layoutai-drag-preview__body">
-            <span className="layoutai-drag-preview__title">LayoutAI Assistant</span>
+            <span className="layoutai-drag-preview__title">LazyLayout AI</span>
             <span className="layoutai-drag-preview__hint">
               {activeHoverDropSide === "left"
-                ? "Release to dock beside Outliner"
+                ? "Release to dock on the left"
                 : activeHoverDropSide === "right"
                 ? "Release to dock beside Details"
                 : "Move left or right to choose dock location"}

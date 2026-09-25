@@ -895,7 +895,7 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
             <button
               type="button"
               onClick={onOpenExecutionTrace}
-              title="Open Panel 20: Visual Execution Trace (Unreal Blueprint Debugger)"
+              title="Open Visual Execution Trace (Blueprint Debugger)"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -948,7 +948,7 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
           <button
             type="button"
             onClick={handleSimulateError}
-            title="Inject test runtime error to verify Panel 07 (Output Log) trapping"
+            title="Inject a test runtime error to verify Output Log trapping"
             style={{
               display: "flex",
               alignItems: "center",

@@ -53,9 +53,9 @@ To bisect a regression to one file, temporarily `git show <old>:<path> > <path>`
 
 ## App-specific gotchas (all hit in practice)
 
-- **Keyboard shortcuts** (EditorShell): Ctrl+K command palette · Ctrl+Shift+F global search · Ctrl+Shift+I AI co-pilot · Ctrl+Shift+M sequencer · Ctrl+Shift+G live code. The handlers accept `ctrlKey`, so `Control+…` works in headless Chromium on macOS.
-- **Search focus is stolen** by the canvas "Prompt AI" input when search opens (pre-existing). `fill()` the `input[placeholder^="Find across"]` instead of typing.
+- **Keyboard shortcuts** (EditorShell): Ctrl+K command palette · Ctrl+Shift+F global search · Ctrl+Shift+I LazyLayout AI panel (docks directly; Window → LazyLayout AI starts the drag-to-dock gesture instead) · Ctrl+Shift+M sequencer · Ctrl+Shift+G live code. The handlers accept `ctrlKey`, so `Control+…` works in headless Chromium on macOS.
+- **Search input:** `fill()` the `input[placeholder^="Find across"]` rather than typing into it.
 - **Focus lands in the sandbox iframe** after navigating to an element; click the "LazyLayout" logo before sending the next shortcut.
 - **Blueprint canvas** isn't a visible editor tab; open `/editor/detach/blueprint`. Wires are painted on `<canvas>`; the `svg path` elements are transparent hit areas, so check canvas pixels (`getImageData`), not SVG `d` attributes.
-- `Mount Showcase Demo` populates the project (BuyButton, pages, graph) and is needed for search/co-pilot steps.
+- `Mount Showcase Demo` populates the project (BuyButton, pages, graph) and is needed for search/AI steps. Its header button is icon-only below 1200px wide; select it by `aria-label` / `#header-toggle-demo-btn`.
 - The console warning about `allow-scripts` + `allow-same-origin` on the sandbox iframe is expected.

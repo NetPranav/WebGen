@@ -85,7 +85,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             title="Toggle Bottom Drawer (Logic Blueprint • Timeline Sequencer)"
           >
             <PanelBottom size={13} />
-            <span>Bottom Drawer</span>
+            <span className="statusbar__drawer-label">Bottom Drawer</span>
             <span className="statusbar__drawer-count">(Logic & Sequencer)</span>
             {isBottomOpen ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
           </button>
@@ -102,12 +102,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           <span>{status}</span>
         </div>
 
-        <div className="statusbar__item">
+        <div className="statusbar__item statusbar__item--ast">
           <span className="statusbar__badge">AST v1.0</span>
         </div>
 
         {activeSelection && (
-          <div className="statusbar__item">
+          <div className="statusbar__item statusbar__item--target">
             <span style={{ color: "var(--text-tertiary)" }}>Target:</span>
             <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>
               {activeSelection}
@@ -151,7 +151,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           style={{ cursor: "grab" }}
         >
           <Terminal size={12} />
-          <span>Output Log</span>
+          <span className="statusbar__log-label">Output Log</span>
         </button>
 
         {/* Sub-Phase 5.3: Visual Execution Trace (Panel 20) Button */}
@@ -162,23 +162,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               isExecutionTraceActive ? "statusbar__log-btn--active" : ""
             }`}
             onClick={onToggleExecutionTrace}
-            title="Toggle Panel 20: Visual Execution Trace (Blueprint Debugger)"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "2px 8px",
-              borderRadius: 3,
-              fontSize: 11,
-              fontWeight: 500,
-              backgroundColor: isExecutionTraceActive ? "rgba(56, 189, 248, 0.2)" : "transparent",
-              border: isExecutionTraceActive ? "1px solid rgba(56, 189, 248, 0.4)" : "1px solid transparent",
-              color: isExecutionTraceActive ? "#38BDF8" : "var(--text-secondary)",
-              cursor: "pointer",
-            }}
+            title="Toggle Visual Execution Trace (Blueprint Debugger)"
           >
-            <Activity size={12} style={{ color: isExecutionTraceActive ? "#38BDF8" : "inherit" }} />
-            <span>Execution Trace</span>
+            <Activity size={12} />
+            <span className="statusbar__log-label">Execution Trace</span>
           </button>
         )}
       </div>

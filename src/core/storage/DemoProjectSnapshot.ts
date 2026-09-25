@@ -104,7 +104,7 @@ export function createShowcaseSnapshot(): ProjectStateSnapshot {
         textContent: "Unreal Engine for Web Applications",
         fontSize: 32,
         fontWeight: 700,
-        color: "#ffffff",
+        color: "#0F172A",
       },
       children: [],
     },
