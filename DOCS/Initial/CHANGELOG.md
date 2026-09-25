@@ -9,6 +9,22 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.0] — 2026-09-25
+
+### Phases 3 & 4: ✅ complete — CI green on PR #7
+
+Phase 3 (Store, History & Persistence) and Phase 4 (Real-Environment Verification Harness) close together: Phase 3's own persistence gate moved into the Phase 4 Playwright harness, so both shipped on one branch/PR and one CI run.
+
+#### Fixed (found by the first real CI run, ubuntu-latest — everything before this had only run on macOS)
+- **AUD-42:** `parity.spec.ts`'s pixel-diff threshold (1%) was too tight for real cross-platform headless-Chromium rendering — 0% match on all 5 samples locally, a deterministic 2.39% diff at one sample on Linux CI. Not an exporter bug (confirmed against the much larger divergence the "wrong easing" regression test produces). Raised to 4%.
+- **AUD-43:** the `nextjs-app` export-harness fixture typechecked *before* `next build`/`next dev` ever ran there, so on a genuinely fresh checkout it never had `next-env.d.ts` (gitignored, auto-generated) and every `*.module.css` import failed with `TS2307`. Every prior local pass was really testing a stale leftover file from an earlier manual `next build`. Fixed by committing a static `next-env.d.ts` for that one fixture.
+- `tests/export-harness/build.mts`'s `check()` swallowed the actual `tsc`/bundler error on failure, showing only a bare "FAIL" — the first CI failure was undiagnosable until this was fixed. Failures now print the captured output.
+
+#### Docs
+- ROADMAP: Phase 3 and Phase 4 marked ✅ with the CI evidence (PR #7, all 3 browser projects, `verify` + `e2e` + `export-harness` jobs). AUDIT: AUD-05, AUD-08, AUD-15, AUD-16 close out their CI-pending caveats; new findings AUD-42 and AUD-43, both closed in this same PR.
+
+---
+
 ## [2.5.0] — 2026-09-24
 
 ### Phase 4 (Real-Environment Verification Harness): gate passed locally in 3 browsers, CI pending
