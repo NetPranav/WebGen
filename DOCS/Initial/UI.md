@@ -2,7 +2,7 @@
 
 > **⚠️ Pending v2 update:** This document still describes Initial Phase v1.1. Where it conflicts with `PRD.md` v2.0.0 or `ROADMAP.md` v2.0.0, those documents win. It will be rewritten in ROADMAP v2 Phase 6.3 (schema content in Phase 2). See `AUDIT.md` for known gaps between this spec and the code.
 
-## Project Name: Visual Motion & Frontend Design Studio
+## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"
 **AI Assistant Codename:** MotionAI
 **Document Version:** 1.1.0
@@ -14,7 +14,7 @@
 
 ## 1. Executive Design Philosophy: "Confluence Canvas + Refined Unreal Shell"
 
-The user interface of the Visual Motion & Frontend Design Studio synthesizes two paradigms:
+The user interface of LazyLayout synthesizes two paradigms:
 1. **The Luminous, Infinite Whiteboard of Atlassian Confluence:** Clean, open, distraction-free creative workspace with an infinite dot-grid canvas (`#FCFDFD`), crisp typography, and floating frosted-glass tool docks.
 2. **The Ergonomic Power of Unreal Engine:** Professional IDE panels, dockable window management, contextual inspectors, multi-track animation timelines, and high-frequency curve editing.
 
@@ -99,7 +99,7 @@ To ensure instant readability on the Sequencer timeline:
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Core Framework** | **Next.js 15 / React 19** | High-performance component architecture, SSR/SSG, fast client reconciliation. |
+| **Core Framework** | **Next.js 16 / React 19** | High-performance component architecture, SSR/SSG, fast client reconciliation. |
 | **High-Performance Math** | **C++ compiled to WebAssembly (Wasm)** | 120 FPS Hermite/Cubic Bezier curve solving, spline interpolation. |
 | **Animation Engines** | **GSAP 3.12 + Framer Motion 11** | Timeline sequencing, SVG path morphing, ScrollTrigger, and physical springs. |
 | **Graphics & Rendering** | **HTML5 Canvas + SVG** | Canvas for bezier curve rendering; SVG for path/divider manipulation and crisp vector exports. |
@@ -136,7 +136,7 @@ The Initial Phase provides **10 dedicated screens/workspaces**, completely strip
     - **Structural:** `Divider`, `Background Layer`, `Container`
     - **Text:** `Text / Label`
   * **Step 4 — Technology & Engine Configuration:**
-    - **Target Framework Dropdown:** Next.js 15 (App Router - TypeScript), Next.js 15 (Pages Router - TypeScript), React 19 (Vite - TypeScript), Vue 3 (Composition API), Svelte 5 (Runes), Vanilla HTML5 / ES6 JavaScript.
+    - **Target Framework Dropdown:** Next.js 16 (App Router - TypeScript), Next.js 16 (Pages Router - TypeScript), React 19 (Vite - TypeScript), Vue 3 (Composition API), Svelte 5 (Runes), Vanilla HTML5 / ES6 JavaScript.
     - **Styling System Dropdown:** Tailwind CSS (v4 / v3 Utility Classes), Vanilla CSS / Modern CSS Variables, CSS Modules (`*.module.css`), Styled Components / Emotion.
     - **Animation Engine Dropdown:** GSAP 3.12 (GreenSock Timeline & ScrollTrigger), Framer Motion 11 (Springs, Gestures & AnimatePresence), SVG Vector & Native CSS (Path/stroke morphing, keyframes, zero bundle size), Combined Hybrid.
     - **Language Toggle:** `[•] TypeScript` / `[ ] JavaScript`.

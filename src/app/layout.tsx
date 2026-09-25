@@ -34,9 +34,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Visual Web Application Engine | Unreal Engine for Web Applications",
+  title: "LazyLayout | AI-Native Motion Design Studio",
   description:
-    "Next-generation visual full-stack web application development studio with visual blueprints, C++ canvas physics, and reactive state management.",
+    "Visually author interactive motion, effects, and components with GSAP, Framer Motion, SVG, and CSS, and compile to production-grade code.",
 };
 
 export default function RootLayout({

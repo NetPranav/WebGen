@@ -218,7 +218,7 @@ export class GSAPAnimationEmitter {
     lines.push("");
     lines.push("/* ==========================================================================");
     lines.push(` * GSAP ANIMATION HOOK: ${hookName}`);
-    lines.push(" * WebAPPBuilder Visual Compiler — Next.js 15 & React 19");
+    lines.push(" * LazyLayout Compiler — Next.js 15 & React 19");
     lines.push(" * ========================================================================== */");
     lines.push("");
     lines.push('import { useEffect, useRef } from "react";');

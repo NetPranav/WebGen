@@ -2,7 +2,7 @@
 
 > **⚠️ Pending v2 update:** This document still describes Initial Phase v1.1. Where it conflicts with `PRD.md` v2.0.0 or `ROADMAP.md` v2.0.0, those documents win. It will be rewritten in ROADMAP v2 Phase 6.3 (schema content in Phase 2). See `AUDIT.md` for known gaps between this spec and the code.
 
-## Project Name: Visual Motion & Frontend Design Studio
+## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"
 **Document Version:** 1.1.0
 **Phase:** Initial Phase (Element Animation Studio)
@@ -13,7 +13,7 @@
 
 ## 1. Overview
 
-This document is the **single source of truth** for every dockable panel, floating window, and tabbed view in the Initial Phase of the Visual Motion & Frontend Design Studio.
+This document is the **single source of truth** for every dockable panel, floating window, and tabbed view in the Initial Phase of LazyLayout.
 
 Every panel listed here can be:
 - **Docked** to the left, right, bottom, or center dock zones
@@ -94,7 +94,7 @@ When an animation track, easing curve, or styling rule is attached to an element
     - **Text:** Text / Label.
     The chosen archetype sets `rootArchetype` in `project.json` and determines which Details Inspector sections (Panel 03) are shown by default.
   * **Tech Stack Configurator:**
-    - Framework dropdown: Next.js 15 (App/Pages), React 19 (Vite), Vue 3, Svelte 5, Vanilla HTML/JS.
+    - Framework dropdown: Next.js 16 (App/Pages), React 19 (Vite), Vue 3, Svelte 5, Vanilla HTML/JS.
     - Styling dropdown: Tailwind CSS (v4/v3), Vanilla CSS, CSS Modules, Styled Components.
     - Animation dropdown: GSAP 3.12, Framer Motion 11, SVG & Native CSS, Hybrid.
     - TypeScript vs JavaScript toggle.

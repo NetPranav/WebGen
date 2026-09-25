@@ -31,7 +31,6 @@ import { DetailsInspector } from "@/editor/panels/details/DetailsInspector";
 import { ContentBrowser } from "@/editor/panels/content-browser/ContentBrowser";
 import { OutputConsole } from "@/editor/panels/console/OutputConsole";
 import { ProjectSettings } from "@/editor/panels/settings/ProjectSettings";
-import { BlueprintCanvas } from "@/editor/panels/blueprint/BlueprintCanvas";
 import { TimelineSequencer } from "@/editor/panels/sequencer/TimelineSequencer";
 import { CurveEditor } from "@/editor/panels/curves/CurveEditor";
 import { AnimationExportPreview } from "@/editor/panels/sequencer/AnimationExportPreview";
@@ -41,15 +40,18 @@ import { AssetDetailsInspector } from "@/editor/panels/details/AssetDetailsInspe
 import { AssetFileEditor } from "@/editor/panels/content-browser/AssetFileEditor";
 import { StateMatrixViewer } from "@/editor/panels/state/StateMatrixViewer";
 import { ContentBlockShelf } from "@/editor/panels/content-browser/ContentBlockShelf";
-import { ExecutionTracePanel } from "@/editor/panels/execution-trace/ExecutionTracePanel";
 import { LiveCodeInspector } from "@/editor/panels/code-view";
-import { PagesManager } from "@/editor/panels/pages-manager";
-import { DeploymentDashboard } from "@/editor/panels/deployment";
 import { GlobalSearchPanel } from "@/editor/panels/global-search";
-import { PluginManager } from "@/editor/panels/plugins";
 import { UndoHistoryPanel } from "@/editor/panels/history";
-import { VersionControlPanel } from "@/editor/panels/versioning";
 import { ReferenceViewerPanel } from "@/editor/panels/dependencies";
+import {
+  BlueprintCanvas,
+  ExecutionTracePanel,
+  PagesManager,
+  DeploymentDashboard,
+  PluginManager,
+  VersionControlPanel,
+} from "./afterTrackPanels";
 import { CommandPalette } from "./CommandPalette";
 import { ShortcutRegistry } from "@/runtime/ShortcutRegistry";
 import { AiPromptBar } from "@/editor/panels/copilot/AiPromptBar";
@@ -301,21 +303,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
 
-    // Strictly disallow database in animation studio: strip any database query params
-    const panelParam = params.get("panel") || params.get("view") || params.get("tab");
-    if (
-      panelParam === "database" ||
-      panelParam === "er-modeler" ||
-      panelParam?.includes("database") ||
-      panelParam?.startsWith("db_")
-    ) {
-      const cleanUrl = new URL(window.location.href);
-      cleanUrl.searchParams.delete("panel");
-      cleanUrl.searchParams.delete("view");
-      cleanUrl.searchParams.delete("tab");
-      window.history.replaceState({}, "", cleanUrl.pathname + (cleanUrl.search ? cleanUrl.search : ""));
-    }
-
     const currentId = params.get("projectId") || params.get("id") || "";
     const archetype = params.get("archetype");
     const name = params.get("name") ? decodeURIComponent(params.get("name")!) : "";
@@ -533,18 +520,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({
 
   const handleDockFullPage = useCallback(
     (panelId: string, panelTitle: string, dragSource?: TearOffDragSource) => {
-      // DATABASE STRICTLY DISALLOWED: block any database loading attempt
-      if (
-        panelId === "database" ||
-        panelId === "er-modeler" ||
-        panelId.includes("database") ||
-        panelId.startsWith("db_") ||
-        panelId.endsWith(".db") ||
-        panelTitle.toLowerCase().includes("database")
-      ) {
-        return;
-      }
-
       draggedFullPageTabRef.current = null;
       setActiveFullPageTabId(panelId);
 

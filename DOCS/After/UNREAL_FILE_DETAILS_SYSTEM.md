@@ -1,5 +1,7 @@
 # Unreal Engine-Style File & Asset Details System Architecture
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 **Document Version:** 1.0.0  
 **Status:** Approved Specification  
 **Location:** `DOCS/UNREAL_FILE_DETAILS_SYSTEM.md`  

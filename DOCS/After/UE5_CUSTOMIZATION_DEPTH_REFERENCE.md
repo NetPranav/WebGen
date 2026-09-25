@@ -1,5 +1,7 @@
 # Unreal Engine Customization Depth — Reference & Architectural Inspiration
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 > This document captures key observations about the depth of Unreal Engine 5's editor customization system. These observations serve as the north-star reference for how deeply IDE Studio should support panel customization, file-specific editor contexts, and graph-integrated detail inspection.
 
 ---

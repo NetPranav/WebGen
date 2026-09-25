@@ -1,6 +1,6 @@
 # CHANGELOG — INITIAL PHASE
 
-## Project Name: Visual Motion & Frontend Design Studio
+## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"
 **Document Version:** 1.1.0
 **Phase:** Initial Phase (Element Animation Studio)
@@ -8,6 +8,38 @@
 
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [2.8.0] — 2026-09-25
+
+### Phase 6 (Scope, Naming & Docs Cleanup): implementation complete, CI pending
+
+#### Added
+- **`src/core/flags.ts`**: the `edition: "initial" | "full"` build flag, read from `process.env.NEXT_PUBLIC_EDITION` so Next's webpack config can inline the literal at build time.
+- **`src/editor/shell/afterTrackPanels.tsx`**: the 6 After-track panels reachable from `EditorShell` (Blueprint, Execution Trace, Pages Manager, Deployment, Plugin Manager, Version Control), each exported as `edition === "full" ? dynamic(() => import(...)) : notInThisEdition`, so the unreached branch — and its chunk — is dead-code-eliminated out of an `edition=initial` build.
+- **`scripts/check-bundle-scope.mts`** (`npm run check:bundle-scope`): resolves the real chunk graph Next registers for the `/editor` route tree and confirms none of the 6 gated panels are present. Wired into CI.
+- **`scripts/check-doc-links.mts`** (`npm run check:doc-links`): checks markdown and backtick doc-filename references under `DOCS/Initial/` for broken targets. Wired into CI.
+- **`DOCS/Initial/LICENSES.md`**: the Licensing Gate Law register. One open gate (GSAP's "Competitive Products" clause, Phase 14), one closed-by-policy non-gate (reference libraries, never vendored).
+- A real root `README.md` (the create-next-app boilerplate is gone): what LazyLayout is, the `edition` flag, how to run it, where the docs live.
+
+#### Changed
+- **One name: LazyLayout.** `package.json` `"name"`: `"engine"` → `"lazylayout"`. Page titles/metadata (`src/app/layout.tsx` and the `/editor` and `/editor/detach/[panelId]` layouts). Compiler emitter output headers that ship inside every exported user project (`PrismaSchemaEmitter`, `GSAPAnimationEmitter`, `StyleEmitter`, `ReactComponentEmitter`, `LogicFlowEmitter`, `ApiRouteEmitter`, `GitExporter`, `AssetFileEditor`) renamed from "WebAPPBuilder"/"WebGen" variants. All `DOCS/Initial/*.md` "Project Name:" headers and prose.
+- "Next.js 15" → "Next.js 16" in `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md`, `PANELS.md`, `UI.md` (current-state docs; dated `CHANGELOG.md` log entries describing past phases were left as accurate history).
+- Every file under `DOCS/After/` (15 files) now carries a "Full-vision track. Not the active roadmap" banner. `Roadmap_after.md` → `DOCS/After/ROADMAP_EXISTING_PROJECT_IMPORT.md` (`git mv`), including fixing its own stale self-reference to a `DOCS/ROADMAP_EXISTING.md` path that never existed.
+- Two `file:///Users/pranav/...` absolute links in `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (hardcoded to one contributor's home directory — would 404 in CI or for anyone else) converted to relative links.
+
+#### Fixed
+- **The `panelParam`/`panelId` string-matching `database` guards in `EditorShell.tsx` are removed.** They're superseded by the edition gate — Database Studio was already unreachable (no call sites), so nothing needed the string match to begin with.
+
+#### Removed
+- `DOCS.zip` (untracked via `git rm --cached`, local file kept, added to `.gitignore`).
+
+#### Left incomplete, honestly
+- The full PRD-v2 content rewrite of `UI.md`, `PANELS.md`, `SCHEMA_REFERENCE.md`, `CONVENTIONS.md`, `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` did **not** happen — only the naming/version truth pass ran on them. Their "pending v2 update" banners are still up; reconciling 11–140 KB of doc content against current code is its own pass, not something to rush inside Phase 6. See the ROADMAP Phase 6 progress log for the reasoning.
+
+#### Docs
+- ROADMAP: Phase 6 checklist ([x] for everything except the v2 content rewrite, marked [~]) and progress log. AUDIT: AUD-22 through AUD-27 closed (CI pending).
+
+---
 
 ## [2.7.0] — 2026-09-25
 
@@ -431,7 +463,7 @@ The v1.0.0 suite described 3 design scopes (Element, Component, Page) as if all 
 
 ### Initial Phase Specification Suite Created
 
-Established the comprehensive documentation suite for the **Initial Phase** inside `DOCS/Initial/`. This isolates and perfects the **Visual Motion & Frontend Design Studio**—a professional tool for visually crafting interactive elements, components, and pages using GSAP, Framer Motion, SVG vector animations, and CSS, compiling into clean, production-grade code ready to drop into any external codebase.
+Established the comprehensive documentation suite for the **Initial Phase** inside `DOCS/Initial/`. This isolates and perfects **LazyLayout**—a professional tool for visually crafting interactive elements, components, and pages using GSAP, Framer Motion, SVG vector animations, and CSS, compiling into clean, production-grade code ready to drop into any external codebase.
 
 #### Added
 - **PRD.md (v1.0.0)** — Master Product Requirements Document for Initial Phase

@@ -90,7 +90,7 @@ export class StyleEmitter {
 
     lines.push("/* ==========================================================================");
     lines.push(" * AUTOMATICALLY GENERATED DESIGN SYSTEM TOKENS");
-    lines.push(" * WebAPPBuilder Visual Compiler — Next.js 15 & React 19");
+    lines.push(" * LazyLayout Compiler — Next.js 15 & React 19");
     lines.push(" * ========================================================================== */");
     lines.push("");
     lines.push(":root {");
@@ -297,7 +297,7 @@ export class StyleEmitter {
     const lines: string[] = [];
     lines.push("/* ==========================================================================");
     lines.push(" * AUTOMATICALLY GENERATED SCOPED STYLES");
-    lines.push(" * WebAPPBuilder Visual Compiler — Next.js 15 & React 19");
+    lines.push(" * LazyLayout Compiler — Next.js 15 & React 19");
     lines.push(" * ========================================================================== */");
     lines.push("");
 

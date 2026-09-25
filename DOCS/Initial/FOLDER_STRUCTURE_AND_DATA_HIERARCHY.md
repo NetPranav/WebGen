@@ -2,7 +2,7 @@
 
 > **⚠️ Pending v2 update:** This document still describes Initial Phase v1.1. Where it conflicts with `PRD.md` v2.0.0 or `ROADMAP.md` v2.0.0, those documents win. It will be rewritten in ROADMAP v2 Phase 6.3 (schema content in Phase 2). See `AUDIT.md` for known gaps between this spec and the code.
 
-## Project Name: Visual Motion & Frontend Design Studio
+## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"
 **Document Version:** 1.1.0
 **Phase:** Initial Phase (Element Animation Studio)
@@ -13,7 +13,7 @@
 
 ## 1. Overview & Architectural Philosophy
 
-The Visual Motion & Frontend Design Studio separates its data and codebase architecture into two clearly defined hierarchies:
+LazyLayout separates its data and codebase architecture into two clearly defined hierarchies:
 1. **HIERARCHY A: THE ENGINE CODEBASE STRUCTURE (`WebAPPBuilder/`):** The internal Next.js application housing the C++ WebAssembly spline kernel, motion runtime, dockable UI panels, and code emitters.
 2. **HIERARCHY B: THE USER PROJECT & ASSET DATA HIERARCHY:** The portable declarative project format (`project.json` / `.motionproj`) representing one element, its node tree, animation tracks, and export manifest.
 
@@ -169,7 +169,7 @@ WebAPPBuilder/
     ├── compiler/                           # CLEAN CODE EMITTER PIPELINE
     │   ├── ast/                            # AST Transformers & Normalizers
     │   ├── emitters/                       # Framework & library code generators
-    │   │   ├── react/                      # React 19 / Next.js 15 TSX Emitter
+    │   │   ├── react/                      # React 19 / Next.js 16 TSX Emitter
     │   │   │   ├── InteractiveEmitter.ts   # Button/Toggle/Badge/FAB tag + prop emission
     │   │   │   ├── MediaEmitter.ts         # <Image>/<img> emission with objectFit, overlay, clipPath
     │   │   │   ├── StructuralEmitter.ts    # <hr>/<svg><line/> for Divider; <div> for Background

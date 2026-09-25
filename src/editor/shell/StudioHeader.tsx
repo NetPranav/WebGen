@@ -7,7 +7,7 @@
  * UI Element: Master Top Navigation & Application Menu Bar
  * Screen / Scope: Screen 01: Master IDE Studio Shell (`/editor`)
  * Role: Hosts:
- *       - Brand Logo & Engine Title ("Visual Web Application Engine")
+ *       - Brand Logo & Title ("LazyLayout Studio")
  *       - Project filename tag ("MyProject.uweb") with dirty state
  *       - Desktop Menu Bar (File, Edit, View, Window, Help)
  *       - Environment status indicators (Git branch, Wasm badge, Settings)

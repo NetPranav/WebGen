@@ -12,9 +12,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "IDE Studio | Visual Web Application Engine",
+  title: "Studio | LazyLayout",
   description:
-    "Full-scale visual development environment with dockable panels, logic blueprints, database modeler, and live preview.",
+    "Visual motion editor with dockable panels, a timeline sequencer, and live preview.",
 };
 
 export default function EditorLayout({

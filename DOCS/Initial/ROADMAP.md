@@ -424,21 +424,33 @@ Bugs found and fixed along the way:
 **Closes:** AUD-22 … AUD-27 · **Depends on:** 1
 
 ### Sub-Phase 6.1: Feature Flags Instead of String-Blocking
-- [ ] `src/core/flags.ts` with an `edition: "initial" | "full"` build flag. After-track panels (Blueprint, Execution Trace, Deployment, Database Studio, Collaboration, Plugins, Pages, Version Control) are registered only when `edition === "full"` and tree-shaken otherwise.
-- [ ] Remove the string-matching `database` guards in `EditorShell.tsx`.
+- [x] `src/core/flags.ts` with an `edition: "initial" | "full"` build flag. After-track panels (Blueprint, Execution Trace, Deployment, Database Studio, Collaboration, Plugins, Pages, Version Control) are registered only when `edition === "full"` and tree-shaken otherwise. *Implementation:* gated panels (Blueprint, Execution Trace, Pages Manager, Deployment, Plugin Manager, Version Control) are exported from `src/editor/shell/afterTrackPanels.tsx` as `edition === "full" ? dynamic(() => import(...)) : notInThisEdition`, so the literal `process.env.NEXT_PUBLIC_EDITION` check inlined by Next's webpack config lets Terser dead-code-eliminate the unreached `dynamic()` branch — and its chunk — out of an `edition=initial` build. `EditorShell.tsx` now imports all six from `./afterTrackPanels` instead of directly. Database Studio and Collaboration panels were already unreachable from `EditorShell` (no call sites), so they need no gate yet — noted in `afterTrackPanels.tsx` for whichever future phase wires either in.
+- [x] Remove the string-matching `database` guards in `EditorShell.tsx`. Both guards removed (the URL-param strip on mount, and the `handleDockFullPage` block on `panelId`/`panelTitle` containing "database"); the `/database` route already just redirects to `/editor` and needed no change.
 
 ### Sub-Phase 6.2: One Name
-- [ ] The product name is **LazyLayout**. Update `package.json` `name`, page titles, the launcher, README, and all Initial docs.
-- [ ] Replace the create-next-app `README.md` with a real one (what it is, how to run it, where the docs are).
+- [x] The product name is **LazyLayout**. `package.json` `"name"` changed from `"engine"` to `"lazylayout"`. Page titles/metadata updated in `src/app/layout.tsx`, `src/app/editor/layout.tsx`, `src/app/editor/detach/[panelId]/layout.tsx`. The launcher (`src/editor/panels/launcher/`) and `StudioHeader.tsx` were already LazyLayout-branded (`LazyLayoutLogo`); only a stale doc comment in `StudioHeader.tsx` needed fixing. Compiler emitter output headers (`PrismaSchemaEmitter`, `GSAPAnimationEmitter`, `StyleEmitter`, `ReactComponentEmitter`, `LogicFlowEmitter`, `ApiRouteEmitter`, `GitExporter`, `AssetFileEditor`) renamed from "WebAPPBuilder Visual Compiler"/"WebAPPBuilder Visual Studio"/"WebGen App" to "LazyLayout" variants — these are what ship inside every exported user project, so they're a real naming leak, not just internal docs. All Initial docs' "Project Name:" headers and prose now say LazyLayout instead of "Visual Motion & Frontend Design Studio".
+- [x] Replace the create-next-app `README.md` with a real one (what it is, how to run it, where the docs are). Done — covers what LazyLayout is, the `edition` flag, `npm install`/`dev`/build/test commands from `package.json`, and points to `DOCS/Initial/`.
 
 ### Sub-Phase 6.3: Docs Truth Pass
-- [ ] Replace "Next.js 15" with "Next.js 16" everywhere in Initial docs. Fix stale `DOCS/ROADMAP.md`-style links.
-- [ ] Mark `DOCS/After/*` with a banner: "Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md." Rename `Roadmap_after.md` → `ROADMAP_EXISTING_PROJECT_IMPORT.md`.
-- [ ] Remove `DOCS.zip` from git.
-- [ ] Create `DOCS/Initial/LICENSES.md` (the Licensing Gate Law register).
-- [ ] Update `UI.md`, `PANELS.md`, `SCHEMA_REFERENCE.md`, `CONVENTIONS.md` and `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` to PRD v2 (they carry a "pending v2 update" banner until then).
+- [x] Replace "Next.js 15" with "Next.js 16" everywhere in Initial docs. Fix stale `DOCS/ROADMAP.md`-style links. Fixed in `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md`, `PANELS.md`, `UI.md`. Left untouched in `CHANGELOG.md`: those are dated log entries describing what a past phase actually built at the time (e.g. "Sub-Phase 6.1: Next.js 15 & React 19 TSX Emitters" from the v1.1 compiler phase) — rewriting history there would misrepresent it, not fix it. `AUDIT.md`'s AUD-24 row is the finding text itself, resolved below rather than edited. No stale pre-move `DOCS/ROADMAP.md`/`DOCS/PRD.md`-style links were found under `DOCS/Initial/` beyond the audit finding quoting the bug — but two `file:///Users/pranav/...` absolute links (hardcoded to one machine, would 404 on any other contributor's or CI's filesystem) were found and converted to relative links in `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md`.
+- [x] Mark `DOCS/After/*` with a banner: "Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md." Rename `Roadmap_after.md` → `ROADMAP_EXISTING_PROJECT_IMPORT.md`. Banner added to all 15 files under `DOCS/After/`. Renamed via `git mv`; its own stale `**File Location:** DOCS/ROADMAP_EXISTING.md` line fixed to the real new path. The one cross-reference to it from `ROADMAP.md` §7 updated to the full `DOCS/After/...` path.
+- [x] Remove `DOCS.zip` from git. `git rm --cached` (kept the local file on disk, only untracked it — nothing else referenced it). Added to `.gitignore` so it can't be re-added by accident.
+- [x] Create `DOCS/Initial/LICENSES.md` (the Licensing Gate Law register). Documents the one real open gate (GATE-01: GSAP's "Competitive Products" clause, status **Open — inquiry not yet sent**, owned by Phase 14) and the one closed-by-policy non-gate (GATE-02: reference libraries like React Bits, never vendored). Written from `PRD.md` §12 and `AUDIT.md` AUD-09/AUD-28 — no gate invented that isn't already tracked elsewhere.
+- [~] Update `UI.md`, `PANELS.md`, `SCHEMA_REFERENCE.md`, `CONVENTIONS.md` and `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` to PRD v2 (they carry a "pending v2 update" banner until then). **Not done — banners intentionally kept.** Only the naming and Next.js-version truth pass ran on these five files (they're 11–140 KB each); actually reconciling their full content against current code under `src/` — panel-by-panel, schema-field-by-schema-field — is Phase-2/Phase-6-sized work on its own and rushing it here would risk the docs asserting things about the code that aren't true, which is the exact failure mode AUD-22..27 exists to close. Leaving the banner up is the honest state. Whoever picks this up next should treat it as its own pass, most naturally alongside Phase 2 (MDM v2, already the schema-content owner per this same checklist item) rather than bolted onto Phase 6.
 
 **Verification Gate:** The `edition=initial` production bundle contains none of the After-track panel modules (checked with the bundle analyzer in CI). A link checker over `DOCS/Initial` reports 0 broken links.
+- `npm run check:bundle-scope` (new script, wired into `.github/workflows/ci.yml`'s `verify` job after `npm run build`): resolves the actual chunk graph Next registers for the `/editor` and `/editor/detach/[panelId]` routes from their build/client-reference manifests, and confirms a marker string unique to each gated panel's source is absent from every referenced chunk. **PASS** — 16 chunks referenced, 0/6 gated panels present, with `NEXT_PUBLIC_EDITION` unset (CI's default).
+- `npm run check:doc-links` (new script, same CI job): checks markdown links and backtick doc-filename references under `DOCS/Initial/`, skipping table rows and unchecked checklist lines (which in this roadmap's style quote bug examples or name not-yet-created future artifacts, not real links). **PASS** — 108 links checked, 0 broken.
+
+### Phase 6 Progress Log
+**2026-09-25:** Implementation complete on branch `phase-6-scope-naming-docs`, PR opened against `main`. Not marked ✅ here — that happens in a follow-up commit once CI is confirmed green (same pattern as Phases 3–5).
+- `npm run typecheck`: 0 errors.
+- `npm run lint`: 455/463 warnings (unchanged from Phase 5 — this phase touched no lint-relevant logic, only strings/imports/comments/docs).
+- `npm run test:unit`: 655/655 passing (unchanged from Phase 5).
+- `npm run build`: clean production build, `edition=initial` (default, `NEXT_PUBLIC_EDITION` unset).
+- `npm run check:bundle-scope`: PASS, 0/6 gated panels leaked.
+- `npm run check:doc-links`: PASS, 0/108 broken.
+- Left incomplete, honestly: the full PRD-v2 content rewrite of `UI.md`, `PANELS.md`, `SCHEMA_REFERENCE.md`, `CONVENTIONS.md`, `FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` (see 6.3's last item above) — their "pending v2 update" banners stay up.
 
 ---
 
@@ -1501,5 +1513,5 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 
 These remain on the full-vision track (`DOCS/After/`) and begin only after Phase 40:
 - Multi-element **Component Design** (navbars, pricing cards, modals as editable compositions beyond single effects) and **Page / Section Design**.
-- Logic Blueprints, NodeScript, Database Studio, API/backend emitters, deployment, collaboration, plugins, and importing existing projects (`ROADMAP_EXISTING_PROJECT_IMPORT.md`).
+- Logic Blueprints, NodeScript, Database Studio, API/backend emitters, deployment, collaboration, plugins, and importing existing projects (`DOCS/After/ROADMAP_EXISTING_PROJECT_IMPORT.md`).
 - Mobile (React Native / Flutter) emitters.

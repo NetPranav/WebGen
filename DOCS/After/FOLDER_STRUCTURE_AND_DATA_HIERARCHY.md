@@ -1,5 +1,7 @@
 # ENGINE FOLDER STRUCTURE & DATA HIERARCHY SPECIFICATION
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 ## Project Name: Visual Web Application Engine
 **Internal Codename:** "Unreal Engine for Web Applications"  
 **Document Version:** 2.0.0  

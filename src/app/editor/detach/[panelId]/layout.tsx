@@ -12,8 +12,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Detached Panel | IDE Studio",
-  description: "Detached panel view from the IDE Studio editor.",
+  title: "Detached Panel | LazyLayout",
+  description: "Detached panel view from the LazyLayout editor.",
 };
 
 export default function DetachLayout({

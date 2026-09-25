@@ -1,5 +1,7 @@
 # NodeScript Standard Library Reference (v1.0.0)
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 This document specifies the canonical text names, pin signatures, data types, and syntax rules for all nodes in the WebAPPBuilder Logic Blueprint Registry.
 
 Every `.nls` file is an AI-native textual intermediate representation (IR) with 100% lossless, round-trippable structural parity with visual blueprints (**AI-Native Parity Law**).

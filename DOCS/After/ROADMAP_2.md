@@ -1,5 +1,7 @@
 # ROADMAP 2: Deep Detailing Panel System — Full Unreal Engine Parity
 
+> **⚠️ Full-vision track. Not the active roadmap; see DOCS/Initial/ROADMAP.md.**
+
 > **North Star Reference**: `DOCS/UE5_CUSTOMIZATION_DEPTH_REFERENCE.md`
 > **Specification**: `DOCS/UNREAL_FILE_DETAILS_SYSTEM.md`
 > **Architectural Law**: **Inside-Out Engineering** — Always build from innermost connection settings/data schemas outward to the engine compatibility & Output Log diagnostic layer, and finally to the outermost UI inspector controls.

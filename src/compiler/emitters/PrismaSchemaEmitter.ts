@@ -88,7 +88,7 @@ export class PrismaSchemaEmitter {
     // Header
     lines.push("// ==========================================================================");
     lines.push("// PRISMA SCHEMA DEFINITIONS");
-    lines.push("// WebAPPBuilder Visual Compiler — Next.js 15 & Prisma ORM");
+    lines.push("// LazyLayout Compiler — Next.js 15 & Prisma ORM");
     lines.push("// ==========================================================================");
     lines.push("");
 
@@ -233,7 +233,7 @@ export class PrismaSchemaEmitter {
     lines.push("-- ==========================================================================");
     lines.push("-- AUTOMATICALLY GENERATED INITIAL SQL MIGRATION");
     lines.push(`-- Dialect: ${provider.toUpperCase()}`);
-    lines.push("-- WebAPPBuilder Visual Compiler — Next.js 15 & Prisma ORM");
+    lines.push("-- LazyLayout Compiler — Next.js 15 & Prisma ORM");
     lines.push("-- ==========================================================================");
     lines.push("");
 
