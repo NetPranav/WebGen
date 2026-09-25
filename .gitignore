@@ -40,9 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# engine & wasm
-wasm/dist/
-wasm/tests/*_test
+# engine & wasm (archived, ROADMAP decisions/0001-wasm.md: No-Go)
+DOCS/Initial/decisions/0001-wasm-archive/dist/
+DOCS/Initial/decisions/0001-wasm-archive/tests/*_test
+DOCS/Initial/decisions/0001-wasm-archive/benchmark/*.wasm
+DOCS/Initial/decisions/0001-wasm-archive/benchmark/engine.js
+DOCS/Initial/decisions/0001-wasm-archive/benchmark/spline-solver.bundle.js
 *.wasm
 saved/
 generated/

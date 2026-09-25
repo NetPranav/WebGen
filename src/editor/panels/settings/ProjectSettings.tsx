@@ -44,7 +44,6 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ onClose }) => 
   // Build settings
   const [targetFramework, setTargetFramework] = useState("nextjs15");
   const [turbopackEnabled, setTurbopackEnabled] = useState(true);
-  const [wasmOptimization, setWasmOptimization] = useState("aggressive");
 
   // Theme settings
   const [primaryBrand, setPrimaryBrand] = useState("#206859");
@@ -232,18 +231,6 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ onClose }) => 
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">C++ WebAssembly Optimization Level</label>
-              <select
-                className="form-select"
-                value={wasmOptimization}
-                onChange={(e) => setWasmOptimization(e.target.value)}
-              >
-                <option value="aggressive">Aggressive -O3 (Optimal 120 FPS Wire Simulation)</option>
-                <option value="balanced">Balanced -O2 (Standard Compilation)</option>
-                <option value="debug">Debug -O0 (Full Symbol Inspection)</option>
-              </select>
-            </div>
           </div>
         )}
 

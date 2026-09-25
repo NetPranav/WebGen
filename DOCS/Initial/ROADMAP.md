@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 2.1.0
 **Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phases 1–4 ✅ (CI green on PR #7, all 3 browsers). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then Phases 5 ∥ 6 ∥ 42. See §5.1.
+**Status:** Active. Phases 1–5 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, all 3 browsers). Next: Phase 41 (the rest of it; 41.2 transactions shipped with Phase 3), then Phase 6 ∥ 42. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
@@ -123,7 +123,7 @@ A phase is **✅ COMPLETE** only when:
 | 2 | A | Unified Motion Document Model (MDM v2) | One schema, one store API, migrations | 1 | ✅ |
 | 3 | A | Store, History & Persistence | Correct undo/redo, IndexedDB autosave, `.lazy` files | 2 | ✅ (CI green on PR #7) |
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | ✅ (CI green on PR #7) |
-| 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | 📋 |
+| 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | ✅ (CI green on PR #8) |
 | 6 | A | Scope, Naming & Docs Cleanup | Initial bundle excludes After-track panels; one name; docs fixed | 1 | 📋 |
 | 7 | B · Motion Core | Motion Primitives: Tracks, Clips, States, Triggers, Behaviours | Formal animation model inside MDM | 2 | 📋 |
 | 8 | B | Executable Motion Rules Engine | Grammar + engine spec compiled into one rule table | 7 | 📋 |
@@ -390,19 +390,32 @@ None of these were exporter or animation bugs — all three are the harness's ow
 **Closes:** AUD-10, AUD-11, AUD-12 · **Depends on:** 1
 
 ### Sub-Phase 5.1: Engine Dependencies
-- [ ] Add `motion` (import from `motion/react`), `three`, `@react-three/fiber` (React 19-compatible major), `@react-three/drei`, and `@gsap/react` (GSAP is already present). Pin versions.
-- [ ] Code-split each engine so an unused engine costs zero bytes in the editor's initial bundle (dynamic `import()` per adapter).
+- [x] Add `motion` (import from `motion/react`), `three`, `@react-three/fiber` (React 19-compatible major), `@react-three/drei`, and `@gsap/react` (GSAP is already present). Pin versions.
+- [x] Code-split each engine so an unused engine costs zero bytes in the editor's initial bundle (dynamic `import()` per adapter). *Note:* nothing in the editor's own source imports `motion`/`three`/`@react-three/*` yet (only Phases 10/14/15/18 wire in real adapters) — only generated *export code strings* reference `gsap` as text, never a real import. So today the zero-cost property holds trivially, verified by `grep`ing the production bundle for `three`/`motion` signature strings (none found). The obligation this item leaves for later phases: use dynamic `import()` when those adapters are actually written, not a static import at module scope.
 
 ### Sub-Phase 5.2: Remove Fakes
-- [ ] Delete the 2D-canvas "WebGL" drawing from `Scene3DViewport.tsx`. It is rebuilt on R3F in Phase 18. Until then, the 3D layer kind is hidden behind a feature flag.
-- [ ] Rename or annotate every "C++ Wasm" claim in the UI and docs to say what actually runs.
+- [x] Delete the 2D-canvas "WebGL" drawing from `Scene3DViewport.tsx`. It is rebuilt on R3F in Phase 18. Until then, the 3D layer kind is hidden behind a feature flag. *Finding:* no feature flag was needed — `object3D`/`camera3D`/`light3D` were already unreachable (`INITIAL_ARCHETYPE_IDS` and `archetypeData.ts` never list them, and `addLayer` has zero call sites in the editor outside tests). `Scene3DViewport.tsx` itself was also unmounted anywhere in the app. The fake software-3D-projection canvas renderer and the `webglcontextlost`/`webglcontextrestored` listeners (which can never fire on a plain 2D context) are deleted; the component is now an honest "Phase 18" placeholder.
+- [x] Rename or annotate every "C++ Wasm" claim in the UI and docs to say what actually runs. Fixed in `CurveEditor.tsx` (header comment, `aria-label`, tab label), `StudioHeader.tsx` (the "Wasm 120 FPS" badge was hardcoded to claim a link that never existed — now reads real state, and after 5.3's decision is a static, honest "TypeScript 120 FPS"), `ProjectSettings.tsx` ("C++ WebAssembly Optimization Level" was a dropdown with zero effect — annotated, then removed once 5.3 made that permanent), and the `wasm/` source's own doc comments (`SplineSolver.ts`, `WasmBridge.ts`, `WasmWorkerPool.ts`).
 
 ### Sub-Phase 5.3: Wasm Go / No-Go
-- [ ] Build the kernel with Emscripten in CI (`npm run build:wasm`) and load it in the browser.
-- [ ] Browser benchmark: spline evaluation, path arc-length sampling and spring baking, Wasm vs the TS fallback, measured with real frame timing at realistic sizes (e.g. 200 tracks × 120 samples).
-- [ ] **Decision rule:** keep Wasm only if it is ≥ 2× faster on a workload the product actually runs per frame. Otherwise remove the build step, keep the TS code, and archive `wasm/` under `DOCS/Initial/decisions/`. Record the decision in `DOCS/Initial/decisions/0001-wasm.md`.
+- [x] Build the kernel with Emscripten in CI (`npm run build:wasm`) and load it in the browser. *Re-scope:* built locally with Emscripten 6.0.10 and loaded in real Chromium (Playwright), not wired into permanent CI — see decision below for why a CI job isn't being added for code this same sub-phase archives. **The kernel had never actually compiled, on any prior commit** (missing `<wasm_simd128.h>` include, missing `using namespace WebAppEngine;`, and `WasmBindings.cpp` referencing methods/fields/enum members that don't exist on the current headers). Fixed to get a real build; full detail in `DOCS/Initial/decisions/0001-wasm.md`.
+- [x] Browser benchmark: spline evaluation, path arc-length sampling and spring baking, Wasm vs the TS fallback, measured with real frame timing at realistic sizes (e.g. 200 tracks × 120 samples). *Re-scope:* spring baking has no C++ implementation at all (never did) and isn't part of the comparison; spline evaluation and arc-length sampling are, at the ROADMAP's own stated size, in real Chromium, 5 runs each.
+- [x] **Decision rule:** keep Wasm only if it is ≥ 2× faster on a workload the product actually runs per frame. Otherwise remove the build step, keep the TS code, and archive `wasm/` under `DOCS/Initial/decisions/`. Record the decision in `DOCS/Initial/decisions/0001-wasm.md`. — **No-Go.** Per-wire calls (the app's actual default pattern): Wasm is *slower*, mean 0.67x. Batched into one JS↔Wasm crossing (Wasm's best case): mean 1.93x, only 3/5 runs even reached 2.0x. `wasm/` is archived at `DOCS/Initial/decisions/0001-wasm-archive/`, `build:wasm` is removed from `package.json`.
 
 **Verification Gate:** `npm ls motion three @react-three/fiber` resolves. The editor's initial JS bundle grows ≤ 5% (engines are lazy). The Wasm decision record exists with benchmark numbers.
+
+### Phase 5 Progress Log
+**2026-09-25: ✅ Phase 5 complete. CI green on PR #8** (`https://github.com/NetPranav/WebGen/pull/8`, `verify` + `e2e` jobs, both push and pull_request triggers, all passing).
+- `npm ls motion three @react-three/fiber` resolves clean (`motion@13.4.3`, `three@0.186.1`, `@react-three/fiber@9.8.1`, plus `@react-three/drei@10.7.8`, `@gsap/react@2.1.2`, `@types/three@0.186.0` as a devDependency since `three` ships no bundled types).
+- Bundle growth: 0%, not just ≤ 5% — verified by grepping `.next/static/chunks` for `three`/`motion` signature strings (`WebGLRenderer`, etc.) after a production build; none present, since nothing imports them yet.
+- `typecheck` 0 · `lint` 0 errors / 455 warnings (budget 463, **down** from 463 — deleting `Scene3DViewport.tsx`'s fake renderer removed more lint surface than this phase's other edits added) · 655/655 unit tests (unchanged — this phase touched no tested logic, only UI labels, a dead component's internals, and archived, previously-uncompiled C++) · `next build` green.
+- The Wasm decision (No-Go) and its full evidence are in `DOCS/Initial/decisions/0001-wasm.md`, including a reproducible benchmark script.
+
+Bugs found and fixed along the way:
+- **`Scene3DViewport.tsx`** claimed "WebGL canvas rendering" while doing hand-rolled 3D-to-2D projection math on a `getContext("2d")` canvas, with `webglcontextlost`/`webglcontextrestored` listeners that can never fire on a 2D context. It was also unmounted anywhere in the app (AUD-11).
+- **`StudioHeader.tsx`**'s "Wasm 120 FPS" badge was unconditionally hardcoded green, claiming a "C++ WebAssembly Engine linked" regardless of reality — nothing anywhere in the app ever called `WasmBridge.init()`, so no Wasm module was ever requested, let alone linked (AUD-11).
+- **The C++ Wasm kernel never compiled.** `SplineSolver.cpp` used SIMD intrinsics without the header that declares them; `WasmBindings.cpp` was missing the namespace that makes its own type references resolve, and separately bound several methods/fields/enum members that don't exist on the current C++ headers at all (not recent drift — never consistent). Fixed to make the go/no-go benchmark possible on real evidence (AUD-12).
+- **`WasmBridge.getSplineSolver()` never actually routed to a loaded Wasm module**, even on a hypothetically successful `.init()` — its returned methods called the static TS `SplineSolver` unconditionally. Moot after the No-Go decision, but means every prior claim of Wasm-backed math was false regardless of build status.
 
 ---
 

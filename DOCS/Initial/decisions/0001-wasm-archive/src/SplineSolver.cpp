@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <wasm_simd128.h>
 
 namespace WebAppEngine {
 

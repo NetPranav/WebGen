@@ -2,12 +2,14 @@
 
 /**
  * ============================================================================
- * C++ WEBASSEMBLY CUBIC BEZIER & SPRING CURVE EDITOR
+ * CUBIC BEZIER & SPRING CURVE EDITOR
  * ============================================================================
  * UI Element: CurveEditor (Unreal Equivalent: Curve Editor)
  * Screen / Scope: Screen 05: Motion Sequencer & Bezier Curve Editor (`/editor`)
- * Role: Visual easing curve workstation powered by C++ WebAssembly (SplineSolver.ts)
- *       for smooth 120 FPS interpolation, interactive tangent handles, and presets.
+ * Role: Visual easing curve workstation powered by `SplineSolver.ts`, pure
+ *       TypeScript, permanently — ROADMAP Sub-Phase 5.3 benchmarked the
+ *       archived C++/Wasm port and decided No-Go (AUD-12,
+ *       DOCS/Initial/decisions/0001-wasm.md).
  * Styling Source: `@/editor/styles/sequencer.css`
  * Matches: ROADMAP.md Sub-Phase 4.2 & PANELS.md (Panel 06)
  * ============================================================================
@@ -185,7 +187,7 @@ export const CurveEditor: React.FC = () => {
   };
 
   return (
-    <div className="curve-editor-shell" role="region" aria-label="C++ Wasm Bezier Curve Editor">
+    <div className="curve-editor-shell" role="region" aria-label="Bezier Curve Editor">
       {/* Editor Toolbar */}
       <div className="curve-editor-toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
@@ -195,7 +197,7 @@ export const CurveEditor: React.FC = () => {
             onClick={() => setActiveTab("bezier")}
           >
             <Sparkles size={11} />
-            <span>Cubic Bezier (C++ Wasm)</span>
+            <span>Cubic Bezier</span>
           </button>
           <button
             type="button"
