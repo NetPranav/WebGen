@@ -13,10 +13,14 @@
 import { ColorTokens, WireColorTokens } from "@/core/types/theme";
 import { StyleEmitterOptions, EmittedFile } from "@/core/types/compiler";
 import type { Layer } from "@/core/document/schema";
-import { getPropertyDefinition } from "@/core/document/properties";
+import { getLayerGeometry, getPropertyDefinition } from "@/core/document/properties";
 
-/** Property groups whose registry `css` mapping is a direct, emit-as-is CSS declaration. */
-const CSS_DIRECT_GROUPS = ["appearance.", "typography.", "layout.", "frame.width", "frame.height", "transform.", "filter.", "media.filter.", "media.objectFit", "media.objectPosition", "media.aspectRatio", "svg.stroke", "svg.fill"];
+/**
+ * Property groups whose registry `css` mapping is a direct, emit-as-is CSS
+ * declaration. Geometry (`frame.*`, `sizing.*`, `positioning`) is not here:
+ * it is emitted from the layer's resolved geometry (see `geometryDeclarations`).
+ */
+const CSS_DIRECT_GROUPS = ["appearance.", "typography.", "layout.", "transform.", "filter.", "media.filter.", "media.objectFit", "media.objectPosition", "media.aspectRatio", "svg.stroke", "svg.fill"];
 
 /** CSS transform function per canonical path (the rest use the path's last segment). */
 const TRANSFORM_FUNCTIONS: Record<string, string> = {
@@ -62,6 +66,33 @@ export class StyleEmitter {
     if (def?.valueType === "length") return `${val}px`;
     if (def?.valueType === "angle") return `${val}deg`;
     return String(val);
+  }
+
+  /**
+   * Layout CSS from the layer's geometry (Phase 42.3). A fixed axis emits its
+   * size in its unit; an axis explicitly set to `fill` emits 100%; `hug` emits
+   * nothing (the content sizes it). A root's position is its place on the
+   * canvas, not layout, so only absolutely positioned children get left/top.
+   * `frame.rotation` is layout rotation and uses the CSS `rotate` property,
+   * which composes with (and stays separate from) animated `transform`s.
+   */
+  public static geometryDeclarations(element: Layer, indent: string): string[] {
+    const out: string[] = [];
+    const geo = getLayerGeometry(element);
+    const props = element.properties || {};
+    const axes = [
+      ["width", "frame.width", "sizing.horizontal", geo.sizing.horizontal, geo.frame.width, geo.units.width],
+      ["height", "frame.height", "sizing.vertical", geo.sizing.vertical, geo.frame.height, geo.units.height],
+    ] as const;
+    for (const [css, sizePath, sizingPath, sizing, size, unit] of axes) {
+      if (sizing === "fixed" && typeof props[sizePath] === "number") out.push(`${indent}${css}: ${size}${unit === "auto" ? "px" : unit};`);
+      else if (props[sizingPath] === "fill") out.push(`${indent}${css}: 100%;`);
+    }
+    if (element.parentId !== null && geo.positioning === "absolute") {
+      out.push(`${indent}position: absolute;`, `${indent}left: ${geo.frame.x}px;`, `${indent}top: ${geo.frame.y}px;`);
+    }
+    if (geo.frame.rotation) out.push(`${indent}rotate: ${geo.frame.rotation}deg;`);
+    return out;
   }
 
   /**
@@ -208,6 +239,7 @@ export class StyleEmitter {
       declarations.push(`${indent}transition: border-color 0.15s ease;`);
     }
 
+    declarations.push(...StyleEmitter.geometryDeclarations(element, indent));
     declarations.push(...StyleEmitter.cssDeclarations(props, indent));
 
     const rules: string[] = [];

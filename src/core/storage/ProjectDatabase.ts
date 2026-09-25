@@ -97,8 +97,10 @@ export function createDefaultBlankSnapshot(
           archetype: "container",
           name: "Root Canvas",
           properties: {
-            "frame.width": "100%",
-            "frame.height": "100%",
+            "frame.width": 100,
+            "frame.widthUnit": "%",
+            "frame.height": 100,
+            "frame.heightUnit": "%",
             "appearance.background.color": "transparent",
             "layout.display": "flex",
             "layout.flexDirection": "column",

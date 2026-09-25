@@ -160,7 +160,7 @@ A phase is **✅ COMPLETE** only when:
 | 39 | G | Simple Mode & Guided Flow | Draw → Pick motion → Export in 3 steps; new onboarding | 22, 25, 37 | 📋 |
 | 40 | H · Release | Initial Phase v2 Release Gate | PRD §11 DoD proven end to end | all (incl. 58) | 📋 |
 | 41 | S · Studio Architecture | Store Decomposition & Transaction API | Small document store, gesture transactions, per-layer subscriptions | 2 · *before 3* | 🚧 41.2 done (with Phase 3) |
-| 42 | S | Canonical Property Paths & Geometry Model | One property vocabulary; `frame` + sizing on every layer; schema v3 | 2 · *before 7, 20, 48* | 🚧 42.1 registry + 42.4 decision drafted |
+| 42 | S | Canonical Property Paths & Geometry Model | One property vocabulary; `frame` + sizing on every layer; schema v3 | 2 · *before 7, 20, 48* | 🚧 implemented, gate passes locally; awaiting CI |
 | 43 | S | Command Bus, Tool State Machine & Keymap | One command registry, focus-aware keys, tool state machines | 41 · *before 20* | 📋 |
 | 44 | S | Workspace Architecture & Layout Presets | Figma-style side panels + AE bottom timeline; Design / Animate / Code presets | 6, 43 · *before 20* | 📋 |
 | 45 | S | Transport, Global Clock & Frame Scheduler | One clock, one rAF loop, no per-frame React renders | 9, 41 · *before 10* | 📋 |
@@ -1139,15 +1139,15 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 
 ### Sub-Phase 42.1: Property Registry
 - [~] `src/core/document/properties.ts`: for each canonical path (`frame.x`, `transform.y`, `fill.color`, `corner.radius`, `text.fontSize`, …) it declares the value type, unit, default, CSS mapping, compositing class (GPU / paint / layout), whether it is animatable, and the archetypes that have it.
-- [ ] Static props, state snapshots, tracks, links and the inspector all address properties by these paths. The per-archetype prop validation left open in Phase 2 lands here.
+- [~] Static props, state snapshots, tracks, links and the inspector all address properties by these paths. The per-archetype prop validation left open in Phase 2 lands here. *(Links arrive with Phase 47 and will use the same paths.)*
 
 ### Sub-Phase 42.2: Migration to Schema v3
-- [ ] An alias table (`transform.translateY → transform.y`, `backgroundColor → fill.color`, `borderRadius → corner.radius`, …) and a `v2 → v3` migration covering layer props, tracks, states and the 51 presets.
-- [ ] Unknown paths are a validation error with the closest valid path suggested.
+- [~] An alias table (`transform.translateY → transform.y`, `backgroundColor → fill.color`, `borderRadius → corner.radius`, …) and a `v2 → v3` migration covering layer props, tracks, states and the 51 presets.
+- [~] Unknown paths are a validation error with the closest valid path suggested.
 
 ### Sub-Phase 42.3: Geometry
-- [ ] Every visual layer has `frame { x, y, width, height, rotation }` in parent space, `sizing { horizontal, vertical: "fixed" | "hug" | "fill" }` and `positioning: "absolute" | "flow"` (flow means it sits inside an auto-layout parent, Phase 50).
-- [ ] The artboard/frame is a layer with geometry, not a document-level special case, which prepares multi-frame canvases (Phase 49).
+- [~] Every visual layer has `frame { x, y, width, height, rotation }` in parent space, `sizing { horizontal, vertical: "fixed" | "hug" | "fill" }` and `positioning: "absolute" | "flow"` (flow means it sits inside an auto-layout parent, Phase 50).
+- [~] The artboard/frame is a layer with geometry, not a document-level special case, which prepares multi-frame canvases (Phase 49).
 
 ### Sub-Phase 42.4: Layout vs Motion Transform (Decision Record)
 - [~] `decisions/0003-geometry-vs-transform.md`: `frame` is **layout** (what Figma edits: moving a layer on the canvas changes `frame`). `transform.*` is **motion offset** (what the timeline animates, composed on top of `frame`, GPU-only). This keeps animation off layout properties by default, the web equivalent of AE's Position and Anchor. Animating `frame.*` is allowed only when the rules (Phase 8) accept the layout cost.
@@ -1167,7 +1167,52 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
   - archetype-specific aliases resolve correctly;
   - unknown paths get a suggestion (`transfrom.y` → `transform.y`);
   - prototype keys aren't treated as aliases.
-- Next: 42.2 (v2 → v3 migration of layer props, tracks, states, presets, plus readers: SandboxHost, emitters, inspectors, adapters), then 42.3 (`frame`/`sizing`/`positioning` on layers, artboard as a layer).
+
+**2026-09-25: 🚧 all four sub-phases implemented and the gate passes locally; waiting on CI (all items `[~]` until then).**
+- **42.2 schema v3 `[~]`**: `migrations/v2-to-v3.ts` is chained after v1 → v2. Every layer prop key, state key and track path moves onto its canonical path, resolved per archetype. The migration also:
+  - splits legacy objects and v1 style blocks into leaf paths;
+  - rescales image `opacity`, including its keyframes.
+  
+  The repair step drops anything with no meaning on its layer. `validateMotionDocument` now rejects unknown or illegal paths, suggesting the closest one.
+- **Sources rewritten canonical:**
+  - archetype defaults and the 51 presets (`translateX/Y` → `x/y`);
+  - the showcase, blank-canvas and new-project snapshots;
+  - the component generator, content blocks and project scaffolder (373 keys, rewritten by a script that resolves each key with its literal's archetype);
+  - the AI engine, diagnostics auto-fixes and grammar suggestions.
+- **Readers:**
+  - the stage renderer (`SandboxHost`) and every emitter, with `StyleEmitter` now mapping CSS through the registry;
+  - the Details sections, whose writers are typed as `PropertyPath`, so a legacy name fails to compile;
+  - the 3D engine and emitter, and the diagnostics.
+  
+  `propReader()` provides typed reads that accept only canonical paths. `readProps()` views are rebuilt on canonical paths.
+- **Store boundary**: every write command canonicalizes keys for the layer's archetype. A legacy name is renamed; an unknown key is dropped with a dev warning, not stored.
+- **Registry growth found by the rewrite:**
+  - border shorthands, shadow, `backdropFilter`, `alignSelf`/`flex`/margins, `willChange`;
+  - `export.tag`, `button.type`, `input.value`, `logic.blueprintGraphId`;
+  - SVG filter primitives, `transform.motionPath`;
+  - a typed `AnimationTrackId → path` map for the legacy sample vocabulary.
+  
+  Totals: 216 paths and 177 aliases.
+- **42.3 geometry `[~]`**:
+  - `frame.*`, `sizing.*` and `positioning` are stored sparsely under their canonical paths, with derived defaults. A root is an absolute frame at the 1440×900 default, filling and hugging; a child flows and hugs; an explicit size implies fixed.
+  - `getLayerGeometry()` gives code the complete shape.
+  - CSS length strings become number plus unit, so `"100%"` still renders as 100%.
+  - Geometry values are type-checked.
+  - `document.artboard` is gone: a non-default size moves onto the top-level frames, and its never-rendered background is intentionally not carried over.
+  - `StyleEmitter` emits geometry by sizing.
+  
+  Recorded in decision 0003 §4.
+- **Gate**:
+  - `property-gate.test.ts` (9 tests) checks that presets, factories, fixtures and the three template generators are canonical and legal. A source scan of the emitters and renderer finds no legacy reads, verified by planting one.
+  - 500 random v2 documents (legacy keys, CSS lengths, random artboard sizes) migrate to valid v3 losslessly and idempotently, and round-trip through JSON.
+  - The `translateY` scrub regression passes: scrubbing emitted no transform before migration and emits one after. The scrub mapping was extracted to `sequencer/scrubPatch.ts` to make this testable.
+  - Browser: `tests/e2e/property-migration.spec.ts` imports a genuine v2 export of the showcase demo, generated by `main` @ fc89e4f's own code. The result is the same document as the native v3 demo and renders pixel-identically (0 px) in Chromium, Firefox and WebKit.
+  - Local cross-version check: the demo's rendered root layer on `main` (pre-migration renderer) versus this branch is 0 px different. The whole-stage capture differed only in the blurred floating tool dock and zoom pill (webpack vs Turbopack dev servers), not in the document.
+- Numbers: tsc 0 errors; lint 0 errors (446 warnings, down from 449); 689/689 unit tests; e2e 43 passed and 2 skipped (Chromium-only crash test) on a production build, 3 browsers. One full 3-browser run had the pre-existing, timing-sensitive crash-recovery test (D) fail once; it passed in isolation and in 3 further full runs.
+- **Left for later, on purpose:**
+  - **Data-binding target keys** (`propertyKey` in `core/types/database.ts`) are a separate namespace. Their evaluated values never reach the document or the renderer. They belong to the After-track database slice that 41.1 moves out.
+  - The Details panel's Position/Size/Appearance fields are local placeholders that never touched the document, before or after this phase. Wiring them to `frame.*` is Phase 22.
+  - Whether discrete paths (`media.src`, `media.objectFit`, `background.blendMode`; CONVENTIONS lists them as keyframeable) get hold keyframes is Phase 7.1's animation metadata.
 
 ---
 

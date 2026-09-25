@@ -7,7 +7,7 @@
 import { SCHEMA_VERSION, validateMotionDocument, type ExportSettings, type MotionDocument } from "../schema";
 import { migrateElementsToDocument, repairTree } from "./v1-to-v2";
 import { migrateV2ToV3 } from "./v2-to-v3";
-import { isCanonicalPath, isPropertyLegalFor } from "../properties";
+import { isCanonicalPath, isPropertyLegalFor, validateGeometryValues } from "../properties";
 
 export { migrateAttachedAnimation, migrateTrigger, LEGACY_TRIGGER_MAP, toPropValue } from "./v1-to-v2";
 export { migrateV2ToV3, type MigrationReportEntry } from "./v2-to-v3";
@@ -80,6 +80,7 @@ export function normalizeDocument(doc: MotionDocument): MotionDocument {
   for (const layer of Object.values(doc.layers)) {
     if (!layer.properties || typeof layer.properties !== "object") continue;
     for (const key of Object.keys(layer.properties)) if (!legal(key, layer.id)) delete layer.properties[key];
+    for (const bad of validateGeometryValues(layer.properties)) delete layer.properties[bad.key];
   }
   for (const state of Object.values(doc.states)) {
     if (!state.props || typeof state.props !== "object") continue;

@@ -102,10 +102,11 @@ describe("MDM v2 schema: JSON Schema output", () => {
     const schema = getMotionDocumentJsonSchema();
     assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
     const required = schema.required as string[];
-    for (const key of ["schemaVersion", "artboard", "layers", "clips", "states", "behaviours", "tokens", "exportSettings"]) {
+    for (const key of ["schemaVersion", "layers", "clips", "states", "behaviours", "tokens", "exportSettings"]) {
       assert.ok(required.includes(key), `${key} is required`);
     }
     const text = JSON.stringify(schema);
+    assert.ok(!required.includes("artboard"), "v3 has no document-level artboard (top-level layers are frames)");
     for (const archetype of ARCHETYPE_IDS) assert.ok(text.includes(`"${archetype}"`), `${archetype} is listed`);
     for (const trigger of TRIGGERS) assert.ok(text.includes(`"${trigger}"`), `${trigger} is listed`);
   });
@@ -123,7 +124,10 @@ const propValueArb: fc.Arbitrary<PropValue> = fc
   .filter((v) => !JSON.stringify(v).includes('"__proto__"')); // rejected by design; tested separately
 // v3: prop keys are canonical paths. Draw candidate keys from the registry; each
 // layer keeps only the ones legal for its archetype (see the `.map` below).
-const propsArb = fc.dictionary(fc.constantFrom(...PROPERTY_PATHS), propValueArb, {
+// Geometry values are type-checked (numbers / closed sets); arbitrary JSON would be
+// rejected by design, so geometry round-trips are covered in property-gate.test.ts.
+const NON_GEOMETRY_PATHS = PROPERTY_PATHS.filter((p) => !/^(frame\.|sizing\.|positioning$)/.test(p));
+const propsArb = fc.dictionary(fc.constantFrom(...NON_GEOMETRY_PATHS), propValueArb, {
   maxKeys: 6,
   noNullPrototype: true,
 });

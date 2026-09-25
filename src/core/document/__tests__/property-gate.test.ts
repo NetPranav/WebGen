@@ -24,6 +24,8 @@ import {
   PROPERTY_REGISTRY,
   isCanonicalPath,
   isPropertyLegalFor,
+  DEFAULT_ROOT_FRAME,
+  normalizeGeometryProps,
   rescaleValue,
   resolvePropertyPath,
 } from "../properties";
@@ -145,6 +147,14 @@ function legacyKeysFor(archetype: ArchetypeId): string[] {
 const LEGACY_KEYS = Object.fromEntries(ARCHETYPE_IDS.map((a) => [a, legacyKeysFor(a)])) as Record<ArchetypeId, string[]>;
 const LEGACY_TRACKS = ["transform.translateX", "transform.translateY", "transform.rotateZ", "transform.scale", "appearance.opacity"];
 
+/** Values a v2 editor could have stored for geometry keys (numbers, CSS lengths, units). */
+const GEOMETRY_VALUE_ARB: Partial<Record<string, fc.Arbitrary<PropValue>>> = {
+  "frame.width": fc.oneof(fc.integer({ min: 0, max: 4000 }), fc.constantFrom("100%", "320px", "50vw", "auto", "12.5rem")),
+  "frame.height": fc.oneof(fc.integer({ min: 0, max: 4000 }), fc.constantFrom("100%", "240px", "auto")),
+  "frame.widthUnit": fc.constantFrom("px", "%", "rem", "vw"),
+  "frame.heightUnit": fc.constantFrom("px", "%", "vh"),
+};
+
 const scalarArb: fc.Arbitrary<PropValue> = fc.oneof(
   fc.string({ maxLength: 12 }),
   fc.double({ min: -1e4, max: 1e4, noNaN: true, noDefaultInfinity: true }).map((n) => (Object.is(n, -0) ? 0 : n)),
@@ -156,19 +166,31 @@ const v2DocumentArb = fc
     archetypes: fc.array(fc.constantFrom(...ARCHETYPE_IDS), { minLength: 1, maxLength: 8 }),
     picks: fc.array(fc.array(fc.nat(), { maxLength: 5 }), { maxLength: 8 }),
     values: fc.array(fc.array(scalarArb, { maxLength: 5 }), { maxLength: 8 }),
+    geometry: fc.array(fc.record(Object.fromEntries(Object.entries(GEOMETRY_VALUE_ARB).map(([k, v]) => [k, fc.option(v!, { nil: undefined })]))), {
+      maxLength: 8,
+    }),
+    board: fc.record({ width: fc.constantFrom(1440, 1280, 390), height: fc.constantFrom(900, 800, 844) }),
     tracks: fc.array(fc.record({ owner: fc.nat(), path: fc.constantFrom(...LEGACY_TRACKS), value: fc.integer({ min: -200, max: 200 }) }), {
       maxLength: 6,
     }),
   })
-  .map(({ archetypes, picks, values, tracks }) => {
+  .map(({ archetypes, picks, values, geometry, board, tracks }) => {
     const layers: Record<string, unknown> = {};
     const ids = archetypes.map((_, i) => `lyr_${i.toString(16).padStart(8, "0")}`);
     archetypes.forEach((archetype, i) => {
-      const keys = LEGACY_KEYS[archetype];
+      const keys = LEGACY_KEYS[archetype].filter((k) => !["width", "height", "widthUnit", "heightUnit"].includes(k));
       const properties: Record<string, PropValue> = {};
       (picks[i] ?? []).forEach((pick, j) => {
         if (keys.length) properties[keys[pick % keys.length]] = (values[i] ?? [])[j] ?? j;
       });
+      // Legacy geometry keys, with values of the kind a v2 editor stored.
+      if (ARCHETYPE_REGISTRY[archetype].kind !== "scene3d") {
+        const g = geometry[i] ?? {};
+        if (g["frame.width"] !== undefined) properties.width = g["frame.width"];
+        if (g["frame.height"] !== undefined) properties.height = g["frame.height"];
+        if (g["frame.widthUnit"] !== undefined) properties.widthUnit = g["frame.widthUnit"];
+        if (g["frame.heightUnit"] !== undefined) properties.heightUnit = g["frame.heightUnit"];
+      }
       layers[ids[i]] = { id: ids[i], name: `L${i}`, archetype, parentId: null, children: [], properties };
     });
     const clips: Record<string, unknown> = {};
@@ -190,7 +212,7 @@ const v2DocumentArb = fc
     });
     return {
       schemaVersion: 2,
-      artboard: { width: 1440, height: 900, background: "#ffffff" },
+      artboard: { width: board.width, height: board.height, background: "#ffffff" },
       layers,
       clips,
       states: {},
@@ -210,16 +232,29 @@ describe("Phase 42 gate: v2 → v3 migration", () => {
         assert.ok(check.ok, check.ok ? "" : JSON.stringify(check.issues.slice(0, 3)));
         assert.equal(v3.schemaVersion, SCHEMA_VERSION);
 
-        // No data loss: every legacy value sits at its canonical path (rescaled where the unit changed).
+        // No data loss: every legacy value sits at its canonical path (rescaled where the unit
+        // changed, CSS lengths split into number + unit), and the artboard size is on the root frames.
         for (const [id, raw] of Object.entries(v2.layers) as [string, Layer][]) {
+          const expected: Record<string, PropValue> = {};
           for (const [key, value] of Object.entries(raw.properties)) {
             const res = resolvePropertyPath(key, raw.archetype);
             assert.ok(res.ok);
-            const expected = rescaleValue(value, res.scale);
-            assert.deepEqual(v3.layers[id].properties[res.path], expected, `${id}.${key} → ${res.path}`);
+            expected[res.path] = rescaleValue(value, res.scale);
           }
-          assert.equal(Object.keys(v3.layers[id].properties).length, Object.keys(raw.properties).length);
+          assert.deepEqual(normalizeGeometryProps(expected), [], "every generated length parses");
+          if (raw.parentId === null && ARCHETYPE_REGISTRY[raw.archetype].kind !== "scene3d") {
+            if (v2.artboard.width !== DEFAULT_ROOT_FRAME.width && expected["frame.width"] === undefined) {
+              expected["frame.width"] = v2.artboard.width;
+              expected["sizing.horizontal"] ??= "fill";
+            }
+            if (v2.artboard.height !== DEFAULT_ROOT_FRAME.height && expected["frame.height"] === undefined) {
+              expected["frame.height"] = v2.artboard.height;
+              expected["sizing.vertical"] ??= "hug";
+            }
+          }
+          assert.deepEqual(v3.layers[id].properties, expected, id);
         }
+        assert.equal("artboard" in v3, false, "the artboard moved onto the root frames");
         for (const clip of Object.values(v3.clips)) {
           for (const track of clip.tracks) assert.ok(isCanonicalPath(track.property), track.property);
         }

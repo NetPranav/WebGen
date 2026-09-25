@@ -43,3 +43,21 @@ The registry (`src/core/document/properties.ts`) is the single table of property
 - **Unknown paths are errors, with a suggestion.** `transfrom.y` fails validation with "Did you mean `transform.y`?" (Levenshtein distance over the registry).
 - **The inspector, the rules engine (Phase 8) and the AI (Phase 30) all read the registry's metadata:** value type, unit, default, CSS mapping, compositing class, animatability and owning archetypes. The rules engine does not need a second property table.
 - **Phase 7.1's animatable-property registry *is* this registry**, extended with animation metadata. There is no second registry.
+
+## 4. Where geometry is stored, and what the artboard became (added with Phase 42.3)
+
+**Geometry is stored like every other property.** `frame.x/y/width/height/rotation`, `sizing.horizontal/vertical` and `positioning` are canonical paths in the layer's flat `properties`, not a separate `layer.frame` object. Tracks, state snapshots, diffs, history, the inspector and the AI all already address a property by its path. A second storage location would make each of them special-case geometry. Code that wants the shape calls `getLayerGeometry(layer)`, which returns a complete `{ frame, units, sizing, positioning }`.
+
+**Storage is sparse, and defaults are derived.** A missing key takes its default:
+
+- a top-level layer is an `absolute` frame at 0,0, sized 1440×900, that fills horizontally and hugs vertically;
+- a child `flow`s and hugs;
+- an explicit `frame.width` or `frame.height` implies `fixed` sizing on that axis.
+
+So "every visual layer has a frame" holds without stamping eight keys onto every layer, every template and every test fixture. The schema type-checks geometry values whenever they are present.
+
+**Units are kept, not converted.** A v2 `width: "100%"` becomes `frame.width: 100` plus `frame.widthUnit: "%"`. It still renders as `width: 100%`, and nothing is resolved against a parent size the migration can't know. `"auto"` means the axis hugs its content.
+
+**The artboard is the top-level frames.** v2's document-level `artboard { width, height, background }` was never read by anything: the stage sizes itself from the device mode. In v3 a top-level layer *is* a frame (Figma's top-level frame). A non-default artboard size is moved onto the root layers; the default 1440×900 is simply their derived default. The artboard `background` is **not** carried over. It never rendered, and turning it into the root's `appearance.background.color` would change what users see (the stage body isn't white). A frame's fill is its root layer's background. Several frames on one canvas, and where they sit, is Phase 49's job.
+
+**Export:** `StyleEmitter` emits width and height only for `fixed` axes (in their unit) or an explicitly stored `fill` (100%). `hug` emits nothing. Only absolutely positioned *children* get `left`/`top`, because a root's position is its place on the canvas, not layout. `frame.rotation` is emitted as the CSS `rotate` property, so layout rotation composes with, and never overwrites, an animated `transform`.

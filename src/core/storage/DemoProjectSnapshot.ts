@@ -32,7 +32,8 @@ export function createBlankCanvasSnapshot(): ProjectStateSnapshot {
       "layout.gap": 20,
       "layout.padding": 32,
       "layout.minHeight": "100%",
-      "frame.width": "100%",
+      "frame.width": 100,
+      "frame.widthUnit": "%",
     },
     children: [],
   };

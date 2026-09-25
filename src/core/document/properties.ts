@@ -865,6 +865,7 @@ export function canonicalizeProps(archetype: ArchetypeId, props: Record<string, 
       place(res.path, scaleValue(value, res.ok ? res.scale : undefined), !res.aliasedFrom);
     }
   }
+  dropped.push(...normalizeGeometryProps(out));
   return { props: out, dropped };
 }
 
@@ -892,4 +893,122 @@ export function rescaleValue(value: PropValue, scale: number | undefined): PropV
 export function propReader(props: Record<string, PropValue> | undefined) {
   const bag = props ?? {};
   return (path: PropertyPath): PropValue | undefined => bag[path];
+}
+
+// ---------------------------------------------------------------------------
+// Geometry (Phase 42.3)
+// ---------------------------------------------------------------------------
+
+export type Sizing = "fixed" | "hug" | "fill";
+export type Positioning = "absolute" | "flow";
+
+export interface LayerGeometry {
+  /** Parent space. For `flow` layers x/y are computed by the parent's layout (read-only). */
+  frame: { x: number; y: number; width: number; height: number; rotation: number };
+  /** CSS unit of `frame.width` / `frame.height` (`px` unless stored otherwise). */
+  units: { width: string; height: string };
+  sizing: { horizontal: Sizing; vertical: Sizing };
+  positioning: Positioning;
+}
+
+/**
+ * A top-level layer is a frame on the canvas (Figma's top-level frame; the
+ * v2 document-level `artboard` became this). Its design size when none is
+ * stored is the old artboard default.
+ */
+export const DEFAULT_ROOT_FRAME = { width: 1440, height: 900 } as const;
+
+/** Geometry paths whose stored values must be numbers. */
+const GEOMETRY_NUMBERS = ["frame.x", "frame.y", "frame.width", "frame.height", "frame.rotation"] as const;
+
+/**
+ * The complete geometry of a visual layer. Geometry is stored sparsely in the
+ * layer's props under its canonical paths; anything not stored takes its
+ * default: roots are `absolute` frames at 0,0 sized to DEFAULT_ROOT_FRAME that
+ * fill horizontally and hug vertically; children `flow` and hug; an explicit
+ * width or height implies `fixed` sizing on that axis.
+ */
+export function getLayerGeometry(layer: { parentId: string | null; properties: Record<string, PropValue> }): LayerGeometry {
+  const get = propReader(layer.properties);
+  const isRoot = layer.parentId === null;
+  const num = (path: PropertyPath, fallback: number) => {
+    const v = get(path);
+    return typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  };
+  const hasWidth = typeof get("frame.width") === "number";
+  const hasHeight = typeof get("frame.height") === "number";
+  const sizing = (path: PropertyPath, explicitSize: boolean, rootDefault: Sizing): Sizing => {
+    const v = get(path);
+    if (v === "fixed" || v === "hug" || v === "fill") return v;
+    return explicitSize ? "fixed" : isRoot ? rootDefault : "hug";
+  };
+  const positioning = get("positioning");
+  return {
+    frame: {
+      x: num("frame.x", 0),
+      y: num("frame.y", 0),
+      width: num("frame.width", isRoot ? DEFAULT_ROOT_FRAME.width : 0),
+      height: num("frame.height", isRoot ? DEFAULT_ROOT_FRAME.height : 0),
+      rotation: num("frame.rotation", 0),
+    },
+    units: {
+      width: typeof get("frame.widthUnit") === "string" ? String(get("frame.widthUnit")) : "px",
+      height: typeof get("frame.heightUnit") === "string" ? String(get("frame.heightUnit")) : "px",
+    },
+    sizing: { horizontal: sizing("sizing.horizontal", hasWidth, "fill"), vertical: sizing("sizing.vertical", hasHeight, "hug") },
+    positioning: positioning === "absolute" || positioning === "flow" ? positioning : isRoot ? "absolute" : "flow",
+  };
+}
+
+const CSS_LENGTH = /^\s*(-?\d*\.?\d+)\s*(px|%|rem|em|vw|vh)?\s*$/;
+
+/**
+ * Normalizes stored geometry values in place: CSS length strings on
+ * `frame.width` / `frame.height` (`"100%"`, `"400px"`) become a number plus a
+ * unit companion, so rendering is unchanged; `"auto"` means the axis hugs its
+ * content. Returns the values that could not be understood.
+ */
+export function normalizeGeometryProps(props: Record<string, PropValue>): PropIssue[] {
+  const issues: PropIssue[] = [];
+  for (const [axis, sizingPath] of [
+    ["width", "sizing.horizontal"],
+    ["height", "sizing.vertical"],
+  ] as const) {
+    const path = `frame.${axis}`;
+    const value = props[path];
+    if (typeof value !== "string") continue;
+    if (value.trim() === "auto" || value.trim() === "fit-content") {
+      delete props[path];
+      if (props[sizingPath] === undefined) props[sizingPath] = "hug";
+      continue;
+    }
+    const match = CSS_LENGTH.exec(value);
+    if (!match) {
+      delete props[path];
+      issues.push({ key: path, message: `"${value}" is not a length; ${path} dropped.` });
+      continue;
+    }
+    props[path] = Number(match[1]);
+    if (match[2] && match[2] !== "px") props[`frame.${axis}Unit`] = match[2];
+  }
+  return issues;
+}
+
+/** Type issues in stored geometry values (numbers for the frame, the closed sets for sizing/positioning). */
+export function validateGeometryValues(props: Record<string, PropValue>): PropIssue[] {
+  const issues: PropIssue[] = [];
+  for (const path of GEOMETRY_NUMBERS) {
+    const v = props[path];
+    if (v !== undefined && (typeof v !== "number" || !Number.isFinite(v))) {
+      issues.push({ key: path, message: `${path} must be a finite number (got ${JSON.stringify(v)}).` });
+    }
+  }
+  for (const path of ["sizing.horizontal", "sizing.vertical", "positioning", "frame.widthUnit", "frame.heightUnit"] as const) {
+    const v = props[path];
+    const options = PROPERTY_REGISTRY[path].options ?? [];
+    if (v !== undefined && !options.includes(v as string)) {
+      issues.push({ key: path, message: `${path} must be one of ${options.join(", ")} (got ${JSON.stringify(v)}).` });
+    }
+  }
+  return issues;
 }

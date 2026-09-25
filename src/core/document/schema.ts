@@ -15,9 +15,13 @@
 
 import { z } from "zod";
 import { ARCHETYPE_IDS, type PropValue } from "./registry";
-import { isCanonicalPath, isPropertyLegalFor, suggestPropertyPath } from "./properties";
+import { isCanonicalPath, isPropertyLegalFor, suggestPropertyPath, validateGeometryValues } from "./properties";
 
-/** v3 (Phase 42): every prop key and track path is a canonical `properties.ts` path. */
+/**
+ * v3 (Phase 42): every prop key and track path is a canonical `properties.ts`
+ * path, and geometry (`frame.*`, `sizing.*`, `positioning`) lives on layers —
+ * a top-level layer is a frame; there is no document-level artboard.
+ */
 export const SCHEMA_VERSION = 3 as const;
 
 // ---------------------------------------------------------------------------
@@ -166,12 +170,6 @@ export const LayerSchema = z.object({
 // Document
 // ---------------------------------------------------------------------------
 
-export const ArtboardSchema = z.object({
-  width: z.number().positive(),
-  height: z.number().positive(),
-  background: z.string(),
-});
-
 export const TokensSchema = z.object({
   colors: z.record(z.string(), z.string()),
   spacing: z.record(z.string(), z.number()),
@@ -187,7 +185,6 @@ export const ExportSettingsSchema = z.object({
 
 const MotionDocumentShape = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
-  artboard: ArtboardSchema,
   layers: z.record(IdSchema, LayerSchema),
   clips: z.record(IdSchema, ClipSchema),
   states: z.record(IdSchema, StateSchema),
@@ -251,6 +248,7 @@ export const MotionDocumentSchema = MotionDocumentShape.superRefine((doc, ctx) =
   };
   for (const [key, layer] of Object.entries(doc.layers)) {
     for (const prop of Object.keys(layer.properties)) checkPath(["layers", key, "properties", prop], prop, layer.archetype);
+    for (const bad of validateGeometryValues(layer.properties)) issue(["layers", key, "properties", bad.key], bad.message);
   }
   for (const [key, state] of Object.entries(doc.states)) {
     const layer = doc.layers[state.layerId];
@@ -278,7 +276,6 @@ export type ClipTemplate = Omit<Clip, "layerId">;
 export type LayerState = z.infer<typeof StateSchema>;
 export type Behaviour = z.infer<typeof BehaviourSchema>;
 export type Layer = z.infer<typeof LayerSchema>;
-export type Artboard = z.infer<typeof ArtboardSchema>;
 export type Tokens = z.infer<typeof TokensSchema>;
 export type ExportSettings = z.infer<typeof ExportSettingsSchema>;
 export type MotionDocument = z.infer<typeof MotionDocumentShape>;
@@ -342,10 +339,9 @@ export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {
   language: "typescript",
 };
 
-export function createEmptyDocument(overrides: Partial<Pick<MotionDocument, "exportSettings" | "artboard">> = {}): MotionDocument {
+export function createEmptyDocument(overrides: Partial<Pick<MotionDocument, "exportSettings">> = {}): MotionDocument {
   return {
     schemaVersion: SCHEMA_VERSION,
-    artboard: { width: 1440, height: 900, background: "#ffffff", ...overrides.artboard },
     layers: {},
     clips: {},
     states: {},

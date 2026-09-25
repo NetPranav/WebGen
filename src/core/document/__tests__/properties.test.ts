@@ -3,6 +3,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  DEFAULT_ROOT_FRAME,
+  canonicalizeProps,
+  getLayerGeometry,
+  isPropertyLegalFor,
+  normalizeGeometryProps,
+  validateGeometryValues,
   LEGACY_ALIASES,
   PROPERTY_PATHS,
   PROPERTY_REGISTRY,
@@ -11,7 +17,7 @@ import {
   suggestPropertyPath,
   validateLayerProps,
 } from "../properties";
-import { ARCHETYPE_IDS, getDefaultProps, type ArchetypeId } from "../registry";
+import { ARCHETYPE_IDS, getDefaultProps, type ArchetypeId, type PropValue } from "../registry";
 import { ALL_PRESETS } from "../../motion/presets";
 import { createShowcaseSnapshot } from "../../storage/DemoProjectSnapshot";
 
@@ -156,5 +162,54 @@ describe("registry coverage of existing data", () => {
     assert.equal(issues.length, 2);
     assert.match(issues[0].message, /not a property of divider/);
     assert.match(issues[1].message, /Unknown property "colour"/);
+  });
+});
+
+describe("geometry (Phase 42.3)", () => {
+  it("defaults: a root is an absolute frame at the default size; a child flows and hugs", () => {
+    const root = getLayerGeometry({ parentId: null, properties: {} });
+    assert.deepEqual(root.frame, { x: 0, y: 0, width: DEFAULT_ROOT_FRAME.width, height: DEFAULT_ROOT_FRAME.height, rotation: 0 });
+    assert.equal(root.positioning, "absolute");
+    assert.deepEqual(root.sizing, { horizontal: "fill", vertical: "hug" });
+
+    const child = getLayerGeometry({ parentId: "root", properties: {} });
+    assert.equal(child.positioning, "flow");
+    assert.deepEqual(child.sizing, { horizontal: "hug", vertical: "hug" });
+    assert.equal(child.frame.width, 0);
+  });
+
+  it("an explicit size implies fixed sizing on that axis; stored sizing wins", () => {
+    const g = getLayerGeometry({ parentId: "p", properties: { "frame.width": 320, "sizing.vertical": "fill" } });
+    assert.deepEqual(g.sizing, { horizontal: "fixed", vertical: "fill" });
+    assert.equal(g.frame.width, 320);
+  });
+
+  it("normalizes CSS length strings into a number plus a unit; auto hugs", () => {
+    const props: Record<string, PropValue> = { "frame.width": "100%", "frame.height": "auto" };
+    assert.deepEqual(normalizeGeometryProps(props), []);
+    assert.deepEqual(props, { "frame.width": 100, "frame.widthUnit": "%", "sizing.vertical": "hug" });
+    const px: Record<string, PropValue> = { "frame.width": "240px" };
+    normalizeGeometryProps(px);
+    assert.deepEqual(px, { "frame.width": 240 });
+    const bad: Record<string, PropValue> = { "frame.width": "wide" };
+    assert.equal(normalizeGeometryProps(bad).length, 1);
+    assert.deepEqual(bad, {});
+  });
+
+  it("rejects geometry values of the wrong type", () => {
+    const issues = validateGeometryValues({ "frame.x": "10", "sizing.horizontal": "stretch", positioning: "flow" });
+    assert.deepEqual(issues.map((i) => i.key), ["frame.x", "sizing.horizontal"]);
+  });
+
+  it("canonicalization routes legacy width/height onto the frame", () => {
+    const { props, dropped } = canonicalizeProps("container", { width: "100%", height: 64 });
+    assert.deepEqual(dropped, []);
+    assert.deepEqual(props, { "frame.width": 100, "frame.widthUnit": "%", "frame.height": 64 });
+  });
+
+  it("geometry is only for visual layers", () => {
+    assert.equal(isPropertyLegalFor("frame.x", "object3D"), false);
+    assert.equal(isPropertyLegalFor("frame.x", "button"), true);
+    assert.equal(isPropertyLegalFor("positioning", "svgPath"), true);
   });
 });

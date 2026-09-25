@@ -176,3 +176,34 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
     assert.match(file.content, /\.logo_2 \{/);
   });
 });
+
+describe("StyleEmitter geometry (Phase 42.3)", () => {
+  const layer = (parentId: string | null, properties: Layer["properties"]): Layer => ({
+    id: "el_geo",
+    name: "Geo",
+    archetype: "container",
+    parentId,
+    children: [],
+    properties,
+  });
+
+  it("emits fixed sizes with their unit, explicit fill as 100%, and nothing for hug", () => {
+    const rules = StyleEmitter.emitElementRules(
+      layer("root", { "frame.width": 50, "frame.widthUnit": "%", "frame.height": 120, "sizing.vertical": "fixed" })
+    );
+    assert.match(rules, /width: 50%;/);
+    assert.match(rules, /height: 120px;/);
+    assert.doesNotMatch(StyleEmitter.emitElementRules(layer("root", {})), /width|height/);
+    assert.match(StyleEmitter.emitElementRules(layer("root", { "sizing.horizontal": "fill" })), /width: 100%;/);
+  });
+
+  it("positions absolute children, never roots, and emits layout rotation separately from transform", () => {
+    const child = StyleEmitter.emitElementRules(layer("root", { positioning: "absolute", "frame.x": 12, "frame.y": 34, "frame.rotation": 15 }));
+    assert.match(child, /position: absolute;/);
+    assert.match(child, /left: 12px;/);
+    assert.match(child, /top: 34px;/);
+    assert.match(child, /rotate: 15deg;/);
+    const root = StyleEmitter.emitElementRules(layer(null, { positioning: "absolute", "frame.x": 40 }));
+    assert.doesNotMatch(root, /position: absolute|left:/);
+  });
+});

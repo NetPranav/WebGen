@@ -11,10 +11,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Phase 42 (Canonical Property Paths & Geometry Model): in progress
+### Phase 42 (Canonical Property Paths & Geometry Model): implemented, awaiting CI
+
+#### Changed
+- **Schema v3** (`SCHEMA_VERSION = 3`). Layer prop keys, state keys and track paths must be canonical `properties.ts` paths legal for the layer's archetype. `document.artboard` is removed: top-level layers are frames. Geometry (`frame.*`, `sizing.*`, `positioning`) is stored on layers, and its values are type-checked.
+- **`migrations/v2-to-v3.ts`**: per-archetype renames, object and style-block splitting, image-opacity rescale (keyframes too), CSS length strings to number plus unit, and a non-default artboard size moved onto the root frames. `loadDocument` chains v1 → v2 → v3.
+- **Store boundary**: the `documentCommands` write commands only ever store canonical keys.
+- Every preset, template, fixture, emitter, the stage renderer, the Details sections, the 3D engine and the diagnostics now use canonical paths. `StyleEmitter` maps CSS through the registry and emits geometry by sizing. Pseudo-state and breakpoint styles now arrive through options.
+
+#### Fixed
+- Scrubbing a preset authored with `transform.translateY` now moves the layer (ROADMAP §4.1 row 4 / AUD-32). The 15 legacy-dialect preset tracks are `transform.x/y`.
+
+#### Added (tests)
+- `property-gate.test.ts` (the Phase 42 gate, unit half). `tests/e2e/property-migration.spec.ts`: a genuine v2 export from `main` renders pixel-identically after migration in 3 browsers. Fixture: `tests/e2e/fixtures/showcase-v2.lazy.json`.
 
 #### Added
-- **`src/core/document/properties.ts`** (Phase 42.1): the canonical property registry. It has 198 dot-paths, each with value type, unit, default, CSS mapping, compositing class, animatability and owning archetypes. It includes a legacy alias table (flat v2 keys and the `transform.translateX/Y` preset dialect, per-archetype where meanings differ, with value scaling and object splitting), plus `resolvePropertyPath`, `suggestPropertyPath` and `validateLayerProps`. Additive only: no stored data or reader changes yet (that is 42.2).
+- **`src/core/document/properties.ts`** (Phase 42.1): the canonical property registry, now 216 dot-paths (198 when first added), each with value type, unit, default, CSS mapping, compositing class, animatability and owning archetypes. It includes a legacy alias table (flat v2 keys and the `transform.translateX/Y` preset dialect, per-archetype where meanings differ, with value scaling and object splitting), plus `resolvePropertyPath`, `suggestPropertyPath` and `validateLayerProps`. Additive only: no stored data or reader changes yet (that is 42.2).
 - **`DOCS/Initial/decisions/0003-geometry-vs-transform.md`** (Phase 42.4): `frame` is layout, `transform.*` is the GPU motion offset. CONVENTIONS §4 is the naming source.
 - `src/core/document/__tests__/properties.test.ts`: 15 tests covering the registry against CONVENTIONS §4, all 51 presets, every archetype default and the showcase demo.
 

@@ -8,12 +8,19 @@
  * `material`) become leaf paths; values whose unit changed are rescaled
  * (image `opacity` 0–100 → 0–1), including their keyframes.
  *
+ * Geometry (Phase 42.3): legacy `width`/`height` become `frame.width` /
+ * `frame.height` (CSS length strings split into a number plus a unit), and the
+ * v2 document-level `artboard` moves onto the top-level layers, which are
+ * frames in v3. Its size is stored only where it differs from the default
+ * frame size; its `background` was never rendered by anything and is not
+ * carried over (a frame's fill is its `appearance.background.color`).
+ *
  * Keys and tracks with no canonical meaning for their layer are dropped and
  * reported, rather than failing the whole load.
  */
 
-import { canonicalizeProps, canonicalizeTrackPath, rescaleValue, type PropIssue } from "../properties";
-import { isArchetypeId, type ArchetypeId, type PropValue } from "../registry";
+import { DEFAULT_ROOT_FRAME, canonicalizeProps, canonicalizeTrackPath, rescaleValue, type PropIssue } from "../properties";
+import { ARCHETYPE_REGISTRY, isArchetypeId, type ArchetypeId, type PropValue } from "../registry";
 import { SCHEMA_VERSION, type MotionDocument } from "../schema";
 
 export interface MigrationReportEntry {
@@ -79,6 +86,26 @@ export function migrateV2ToV3(input: unknown): { document: MotionDocument; repor
       return true;
     });
   }
+
+  // The artboard becomes the top-level frames' size.
+  const artboard = isObject(doc.artboard) ? doc.artboard : {};
+  const size = (v: unknown, fallback: number) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : fallback);
+  const boardWidth = size(artboard.width, DEFAULT_ROOT_FRAME.width);
+  const boardHeight = size(artboard.height, DEFAULT_ROOT_FRAME.height);
+  for (const layer of Object.values(layers)) {
+    if (!isObject(layer) || layer.parentId !== null || !isArchetypeId(layer.archetype) || !isObject(layer.properties)) continue;
+    if (ARCHETYPE_REGISTRY[layer.archetype].kind === "scene3d") continue;
+    const props = layer.properties as Record<string, PropValue>;
+    if (boardWidth !== DEFAULT_ROOT_FRAME.width && props["frame.width"] === undefined) {
+      props["frame.width"] = boardWidth;
+      props["sizing.horizontal"] ??= "fill";
+    }
+    if (boardHeight !== DEFAULT_ROOT_FRAME.height && props["frame.height"] === undefined) {
+      props["frame.height"] = boardHeight;
+      props["sizing.vertical"] ??= "hug";
+    }
+  }
+  delete doc.artboard;
 
   doc.schemaVersion = SCHEMA_VERSION;
   return { document: doc as unknown as MotionDocument, report };
