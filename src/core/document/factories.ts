@@ -2,6 +2,7 @@
  * Constructors and pure read helpers for Motion Document entities.
  */
 
+import { syncCompositions } from "./compositions";
 import { createId } from "../ids";
 import { getArchetype, getDefaultProps, type ArchetypeId, type LayerKind, type LayerProps } from "./registry";
 import { createEmptyDocument, type Clip, type ClipTemplate, type Keyframe, type Layer, type MotionDocument, type Track } from "./schema";
@@ -34,6 +35,7 @@ export function createDocumentFromLayers(layers: Layer[], clips: Clip[] = []): M
   const doc = createEmptyDocument();
   for (const layer of layers) doc.layers[layer.id] = layer;
   for (const clip of clips) doc.clips[clip.id] = clip;
+  syncCompositions(doc);
   return doc;
 }
 

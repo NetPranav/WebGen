@@ -21,6 +21,7 @@ export { valueFitsProperty };
 import { PIN_PRESETS, bindingLayerRefs, type BindingDraft, type TargetSet, type SignalExpr } from "./signals";
 import { REPEATABLE_COMPONENTS, cloneCount, splitGraphemes } from "./kinetics";
 import { LAYER_PARAMS } from "./graph";
+import { MAIN_COMPOSITION_ID, clipFits } from "./compositions";
 
 type Issue = (path: (string | number)[], message: string) => void;
 
@@ -53,6 +54,7 @@ export function checkReferences(doc: MotionDocument, issue: Issue): void {
   keyed("graphs", "ownerLayerId", true);
   keyed("sequences");
   keyed("inputTapes");
+  keyed("compositions");
 
   // --- Property paths (Phase 42): canonical, legal, typed --------------------
   const checkPath = (at: (string | number)[], path: string, archetype: ArchetypeId, opts: { animatable?: boolean; value?: PropValue } = {}) => {
@@ -354,6 +356,55 @@ export function checkReferences(doc: MotionDocument, issue: Issue): void {
     }
   }
 
+  // --- Compositions (Phase 46) -------------------------------------------------
+  const comps = doc.compositions;
+  const mains = Object.values(comps).filter((c) => c.kind === "main");
+  if (!comps[MAIN_COMPOSITION_ID] || comps[MAIN_COMPOSITION_ID].kind !== "main") issue(["compositions"], `Every document has a main composition "${MAIN_COMPOSITION_ID}".`);
+  if (mains.length > 1) issue(["compositions"], "Only one composition can be the main one.");
+  const placements = new Map<string, string[]>();
+  for (const [key, comp] of Object.entries(comps)) {
+    const at = ["compositions", key];
+    for (const layerId of Object.keys(comp.layers)) if (!layer(layerId)) issue([...at, "layers", layerId], `Layer "${layerId}" does not exist.`);
+    if (comp.trigger && !layer(comp.trigger.layerId)) issue([...at, "trigger", "layerId"], `Layer "${comp.trigger.layerId}" does not exist.`);
+    comp.clips.forEach((p, i) => {
+      const clip = doc.clips[p.clipId];
+      if (!clip) return issue([...at, "clips", i, "clipId"], `Clip "${p.clipId}" does not exist.`);
+      placements.set(p.clipId, [...(placements.get(p.clipId) ?? []), key]);
+      if (!clipFits(comp, clip)) {
+        issue([...at, "clips", i], `Clip "${clip.id}" (trigger ${clip.trigger}) doesn't belong in the ${comp.kind} composition "${key}"${comp.trigger ? ` (trigger ${comp.trigger.on})` : ""}.`);
+      }
+    });
+    comp.nested.forEach((n, i) => {
+      const child = comps[n.compositionId];
+      if (!child) issue([...at, "nested", i, "compositionId"], `Composition "${n.compositionId}" does not exist.`);
+      else if (child.kind !== "precomp") issue([...at, "nested", i, "compositionId"], `Only precomps can be nested; "${n.compositionId}" is ${child.kind}.`);
+    });
+  }
+  for (const clipId of Object.keys(doc.clips)) {
+    const where = placements.get(clipId) ?? [];
+    if (where.length === 0) issue(["clips", clipId], `Clip "${clipId}" isn't placed in any composition.`);
+    if (where.length > 1) issue(["clips", clipId], `Clip "${clipId}" is placed in ${where.length} compositions (${where.join(", ")}).`);
+  }
+  // Nesting must not loop: a composition can't contain itself, directly or through others.
+  const visiting = new Set<string>();
+  const done = new Set<string>();
+  const cyclic = (id: string): boolean => {
+    if (done.has(id)) return false;
+    if (visiting.has(id)) return true;
+    visiting.add(id);
+    const loops = (comps[id]?.nested ?? []).some((n) => cyclic(n.compositionId));
+    visiting.delete(id);
+    done.add(id);
+    return loops;
+  };
+  for (const key of Object.keys(comps)) if (cyclic(key)) {
+    issue(["compositions", key, "nested"], "Nested compositions form a loop.");
+    break;
+  }
+  for (const [key, fx] of Object.entries(doc.effects)) {
+    if (fx.time && !comps[fx.time.compositionId]) issue(["effects", key, "time", "compositionId"], `Composition "${fx.time.compositionId}" does not exist.`);
+  }
+
   // --- Interaction graphs -------------------------------------------------------
   for (const [key, graph] of Object.entries(doc.graphs)) {
     const owner = graph.ownerLayerId ? layer(graph.ownerLayerId) : undefined;
@@ -368,6 +419,8 @@ export function checkReferences(doc: MotionDocument, issue: Issue): void {
       }
       const clip = node.params.clip;
       if (typeof clip === "string" && !doc.clips[clip] && !doc.sequences[clip]) issue(["graphs", key, "nodes", i, "params", "clip"], `No clip or sequence "${clip}".`);
+      const composition = node.params.composition;
+      if (typeof composition === "string" && !doc.compositions[composition]) issue(["graphs", key, "nodes", i, "params", "composition"], `No composition "${composition}".`);
       const tape = node.params.tape;
       if (typeof tape === "string" && !doc.inputTapes[tape]) issue(["graphs", key, "nodes", i, "params", "tape"], `No input tape "${tape}".`);
     });

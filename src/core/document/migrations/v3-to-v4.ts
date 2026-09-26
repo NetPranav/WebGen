@@ -20,7 +20,8 @@ import { BEHAVIOUR_TYPES, isEasing } from "../motion";
 import { coercePropertyValue, getPropertyDefinition } from "../properties";
 import type { PropValue } from "../registry";
 import type { MigrationReportEntry, V3Document } from "./v2-to-v3";
-import type { MotionDocument } from "../schema";
+/** v4 data: a v5 document without compositions (v4-to-v5.ts adds them). */
+export type V4Document = Record<string, unknown> & { schemaVersion: 4 };
 
 type Loose = Record<string, unknown>;
 const isObject = (v: unknown): v is Loose => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -45,7 +46,7 @@ export const DEFAULT_BEHAVIOUR_PARAMS: Record<(typeof BEHAVIOUR_TYPES)[number], 
 /** v4 names of v3 behaviour param keys that meant the same thing. */
 const PARAM_ALIASES: Record<string, string> = { strength: "maxOffset", maxTilt: "maxAngle", angle: "maxAngle", speed: "frequency", uniformName: "uniform" };
 
-export function migrateV3ToV4(input: V3Document | Loose): { document: MotionDocument; report: MigrationReportEntry[] } {
+export function migrateV3ToV4(input: V3Document | Loose): { document: V4Document; report: MigrationReportEntry[] } {
   const doc = structuredClone(input) as Loose;
   const report: MigrationReportEntry[] = [];
 
@@ -132,5 +133,5 @@ export function migrateV3ToV4(input: V3Document | Loose): { document: MotionDocu
   }
 
   doc.schemaVersion = 4;
-  return { document: doc as unknown as MotionDocument, report };
+  return { document: doc as V4Document, report };
 }

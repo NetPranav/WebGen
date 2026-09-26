@@ -22,6 +22,7 @@ import { parseBinding, BindingSyntaxError } from "./signals";
 import { BehaviourSchema, ClipSchema, StateSchema } from "./motion";
 import { LayerSchema, createEmptyDocument, validateMotionDocument } from "./schema";
 import type { PropValue } from "./registry";
+import { MarkerSchema, syncCompositions } from "./compositions";
 
 const Ident = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "Must be an identifier (letters, digits, _).");
 const Finite = z.number().refine(Number.isFinite, "Must be a finite number.");
@@ -68,6 +69,8 @@ export const EffectTemplateSchema = z.strictObject({
   clips: z.array(ClipSchema).optional(),
   states: z.array(StateSchema).optional(),
   behaviours: z.array(BehaviourSchema).optional(),
+  /** Phase 46.3: the effect's own timeline (its clips play in it; instances place it with `time`). */
+  composition: z.strictObject({ duration: z.number().gt(0), fps: z.number().int().min(1).max(240), loop: z.boolean().optional(), markers: z.array(MarkerSchema) }).optional(),
 });
 
 export const EffectDefinitionSchema = z
@@ -155,6 +158,7 @@ export const EffectDefinitionSchema = z
     for (const s of t.states ?? []) doc.states[s.id] = s;
     for (const b of t.behaviours ?? []) doc.behaviours[b.id] = b;
     for (const s of def.surfaces) doc.surfaces[s.id] = s;
+    syncCompositions(doc);
     const check = validateMotionDocument(doc);
     if (!check.ok) for (const i of check.issues) issue(["template", ...i.path.split(".")], i.message);
   });

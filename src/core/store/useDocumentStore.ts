@@ -37,6 +37,7 @@ import { attachClip, createLayer, getLayerClips, getSubtreeIds, type NewLayerInp
 import { type ArchetypeId, type LayerProps, type PropValue } from "../document/registry";
 import { canonicalizeProps, canonicalizeTrackPath, coercePropertyValue, getPropertyDefinition, resolvePropertyPath } from "../document/properties";
 import { removeLayerDependents } from "../document/migrations";
+import { syncCompositions } from "../document/compositions";
 import {
   validateMotionDocument,
   type Clip,
@@ -183,7 +184,11 @@ function recordCommandChange(label: string, before: MotionDocument, after: Motio
  */
 function commit(label: string | undefined, recipe: (draft: Draft<MotionDocument>) => void): DocumentChange {
   const before = getDocument();
-  const [next, patches, inversePatches] = produceWithPatches(before, recipe);
+  // Phase 46: every write leaves clips placed in compositions (the legacy editor writes clips only).
+  const [next, patches, inversePatches] = produceWithPatches(before, (draft) => {
+    recipe(draft);
+    syncCompositions(draft as MotionDocument);
+  });
   const resolvedLabel = label ?? DEFAULT_LABEL;
   if (patches.length === 0) return { label: resolvedLabel, patches, inversePatches };
 

@@ -14,6 +14,7 @@ import {
 import { createDocumentFromLayers, createLayer } from "../factories";
 import { ARCHETYPE_IDS, type ArchetypeId, type PropValue } from "../registry";
 import { PROPERTY_PATHS, PROPERTY_REGISTRY, isPropertyLegalFor } from "../properties";
+import { syncCompositions } from "../compositions";
 
 function sampleDocument(): MotionDocument {
   const doc = createDocumentFromLayers([
@@ -31,6 +32,7 @@ function sampleDocument(): MotionDocument {
     enabled: true,
     tracks: [{ id: "trk_1", property: "transform.y", keyframes: [{ id: "kf_1", time: 0, value: 0 }] }],
   };
+  syncCompositions(doc); // v5: every clip is placed in a composition (the store does this on every write)
   return doc;
 }
 
@@ -207,10 +209,11 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
         };
       });
     }
+    syncCompositions(doc);
     return doc;
   });
 
-describe("MDM v4 schema: property-based round trip", () => {
+describe("MDM v5 schema: property-based round trip", () => {
   it("500 random documents survive validate → serialise → parse → validate unchanged", () => {
     fc.assert(
       fc.property(documentArb, (doc) => {

@@ -11,7 +11,7 @@
 
 ---
 
-## 0. Motion Document Model (MDM, schema v4), authoritative
+## 0. Motion Document Model (MDM, schema v5), authoritative
 
 **Source of truth:** `src/core/document/schema.ts` (Zod). One source produces three outputs:
 1. TypeScript types (`MotionDocument`, `Layer`, `Clip`, `Track`, `Keyframe`, `LayerState`, `Behaviour`, `Binding`, `Surface`, `InteractionGraph`, `Component`, `Generator`, …).
@@ -26,7 +26,7 @@
 
 ```text
 MotionDocument
-  schemaVersion: 4
+  schemaVersion: 5
   layers         Record<id, Layer>          // top-level layers are frames (v2's document-level artboard moved onto them)
   clips          Record<id, Clip>          // a layer's animation stack = its clips, in insertion order
   states         Record<id, LayerState>
@@ -40,6 +40,7 @@ MotionDocument
   effects        Record<id, EffectInstance>     // v4 (7.4)
   components     Record<id, Component>     // v4 (7.5, Track K)
   generators     Record<id, Generator>     // v4 (7.5, Track K)
+  compositions   Record<id, Composition>   // v5 (Phase 46): comp_main + interaction compositions + precomps
   tokens         { colors, spacing, radii }
   exportSettings { framework, styling, animation, language }   // was project `target` in v1
 
@@ -67,8 +68,15 @@ EffectInstance   { id, layerId, effectId, version (semver), propOverrides, bindi
 Component  = Follow | Field | Effector | Collider | Body      // { id, layerId, type, enabled, … }
 Generator  = Split { groupLayerId, sourceLayerId, mode, detached, pieces: { layerId, index, char, wordIndex, lineIndex, home, random }[], overrides }
            | Clone { groupLayerId, sourceLayerId, layout, pieces: { layerId, index, u?, v?, home, random }[], overrides }
+Composition { id, name, kind: main | interaction | precomp, duration, fps, workArea: { start, end }, loop?,
+              trigger?: { on: Trigger, layerId, event?, playback: play | play-reverse | restart | toggle | scrub },
+              markers: Marker[], layers: Record<layerId, { start, in, out, stretch, markers? }>   // sparse: no entry = whole composition
+              clips: { clipId, offset }[], nested: { id, compositionId, start, in, out, stretch, timeRemap?, markers? }[] }
+Marker     { id, time, label, duration?, event?, comment? }
 PropValue  = string | number | boolean | null | PropValue[] | { [key]: PropValue }   // JSON data only
 ```
+
+**Time model (v5, Phase 46):** every clip plays in exactly one composition. Mount and time clips go in `comp_main`; a triggered clip goes in an interaction composition that its trigger drives. Layer time = (t − start) / stretch inside [in, out); a clip then applies its offset, delay, repeat and direction. Precomps nest with stretch and time remap. The time maths and the rules are in `decisions/0002-time-model.md` and `src/core/document/compositions.ts`.
 
 Phase 7's reasoning (strictness, the easing grammar, perceptual springs, bindings stored structured with a round-tripping text form, behaviours as binding presets, surfaces on `effectSurface` layers, graph pins, Track K types, the v3 → v4 migration) is in `decisions/0004-motion-primitives.md`. Binding text form: engine spec §3; `parseBinding` / `formatBinding` in `src/core/document/signals.ts`. Effect *definitions* (not stored in documents): `src/core/document/effect-definition.ts`, engine spec §11.
 
@@ -99,6 +107,7 @@ Phase 7's reasoning (strictness, the easing grammar, perceptual springs, binding
    - a generator group's children are exactly its pieces in index order, and an attached Split spells its source text;
    - graph wiring is typed and acyclic, and its events, variables and layer params resolve.
 10. *(v4)* Phase 7 entities are strict (unknown keys are errors); v2-era entities drop unknown keys on parse.
+11. *(v5)* There is exactly one main composition, `comp_main`. Every clip is placed in exactly one composition that fits its trigger. Layer bars have `out > in`. Work areas and composition markers lie inside the duration. Only precomps nest, never in a loop. Time-remap keys increase. An effect instance's `time.compositionId` exists.
 
 ### 0.3 Archetype registry
 `src/core/document/registry.ts` is the single table for all 27 archetypes (10 PRD starting archetypes, `input`/`form`/`generic`, 4 SVG, 6 parametric shapes (`rectangle`, `ellipse`, `line`, `polygon`, `star`, `arrow`; v4, Phase 7.6), `effectSurface` (v4, Phase 7.5), 3 3D). Each entry gives its kind, family (or none), ID prefix, export tag, grammar type (for legal states), Details Inspector sections and default props. Grammar types with no archetype yet are listed in `RESERVED_GRAMMAR_TYPES`.
@@ -107,7 +116,7 @@ Phase 7's reasoning (strictness, the easing grammar, perceptual springs, binding
 New entities use `createId(prefix)` → `<prefix>_<8 hex>` from `crypto.getRandomValues` (`elem_btn_3f8a109c`, `clip_…`, `trk_…`, `kf_…`). Existing ids are kept as they are.
 
 ### 0.5 Versions & migration
-`loadDocument()` (`src/core/document/migrations`) accepts any version and migrates one step at a time (v1 → v2 → v3 → v4). **v3 → v4** (Phase 7) makes these changes and reports each one:
+`loadDocument()` (`src/core/document/migrations`) accepts any version and migrates one step at a time (v1 → v2 → v3 → v4 → v5). **v4 → v5** (Phase 46) adds `comp_main` and places every clip (mount/time into main; others into an interaction composition with the playback their trigger implies), changing nothing else. **v3 → v4** (Phase 7) makes these changes and reports each one:
 - adds the nine new collections, empty;
 - gives behaviours typed params: defaults, plus any v3 param whose name and type match;
 - sorts keyframes (a stable sort, so equal times stay an instant jump), types keyframe and state values by their property (`"20px"` → 20; unreadable → the property default), and extends a clip to cover its last keyframe;

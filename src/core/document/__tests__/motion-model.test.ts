@@ -15,7 +15,7 @@ import { BindingSyntaxError, formatBinding, parseBinding } from "../signals";
 import { PROPERTY_REGISTRY } from "../properties";
 import { ARCHETYPE_REGISTRY, getDefaultProps } from "../registry";
 import { EffectDefinitionSchema } from "../effect-definition";
-import { loadDocument, migrateV3ToV4, removeLayerDependents } from "../migrations";
+import { loadDocument, migrateV3ToV4, migrateV4ToV5, removeLayerDependents } from "../migrations";
 import { behaviourToBindings } from "../behaviour-presets";
 import {
   AURORA_VEIL,
@@ -314,7 +314,7 @@ describe("Phase 7.5: behaviours are binding presets", () => {
 describe("Phase 7: schema v4 migration", () => {
   const v3 = () => {
     const doc = strokeDrawLogo() as unknown as Record<string, unknown>;
-    for (const key of ["sequences", "transitions", "bindings", "surfaces", "inputTapes", "graphs", "effects", "components", "generators"]) delete doc[key];
+    for (const key of ["sequences", "transitions", "bindings", "surfaces", "inputTapes", "graphs", "effects", "components", "generators", "compositions"]) delete doc[key];
     doc.schemaVersion = 3;
     const clip = Object.values(doc.clips as Record<string, { easing: string; tracks: { keyframes: { id: string; time: number; value: number; ease?: string }[] }[] }>)[0];
     clip.easing = "springy";
@@ -329,8 +329,9 @@ describe("Phase 7: schema v4 migration", () => {
   };
 
   it("adds the Phase 7 collections, types behaviour params and repairs clip timing, reporting each change", () => {
-    const { document, report } = migrateV3ToV4(v3());
-    assert.equal(document.schemaVersion, 4);
+    const { document: v4, report } = migrateV3ToV4(v3());
+    assert.equal(v4.schemaVersion, 4);
+    const document = migrateV4ToV5(v4).document; // v5 only adds compositions (Phase 46)
     assert.deepEqual(document.bindings, {});
     const check = validateMotionDocument(document);
     assert.ok(check.ok, check.ok ? "" : JSON.stringify(check.issues));
@@ -350,7 +351,7 @@ describe("Phase 7: schema v4 migration", () => {
 
   it("loadDocument reads v3 data", () => {
     const loaded = loadDocument({ document: v3() });
-    assert.equal(loaded.schemaVersion, 4);
+    assert.equal(loaded.schemaVersion, 5);
   });
 
   it("removing a layer removes what depends on it, and a Split group that loses a piece is detached", () => {
