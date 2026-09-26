@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.4.0] — 2026-09-26
 
-### Phase 7 (Motion Primitives): implemented, awaiting CI
+### Phase 7 (Motion Primitives): complete — CI green on PR #13
 
 The Motion Document can now *express* every effect the product promises: timed, state-based, reactive, GPU, Blueprint-driven and kinetic. This is types and validation only; the runtimes are later phases. Schema **v3 → v4**. The design choices are in `decisions/0004-motion-primitives.md`.
 

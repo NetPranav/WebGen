@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 3.3.0
 **Phase:** Initial Phase = **Release 1** (Motion & Interactive Effects Studio). v3.0 also plans **Release 2** (Sites: components, sections, pages, content, site export) and re-baselines **Release 3** (Apps). See §8.
-**Status:** Active. Phases 1–6 and 42 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, PR #11 for 42, all 3 browsers). Phase 7 🚧 implemented (schema v4, 7.1–7.6 and its gate), awaiting CI. Next: 46, then 8 ∥ 9. 41.1/41.3 and 43 → 44 are still open from Stage 1. See §5.1.
+**Status:** Active. Phases 1–7 and 42 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, PR #11 for 42, PR #13 for 7, all 3 browsers). Next: 46, then 8 ∥ 9. 41.1/41.3 and 43 → 44 are still open from Stage 1. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:**
 - `PRD.md` v2.4.0 (what and why)
@@ -270,7 +270,7 @@ v3.0 could play that as a library effect, but no user could build it. There were
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | ✅ (CI green on PR #7) |
 | 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | ✅ (CI green on PR #8) |
 | 6 | A | Scope, Naming & Docs Cleanup | Initial bundle excludes After-track panels; one name; docs fixed | 1 | ✅ (CI green on PR #9; gate met — one sub-item deferred, see log) |
-| 7 | B · Motion Core | Motion Primitives: Tracks, Clips, States, Triggers, Behaviours | Formal animation model inside MDM | 2 | 🚧 implemented (schema v4); awaiting CI |
+| 7 | B · Motion Core | Motion Primitives: Tracks, Clips, States, Triggers, Behaviours | Formal animation model inside MDM | 2 | ✅ (CI green on PR #13) |
 | 8 | B | Executable Motion Rules Engine | Grammar + engine spec compiled into one rule table | 7 | 📋 |
 | 9 | B | Deterministic Evaluation Kernel | Pure `evaluate(t)`, easing and spring library | 7 | 📋 |
 | 10 | B | Live Preview Runtime & Engine Adapters | Stage actually runs the engines; scrub = seek | 8, 9 | 📋 |
@@ -669,23 +669,23 @@ Bugs found and fixed along the way:
 > The gate adds the reference build (engine spec §12.7).
 
 ### Sub-Phase 7.1: Property Paths & Value Types
-- [~] A canonical **animatable property registry**: each path (e.g. `transform.x`, `opacity`, `filter.blur`, `svg.pathD`, `text.charOpacity[i]`, `shader.uniforms.uSpeed`, `scene.camera.fov`) declares its value type (number+unit, colour, path, transform, vector3, quaternion, enum), interpolation method, compositing class (GPU / paint / layout) and default.
-- [~] Seed it from CONVENTIONS §4 and spec §3 (the property catalogue).
+- [x] A canonical **animatable property registry**: each path (e.g. `transform.x`, `opacity`, `filter.blur`, `svg.pathD`, `text.charOpacity[i]`, `shader.uniforms.uSpeed`, `scene.camera.fov`) declares its value type (number+unit, colour, path, transform, vector3, quaternion, enum), interpolation method, compositing class (GPU / paint / layout) and default.
+- [x] Seed it from CONVENTIONS §4 and spec §3 (the property catalogue).
 
 ### Sub-Phase 7.2: Time-Based Primitives
-- [~] **Keyframe** (time, value, easing-out, optional hold), **Track** (path + keyframes), **Clip** (tracks + duration + repeat + direction + delay), **Sequence** (clips on a timeline with offsets and staggers).
-- [~] **Stagger** as a first-class modifier (from: start/end/center/edges/random/index-list; grid distribution; each/amount).
+- [x] **Keyframe** (time, value, easing-out, optional hold), **Track** (path + keyframes), **Clip** (tracks + duration + repeat + direction + delay), **Sequence** (clips on a timeline with offsets and staggers).
+- [x] **Stagger** as a first-class modifier (from: start/end/center/edges/random/index-list; grid distribution; each/amount).
 
 ### Sub-Phase 7.3: State & Trigger Primitives
-- [~] **State** (a partial property snapshot), **Transition** (from → to, spring or tween, per-property overrides), **Trigger** (PRD §4 list plus `custom` event names).
-- [~] **Behaviour** primitives: `followPointer`, `magnet`, `tilt`, `proximity`, `springTo`, `inertia`, `noise`, `loop`, `uniformDriver`, each with typed params.
+- [x] **State** (a partial property snapshot), **Transition** (from → to, spring or tween, per-property overrides), **Trigger** (PRD §4 list plus `custom` event names).
+- [x] **Behaviour** primitives: `followPointer`, `magnet`, `tilt`, `proximity`, `springTo`, `inertia`, `noise`, `loop`, `uniformDriver`, each with typed params.
 
 ### Sub-Phase 7.4: Effect Definitions
-- [~] The **Effect** type: props schema + internal layer template + behaviours/clips + engine routing hints + reduced-motion variant + performance class (PRD §5.3).
-- [~] Effect *instances* in a document reference an effect definition by ID and version, and store only the prop overrides.
+- [x] The **Effect** type: props schema + internal layer template + behaviours/clips + engine routing hints + reduced-motion variant + performance class (PRD §5.3).
+- [x] Effect *instances* in a document reference an effect definition by ID and version, and store only the prop overrides.
 
 ### Sub-Phase 7.5: Reactive, Surface & Graph Primitives (v3.0, types only)
-- [~] Schema types for:
+- [x] Schema types for:
   - `Binding`: `signal |> operators -> target`, with blend and guard (engine spec §3.3).
   - `Surface`: role, program reference, fallback chain, cost tier.
   - `InputTape`: recorded or authored signals over time.
@@ -693,8 +693,8 @@ Bugs found and fixed along the way:
   - The effect-instance fields Phase 67 needs: seed, binding overrides.
 
   They are validated, versioned and exported to JSON Schema like every MDM entity (Phase 2.1).
-- [~] Behaviour primitives (7.3) are recorded as named binding presets over these types, so there is one reactive model, not two.
-- [~] **(v3.2) Track K types:**
+- [x] Behaviour primitives (7.3) are recorded as named binding presets over these types, so there is one reactive model, not two.
+- [x] **(v3.2) Track K types:**
   - `render.role` (content | helper);
   - pins (presets and custom, layer-local);
   - tags;
@@ -704,7 +704,7 @@ Bugs found and fixed along the way:
   All are types and validation only; the runtimes are Phases 88–91.
 
 ### Sub-Phase 7.6: Shape Primitives (v3.2)
-- [~] Parametric shape archetypes in the registry (42's `properties.ts` and `registry.ts`):
+- [x] Parametric shape archetypes in the registry (42's `properties.ts` and `registry.ts`):
   - **rectangle** (corner radii);
   - **ellipse** (a circle when width = height);
   - **line** (caps, arrowheads);
@@ -713,14 +713,16 @@ Bugs found and fixed along the way:
   - **arrow**.
 
   Each has its property paths (fill, stroke, dash and the shape's own parameters), legal states and a grammar mapping to 3.E.2 (SVG/Vector). Render definitions come with 48, and export with 27.
-- [~] These are what the O/R/L tools create (20.4, 43.2) and what shape recognition produces (36.2). Colliders and fields (90, 91) derive their shape from them: an ellipse gives a circle or ellipse collider, a rectangle a box.
+- [x] These are what the O/R/L tools create (20.4, 43.2) and what shape recognition produces (36.2). Colliders and fields (90, 91) derive their shape from them: an ellipse gives a circle or ellipse collider, a rectangle a box.
 
 **(v3.2) Gate addition:** the reference build (engine spec §12.7) is expressible as a valid document: a helper ellipse with a Follow on its bottom-centre pin, a Split group of letters, and the two interaction rules.
 
 **Verification Gate:** Each of these 12 reference effects can be *expressed* as a valid MDM document with no escape hatches: split-text reveal, magnet button, 3D tilt card, aurora shader background, stroke-draw logo, path morph icon, scroll-parallax image, dock magnification, count-up, click spark, orbiting 3D object, state-machine toggle. **(v3.0) So can 4 interactive ones:** a cursor-reactive shader background, a dot field with a click shockwave, a fluid splash cursor, and "hovering the CTA intensifies the background, clicking it bursts particles" (cross-layer binding plus an interaction graph). (Validator passes; review checklist signed.)
 
 ### Phase 7 Progress Log
-**2026-09-26: 🚧 implemented; every sub-phase is `[~]` until the gate passes in CI** (Definition of Done §3). This is types and validation only; the runtimes are later phases. The design choices are in `decisions/0004-motion-primitives.md`.
+**2026-09-26: ✅ Phase 7 complete. CI green on PR #13** (`verify`, `e2e` in Chromium, Firefox and WebKit, and `export-harness`, on both the push and pull_request runs). No CI round-trip was needed: the one issue the browser gate could catch (the legacy Sequencer writing string keyframe values) was found and fixed locally before the push. The gate's review checklist (`audit/phase7-gate-checklist.md`) awaits the reviewer's signature.
+
+**Implementation notes (written before CI):** This is types and validation only; the runtimes are later phases. The design choices are in `decisions/0004-motion-primitives.md`.
 
 - **Schema v4**: nine new top-level collections (sequences, transitions, bindings, surfaces, inputTapes, graphs, effects, components, generators) and `Layer.pins`/`tags`. `migrations/v3-to-v4.ts` is chained into `loadDocument` (v1 → v2 → v3 → v4) and reports every change. Deleting a layer cascades to everything that belongs to it or points at it (`removeLayerDependents`); a Split group that loses a piece is detached and re-indexed. Cross-entity checks live in `references.ts`.
 - **7.1** (`properties.ts`): every path declares an `interpolation` derived from its value type (`numeric`, `color`, `path`, `clipPath`, `vector`, `slerp`, `gradient`, `discrete`).
