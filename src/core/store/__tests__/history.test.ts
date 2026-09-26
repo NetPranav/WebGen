@@ -16,6 +16,7 @@ import {
   MERGE_WINDOW_MS,
   type DocumentChange,
 } from "../useDocumentStore";
+import { setDocument } from "../documentState";
 import { createDocumentFromLayers, createLayer, getLayerClips } from "../../document/factories";
 import type { ClipTemplate, MotionDocument } from "../../document/schema";
 import { DiagnosticBus } from "../../engine/DiagnosticBus";
@@ -30,7 +31,8 @@ const blank = (): MotionDocument =>
 function reset() {
   gestureCoalescing.release();
   useHistoryStore.getState().clearHistory();
-  useProjectStore.setState({ document: blank(), pages: {}, redirectRules: {} });
+  setDocument(blank());
+  useProjectStore.setState({ pages: {}, redirectRules: {} });
 }
 
 const clip = (name: string): ClipTemplate => ({

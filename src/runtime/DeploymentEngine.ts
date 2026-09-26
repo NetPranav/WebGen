@@ -21,6 +21,7 @@ import {
   PipelineStepId,
 } from "../core/types/deployment";
 import { useProjectStore, ProjectStoreState } from "../core/store/useProjectStore";
+import { getDocument } from "../core/store/useDocumentStore";
 import { DiagnosticBus } from "../core/engine/DiagnosticBus";
 import { errorMessage } from "@/core/errors";
 
@@ -278,7 +279,7 @@ class DeploymentEngineManager {
     switch (stepId) {
       case "validate_ast": {
         const pageCount = Object.keys(storeState.pages || {}).length;
-        const elemCount = Object.keys(storeState.document.layers).length;
+        const elemCount = Object.keys(getDocument().layers).length;
         const schemaCount = Object.keys(storeState.databaseSchemas || {}).length;
         await delay(120);
         step.logs.push(`> Inspecting ${pageCount} pages and ${elemCount} canvas visual elements...`);

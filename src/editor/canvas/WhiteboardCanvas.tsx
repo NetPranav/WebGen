@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { SandboxHost } from "@/editor/runtime/SandboxHost";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useEnvironmentStore } from "@/core/store/useEnvironmentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
@@ -111,7 +112,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const [selectedElement, setSelectedElement] = useState<SelectionRect | null>(null);
   const [ctaCount, setCtaCount] = useState(0);
 
-  const environment = useProjectStore((state) => state.environment);
+  const environment = useEnvironmentStore((state) => state.environment);
   const elements = useLayers();
   const pages = useProjectStore((state) => state.pages);
   const activePageId = useProjectStore((state) => state.activePageId);

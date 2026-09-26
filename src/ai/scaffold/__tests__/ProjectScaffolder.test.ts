@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ProjectScaffolder } from "../ProjectScaffolder";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { getDocument } from "@/core/store/useDocumentStore";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { ForceDirectedLayout } from "@/ai/layout/ForceDirectedLayout";
 
@@ -91,7 +92,7 @@ describe("Sub-Phase 6.4: Full Project Scaffold Generator", () => {
     const storeState = useProjectStore.getState();
 
     assert.strictEqual(storeState.pages["page_dashboard"].name, "Dashboard");
-    assert.strictEqual(storeState.document.layers["login_btn"].name, "Login Button");
+    assert.strictEqual(getDocument().layers["login_btn"].name, "Login Button");
     assert.strictEqual(storeState.databaseSchemas["users"].displayName, "Users");
     assert.ok(storeState.blueprintGraphs[mainGraph.id], "Store must contain restored graph");
   });

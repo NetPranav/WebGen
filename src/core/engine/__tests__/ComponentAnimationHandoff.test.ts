@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../../store/useProjectStore";
+import { getDocument } from "../../store/useDocumentStore";
 import { ComponentGenerator } from "../../../ai/component/ComponentGenerator";
 import { multiEngineAnimationRuntime } from "../../runtime/MultiEngineAnimationRuntime";
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
@@ -11,7 +12,7 @@ describe("ComponentAnimationHandoff: AI Creation to Full Animation & Export Loop
     // 1. Clear to pristine blank canvas
     useProjectStore.getState().clearToBlankCanvas();
     const blankState = useProjectStore.getState();
-    const blankRoot = blankState.document.layers[blankState.pages[blankState.activePageId].rootElementId];
+    const blankRoot = getDocument().layers[blankState.pages[blankState.activePageId].rootElementId];
     assert.equal(blankRoot.children.length, 0);
 
     // 2. Synthesize a complete pricing card from prompt
@@ -23,9 +24,9 @@ describe("ComponentAnimationHandoff: AI Creation to Full Animation & Export Loop
     // 3. Insert generated component into store
     useProjectStore.getState().insertGeneratedComponent(generated.elements, generated.rootId);
     const updatedState = useProjectStore.getState();
-    const updatedRoot = updatedState.document.layers[updatedState.pages[updatedState.activePageId].rootElementId];
+    const updatedRoot = getDocument().layers[updatedState.pages[updatedState.activePageId].rootElementId];
     assert.ok(updatedRoot.children.includes(generated.rootId));
-    assert.ok(updatedState.document.layers[generated.rootId]);
+    assert.ok(getDocument().layers[generated.rootId]);
 
     // 4. Find the button and card elements
     const buttonElement = generated.elements.find((e) => e.archetype === "button");
@@ -78,14 +79,14 @@ describe("ComponentAnimationHandoff: AI Creation to Full Animation & Export Loop
     // 7. Stash & Mount verification: Mount Showcase Demo
     useProjectStore.getState().mountDemoProject();
     const showcaseState = useProjectStore.getState();
-    assert.ok(showcaseState.document.layers["el_hero_heading"]);
-    assert.ok(showcaseState.document.layers["el_buy_button"]);
+    assert.ok(getDocument().layers["el_hero_heading"]);
+    assert.ok(getDocument().layers["el_buy_button"]);
     assert.ok(showcaseState.databaseSchemas["Products"]);
 
     // 8. Clear back to blank canvas
     useProjectStore.getState().clearToBlankCanvas();
     const clearedState = useProjectStore.getState();
-    const clearedRoot = clearedState.document.layers[clearedState.pages[clearedState.activePageId].rootElementId];
+    const clearedRoot = getDocument().layers[clearedState.pages[clearedState.activePageId].rootElementId];
     assert.equal(clearedRoot.children.length, 0);
     assert.equal(Object.keys(clearedState.databaseSchemas).length, 0);
   });

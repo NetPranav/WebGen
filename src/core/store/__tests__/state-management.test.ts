@@ -7,13 +7,13 @@ import { EventBus } from "../../events/EventBus";
 import { ConnectionPipeline } from "../../engine/ConnectionPipeline";
 import { DiagnosticBus } from "../../engine/DiagnosticBus";
 import { StateVariableValidator } from "../../engine/StateVariableValidator";
-import { documentCommands, historyCommands } from "@/core/store/useDocumentStore";
+import { documentCommands, getDocument, historyCommands } from "@/core/store/useDocumentStore";
 
 test("useProjectStore: Initializes with default pages, elements, and schemas", () => {
   const state = useProjectStore.getState();
   assert.equal(state.activePageId, "page_home");
-  assert.ok(state.document.layers["el_hero_heading"]);
-  assert.ok(state.document.layers["el_buy_button"]);
+  assert.ok(getDocument().layers["el_hero_heading"]);
+  assert.ok(getDocument().layers["el_buy_button"]);
   assert.ok(state.databaseSchemas["Products"]);
   assert.ok(state.stateVariables["cartTotal"]);
 });
@@ -22,13 +22,13 @@ test("useProjectStore: Mutates element properties and pushes undo history", () =
   useHistoryStore.getState().clearHistory();
 
   // Initial title
-  const initialTitle = useProjectStore.getState().document.layers["el_hero_heading"].properties["content.text"];
+  const initialTitle = getDocument().layers["el_hero_heading"].properties["content.text"];
 
   // Mutate with history label
   documentCommands.updateProps("el_hero_heading", { "content.text": "NextGen Studio" }, "Edit Hero Heading");
 
   assert.equal(
-    useProjectStore.getState().document.layers["el_hero_heading"].properties["content.text"],
+    getDocument().layers["el_hero_heading"].properties["content.text"],
     "NextGen Studio"
   );
   assert.equal(useHistoryStore.getState().canUndo(), true);
@@ -37,7 +37,7 @@ test("useProjectStore: Mutates element properties and pushes undo history", () =
   // Undo
   historyCommands.undo();
   assert.equal(
-    useProjectStore.getState().document.layers["el_hero_heading"].properties["content.text"],
+    getDocument().layers["el_hero_heading"].properties["content.text"],
     initialTitle
   );
   assert.equal(useHistoryStore.getState().canRedo(), true);
@@ -45,7 +45,7 @@ test("useProjectStore: Mutates element properties and pushes undo history", () =
   // Redo
   historyCommands.redo();
   assert.equal(
-    useProjectStore.getState().document.layers["el_hero_heading"].properties["content.text"],
+    getDocument().layers["el_hero_heading"].properties["content.text"],
     "NextGen Studio"
   );
 });

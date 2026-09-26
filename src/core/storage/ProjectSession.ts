@@ -27,7 +27,8 @@ import { create } from "zustand";
 import type { Patch } from "immer";
 import { useProjectStore, type ProjectStateSnapshot } from "../store/useProjectStore";
 import { useHistoryStore } from "../store/useHistoryStore";
-import { documentCommands, getDocument, isTransactionOpen, subscribeToDocumentChanges } from "../store/useDocumentStore";
+import { documentCommands, documentStore, getDocument, isTransactionOpen, subscribeToDocumentChanges } from "../store/useDocumentStore";
+import { useEnvironmentStore } from "../store/useEnvironmentStore";
 import { ProjectDatabase, type ProjectDatabaseManager, type ProjectSettings } from "./ProjectDatabase";
 import { isQuotaError } from "./idb";
 import type { MotionDocument } from "../document/schema";
@@ -93,14 +94,13 @@ function defaultStorage(): Storage | null {
   }
 }
 
-/** Snapshot fields whose change means the project needs saving. */
-const WATCHED_KEYS: (keyof ProjectStateSnapshot)[] = [
+/** Snapshot fields whose change means the project needs saving. The document and environment are watched separately (`documentStore`/`useEnvironmentStore`, Sub-Phase 41.1). */
+const WATCHED_KEYS: (keyof Omit<ProjectStateSnapshot, "document" | "environment">)[] = [
   "projectName",
   "scope",
   "rootArchetype",
   "activePageId",
   "pages",
-  "document",
   "databaseSchemas",
   "databaseRecords",
   "stateVariables",
@@ -110,7 +110,6 @@ const WATCHED_KEYS: (keyof ProjectStateSnapshot)[] = [
   "blueprintGraphs",
   "activeBlueprintGraphId",
   "redirectRules",
-  "environment",
 ];
 
 export class ProjectSession {
@@ -221,7 +220,17 @@ export class ProjectSession {
     this.disposers.push(
       useProjectStore.subscribe((state, prev) => {
         if (!WATCHED_KEYS.some((key) => state[key] !== prev[key])) return;
-        if (state.document !== prev.document) this.checkRawDocumentWrite();
+        this.schedule();
+      }),
+      // Sub-Phase 41.1: the document owns its own store now, watched separately.
+      documentStore.subscribe((state, prev) => {
+        if (state.document === prev.document) return;
+        this.checkRawDocumentWrite();
+        this.schedule();
+      }),
+      // Sub-Phase 41.1: the World Environment owns its own store now, watched separately.
+      useEnvironmentStore.subscribe((state, prev) => {
+        if (state.environment === prev.environment) return;
         this.schedule();
       }),
       useHistoryStore.subscribe((state, prev) => {

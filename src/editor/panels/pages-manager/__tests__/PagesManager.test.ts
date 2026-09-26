@@ -8,6 +8,7 @@ import {
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import type { DiagnosticEvent } from "../../../../core/types/diagnostics";
 import { loadDocument } from "@/core/document/migrations";
+import { getDocument, setDocument } from "../../../../core/store/documentState";
 
 describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
   describe("Route Slug & Parameter Extraction Utilities", () => {
@@ -54,18 +55,22 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
             rootElementId: "el_root_container",
           },
         },
-        document: loadDocument({ elements: {
-          el_root_container: {
-            id: "el_root_container",
-            name: "Home Container",
-            archetype: "container",
-            parentId: null,
-            children: [],
-            properties: {},
-          },
-        } }),
         redirectRules: {},
       });
+      setDocument(
+        loadDocument({
+          elements: {
+            el_root_container: {
+              id: "el_root_container",
+              name: "Home Container",
+              archetype: "container",
+              parentId: null,
+              children: [],
+              properties: {},
+            },
+          },
+        })
+      );
     });
 
     it("adds a new page and automatically extracts dynamic parameters", () => {
@@ -84,7 +89,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
       assert.strictEqual(updated.pages[pageId].parameters?.length, 1);
       assert.strictEqual(updated.pages[pageId].parameters?.[0].name, "id");
       assert.strictEqual(updated.activePageId, pageId, "Adding page sets it as active");
-      assert.ok(updated.document.layers[updated.pages[pageId].rootElementId], "Creates root element");
+      assert.ok(getDocument().layers[updated.pages[pageId].rootElementId], "Creates root element");
     });
 
     it("switches active page via setActivePage", () => {
@@ -132,7 +137,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
       assert.strictEqual(state.pages[copyId].name, "Home (Copy)");
       assert.strictEqual(state.pages[copyId].slug, "/home-copy");
       assert.strictEqual(state.activePageId, copyId, "Active page switches to duplicated copy");
-      assert.ok(state.document.layers[state.pages[copyId].rootElementId], "Cloned root element exists");
+      assert.ok(getDocument().layers[state.pages[copyId].rootElementId], "Cloned root element exists");
     });
 
     it("deletes a page and resets activePageId safely, preventing last page deletion", () => {

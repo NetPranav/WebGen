@@ -6,6 +6,7 @@ import { useProjectStore, ProjectStateSnapshot } from "../../../../core/store/us
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import { DiagnosticEvent } from "../../../../core/types/diagnostics";
 import { loadDocument } from "@/core/document/migrations";
+import { getDocument, setDocument } from "../../../../core/store/documentState";
 
 describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
   let baselineSnapshot: ProjectStateSnapshot;
@@ -282,13 +283,11 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     const baselineRecord = store.createSnapshot("Baseline V1", "Original elements");
 
     // 2. Mutate live project store
-    useProjectStore.setState({
-      projectName: "Mutated Project Name",
-      document: loadDocument({ elements: {} }),
-    });
+    useProjectStore.setState({ projectName: "Mutated Project Name" });
+    setDocument(loadDocument({ elements: {} }));
 
     assert.strictEqual(useProjectStore.getState().projectName, "Mutated Project Name");
-    assert.strictEqual(Object.keys(useProjectStore.getState().document.layers).length, 0);
+    assert.strictEqual(Object.keys(getDocument().layers).length, 0);
 
     // 3. Restore snapshot
     const restored = store.restoreSnapshot(baselineRecord.id);
@@ -296,7 +295,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
 
     // 4. Confirm project store has restored elements and original project name
     assert.strictEqual(useProjectStore.getState().projectName, "Versioned Web App");
-    assert.ok(useProjectStore.getState().document.layers.el_btn);
-    assert.strictEqual(useProjectStore.getState().document.layers.el_btn.properties["content.label"], "Submit");
+    assert.ok(getDocument().layers.el_btn);
+    assert.strictEqual(getDocument().layers.el_btn.properties["content.label"], "Submit");
   });
 });

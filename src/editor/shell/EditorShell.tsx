@@ -59,6 +59,7 @@ import { AiPromptBar } from "@/editor/panels/copilot/AiPromptBar";
 import { useTearOff, TearOffDragSource } from "@/core/events/useTearOff";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useEnvironmentStore } from "@/core/store/useEnvironmentStore";
 import { useHistoryStore } from "@/core/store/useHistoryStore";
 import { ProjectDatabase, generateProjectId, createDefaultBlankSnapshot } from "@/core/storage/ProjectDatabase";
 import { projectSession, useSaveStatus, type PendingRecovery } from "@/core/storage/ProjectSession";
@@ -181,9 +182,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [isOutputLogOpen, setIsOutputLogOpen] = useState(false);
 
   // World Environment & Viewport State
-  const environment = useProjectStore((s) => s.environment);
-  const updateEnvironment = useProjectStore((s) => s.updateEnvironment);
-  const toggleInspectMode = useProjectStore((s) => s.toggleInspectMode);
+  const environment = useEnvironmentStore((s) => s.environment);
+  const updateEnvironment = useEnvironmentStore((s) => s.updateEnvironment);
+  const toggleInspectMode = useEnvironmentStore((s) => s.toggleInspectMode);
   const [isWorldEnvPopoverOpen, setIsWorldEnvPopoverOpen] = useState(false);
 
   // Dismiss the World Quick Controls popover on outside click or Escape

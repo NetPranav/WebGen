@@ -24,7 +24,7 @@ import {
   RotateCcw,
   Eye,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { useEnvironmentStore } from "@/core/store/useEnvironmentStore";
 import { SectionRail, type SectionRailItem } from "./SectionRail";
 import {
   THEME_PALETTES,
@@ -90,11 +90,11 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
 };
 
 export const EnvironmentInspector: React.FC = () => {
-  const environment = useProjectStore((state) => state.environment);
-  const updateEnvironment = useProjectStore((state) => state.updateEnvironment);
-  const resetEnvironment = useProjectStore((state) => state.resetEnvironment);
-  const setSpringPreset = useProjectStore((state) => state.setSpringPreset);
-  const toggleInspectMode = useProjectStore((state) => state.toggleInspectMode);
+  const environment = useEnvironmentStore((state) => state.environment);
+  const updateEnvironment = useEnvironmentStore((state) => state.updateEnvironment);
+  const resetEnvironment = useEnvironmentStore((state) => state.resetEnvironment);
+  const setSpringPreset = useEnvironmentStore((state) => state.setSpringPreset);
+  const toggleInspectMode = useEnvironmentStore((state) => state.toggleInspectMode);
 
   // Accordion open/close state
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({

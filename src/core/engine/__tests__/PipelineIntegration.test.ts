@@ -5,7 +5,7 @@ import { multiEngineAnimationRuntime } from "../../runtime/MultiEngineAnimationR
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
 import { AnimationSample } from "../../types/animations";
 import type { Layer } from "@/core/document/schema";
-import { documentCommands } from "@/core/store/useDocumentStore";
+import { documentCommands, getDocument } from "@/core/store/useDocumentStore";
 
 test("Sub-Phase 8.1: Full Pipeline Integration — Interactive Family (Button)", () => {
   const store = useProjectStore.getState();
@@ -25,7 +25,7 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Interactive Family (Button)",
   };
 
   documentCommands.insertLayers([buttonElement]);
-  assert.equal(useProjectStore.getState().document.layers["el_button_root"].archetype, "button");
+  assert.equal(getDocument().layers["el_button_root"].archetype, "button");
 
   // 2. Sequencer: Choreograph Hover Bounce animation
   const hoverBounceSample: AnimationSample = {
@@ -80,7 +80,7 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Media Family (Image)", () => 
   };
 
   documentCommands.insertLayers([imageElement]);
-  assert.equal(useProjectStore.getState().document.layers["el_image_root"].archetype, "image");
+  assert.equal(getDocument().layers["el_image_root"].archetype, "image");
 
   // 2. Sequencer: Ken Burns Zoom + Blur-In
   const kenBurnsSample: AnimationSample = {
@@ -135,7 +135,7 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Structural Family (Divider)",
   };
 
   documentCommands.insertLayers([dividerElement]);
-  assert.equal(useProjectStore.getState().document.layers["el_divider_root"].archetype, "divider");
+  assert.equal(getDocument().layers["el_divider_root"].archetype, "divider");
 
   // 2. Sequencer: Stroke draw-in
   const drawSample: AnimationSample = {
@@ -185,7 +185,7 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Text Family (Text)", () => {
   };
 
   documentCommands.insertLayers([textElement]);
-  assert.equal(useProjectStore.getState().document.layers["el_text_root"].archetype, "text");
+  assert.equal(getDocument().layers["el_text_root"].archetype, "text");
 
   // 2. Sequencer: Staggered reveal
   const textSample: AnimationSample = {

@@ -19,16 +19,20 @@
  *   pointer press, so any drag, scrub or slider is a single undo step.
  * - History: `historyCommands.undo / redo / jumpTo`.
  *
- * The document lives in the project store's `document` field, so snapshots
- * and persistence keep covering it.
+ * The document owns its own store (Sub-Phase 41.1, `documentState.ts`),
+ * independent of `useProjectStore`. `getSnapshot`/`restoreSnapshot` there
+ * compose it back into the full `ProjectStateSnapshot` for persistence, so
+ * snapshots, `.lazy.json` export/import and version control keep covering it.
  * ============================================================================
  */
 
 import { useMemo } from "react";
 import { applyPatches, enablePatches, produceWithPatches, type Draft, type Patch } from "immer";
 import { captureProjectState, useProjectStore } from "./useProjectStore";
+import { documentStore, getDocument, setDocument } from "./documentState";
+import { setEnvironment } from "./useEnvironmentStore";
+import type { WorldEnvironmentSettings } from "../types/environment";
 import { useHistoryStore } from "./useHistoryStore";
-import { EventBus } from "../events/EventBus";
 import { DiagnosticBus } from "../engine/DiagnosticBus";
 import { createId } from "../ids";
 import { diffPatches } from "../document/diff";
@@ -42,6 +46,7 @@ import {
   validateMotionDocument,
   type Clip,
   type ClipTemplate,
+  type Composition,
   type ExportSettings,
   type Keyframe,
   type Layer,
@@ -79,13 +84,10 @@ export function subscribeToDocumentChanges(listener: DocumentChangeListener): ()
   return () => listeners.delete(listener);
 }
 
-export function getDocument(): MotionDocument {
-  return useProjectStore.getState().document;
-}
+export { getDocument, documentStore };
 
 function emit(change: DocumentChange) {
   listeners.forEach((listener) => listener(change));
-  EventBus.emit("document:changed", change);
 }
 
 /** Label for commands called without one; every durable change is undoable. */
@@ -130,10 +132,6 @@ export interface DocumentTransaction {
   readonly isOwner: boolean;
   commit(): DocumentChange | null;
   cancel(): void;
-}
-
-function setDocument(next: MotionDocument) {
-  useProjectStore.setState({ document: next });
 }
 
 function recordDocumentEntry(label: string, patches: Patch[], inversePatches: Patch[], mergeKey?: string) {
@@ -322,10 +320,14 @@ function applyEntry(entry: HistoryTransaction, direction: "undo" | "redo"): Hist
   }
 
   // Project entries swap: the stored state goes live, the live state is stored.
-  const { document: storedDocument, ...rest } = change.state as Record<string, unknown> & { document?: MotionDocument };
+  const { document: storedDocument, environment: storedEnvironment, ...rest } = change.state as Record<string, unknown> & {
+    document?: MotionDocument;
+    environment?: WorldEnvironmentSettings;
+  };
   const current = captureProjectState(storedDocument !== undefined);
   useProjectStore.setState(rest as Partial<ReturnType<typeof useProjectStore.getState>>);
   if (storedDocument) setDocumentFromHistory(storedDocument, entry.actionLabel, direction);
+  if (storedEnvironment) setEnvironment(storedEnvironment);
   return { ...entry, change: { kind: "project", state: current } };
 }
 
@@ -736,19 +738,29 @@ export type DocumentCommands = typeof documentCommands;
 
 /** Subscribe to a slice of the document. The selector must return a stable value (not a new array/object). */
 export function useDocument<T>(selector: (document: MotionDocument) => T): T {
-  return useProjectStore((state) => selector(state.document));
+  return documentStore((state) => selector(state.document));
 }
 
 export function useLayer(layerId: string | null | undefined): Layer | undefined {
-  return useProjectStore((state) => (layerId ? state.document.layers[layerId] : undefined));
+  return documentStore((state) => (layerId ? state.document.layers[layerId] : undefined));
 }
 
 export function useLayers(): Record<string, Layer> {
-  return useProjectStore((state) => state.document.layers);
+  return documentStore((state) => state.document.layers);
 }
 
 /** The layer's clips in stack order; stable between renders while clips are unchanged. */
 export function useLayerClips(layerId: string | null | undefined): Clip[] {
-  const clips = useProjectStore((state) => state.document.clips);
+  const clips = documentStore((state) => state.document.clips);
   return useMemo(() => (layerId ? Object.values(clips).filter((c) => c.layerId === layerId) : []), [clips, layerId]);
+}
+
+/** Sub-Phase 41.3: a per-entity selector — re-renders only when this clip's own object reference changes (Immer structural sharing). */
+export function useClip(clipId: string | null | undefined): Clip | undefined {
+  return documentStore((state) => (clipId ? state.document.clips[clipId] : undefined));
+}
+
+/** Sub-Phase 41.3: a per-entity selector — re-renders only when this composition's own object reference changes. */
+export function useComposition(compositionId: string | null | undefined): Composition | undefined {
+  return documentStore((state) => (compositionId ? state.document.compositions[compositionId] : undefined));
 }

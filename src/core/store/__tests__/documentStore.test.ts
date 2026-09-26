@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { applyPatches } from "immer";
-import { useProjectStore } from "../useProjectStore";
 import { useHistoryStore } from "../useHistoryStore";
 import { documentCommands, getDocument, historyCommands, subscribeToDocumentChanges, type DocumentChange } from "../useDocumentStore";
+import { setDocument } from "../documentState";
 import { createDocumentFromLayers, createLayer, getLayerClips } from "../../document/factories";
 import { validateMotionDocument, type ClipTemplate } from "../../document/schema";
 
@@ -22,13 +22,13 @@ const clip = (name: string, trigger: ClipTemplate["trigger"] = "mount"): ClipTem
 
 function reset() {
   useHistoryStore.getState().clearHistory();
-  useProjectStore.setState({
-    document: createDocumentFromLayers([
+  setDocument(
+    createDocumentFromLayers([
       createLayer({ id: "root", archetype: "container", children: ["card"] }),
       createLayer({ id: "card", archetype: "container", parentId: "root", children: ["label"] }),
       createLayer({ id: "label", archetype: "text", parentId: "card" }),
-    ]),
-  });
+    ])
+  );
 }
 
 describe("documentCommands", () => {

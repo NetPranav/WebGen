@@ -7,6 +7,7 @@ import {
   DeploymentRecord,
 } from "../../../../core/types/deployment";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
+import { setDocument } from "../../../../core/store/documentState";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import { loadDocument } from "@/core/document/migrations";
 
@@ -24,16 +25,6 @@ describe("Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy (Panel 19)", (
           rootElementId: "el_root",
         },
       },
-      document: loadDocument({ elements: {
-        el_root: {
-          id: "el_root",
-          name: "Root Container",
-          archetype: "container",
-          parentId: null,
-          children: [],
-          properties: {},
-        },
-      } }),
       databaseSchemas: {
         col_users: {
           id: "col_users",
@@ -57,6 +48,20 @@ describe("Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy (Panel 19)", (
       },
       redirectRules: {},
     });
+    setDocument(
+      loadDocument({
+        elements: {
+          el_root: {
+            id: "el_root",
+            name: "Root Container",
+            archetype: "container",
+            parentId: null,
+            children: [],
+            properties: {},
+          },
+        },
+      })
+    );
   });
 
   describe("Pipeline Step Specifications & Contracts", () => {

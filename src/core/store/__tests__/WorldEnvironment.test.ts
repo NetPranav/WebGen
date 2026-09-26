@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../useProjectStore";
+import { useEnvironmentStore } from "../useEnvironmentStore";
 import {
   DEFAULT_ENVIRONMENT_SETTINGS,
   SPRING_PRESETS,
@@ -8,9 +9,9 @@ import {
 } from "../../types/environment";
 
 test("World Environment: Default state verification across all 20 properties", () => {
-  const store = useProjectStore.getState();
+  const store = useEnvironmentStore.getState();
   store.resetEnvironment();
-  const env = useProjectStore.getState().environment;
+  const env = useEnvironmentStore.getState().environment;
 
   // 1. Viewport (3 Props)
   assert.equal(env.viewport.pan.enabled, true);
@@ -60,7 +61,7 @@ test("World Environment: Default state verification across all 20 properties", (
 });
 
 test("World Environment: updateEnvironment deep merge and reactivity", () => {
-  const store = useProjectStore.getState();
+  const store = useEnvironmentStore.getState();
   store.resetEnvironment();
 
   // Update Viewport Grid to lines and 32px
@@ -75,7 +76,7 @@ test("World Environment: updateEnvironment deep merge and reactivity", () => {
     },
   });
 
-  let env = useProjectStore.getState().environment;
+  let env = useEnvironmentStore.getState().environment;
   assert.equal(env.viewport.grid.style, "lines");
   assert.equal(env.viewport.grid.size, 32);
   // Sibling viewport properties remain intact
@@ -91,19 +92,19 @@ test("World Environment: updateEnvironment deep merge and reactivity", () => {
     },
   });
 
-  env = useProjectStore.getState().environment;
+  env = useEnvironmentStore.getState().environment;
   assert.equal(env.elements.collision, "smart_push");
   assert.equal(env.elements.dragEnabled, false);
   assert.equal(env.elements.autoReparent, true);
 });
 
 test("World Environment: Spring physics presets switching", () => {
-  const store = useProjectStore.getState();
+  const store = useEnvironmentStore.getState();
   store.resetEnvironment();
 
   // Switch to Bouncy
   store.setSpringPreset("bouncy");
-  let env = useProjectStore.getState().environment;
+  let env = useEnvironmentStore.getState().environment;
   assert.equal(env.motion.springPreset, "bouncy");
   assert.equal(env.motion.spring.stiffness, SPRING_PRESETS.bouncy.stiffness);
   assert.equal(env.motion.spring.damping, SPRING_PRESETS.bouncy.damping);
@@ -111,7 +112,7 @@ test("World Environment: Spring physics presets switching", () => {
 
   // Switch to Smooth
   store.setSpringPreset("smooth");
-  env = useProjectStore.getState().environment;
+  env = useEnvironmentStore.getState().environment;
   assert.equal(env.motion.springPreset, "smooth");
   assert.equal(env.motion.spring.stiffness, SPRING_PRESETS.smooth.stiffness);
   assert.equal(env.motion.spring.damping, SPRING_PRESETS.smooth.damping);
@@ -119,7 +120,7 @@ test("World Environment: Spring physics presets switching", () => {
 
   // Switch back to Snappy
   store.setSpringPreset("snappy");
-  env = useProjectStore.getState().environment;
+  env = useEnvironmentStore.getState().environment;
   assert.equal(env.motion.springPreset, "snappy");
   assert.equal(env.motion.spring.stiffness, SPRING_PRESETS.snappy.stiffness);
   assert.equal(env.motion.spring.damping, SPRING_PRESETS.snappy.damping);
@@ -127,37 +128,38 @@ test("World Environment: Spring physics presets switching", () => {
 });
 
 test("World Environment: toggleInspectMode toggles DevTools inspect state", () => {
-  const store = useProjectStore.getState();
+  const store = useEnvironmentStore.getState();
   store.resetEnvironment();
 
   assert.equal(store.environment.diagnostics.inspectMode, false);
 
   store.toggleInspectMode();
-  assert.equal(useProjectStore.getState().environment.diagnostics.inspectMode, true);
+  assert.equal(useEnvironmentStore.getState().environment.diagnostics.inspectMode, true);
 
   store.toggleInspectMode();
-  assert.equal(useProjectStore.getState().environment.diagnostics.inspectMode, false);
+  assert.equal(useEnvironmentStore.getState().environment.diagnostics.inspectMode, false);
 });
 
 test("World Environment: Snapshot serialization and restoration", () => {
-  const store = useProjectStore.getState();
-  store.resetEnvironment();
+  const envStore = useEnvironmentStore.getState();
+  const projectStore = useProjectStore.getState();
+  envStore.resetEnvironment();
 
   // Configure custom environment settings
-  store.updateEnvironment({
+  envStore.updateEnvironment({
     theme: {
-      ...store.environment.theme,
+      ...envStore.environment.theme,
       palette: "emerald_tech",
       defaultRadius: 16,
       feedback: "glow_accent",
     },
     motion: {
-      ...store.environment.motion,
+      ...envStore.environment.motion,
       timeScale: 0.5,
     },
   });
 
-  const snapshot = store.getSnapshot();
+  const snapshot = projectStore.getSnapshot();
   assert.ok(snapshot.environment, "Snapshot must include environment settings");
   assert.equal(snapshot.environment.theme.palette, "emerald_tech");
   assert.equal(snapshot.environment.theme.defaultRadius, 16);
@@ -165,13 +167,13 @@ test("World Environment: Snapshot serialization and restoration", () => {
   assert.equal(snapshot.environment.motion.timeScale, 0.5);
 
   // Reset environment back to default
-  store.resetEnvironment();
-  assert.equal(useProjectStore.getState().environment.theme.palette, "clean_light");
-  assert.equal(useProjectStore.getState().environment.motion.timeScale, 1.0);
+  useEnvironmentStore.getState().resetEnvironment();
+  assert.equal(useEnvironmentStore.getState().environment.theme.palette, "clean_light");
+  assert.equal(useEnvironmentStore.getState().environment.motion.timeScale, 1.0);
 
   // Restore snapshot and verify custom environment values return
-  store.restoreSnapshot(snapshot);
-  const restoredEnv = useProjectStore.getState().environment;
+  projectStore.restoreSnapshot(snapshot);
+  const restoredEnv = useEnvironmentStore.getState().environment;
   assert.equal(restoredEnv.theme.palette, "emerald_tech");
   assert.equal(restoredEnv.theme.defaultRadius, 16);
   assert.equal(restoredEnv.theme.feedback, "glow_accent");

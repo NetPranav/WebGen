@@ -10,8 +10,8 @@ import { ProjectSession, useSaveStatus } from "../ProjectSession";
 import { StorageQuotaError } from "../idb";
 import { MemoryStorage } from "./memoryStorage";
 import { documentCommands, gestureCoalescing, getDocument, historyCommands } from "../../store/useDocumentStore";
+import { setDocument } from "../../store/documentState";
 import { useHistoryStore } from "../../store/useHistoryStore";
-import { useProjectStore } from "../../store/useProjectStore";
 
 const DELAY = 15;
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -53,7 +53,7 @@ describe("ProjectSession (Phase 3.2)", () => {
     tab1.session.close();
 
     // Reload: wipe the in-memory stores, then open the project in a new "tab".
-    useProjectStore.setState({ document: createDefaultBlankSnapshot("x", "x").document });
+    setDocument(createDefaultBlankSnapshot("x", "x").document);
     useHistoryStore.getState().clearHistory();
     const tab2 = newTab();
     const { created: again, recovery } = await tab2.session.open("prj_gate");

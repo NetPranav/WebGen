@@ -13,6 +13,7 @@
 import { create } from "zustand";
 import { type MotionDocument, type Layer } from "../document/schema";
 import { createLayer, createDocumentFromLayers } from "../document/factories";
+import { getDocument, setDocument } from "./documentState";
 import { getDefaultProps, isArchetypeId, getArchetype } from "../document/registry";
 import { upgradeSnapshot, type DocumentSource } from "../document/migrations";
 import { CollectionSchema, DatabaseField } from "../types/database";
@@ -41,12 +42,8 @@ import {
   extractRouteParameters,
   normalizeRouteSlug,
 } from "../types/routing";
-import {
-  WorldEnvironmentSettings,
-  DEFAULT_ENVIRONMENT_SETTINGS,
-  SPRING_PRESETS,
-  SpringPresetName,
-} from "../types/environment";
+import { WorldEnvironmentSettings, DEFAULT_ENVIRONMENT_SETTINGS } from "../types/environment";
+import { getEnvironment, setEnvironment } from "./useEnvironmentStore";
 import {
   createShowcaseSnapshot,
   createBlankCanvasSnapshot,
@@ -166,19 +163,14 @@ function recordProjectChange(label: string, before: ProjectStateSnapshot, option
   });
 }
 
-export interface ProjectStoreState extends ProjectStateSnapshot {
-  environment: WorldEnvironmentSettings;
-
-  // Actions: Environment Settings (The Top 20)
-  updateEnvironment: (
-    partial:
-      | Partial<WorldEnvironmentSettings>
-      | ((prev: WorldEnvironmentSettings) => Partial<WorldEnvironmentSettings>)
-  ) => void;
-  resetEnvironment: () => void;
-  setSpringPreset: (preset: Exclude<SpringPresetName, "custom">) => void;
-  toggleInspectMode: () => void;
-
+/**
+ * The live store's state no longer includes the document (Sub-Phase 41.1 —
+ * `useDocumentStore`/`documentState.ts` own it independently). `ProjectStateSnapshot`
+ * itself is unchanged: it's the stable serialization contract (.lazy.json,
+ * IndexedDB, version control), and still includes `document`; `getSnapshot`/
+ * `restoreSnapshot` compose it by reading/writing the document store directly.
+ */
+export interface ProjectStoreState extends Omit<ProjectStateSnapshot, "document" | "environment"> {
   // Actions: Project Identity & Management
   setProjectId: (projectId: string) => void;
   setProjectName: (name: string) => void;
@@ -311,7 +303,7 @@ export interface ProjectStoreState extends ProjectStateSnapshot {
   restoreSnapshot: (snapshot: ProjectStateSnapshot | LegacyProjectSnapshot) => void;
 }
 
-const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
+const INITIAL_PROJECT_STATE: Omit<ProjectStateSnapshot, "document"> = {
   projectName: "Visual Web App",
   scope: "element",
   rootArchetype: "button",
@@ -324,34 +316,6 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
       rootElementId: "el_root_container",
     },
   },
-  document: createDocumentFromLayers([
-    createLayer({
-      id: "el_root_container",
-      archetype: "container",
-      name: "RootContainer",
-      children: ["el_hero_heading", "el_buy_button"],
-      properties: { "layout.display": "flex", "layout.flexDirection": "column", "layout.gap": 16, "layout.padding": 24 },
-    }),
-    createLayer({
-      id: "el_hero_heading",
-      archetype: "text",
-      name: "HeroHeading",
-      parentId: "el_root_container",
-      properties: {
-        "content.text": "Unreal Engine for Web Applications",
-        "typography.fontSize": 32,
-        "typography.fontWeight": 700,
-        "typography.color": "#ffffff",
-      },
-    }),
-    createLayer({
-      id: "el_buy_button",
-      archetype: "button",
-      name: "BuyButton",
-      parentId: "el_root_container",
-      properties: { "content.label": "Get Started Free", "interaction.disabled": false, "appearance.background.color": "#206859" },
-    }),
-  ]),
   databaseSchemas: {
     Products: {
       id: "col_products",
@@ -515,13 +479,10 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
   },
   activeBlueprintGraphId: "graph_main_event",
   redirectRules: {},
-  environment: DEFAULT_ENVIRONMENT_SETTINGS,
 };
 
 export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   ...INITIAL_PROJECT_STATE,
-  // Snapshots keep `environment` optional for pre-environment saves; live state always has it.
-  environment: INITIAL_PROJECT_STATE.environment ?? DEFAULT_ENVIRONMENT_SETTINGS,
 
   getDataContext: (): DataContext => {
     const state = get();
@@ -548,7 +509,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       rootArchetype: s.rootArchetype || "button",
       activePageId: s.activePageId,
       pages: s.pages,
-      document: s.document,
+      document: getDocument(),
       databaseSchemas: s.databaseSchemas,
       databaseRecords: s.databaseRecords,
       stateVariables: s.stateVariables,
@@ -558,115 +519,21 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       blueprintGraphs: s.blueprintGraphs || {},
       activeBlueprintGraphId: s.activeBlueprintGraphId || "graph_main_event",
       redirectRules: s.redirectRules || {},
-      environment: s.environment || DEFAULT_ENVIRONMENT_SETTINGS,
+      environment: getEnvironment(),
     };
   },
 
   restoreSnapshot: (snapshot) => {
     // Accepts snapshots of any schema version: v1 `elements` are migrated to the v2 document.
-    set({
-      ...upgradeSnapshot(snapshot as LegacyProjectSnapshot),
-      environment: snapshot.environment || DEFAULT_ENVIRONMENT_SETTINGS,
-    });
+    const { document, environment, ...rest } = upgradeSnapshot(snapshot as LegacyProjectSnapshot);
+    setDocument(document);
+    setEnvironment(environment || DEFAULT_ENVIRONMENT_SETTINGS);
+    set(rest);
     // Sync connection pipeline
     ConnectionPipeline.clear();
     Object.values(snapshot.bindings || {}).forEach((b) => {
       ConnectionPipeline.registerBinding(b);
     });
-  },
-
-  updateEnvironment: (partial) => {
-    set((state) => {
-      const nextEnv = typeof partial === "function" ? partial(state.environment) : partial;
-      const merged: WorldEnvironmentSettings = {
-        ...state.environment,
-        ...nextEnv,
-        viewport: {
-          ...state.environment.viewport,
-          ...(nextEnv.viewport || {}),
-          pan: {
-            ...state.environment.viewport.pan,
-            ...(nextEnv.viewport?.pan || {}),
-          },
-          zoom: {
-            ...state.environment.viewport.zoom,
-            ...(nextEnv.viewport?.zoom || {}),
-          },
-          grid: {
-            ...state.environment.viewport.grid,
-            ...(nextEnv.viewport?.grid || {}),
-          },
-          axes: {
-            ...state.environment.viewport.axes,
-            ...(nextEnv.viewport?.axes || {}),
-          },
-        },
-        elements: {
-          ...state.environment.elements,
-          ...(nextEnv.elements || {}),
-        },
-        snapping: {
-          ...state.environment.snapping,
-          ...(nextEnv.snapping || {}),
-          details: {
-            ...state.environment.snapping.details,
-            ...(nextEnv.snapping?.details || {}),
-          },
-        },
-        theme: {
-          ...state.environment.theme,
-          ...(nextEnv.theme || {}),
-          typography: {
-            ...state.environment.theme.typography,
-            ...(nextEnv.theme?.typography || {}),
-          },
-        },
-        motion: {
-          ...state.environment.motion,
-          ...(nextEnv.motion || {}),
-          spring: {
-            ...state.environment.motion.spring,
-            ...(nextEnv.motion?.spring || {}),
-          },
-        },
-        diagnostics: {
-          ...state.environment.diagnostics,
-          ...(nextEnv.diagnostics || {}),
-        },
-      };
-      return { environment: merged };
-    });
-  },
-
-  resetEnvironment: () => {
-    set({ environment: DEFAULT_ENVIRONMENT_SETTINGS });
-  },
-
-  setSpringPreset: (preset) => {
-    const springVals = SPRING_PRESETS[preset];
-    if (!springVals) return;
-    set((state) => ({
-      environment: {
-        ...state.environment,
-        motion: {
-          ...state.environment.motion,
-          springPreset: preset,
-          spring: { ...springVals },
-        },
-      },
-    }));
-  },
-
-  toggleInspectMode: () => {
-    set((state) => ({
-      environment: {
-        ...state.environment,
-        diagnostics: {
-          ...state.environment.diagnostics,
-          inspectMode: !state.environment.diagnostics.inspectMode,
-        },
-      },
-    }));
   },
 
   setProjectId: (projectId: string) => set({ projectId }),
@@ -700,6 +567,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       ...Object.fromEntries(Object.entries(target).filter(([, v]) => typeof v === "string")),
     };
 
+    setDocument(document);
     set({
       projectId: params.projectId || get().projectId,
       projectName: params.projectName || "MyElementProject",
@@ -709,7 +577,6 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       pages: {
         page_stage: newPage,
       },
-      document,
     });
 
     return rootElementId;
@@ -730,22 +597,22 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   insertGeneratedComponent: (layers, rootId, actionLabel = "Insert AI Component") => {
     recordProjectChange(actionLabel, get().getSnapshot(), { includesDocument: true });
 
-    set((state) => {
-      const nextLayers = { ...state.document.layers };
-      for (const layer of layers) nextLayers[layer.id] = layer;
+    const state = get();
+    const doc = getDocument();
+    const nextLayers = { ...doc.layers };
+    for (const layer of layers) nextLayers[layer.id] = layer;
 
-      // Attach the component's root under the active page's root layer (both sides of the link).
-      const pageRootId = state.pages[state.activePageId]?.rootElementId;
-      const pageRoot = pageRootId ? nextLayers[pageRootId] : undefined;
-      if (pageRoot && nextLayers[rootId] && rootId !== pageRoot.id) {
-        nextLayers[rootId] = { ...nextLayers[rootId], parentId: pageRoot.id };
-        if (!pageRoot.children.includes(rootId)) {
-          nextLayers[pageRoot.id] = { ...pageRoot, children: [...pageRoot.children, rootId] };
-        }
+    // Attach the component's root under the active page's root layer (both sides of the link).
+    const pageRootId = state.pages[state.activePageId]?.rootElementId;
+    const pageRoot = pageRootId ? nextLayers[pageRootId] : undefined;
+    if (pageRoot && nextLayers[rootId] && rootId !== pageRoot.id) {
+      nextLayers[rootId] = { ...nextLayers[rootId], parentId: pageRoot.id };
+      if (!pageRoot.children.includes(rootId)) {
+        nextLayers[pageRoot.id] = { ...pageRoot, children: [...pageRoot.children, rootId] };
       }
+    }
 
-      return { document: { ...state.document, layers: nextLayers } };
-    });
+    setDocument({ ...doc, layers: nextLayers });
   },
 
 
@@ -1336,12 +1203,13 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       recordProjectChange(actionLabel, snapshot, { includesDocument: true });
     }
 
+    const doc = getDocument();
+    setDocument({ ...doc, layers: { ...doc.layers, [newRootElement.id]: newRootElement } });
     set((s) => ({
       pages: {
         ...s.pages,
         [pageId]: newPage,
       },
-      document: { ...s.document, layers: { ...s.document.layers, [newRootElement.id]: newRootElement } },
       activePageId: pageId,
     }));
 
@@ -1430,7 +1298,8 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     };
 
     // Duplicate root element
-    const originalRoot = state.document.layers[originalPage.rootElementId];
+    const doc = getDocument();
+    const originalRoot = doc.layers[originalPage.rootElementId];
     const duplicatedRoot: Layer = originalRoot
       ? { ...originalRoot, id: newRootId, name: `${originalRoot.name} (Copy)`, parentId: null, children: [] }
       : createLayer({ id: newRootId, archetype: "container", name: `${duplicatedPage.name} Container`, properties: {} });
@@ -1439,12 +1308,12 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
       recordProjectChange(actionLabel, snapshot, { includesDocument: true });
     }
 
+    setDocument({ ...doc, layers: { ...doc.layers, [newRootId]: duplicatedRoot } });
     set((s) => ({
       pages: {
         ...s.pages,
         [newPageId]: duplicatedPage,
       },
-      document: { ...s.document, layers: { ...s.document.layers, [newRootId]: duplicatedRoot } },
       activePageId: newPageId,
     }));
 

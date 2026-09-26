@@ -19,6 +19,7 @@ import {
   SearchIndexEntry,
 } from "../core/types/search";
 import { useProjectStore } from "../core/store/useProjectStore";
+import { getDocument } from "../core/store/useDocumentStore";
 import { useSelectionStore } from "../core/store/useSelectionStore";
 import { DiagnosticBus } from "../core/engine/DiagnosticBus";
 import { getNodeDefinition } from "../core/types/node-registry";
@@ -171,7 +172,7 @@ export class GlobalSearchEngineManager {
       }
 
       // 2. Index Elements
-      const elements = Object.values(storeState.document.layers);
+      const elements = Object.values(getDocument().layers);
       for (const elem of elements) {
         const propValues: string[] = [];
         if (elem.properties) {

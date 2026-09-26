@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { GlobalSearchEngine } from "../../../../runtime/GlobalSearchEngine";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
 import { useSelectionStore } from "../../../../core/store/useSelectionStore";
+import { setDocument } from "../../../../core/store/documentState";
 import { loadDocument } from "@/core/document/migrations";
 
 describe("Sub-Phase 7.2: Global Search Engine / Find in Blueprints (Panel 25)", () => {
@@ -28,31 +29,6 @@ describe("Sub-Phase 7.2: Global Search Engine / Find in Blueprints (Panel 25)", 
           metaTitle: "User Analytics & Dashboard",
         },
       },
-      document: loadDocument({ elements: {
-        el_root: {
-          id: "el_root",
-          name: "Hero Section Container",
-          archetype: "container",
-          parentId: null,
-          children: ["el_btn_login"],
-          properties: {
-            "appearance.background.color": "#0E0F14",
-            "layout.padding": "24px",
-          },
-        },
-        el_btn_login: {
-          id: "el_btn_login",
-          name: "Primary Login Button",
-          archetype: "button",
-          parentId: "el_root",
-          children: [],
-          properties: {
-            "content.label": "Sign In with SSO",
-            "typography.color": "#6366F1",
-            "input.placeholder": "Enter credentials",
-          },
-        },
-      } }),
       blueprintGraphs: {
         graph_main: {
           id: "graph_main",
@@ -133,6 +109,35 @@ describe("Sub-Phase 7.2: Global Search Engine / Find in Blueprints (Panel 25)", 
         },
       },
     });
+    setDocument(
+      loadDocument({
+        elements: {
+          el_root: {
+            id: "el_root",
+            name: "Hero Section Container",
+            archetype: "container",
+            parentId: null,
+            children: ["el_btn_login"],
+            properties: {
+              "appearance.background.color": "#0E0F14",
+              "layout.padding": "24px",
+            },
+          },
+          el_btn_login: {
+            id: "el_btn_login",
+            name: "Primary Login Button",
+            archetype: "button",
+            parentId: "el_root",
+            children: [],
+            properties: {
+              "content.label": "Sign In with SSO",
+              "typography.color": "#6366F1",
+              "input.placeholder": "Enter credentials",
+            },
+          },
+        },
+      })
+    );
 
     // Rebuild search index with new state
     GlobalSearchEngine.rebuildIndex();

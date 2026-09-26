@@ -29,6 +29,7 @@ import { GSAPAnimationEmitter } from "../emitters/GSAPAnimationEmitter";
 import { GitExporter } from "../export/GitExporter";
 import type { Layer } from "@/core/document/schema";
 import { loadDocument } from "@/core/document/migrations";
+import { getDocument, setDocument } from "@/core/store/documentState";
 
 describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2E)", () => {
   // Stage 1: Blank Project Initialization & Dynamic Route Setup
@@ -63,11 +64,11 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
           parameters: [],
         },
       },
-      document: loadDocument({ elements: {} }),
       stateVariables: {},
       databaseSchemas: {},
       blueprintGraphs: {},
     });
+    setDocument(loadDocument({ elements: {} }));
 
     const store = useProjectStore.getState();
     assert.strictEqual(store.projectName, "Enterprise Commerce Studio");
@@ -154,8 +155,8 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
       },
     };
 
-    useProjectStore.setState({ document: loadDocument({ elements: homeElements }) });
-    const count = Object.keys(useProjectStore.getState().document.layers).length;
+    setDocument(loadDocument({ elements: homeElements }));
+    const count = Object.keys(getDocument().layers).length;
     assert.strictEqual(count, 5);
   });
 
@@ -458,8 +459,8 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
     const store = useProjectStore.getState();
 
     // 10.1 React 19 JSX Component Emitter
-    const rootEl = store.document.layers["el_home_root"];
-    const componentFile = ReactComponentEmitter.emitComponent(rootEl.id, store.document.layers, {
+    const rootEl = getDocument().layers["el_home_root"];
+    const componentFile = ReactComponentEmitter.emitComponent(rootEl.id, getDocument().layers, {
       componentName: "StorefrontHome",
       exportType: "default",
     });
@@ -468,7 +469,7 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
     assert.ok(componentFile.content.includes("Explore Collection"));
 
     // 10.2 Scoped CSS Emitter
-    const stylesFile = StyleEmitter.emitProjectStyles(store.document.layers);
+    const stylesFile = StyleEmitter.emitProjectStyles(getDocument().layers);
     assert.ok(stylesFile.content.toLowerCase().includes("#0b0f17"));
 
     // 10.3 Logic Flow Blueprint Emitter
@@ -541,7 +542,7 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
     const bundle = GitExporter.packageProject(
       {
         pages: store.pages,
-        elements: store.document.layers,
+        elements: getDocument().layers,
         databaseSchemas: store.databaseSchemas,
         blueprintGraphs: store.blueprintGraphs,
       },

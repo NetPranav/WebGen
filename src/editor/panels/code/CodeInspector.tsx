@@ -33,6 +33,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useLayers } from "@/core/store/useDocumentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { InteractiveEmitter } from "@/compiler/emitters/react/InteractiveEmitter";
 import { MediaEmitter } from "@/compiler/emitters/react/MediaEmitter";
@@ -65,7 +66,7 @@ export const CodeInspector: React.FC<CodeInspectorProps> = ({
   style,
   targetElementId,
 }) => {
-  const elements = useProjectStore((s) => s.document.layers);
+  const elements = useLayers();
   const pages = useProjectStore((s) => s.pages);
   const activePageId = useProjectStore((s) => s.activePageId);
   const selectedId = useSelectionStore((s) => s.selectedId);

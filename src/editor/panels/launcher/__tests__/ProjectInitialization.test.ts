@@ -24,6 +24,7 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import React from "react";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { getDocument } from "@/core/store/useDocumentStore";
 import { ALL_ARCHETYPE_IDS, getArchetypeDefinition } from "../archetypeData";
 import type { ArchetypeId, InitialArchetypeId } from "@/core/document/registry";
 import { ScopeCard } from "../ScopeCard";
@@ -51,7 +52,7 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       assert.strictEqual(state.projectName, "AnimatedHeroImage");
       assert.strictEqual(state.scope, "element");
       assert.strictEqual(state.rootArchetype, "image");
-      assert.deepStrictEqual(state.document.exportSettings, {
+      assert.deepStrictEqual(getDocument().exportSettings, {
         framework: "nextjs-app",
         styling: "tailwind",
         animation: "gsap",
@@ -59,7 +60,7 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       });
 
       // Verify root element in elements dictionary
-      const rootEl = state.document.layers[rootId];
+      const rootEl = getDocument().layers[rootId];
       assert.ok(rootEl, "Root element must exist in elements dictionary");
       assert.strictEqual(rootEl.archetype, "image");
       assert.strictEqual(rootEl.name, "AnimatedHeroImage");
@@ -102,7 +103,7 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
         });
 
         const state = useProjectStore.getState();
-        const rootEl = state.document.layers[rootId];
+        const rootEl = getDocument().layers[rootId];
         assert.ok(rootEl, `Element for ${archId} must exist in state`);
         assert.strictEqual(rootEl.archetype, archId);
         assert.ok(
@@ -261,13 +262,13 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       assert.strictEqual(state.projectName, projectName);
       assert.strictEqual(state.rootArchetype, "image");
       assert.strictEqual(state.scope, "element");
-      assert.strictEqual(state.document.exportSettings.framework, "nextjs-app");
-      assert.strictEqual(state.document.exportSettings.styling, "tailwind");
-      assert.strictEqual(state.document.exportSettings.animation, "gsap");
-      assert.strictEqual(state.document.exportSettings.language, "typescript");
+      assert.strictEqual(getDocument().exportSettings.framework, "nextjs-app");
+      assert.strictEqual(getDocument().exportSettings.styling, "tailwind");
+      assert.strictEqual(getDocument().exportSettings.animation, "gsap");
+      assert.strictEqual(getDocument().exportSettings.language, "typescript");
 
       // 3. Assert root element is created with id prefix elem_img_
-      const rootEl = state.document.layers[rootId];
+      const rootEl = getDocument().layers[rootId];
       assert.ok(rootEl);
       assert.strictEqual(rootEl.archetype, "image");
       assert.ok(rootId.startsWith("elem_img_"));
