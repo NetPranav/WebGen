@@ -822,7 +822,7 @@ Bugs found and fixed along the way:
 
 ### Phase 8 Progress Log
 
-**2026-09-26: ✅ Phase 8 complete.** No PR yet — this work lands locally on `phase-8-motion-rules-engine`, branched from `main` after PR #13 (Phase 7) and PR #14 (Phase 46) merged.
+**2026-09-26: ✅ Phase 8 complete.** Built on `phase-8-motion-rules-engine`, branched from `main` after PR #13 (Phase 7) and PR #14 (Phase 46) merged, then merged directly into `main` at the user's explicit request — no PR, no CI-gated review. Every check CI would have run (typecheck, unit tests, lint, doc-links, the new grep gate, a production build, bundle-scope, and the full 3-browser e2e suite) was run locally immediately before the merge and was green.
 
 - **8.5 (Source Reconciliation):** all 5 named contradictions between the grammar and `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` §7/§13.5 (AUD-52) resolved grammar-wins, spec doc corrected in place, locked by a table-driven test. Decision 0005 §1.
 - **8.1 (Rule Table):** the ⚠️ conditional / 🔒 subsumed tier grammar §9 needs (never modelled before — Container's Press and 6 other cells were silently treated as unconditionally allowed) is in `conditional-gates.ts`, asserted against all 320 §9 cells. The v0.2 Reactive category and the 7 3.F effect-surface types are fully in the type system and rule table (39 `TYPE_REGISTRY` entries; §13.5/§13.6's 109 additional cells asserted). Rules 6.9/6.10/6.16 (and 6.11 partially) are real, tested checks in `reactive-rules.ts`; 6.12–6.15 are named gaps, not fakes. **Found and documented (AUD-59, still open):** Phase 7's real `Clip`/`Trigger` schema (6 `ClipType`s, 10 `Trigger`s) still isn't reconciled with the grammar's `AnimationCategory`/`TriggerType` vocabulary for Exit/Focus/Stagger/LayoutTransition — `clip-adapter.ts` bridges what maps and names what doesn't; closing it needs a schema amendment, out of scope for this phase's gate.
@@ -869,7 +869,7 @@ Bugs found and fixed along the way:
 
 ### Phase 9 Progress Log
 
-**2026-09-26: ✅ Phase 9 complete.** No PR yet — lands on `phase-8-motion-rules-engine` alongside Phase 8 (not yet pushed/opened as a PR).
+**2026-09-26: ✅ Phase 9 complete.** Landed on `phase-8-motion-rules-engine` alongside Phase 8, then merged directly into `main` at the user's explicit request — no PR, no CI-gated review (same verification-before-merge as Phase 8's entry above).
 
 - **9.1 (Easing & Physics):** named-family formulas transcribed from GSAP's own source and verified against the real `gsap` package; perceptual→physical spring conversion ported from Motion's own `spring.mjs` and verified against the real `motion` package; the spring integrator is self-derived (boundary conditions) with velocity handoff, verified both against Motion's value curve and internally (retargeting mid-flight produces a continuous curve). `cubic-bezier()` is the standard Newton-Raphson/bisection solver; `steps()` follows CSS Easing Level 1 §4.
 - **9.2 (Interpolators):** dispatches on `PROPERTY_REGISTRY`'s pre-existing `InterpolationMethod` (Phase 7.1 already classified every path); reuses `PathMorphSolver.morph` and `Scene3DEngine.quaternionSlerp` directly rather than reimplementing them. New: OKLab colour mixing (`color.ts`, Björn Ottosson's constants, the same ones behind CSS Color 4) and clip-path shape-function interpolation.

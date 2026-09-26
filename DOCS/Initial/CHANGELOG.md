@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.7.0] — 2026-09-26
 
-### Phase 9 (Deterministic Evaluation Kernel): complete — Verification Gate green, no PR yet
+### Phase 9 (Deterministic Evaluation Kernel): complete — Verification Gate green, merged directly to `main`
 
 A pure function gives the exact value of any animated property at any time, for any inputs — the oracle for preview, export parity, AI verification and scrubbing (`decisions/0007-deterministic-evaluation-kernel.md`).
 
@@ -24,7 +24,7 @@ A pure function gives the exact value of any animated property at any time, for 
 
 ## [3.6.0] — 2026-09-26
 
-### Phase 8 (Executable Motion Rules Engine): complete — Verification Gate green, no PR yet
+### Phase 8 (Executable Motion Rules Engine): complete — Verification Gate green, merged directly to `main`
 
 `lazylayout_element_grammer.md` and the animation engine spec become one executable rule table (`decisions/0005-phase8-rule-table-and-reconciliation.md`). All of 8.1 (including the v0.2 Reactive category/3.F growth), 8.2, 8.3, 8.4 and 8.5 are done. See ROADMAP.md's Phase 8 Progress Log for the full breakdown.
 
