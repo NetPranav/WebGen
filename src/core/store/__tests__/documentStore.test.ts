@@ -4,10 +4,11 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { applyPatches } from "immer";
 import { useHistoryStore } from "../useHistoryStore";
-import { documentCommands, getDocument, historyCommands, subscribeToDocumentChanges, type DocumentChange } from "../useDocumentStore";
+import { documentCommands, documentStore, getDocument, historyCommands, subscribeToDocumentChanges, type DocumentChange } from "../useDocumentStore";
 import { setDocument } from "../documentState";
 import { createDocumentFromLayers, createLayer, getLayerClips } from "../../document/factories";
 import { validateMotionDocument, type ClipTemplate } from "../../document/schema";
+import { MAIN_COMPOSITION_ID } from "../../document/compositions";
 
 const clip = (name: string, trigger: ClipTemplate["trigger"] = "mount"): ClipTemplate => ({
   id: "",
@@ -131,6 +132,64 @@ describe("documentCommands", () => {
     assert.equal(useHistoryStore.getState().past.length, 2);
     historyCommands.undo();
     assert.equal(getDocument().layers.label.properties["content.text"], "draft");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sub-Phase 41.3: fine-grained subscriptions.
+//
+// There is no React Testing Library / jsdom in this project, so a literal
+// React Profiler test isn't available. This tests the mechanism a Profiler
+// test would rely on instead: `useLayer`/`useClip`/`useComposition` are
+// `documentStore((state) => ...)` selectors, and zustand's hook only
+// re-renders a component when its selector's return value changes by
+// `Object.is`. Immer's structural sharing means editing one entity leaves
+// every other entity's object reference untouched, so a selector bound to
+// an untouched entity is guaranteed not to trigger a re-render.
+// ---------------------------------------------------------------------------
+
+describe("Sub-Phase 41.3: fine-grained subscriptions (reference stability)", () => {
+  beforeEach(reset);
+
+  it("editing one layer's props leaves every other layer's object reference untouched", () => {
+    const selectRoot = (s: ReturnType<typeof documentStore.getState>) => s.document.layers.root;
+    const selectCard = (s: ReturnType<typeof documentStore.getState>) => s.document.layers.card;
+    const selectLabel = (s: ReturnType<typeof documentStore.getState>) => s.document.layers.label;
+
+    const rootBefore = selectRoot(documentStore.getState());
+    const cardBefore = selectCard(documentStore.getState());
+    const labelBefore = selectLabel(documentStore.getState());
+
+    documentCommands.updateProps("label", { "content.text": "changed" });
+
+    assert.equal(selectRoot(documentStore.getState()), rootBefore, "root's reference must not change");
+    assert.equal(selectCard(documentStore.getState()), cardBefore, "card's reference must not change");
+    assert.notEqual(selectLabel(documentStore.getState()), labelBefore, "label's own reference must change (sanity check)");
+  });
+
+  it("editing one clip leaves every other clip's object reference untouched", () => {
+    const cardClipId = documentCommands.addClip("card", clip("Card Fade In"));
+    const labelClipId = documentCommands.addClip("label", clip("Label Fade Out"));
+
+    const selectCardClip = (s: ReturnType<typeof documentStore.getState>) => s.document.clips[cardClipId];
+    const selectLabelClip = (s: ReturnType<typeof documentStore.getState>) => s.document.clips[labelClipId];
+
+    const cardClipBefore = selectCardClip(documentStore.getState());
+    const labelClipBefore = selectLabelClip(documentStore.getState());
+
+    documentCommands.updateClip(labelClipId, { name: "Label Fade Out (Renamed)" });
+
+    assert.equal(selectCardClip(documentStore.getState()), cardClipBefore, "the untouched clip's reference must not change");
+    assert.notEqual(selectLabelClip(documentStore.getState()), labelClipBefore, "the edited clip's own reference must change (sanity check)");
+  });
+
+  it("editing a layer's props leaves the composition's object reference untouched when its membership doesn't change", () => {
+    const selectMainComposition = (s: ReturnType<typeof documentStore.getState>) => s.document.compositions[MAIN_COMPOSITION_ID];
+    const before = selectMainComposition(documentStore.getState());
+
+    documentCommands.updateProps("card", { "layout.padding": 32 });
+
+    assert.equal(selectMainComposition(documentStore.getState()), before, "the main composition's reference must not change");
   });
 });
 
