@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 3.3.0
 **Phase:** Initial Phase = **Release 1** (Motion & Interactive Effects Studio). v3.0 also plans **Release 2** (Sites: components, sections, pages, content, site export) and re-baselines **Release 3** (Apps). See §8.
-**Status:** Active. Phases 1–7 and 42 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, PR #11 for 42, PR #13 for 7, all 3 browsers). Phase 46 🚧 implemented (schema v5), awaiting CI. Next: 8 ∥ 9. 41.1/41.3 and 43 → 44 are still open from Stage 1. See §5.1.
+**Status:** Active. Phases 1–7, 42 and 46 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, PR #11 for 42, PR #13 for 7, PR #14 for 46, all 3 browsers). Next: 8 ∥ 9 (see `DOCS/order.md`). 41.1/41.3 and 43 → 44 are still open from Stage 1. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
 **Inputs:**
 - `PRD.md` v2.4.0 (what and why)
@@ -309,7 +309,7 @@ v3.0 could play that as a library effect, but no user could build it. There were
 | 43 | S | Command Bus, Tool State Machine & Keymap | One command registry, focus-aware keys, tool state machines | 41 · *before 20* | 📋 |
 | 44 | S | Workspace Architecture & Layout Presets | Figma-style side panels + AE bottom timeline; Design / Animate / Code presets | 6, 43 · *before 20* | 📋 |
 | 45 | S | Transport, Global Clock & Frame Scheduler | One clock, one rAF loop, no per-frame React renders | 9, 41 · *before 10* | 📋 |
-| 46 | S | Compositions, Layer Time Bars & Nesting | AE time model in MDM: comps, in/out, markers, precomps, time remap | 7 · *before 8, 9* | 🚧 implemented (schema v5); awaiting CI |
+| 46 | S | Compositions, Layer Time Bars & Nesting | AE time model in MDM: comps, in/out, markers, precomps, time remap | 7 · *before 8, 9* | ✅ (CI green on PR #14) |
 | 47 | S | Property Links, Expressions & Drivers | Pick-whip links, sandboxed expressions (`wiggle`, `loopOut`) | 9, 46 | 📋 |
 | 48 | S | Stage Renderer v2: Document → DOM Reconciler | Incremental live-DOM stage, shared render definitions, `measure()` | 41, 42 · *before 10* | 📋 |
 | 49 | S | Viewport Engine: Infinite Canvas, Hit-Testing & Overlay | Camera, multi-frame canvas, spatial hit-test, overlay layer, Design/Preview modes | 43, 48 · *before 20* | 📋 |
@@ -1744,23 +1744,25 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 **Closes:** AUD-36 · **Depends on:** 7 · **Runs before:** 8, 9, 52
 
 ### Sub-Phase 46.1: Composition Entity
-- [~] `Composition { id, name, duration, fps, workArea, markers[], layers: Record<layerId, { start, in, out, stretch }> }`. Every document has a `main` composition (the mount / intro timeline).
+- [x] `Composition { id, name, duration, fps, workArea, markers[], layers: Record<layerId, { start, in, out, stretch }> }`. Every document has a `main` composition (the mount / intro timeline).
 
 ### Sub-Phase 46.2: One Model for Web Triggers and AE Timelines (Decision Record)
-- [~] `decisions/0002-time-model.md`: a triggered clip (hover, press, inView, scroll) becomes an **interaction composition** that its trigger starts, seeks or scrubs. The main composition is the "always playing" one. The web trigger model and the AE model are then one model, not two.
-- [~] Migrate every existing clip into a composition with no visible change.
+- [x] `decisions/0002-time-model.md`: a triggered clip (hover, press, inView, scroll) becomes an **interaction composition** that its trigger starts, seeks or scrubs. The main composition is the "always playing" one. The web trigger model and the AE model are then one model, not two.
+- [x] Migrate every existing clip into a composition with no visible change.
 
 ### Sub-Phase 46.3: Nesting (Precomps)
-- [~] A composition can be placed as a layer inside another, with a time offset, stretch and time remapping. Effect instances (Phase 7.4) are compositions with exposed props.
+- [x] A composition can be placed as a layer inside another, with a time offset, stretch and time remapping. Effect instances (Phase 7.4) are compositions with exposed props.
 
 ### Sub-Phase 46.4: Markers
-- [~] Composition and layer markers with labels. A marker can fire a `custom` trigger, exported as timeline labels or callbacks.
+- [x] Composition and layer markers with labels. A marker can fire a `custom` trigger, exported as timeline labels or callbacks.
 
 **Key files:** `src/core/document/schema.ts`, new `src/core/document/compositions.ts`
 **Verification Gate:** The 12 Phase 7 reference effects, plus a 3-scene intro sequence with one nested composition, are expressible and valid. Golden tests: `evaluate()` matches hand-computed values at in/out edges and under stretch and time remap. The migration leaves the demo project visually identical (Playwright).
 
 ### Phase 46 Progress Log
-**2026-09-26: 🚧 implemented; every sub-phase is `[~]` until the gate passes in CI.** Schema v4 → v5. The design is in `decisions/0002-time-model.md`.
+**2026-09-26: ✅ Phase 46 complete. CI green on PR #14** (`verify`, `e2e` in Chromium, Firefox and WebKit, including the new composition-migration test, and `export-harness`, on the push and pull_request runs). No CI round-trip was needed.
+
+**Implementation notes (written before CI):** Schema v4 → v5. The design is in `decisions/0002-time-model.md`.
 
 - **46.1** (`compositions.ts`):
   - `Composition { id, name, kind (main | interaction | precomp), duration, fps, workArea, loop?, trigger?, markers, layers, clips, nested }`.

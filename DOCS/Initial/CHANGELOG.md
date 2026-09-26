@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.5.0] — 2026-09-26
 
-### Phase 46 (Compositions, Layer Time Bars & Nesting): implemented, awaiting CI
+### Phase 46 (Compositions, Layer Time Bars & Nesting): complete — CI green on PR #14
 
 The After Effects time model inside the document, with the web's trigger model expressed in it (`decisions/0002-time-model.md`). Schema **v4 → v5**.
 
