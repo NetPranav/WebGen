@@ -358,7 +358,7 @@ v3.0 could play that as a library effect, but no user could build it. There were
 
 ### 5.1 Execution Order (v3.1)
 
-Follow this order, not the phase numbers. Phases on the same line can run in parallel. v3.0 and v3.1 additions are in **bold**.
+Follow this order, not the phase numbers. Phases on the same line can run in parallel. v3.0 and v3.1 additions are in **bold**. **The step-by-step list, checked against every phase's dependencies, is `DOCS/order.md`.** It also records five places where this table disagreed with the dependencies: 49 and 54 come earlier, 41/43/44 finish in Stage 2, 77 follows 76, and 12 waits for 60.
 
 | Stage | Order | Why this order |
 |---|---|---|
