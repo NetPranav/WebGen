@@ -1699,6 +1699,46 @@ Warm regards,
 The LazyLayout Architecture Team
 ```
 
+### 11.4 The Engine Without GSAP (v3.0, 2026-09-26)
+The Standard License's text, checked on 2026-09-26, settles the in-editor question. It defines Prohibited Uses as "any implementation and/or use of GSAP Products in tools that allow users to build visual animations without code" that compete with Webflow's visual animation building (`LICENSES.md` GATE-01). LazyLayout is exactly that kind of tool, so **GSAP never runs in the editor**. **No default export depends on it** (ROADMAP Phase 14, v3.0 amendment).
+
+**How much the reference market relies on GSAP.** A GitHub code search of React Bits' component sources (`src/content`, one variant per component) on 2026-09-26 found 209 components. Counts are approximate, because a search counts files that mention the term.
+
+| Library | Components that use it | Share |
+|---|---|---|
+| GSAP | 35 | about 17% |
+| Motion (`motion/react`) | 40 | about 19% |
+| OGL (lightweight WebGL) | 53 | about 25% |
+| three.js | about 30 | about 14% |
+| @react-three | 8 | — |
+| postprocessing | 6 | — |
+| matter-js (physics) | 2 | — |
+
+The rest use CSS, Canvas 2D or plain JavaScript. GSAP appears mostly in text animations (split, scramble, scroll reveal), menus and card stacks, a few cursors, and one inertia grid. So the heaviest effects in that catalogue are WebGL (OGL, three.js), not GSAP, and everything GSAP does there is tweens, stagger, text splitting, scroll triggers and inertia. Every one of those has a replacement below. LazyLayout never copies that code anyway (`LICENSES.md` GATE-02); these numbers only show which *capabilities* the engine must match.
+
+Nothing in the product needs GSAP. Every GSAP capability this spec relies on maps to a replacement:
+
+| GSAP feature | LazyLayout replacement | Licence | Roadmap |
+|---|---|---|---|
+| Tweens and timelines (labels, offsets, stagger, seek, scrub, `timeScale`) | The deterministic kernel (`evaluate()`, Phase 9) plus the one-loop runtime (`ticker`, exported by Phase 69); WAAPI or CSS `@keyframes` when the rules find an animation CSS-expressible | Ours / platform | 9, 45, 69 |
+| Easing (named eases, CustomEase) | `cubic-bezier`, `steps()`, CSS `linear()` (springs baked by the existing `AnimationLoweringCompiler`), a GSAP-compatible named-ease set | Ours / platform | 9.1 |
+| Springs, gestures, drag with momentum, layout FLIP | Motion (`motion/react`: springs, `whileHover`/`whileTap`, `drag`, `layout`/`layoutId`), already installed; View Transitions for page level | MIT | 15, 77 |
+| ScrollTrigger (scrub, pin, snap, enter/leave) | CSS scroll-driven animations (`animation-timeline: scroll()`/`view()`) where supported; `position: sticky` for pinning; CSS scroll snap; scroll signals plus IntersectionObserver as the fallback | Platform / ours | 13, 59 |
+| SplitText | A grapheme-aware splitter (`Intl.Segmenter`) and one-click **Split into letters/words/lines** as real layers | Platform / ours | 17.1, 89 |
+| MorphSVG | The existing `PathMorphSolver.ts` (point matching and alignment), exported as precomputed paths or a small interpolator | Ours | 16.2 |
+| DrawSVG | `stroke-dasharray`/`stroke-dashoffset`, `pathLength` | Platform | 16.3 |
+| MotionPathPlugin | CSS `offset-path`/`offset-distance`/`offset-rotate: auto`, plus the existing arc-length sampler for constant speed | Platform / ours | 16.3 |
+| Flip | Motion `layout`, or FLIP computed by the kernel | MIT / ours | 15.2 |
+| InertiaPlugin / Draggable | Springs, inertia and kinetic bodies, and Motion `drag` with momentum | Ours / MIT | 12, 91 |
+| Observer | The Input Bus | Ours | 59 |
+| `gsap.ticker` / `lagSmoothing` | The frame scheduler (one loop, `dt` clamped after stalls) | Ours | 45 |
+| `gsap.matchMedia` (reduced motion, breakpoints) | Reduced-motion policies and per-breakpoint overrides compiled into CSS media queries or runtime checks | Ours / platform | 29, 50 |
+
+What remains of GSAP:
+- **An opt-in "Export as GSAP code" target.** It is off by default and enabled only if Webflow answers the §11.3 inquiry (sent in Phase 14.1) with permission.
+- **Users' own code.** A code component a user imports that uses GSAP is their own code, running in a sandbox (Phase 68). GATE-03 tracks it.
+- **The Phase 4 parity harness.** It runs `GSAPAnimationEmitter` output today. It moves to the default emitters (WAAPI/CSS, Motion and the LazyLayout runtime) as Phases 27 and 69 land.
+
 ---
 
 ## 12. Appendix: Summary Decision Tree

@@ -9,6 +9,249 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.0] — 2026-09-26
+
+### Phase 7 (Motion Primitives): complete — CI green on PR #13
+
+The Motion Document can now *express* every effect the product promises: timed, state-based, reactive, GPU, Blueprint-driven and kinetic. This is types and validation only; the runtimes are later phases. Schema **v3 → v4**. The design choices are in `decisions/0004-motion-primitives.md`.
+
+#### Added
+- **`src/core/document/motion.ts`** (7.2–7.3):
+  - the easing grammar (`parseEasing`);
+  - perceptual springs (`{ bounce, time }`, Law 17) and physical ones;
+  - `MotionSpec` (tween or spring);
+  - keyframe `hold`;
+  - a first-class `Stagger` (`each`/`amount`, `from` including edges and index lists, grid, ease, seed, targets);
+  - clip `direction`/`repeatDelay`/`event`;
+  - `Sequence` and `Transition`;
+  - typed behaviour params (adds `proximity`).
+- **`signals.ts`** (7.5): signals, operators, targets, guards and bindings, plus `parseBinding`/`formatBinding` for the engine spec §3.3 text form (round-trips).
+- **`effects.ts`** (7.4–7.5): `Surface` (a fallback chain ending in `poster`, declared uniforms and params, policies), `InputTape` and `EffectInstance`.
+- **`effect-definition.ts`** (7.4): the library `EffectDefinition` format (engine spec §11 plus PRD §5.3) and `validateEffectInstance`.
+- **`graph.ts`** (7.5): interaction graphs, with the grammar §13.7/§14.6 event and action vocabulary, typed exec/data pins, wire rules, variables and custom events.
+- **`kinetics.ts`** (7.5, v3.2): pins, tags, Follow/Field/Effector/Collider/Body components, and Split/Clone generators.
+- **`behaviour-presets.ts`**: `behaviourToBindings`, so there is one reactive model.
+- **`references.ts`**: cross-entity validation.
+- **`migrations/v3-to-v4.ts`**.
+- **Registry** (7.1, 7.6):
+  - an `interpolation` per path;
+  - `range` and `typed` value checks;
+  - keyframeable holds for `media.src`, `media.objectFit` and `background.blendMode`;
+  - `render.role`, `content.counter.*`, `svg.strokeLinecap`/`Linejoin` and `shape.*`;
+  - archetypes `rectangle`, `ellipse`, `line`, `polygon`, `star`, `arrow` and `effectSurface` (27 in total).
+- **Gate:**
+  - `__tests__/phase7-gate.test.ts` covers the 12 + 4 reference effects and the reference build in effector and Blueprint forms, built in `__tests__/fixtures/reference-effects.ts`;
+  - `__tests__/motion-model.test.ts` covers the easing grammar (checked against every easing literal in `src/`), binding syntax, 56 planted mistakes that must be refused, migration, cascades, effect definitions and JSON Schema;
+  - `audit/phase7-gate-checklist.md` is the reviewer checklist.
+- **`decisions/0004-motion-primitives.md`**.
+
+#### Changed
+- **Schema v4:** nine new collections and `Layer.pins`/`tags`.
+  - State and keyframe values are typed by their property.
+  - Keyframes are sorted within their clip; equal times are an instant jump.
+  - `loadDocument` chains v1 → v2 → v3 → v4.
+- **The store's write boundary:**
+  - types keyframe values (`"20px"` → 20) and extends a clip to cover its last keyframe;
+  - on `removeLayer`, removes everything that belongs to or points at the deleted subtree (`removeLayerDependents`); a Split group that loses a piece is detached.
+- **Stagger panel:** offers `edges` and keeps `each`/`amount` exclusive.
+- **Engine spec v1.4 §3:**
+  - `pointer.velocity` (used by §12.3, never defined);
+  - a constant signal;
+  - `component(x|y)`;
+  - the perceptual `spring(bounce:, time:)`;
+  - the `position(pin[, axis])` target;
+  - `self` on set targets.
+- **Docs:** SCHEMA_REFERENCE §0 for v4; ROADMAP Phase 7 is `[~]` with a progress log; AUDIT AUD-57 records G1 and G2 as delivered in code.
+
+#### Known gap
+- `effectSurface` uses the `Canvas` grammar type until Phase 8 compiles grammar §13's 3.F types (`TODO(P8)`).
+
+---
+
+## [3.3.0] — 2026-09-26
+
+### ROADMAP v3.3: GPU memory budget, resource lifecycle, and "WebGL only where needed"
+
+This is a planning and spec change. No code changed, and no phase is marked ✅.
+
+#### Why
+The question was whether browser memory and graphics problems are solved when WebGL and three.js are used heavily. v3.2 limited GPU *contexts* and handled their loss, but did not budget GPU *memory* (`AUDIT.md` AUD-58). Running out of GPU memory causes context loss on any device and tab reloads on iPhones. v3.2 also didn't state that three.js is only for real 3D, which risked making it the default GPU path.
+
+#### Added
+- **Engine spec §7.8, "Where WebGL is used, and where it isn't":** routing from lightest to heaviest backend (CSS/DOM → SVG → Canvas 2D → WebGL2 helper → three.js). three.js is only for real 3D and loaded lazily. Most interactive effects use no WebGL. Rule FX-PERF-07.
+- **Engine spec §7.9, "GPU memory: budget and resource lifecycle":**
+  - a memory ledger with size formulas for textures, render targets, canvases, buffers and programs;
+  - per-tier budgets (T1 96 MB, T2 256 MB, T3 512 MB initially), largest texture edges (1024/2048/4096 px) and simulation resolutions (1/8, 1/4, 1/2);
+  - a degrade order: resolution → passes → texture size → release → poster;
+  - resource rules for KTX2/Basis textures and bitmap closing, pooled render targets, Safari's per-canvas pixel limit and zeroing released canvases, three.js disposal and loader-cache clearing, shared programs, no per-frame allocations, and the editor's own budget;
+  - tests (leak 100×, a 20-surface stress test, a 10-minute phone soak) and field detection of unexpected reloads;
+  - rules FX-MEM-01 … 06.
+- **ROADMAP 61.5, GPU Memory Ledger & Budgets,** and **71.5, Memory checks in the harness.**
+- **AUDIT AUD-58.**
+
+#### Changed
+- **Surface Budget Law (13)** now covers GPU and canvas memory as well as context counts.
+- **ROADMAP v3.3 amendments:**
+  - 8 (GPU only where needed);
+  - 18 (three.js memory discipline, with a GLTF leak test in its gate);
+  - 26 (memory in every budget);
+  - 54 (tier-sized and KTX2 texture variants at import);
+  - 56 (no per-frame allocations; KTX2 transcoding in workers);
+  - 61's gate (leak and stress tests);
+  - 64 (simulation resolution caps, pooled targets, thinned snapshots);
+  - 69 (the same discipline in exports);
+  - 82.2 (ledger and tab-kill telemetry);
+  - 84.3 (memory budgets calibrated on real devices).
+- **PRD v2.4:** the memory mitigation and the "GPU only where needed" row in the risk register.
+
+---
+
+## [3.2.0] — 2026-09-26
+
+### ROADMAP v3.2: the reference build traced, the no-math law, and the evidence on GSAP
+
+This is a planning and spec change. No code changed, and no phase is marked ✅.
+
+#### Why
+The question was whether the reference build (letters flee an invisible cursor circle), and interactions like it, will really work if the roadmap is followed. Instead of asserting it, each step was traced to the phase that delivers it and that phase's dependencies. The trace found 8 gaps (`ROADMAP.md` §4.2, `AUDIT.md` AUD-57). The same question asked for "simple maths for the user, everything visual", which v3.1 stated only generally (Law 6), not for Track X/K's parameters. It also asked how much GSAP React Bits actually uses.
+
+#### Added
+- **ROADMAP Law 17, Visual-First (No-Math).** Every parameter can be set without typing numbers or formulas, a CI label check fails a Simple face that shows a technical parameter, and Pro keeps the numbers.
+- **Engine spec §13.4:** the controls vocabulary, mapping every technical parameter to a visual Simple control. Springs use **Bounce** and **Time**; ranges are "From → To" handles over live meters; there is **Variety** with a shuffle button, rings on the canvas for reach and gap, and a follow point picked from 9 dots.
+- **ROADMAP v3.2 amendments:**
+  - **7.5** includes Track K's types; new **7.6** shape primitives (rectangle, ellipse, line, polygon, star, arrow) as real archetypes; the Phase 7 gate adds the reference build.
+  - **9.1** perceptual springs.
+  - **20** and **36** use 7.6.
+  - **22** and **60** get no-math faces.
+  - **72** adds `Spawn`/`Despawn`, `PlaySound`/`StopSound` and drag events.
+  - **73.5** rules auto-attach the colliders, fields and home springs they need; **73.6** no-math rule parameters.
+  - **88.4** the Follow Simple face.
+  - **89.4** the spawner.
+  - **90.4** one evaluation space (the top-level frame, world transforms); **90.5** "stay inside"; **90.6** the effector Simple face.
+  - **91.2** draggable bodies.
+  - **91.7** a **10-build composition test suite**.
+  - **40** runs the suite and the label check.
+- **The §4.2 v3.2 addendum:** the step-by-step trace table, and what the plan does and doesn't prove.
+- **Animation spec §11.4:** React Bits library usage by GitHub code search on 2026-09-26. Of 209 components, about 35 use GSAP (17%), 40 Motion, 53 OGL, about 30 three.js and 2 matter-js. GSAP is mostly used for text, menu and card animations; the heaviest effects are WebGL.
+- **Grammar v0.3.1:** drag events, spawn and sound actions, and rules that set up their own colliders and fields.
+- **PRD v2.3:** principle 9, "Visual first, no maths"; criterion 13 now also requires no typed numbers and the 91.7 suite.
+- **AUDIT AUD-57.**
+
+#### Fixed
+- §5.1's overstated claim: the reference build's *engine* is demonstrable early, but the *no-code journey* needs the studio canvas, the inspector and the rules UI (49, 20, 22, 73). It is proven at Journey E (58.6).
+- Engine spec §12.7: a card is drawn with the Frame tool (F), not the rectangle tool.
+
+---
+
+## [3.1.0] — 2026-09-26
+
+### ROADMAP v3.1: kinetic composition (Track K), GPU resilience, and the engine without GSAP
+
+This is a planning and spec change. No code changed, and no phase is marked ✅.
+
+#### Why
+A follow-up requirement asked for "extremely detailed design freedom": build interactions from primitives, not only pick finished effects. The test case is:
+1. an invisible circle follows the mouse by a point the user chooses;
+2. a card's text is split into letters with one click;
+3. a Blueprint rule makes the letters flee the circle instead of entering it, then spring back.
+
+v3.0 could only ship that as a library effect (`AUDIT.md` AUD-56). The same follow-up asked two more questions: what replaces GSAP, and how the product survives the browser taking the GPU away.
+
+#### Added
+- **ROADMAP Track K, Kinetic Composition (Phases 88–91):**
+  - 88: helper layers, pins and follow behaviours;
+  - 89: one-click Split into letters, words and lines as real layers, cloners, tags;
+  - 90: fields and effectors (Keep-Out is a hard constraint);
+  - 91: colliders, kinetic bodies and `OverlapBegin/Stay/End` and `Hit` Blueprint events, on one 2D physics core shared with 64.2.
+
+  Also a §4.2 addendum, §5 rows, a new §5.1 stage and critical path, milestone M2.7 "Compose", Track K owners in §7, and Journey E (58.6).
+- **Grammar v0.3, §14:** a helper role, pins and components, Split and Clone groups (3.G.1–3.G.2), component compatibility, rules 6.17–6.24, overlap and contact events with group/tag targets, and the worked example.
+- **Engine spec v1.1:**
+  - §7.7 GPU resilience: every way a browser can take the GPU away, with prevention, what the user sees, recovery, remote kill switches and tests;
+  - §8.6 kinetic composition, with the pin maths for "which point follows the mouse";
+  - §10.8 kinetic rules (FX-KIN-01 … 07);
+  - §12.7 the reference build (Simple steps, document tree, effector form, Blueprint form and graph, production behaviour);
+  - Unreal and Cinema 4D mappings, open recipes in §16, and phase-map rows.
+- **Animation spec §11.4, "The Engine Without GSAP":** every GSAP feature the spec relied on, mapped to a replacement (our kernel and runtime, Motion, CSS scroll-driven animations, `offset-path`, the existing `PathMorphSolver`, the splitter), with licences and phases.
+- **AUDIT AUD-56**, with its traceability and status rows.
+
+#### Changed
+- **ROADMAP v3.1 amendments** to Phases 17, 21, 25 (open recipes), 40 (criterion 13), 49 (gizmos, "Show collision"), 51 (anchor = pin; null = helper), 58 (Journey E), 60 (`position(pin)` and group/tag targets), 64 (shared physics core), 69 (`kinetics` and `physics2d` runtime modules), 72 (kinetic events, wildcards and actions) and 74 (contact events in the fixed step; Keep-Out rules compile to the effector or constraint). Release 1 now includes Track K, and the phase count is 91 in 14 tracks.
+- **PRD v2.2:**
+  - vision item 6, "Compose it";
+  - kinetic composition in the Release 1 scope;
+  - concepts: helper layer, pin, Split/Clone group, field and effector, collider and body, tag;
+  - animation-model item 14;
+  - a "Compose" row in the Simple/Pro table;
+  - DoD criterion 13 and two metrics;
+  - the tech baseline no longer lists GSAP as an editor engine (it is an opt-in export target).
+
+#### Docs
+- `check:doc-links` passes.
+
+---
+
+## [3.0.0] — 2026-09-26
+
+### ROADMAP v3.0: production-readiness review, the Reactive Effects Engine, Interaction Blueprints, and a release plan
+
+This is a planning and spec change. No code changed, and no phase is marked ✅.
+
+#### Why
+The review asked whether the product would work in production as intended once every v2.1 phase reached ✅. The intended product is a Figma / Wix Studio canvas with Unreal-style Blueprint logic, export of whatever the user designs, and React Bits-grade interactive effects.
+
+The answer was **no**, for three reasons:
+- **Scope.** v2.1 builds a single-component motion studio. Blueprints, pages and publishing were out of scope.
+- **The pitch.** The grammar couldn't express a background that reacts to the cursor, and no GPU effect runtime exists or was planned beyond one shader phase.
+- **Production.** There were no security boundaries, accounts, operations, cost controls, device coverage or licence automation.
+
+Details are in `ROADMAP.md` §4.2 and `AUDIT.md` section J.
+
+#### Added
+- **`DOCS/Initial/INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md`**: the engine design. It covers:
+  - the architecture and per-frame pipeline, and an Unreal Engine → LazyLayout mapping;
+  - formal grammars for signals, operators, bindings, effect definitions and the Simple-mode sentence;
+  - the signal and operator catalogues, targets and channel blending;
+  - surfaces, the compositor and device tiers;
+  - shader, particle, simulation, texture and cursor programs;
+  - affordances and numbered rules (performance, input, accessibility, determinism, export, licensing, safety);
+  - the `EffectDefinition` format, 6 worked examples, the Simple/Pro UX, the export spec, the verification strategy, and a build strategy for making this easy to build.
+- **ROADMAP v3.0:**
+  - §4.2 records the review.
+  - Five new laws: Signal, Surface Budget, Graceful Degradation, Deterministic Replay, Untrusted Code.
+  - 29 new phases:
+    - **Track X**, Reactive Effects Engine (59–71): signals and input tapes, bindings and the one-step Reactivity card, the GPU Surface Compositor, a Shader Graph, particles, deterministic simulations, texture distortion, the cursor layer, the Effect SDK, code components, interactive export and embed scripts, an AI effect author, and a GPU verification harness.
+    - **Track L**, Interaction Blueprints (72–74).
+    - **Track W**, Components, Sections, Pages, Content and Site Export (75–79, Release 2).
+    - **Track P**, Production Platform (80–85).
+    - Release gates **86** (Release 2 GA) and **87** (Release 3 re-baseline of the After track).
+  - §5.1 is now the v3.0 execution order, with a critical path to the first interactive effect.
+  - §6 milestones, §7 parallelisation (a four-owner team shape), and §8 scope by release.
+- **Grammar v0.2** (`lazylayout_element_grammer.md` §13):
+  - the Reactive category (4.11);
+  - effect-surface element types 3.F.1–3.F.7;
+  - rules 6.9–6.16 (channel blending, cross-layer signals, touch parity, target stability, surface budget, dynamic contrast, reduced-motion policy, event bridging);
+  - a Reactive column for the 32 v0.1 types and a matrix for the 3.F types;
+  - the Interaction rule grammar (event → action), worked examples, and resolutions of open questions 12.1 and 12.6.
+- **AUDIT section J**: AUD-44 … AUD-55, with traceability and resolution-status rows.
+- **LICENSES GATE-03**: user-imported code components (including "MIT + Commons Clause" code).
+
+#### Changed
+- **ROADMAP v3.0 amendments** to Phases 7 (new 7.5: reactive, surface and graph types), 8 (new 8.5: rules-source reconciliation; no GSAP default routing), 9, 10, 12, 14, 18, 19, 22, 24–31, 33, 39, 40 (now the Release 1 beta gate), 45, 47, 49 and 54–58 (new 58.5: the React journey).
+- **Phase 25 target raised** from ≥ 40 to ≥ 80 effects, with waves 7–9 (interactive backgrounds, cursor effects, image and text distortion).
+- **PRD v2.1:**
+  - vision items 4 and 5 ("make it react", "bring it"), and scope by release;
+  - new concepts: signal, binding, affordance, surface, Interaction Blueprint, code component, input tape;
+  - new effect categories and effect-contract items 8–11, and §5.4 "Interactive Effects: the Pitch";
+  - animation-model items 11–13, routing without a GSAP default, new AI roles, the Reactivity and Interactions rows of the Simple/Pro table, and export items 8–9;
+  - DoD criteria 9–12, new risks (context limits, simulation determinism, untrusted code, Commons Clause, Figma Config 2026, device thermals) and new metrics.
+- **LICENSES GATE-01** now quotes the GSAP Standard License's "Prohibited Uses" definition (checked 2026-09-26) and states the consequence: GSAP never runs in the editor and is an opt-in export target only.
+
+#### Docs
+- `check:doc-links` passes. Every new decision record named in v3.0 (0005 GPU surface strategy, 0006 stateful simulation, 0007 code-component isolation) is referenced only from unchecked checklist items, like the existing future records 0002 and 0004.
+
+---
+
 ## [2.9.0] — 2026-09-25
 
 ### Phase 42 (Canonical Property Paths & Geometry Model): complete — CI green on PR #11

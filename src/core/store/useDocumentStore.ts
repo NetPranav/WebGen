@@ -35,7 +35,8 @@ import { diffPatches } from "../document/diff";
 import type { HistoryTransaction } from "../types/history";
 import { attachClip, createLayer, getLayerClips, getSubtreeIds, type NewLayerInput } from "../document/factories";
 import { type ArchetypeId, type LayerProps, type PropValue } from "../document/registry";
-import { canonicalizeProps, canonicalizeTrackPath, resolvePropertyPath } from "../document/properties";
+import { canonicalizeProps, canonicalizeTrackPath, coercePropertyValue, getPropertyDefinition, resolvePropertyPath } from "../document/properties";
+import { removeLayerDependents } from "../document/migrations";
 import {
   validateMotionDocument,
   type Clip,
@@ -442,18 +443,35 @@ function canonicalProps(archetype: ArchetypeId, props: LayerProps, where: string
   return out;
 }
 
-function canonicalTracks<T extends { property: string }>(archetype: ArchetypeId, tracks: T[], where: string): T[] {
+/** A keyframe with its value as the property's type (`"20px"` → 20; unreadable → the default). */
+function typedKeyframe(path: string, keyframe: Keyframe): Keyframe {
+  const def = getPropertyDefinition(path);
+  return def ? { ...keyframe, value: coercePropertyValue(def, keyframe.value) } : keyframe;
+}
+
+function canonicalTracks<T extends { property: string; keyframes?: Keyframe[] }>(archetype: ArchetypeId, tracks: T[], where: string): T[] {
   const out: T[] = [];
   for (const track of tracks) {
     const resolved = canonicalizeTrackPath(track.property, archetype);
-    if (resolved) out.push({ ...track, property: resolved.path });
-    else warnDropped(where, [{ key: track.property, message: `track "${track.property}" is not a property of ${archetype}.` }]);
+    if (!resolved) {
+      warnDropped(where, [{ key: track.property, message: `track "${track.property}" is not a property of ${archetype}.` }]);
+      continue;
+    }
+    // Phase 7: keyframe values are typed by their property, and sorted by time (stable for equal times).
+    const keyframes = track.keyframes?.map((k) => typedKeyframe(resolved.path, k)).sort((a, b) => a.time - b.time);
+    out.push({ ...track, property: resolved.path, ...(keyframes ? { keyframes } : {}) });
   }
   return out;
 }
 
-function canonicalClip<T extends { tracks: Track[] }>(archetype: ArchetypeId, clip: T, where: string): T {
-  return { ...clip, tracks: canonicalTracks(archetype, clip.tracks, where) };
+/** The clip's duration covers its last keyframe (v4 refuses keyframes after the end). */
+function coverKeyframes<T extends { duration: number; tracks: Track[] }>(clip: T): T {
+  const last = Math.max(0, ...clip.tracks.flatMap((t) => t.keyframes.map((k) => k.time)));
+  return last > clip.duration ? { ...clip, duration: last } : clip;
+}
+
+function canonicalClip<T extends { duration: number; tracks: Track[] }>(archetype: ArchetypeId, clip: T, where: string): T {
+  return coverKeyframes({ ...clip, tracks: canonicalTracks(archetype, clip.tracks, where) });
 }
 
 export const documentCommands = {
@@ -496,7 +514,7 @@ export const documentCommands = {
     });
   },
 
-  /** Removes a layer, its descendants, and the clips, states and behaviours they own. */
+  /** Removes a layer, its descendants, and every entity they own or that points at them. */
   removeLayer(layerId: string, label = "Delete layer") {
     commit(label, (draft) => {
       const layer = draft.layers[layerId];
@@ -504,12 +522,7 @@ export const documentCommands = {
       detachChild(draft, layer);
       const doomed = new Set(getSubtreeIds(draft as MotionDocument, layerId));
       doomed.forEach((id) => delete draft.layers[id]);
-      for (const collection of ["clips", "states", "behaviours"] as const) {
-        const entries = draft[collection] as Record<string, { layerId: string }>;
-        for (const [key, entity] of Object.entries(entries)) {
-          if (doomed.has(entity.layerId)) delete entries[key];
-        }
-      }
+      removeLayerDependents(draft as MotionDocument, doomed);
     });
   },
 
@@ -636,6 +649,7 @@ export const documentCommands = {
     commit(label, (draft) => {
       const clip = requireClip(draft, clipId);
       clip.tracks = canonicalTracks(clipArchetype(draft, clip.layerId), tracks, "setTracks");
+      clip.duration = coverKeyframes(clip).duration;
     });
   },
 
@@ -644,8 +658,10 @@ export const documentCommands = {
     commit(label, (draft) => {
       const track = requireTrack(draft, clipId, trackId);
       const next = track.keyframes.filter((k) => k.id !== keyframe.id);
-      next.push(keyframe);
+      next.push(typedKeyframe(track.property, keyframe));
       track.keyframes = next.sort((a, b) => a.time - b.time);
+      const clip = requireClip(draft, clipId);
+      clip.duration = coverKeyframes(clip).duration;
     });
   },
 

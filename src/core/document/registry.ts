@@ -53,6 +53,15 @@ export const ARCHETYPE_IDS = [
   "svgGroup",
   "svgUse",
   "svgText",
+  // Parametric shapes (Phase 7.6): what the O/R/L tools and shape recognition create
+  "rectangle",
+  "ellipse",
+  "line",
+  "polygon",
+  "star",
+  "arrow",
+  // Effect layers (Phase 7.5 types): host a Surface (engine spec §7); runtime in Track X
+  "effectSurface",
   // 3D scene archetypes
   "object3D",
   "camera3D",
@@ -93,6 +102,9 @@ export interface ArchetypeEntry {
   /** Props a new layer of this archetype starts with. Call `getDefaultProps` for a fresh copy. */
   defaultProps: LayerProps;
 }
+
+/** Details sections for parametric shapes: the same surface as an SVG path. */
+const SHAPE_SECTIONS: readonly DetailSectionId[] = ["identity", "appearance", "attachments", "variables", "events", "layout"];
 
 const IMAGE_SRC = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119";
 
@@ -376,6 +388,124 @@ const ENTRIES: Record<ArchetypeId, Omit<ArchetypeEntry, "id">> = {
     defaultProps: {
       "content.text": "Text",
       "svg.fill": "#0f172a",
+    },
+  },
+  rectangle: {
+    kind: "vector",
+    family: null,
+    label: "Rectangle",
+    idPrefix: "shp_rect",
+    exportTag: "rect",
+    grammarType: "SVG",
+    sections: SHAPE_SECTIONS,
+    defaultProps: {
+      "frame.width": 160,
+      "frame.height": 120,
+      "svg.fill": "#cbd5e1",
+      "svg.stroke": "none",
+      "svg.strokeWidth": 0,
+      "shape.cornerRadius": 0,
+    },
+  },
+  ellipse: {
+    kind: "vector",
+    family: null,
+    label: "Ellipse",
+    idPrefix: "shp_ellipse",
+    exportTag: "ellipse",
+    grammarType: "SVG",
+    sections: SHAPE_SECTIONS,
+    defaultProps: {
+      "frame.width": 120,
+      "frame.height": 120,
+      "svg.fill": "#cbd5e1",
+      "svg.stroke": "none",
+      "svg.strokeWidth": 0,
+    },
+  },
+  line: {
+    kind: "vector",
+    family: null,
+    label: "Line",
+    idPrefix: "shp_line",
+    exportTag: "line",
+    grammarType: "SVG",
+    sections: SHAPE_SECTIONS,
+    defaultProps: {
+      "frame.width": 160,
+      "frame.height": 2,
+      "svg.stroke": "#0f172a",
+      "svg.strokeWidth": 2,
+      "svg.strokeLinecap": "round",
+    },
+  },
+  polygon: {
+    kind: "vector",
+    family: null,
+    label: "Polygon",
+    idPrefix: "shp_poly",
+    exportTag: "polygon",
+    grammarType: "SVG",
+    sections: SHAPE_SECTIONS,
+    defaultProps: {
+      "frame.width": 120,
+      "frame.height": 120,
+      "svg.fill": "#cbd5e1",
+      "svg.stroke": "none",
+      "svg.strokeWidth": 0,
+      "shape.sides": 6,
+    },
+  },
+  star: {
+    kind: "vector",
+    family: null,
+    label: "Star",
+    idPrefix: "shp_star",
+    exportTag: "polygon",
+    grammarType: "SVG",
+    sections: SHAPE_SECTIONS,
+    defaultProps: {
+      "frame.width": 120,
+      "frame.height": 120,
+      "svg.fill": "#cbd5e1",
+      "svg.stroke": "none",
+      "svg.strokeWidth": 0,
+      "shape.points": 5,
+      "shape.innerRadius": 0.5,
+    },
+  },
+  arrow: {
+    kind: "vector",
+    family: null,
+    label: "Arrow",
+    idPrefix: "shp_arrow",
+    exportTag: "path",
+    grammarType: "SVG",
+    sections: SHAPE_SECTIONS,
+    defaultProps: {
+      "frame.width": 160,
+      "frame.height": 32,
+      "svg.fill": "#cbd5e1",
+      "svg.stroke": "none",
+      "svg.strokeWidth": 0,
+      "shape.headLength": 16,
+      "shape.headWidth": 24,
+      "shape.shaftWidth": 6,
+    },
+  },
+  effectSurface: {
+    kind: "effect",
+    family: null,
+    label: "Effect Surface",
+    idPrefix: "fx_surf",
+    exportTag: "canvas",
+    // TODO(P8): grammar §13.3 defines 3.F types (Effect Surface, Shader Layer, Particle
+    // System, Simulation Layer, Cursor Layer, Texture Source). Phase 8 compiles them into
+    // the rule table; until then the surface's role/program says which one it is.
+    grammarType: "Canvas",
+    sections: ["identity", "attachments", "variables", "events", "layout"],
+    defaultProps: {
+      "appearance.pointerEvents": "none",
     },
   },
   object3D: {

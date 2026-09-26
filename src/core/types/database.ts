@@ -325,4 +325,11 @@ export const ARCHETYPE_PROPERTY_BINDING_MATRIX: Record<
   object3D: {},
   camera3D: {},
   light3D: {},
+  rectangle: {},
+  ellipse: {},
+  line: {},
+  polygon: {},
+  star: {},
+  arrow: {},
+  effectSurface: {},
 };

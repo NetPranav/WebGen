@@ -14,15 +14,48 @@
  */
 
 import { z } from "zod";
-import { ARCHETYPE_IDS, type PropValue } from "./registry";
-import { isCanonicalPath, isPropertyLegalFor, suggestPropertyPath, validateGeometryValues } from "./properties";
+import { ARCHETYPE_IDS } from "./registry";
+import { validateGeometryValues, validatePropertyValues } from "./properties";
+import {
+  PropValueSchema,
+  ClipSchema,
+  StateSchema,
+  BehaviourSchema,
+  SequenceSchema,
+  TransitionSchema,
+  type Keyframe,
+  type Track,
+  type Trigger,
+  type ClipType,
+  type ScrollTriggerConfig,
+  type StaggerConfig,
+  type Clip,
+  type Sequence,
+  type LayerState,
+  type Transition,
+  type Behaviour,
+  type MotionSpec,
+  type SpringConfig,
+  type Lag,
+} from "./motion";
+import { BindingSchema } from "./signals";
+import { SurfaceSchema, InputTapeSchema, EffectInstanceSchema } from "./effects";
+import { InteractionGraphSchema } from "./graph";
+import { ComponentSchema, GeneratorSchema, PinsSchema, TagSchema } from "./kinetics";
+import { checkReferences } from "./references";
 
 /**
  * v3 (Phase 42): every prop key and track path is a canonical `properties.ts`
  * path, and geometry (`frame.*`, `sizing.*`, `positioning`) lives on layers —
  * a top-level layer is a frame; there is no document-level artboard.
+ *
+ * v4 (Phase 7): the complete motion model. Typed easing, keyframe holds,
+ * first-class staggers, sequences, transitions and typed behaviours (7.2–7.3);
+ * effect instances (7.4); bindings, surfaces, input tapes and interaction
+ * graphs (7.5); Track K pins, tags, components and Split/Clone generators
+ * (7.5 v3.2); shape and effect-surface archetypes (7.6).
  */
-export const SCHEMA_VERSION = 3 as const;
+export const SCHEMA_VERSION = 4 as const;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -36,120 +69,33 @@ const RESERVED_KEY = "__proto__";
 
 export const IdSchema = z.string().min(1).describe("Stable entity id, `<prefix>_<8hex>` for new entities.");
 
-export const PropValueSchema: z.ZodType<PropValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(PropValueSchema),
-    z.record(z.string(), PropValueSchema),
-  ])
-);
+export { PropValueSchema } from "./motion";
 
 export const LayerPropsSchema = z
   .record(z.string(), PropValueSchema)
   .describe("Props keyed by canonical property path (properties.ts); each must be legal for the layer's archetype.");
 
-// ---------------------------------------------------------------------------
-// Animation: keyframes, tracks, clips
-// ---------------------------------------------------------------------------
-
-export const KeyframeSchema = z.object({
-  id: IdSchema,
-  time: z.number().min(0).describe("Seconds from the start of the clip."),
-  value: PropValueSchema,
-  ease: z.string().optional().describe("Easing into this keyframe, e.g. `power2.out` or `cubic-bezier(...)`."),
-});
-
-export const TrackSchema = z.object({
-  id: IdSchema,
-  property: z.string().min(1).describe("Canonical property path (properties.ts), e.g. `transform.y`."),
-  muted: z.boolean().optional(),
-  locked: z.boolean().optional(),
-  keyframes: z.array(KeyframeSchema),
-});
-
-/** What starts a clip or state change (PRD §4). */
-export const TRIGGERS = [
-  "mount",
-  "hover",
-  "press",
-  "focus",
-  "inView",
-  "scrollProgress",
-  "pointerMove",
-  "drag",
-  "time",
-  "custom",
-] as const;
-export const TriggerSchema = z.enum(TRIGGERS);
-
-/** The motion category a clip belongs to; drives presets and the Sequencer UI. */
-export const CLIP_TYPES = ["entrance", "hover", "tap", "scroll", "loop", "morph"] as const;
-export const ClipTypeSchema = z.enum(CLIP_TYPES);
-
-export const ScrollTriggerSchema = z.object({
-  start: z.string().optional().describe("e.g. `top 80%`"),
-  end: z.string().optional().describe("e.g. `bottom 20%`"),
-  scrub: z.union([z.boolean(), z.number()]).optional(),
-  pin: z.boolean().optional(),
-  markers: z.boolean().optional(),
-});
-
-export const StaggerSchema = z.object({
-  amount: z.number(),
-  from: z.enum(["start", "center", "end", "random"]),
-  grid: z.tuple([z.number(), z.number()]).optional(),
-  axis: z.enum(["x", "y"]).optional(),
-});
-
-export const ClipSchema = z.object({
-  id: IdSchema,
-  layerId: IdSchema,
-  name: z.string(),
-  type: ClipTypeSchema,
-  trigger: TriggerSchema,
-  duration: z.number().min(0).describe("Seconds."),
-  delay: z.number().min(0).optional().describe("Seconds."),
-  easing: z.string(),
-  repeat: z.number().int().min(-1).optional().describe("-1 loops forever."),
-  enabled: z.boolean(),
-  locked: z.boolean().optional(),
-  scrollTrigger: ScrollTriggerSchema.optional(),
-  stagger: StaggerSchema.optional(),
-  tracks: z.array(TrackSchema),
-});
-
-// ---------------------------------------------------------------------------
-// States & behaviours
-// ---------------------------------------------------------------------------
-
-export const StateSchema = z.object({
-  id: IdSchema,
-  layerId: IdSchema,
-  name: z.string().min(1).describe("e.g. `idle`, `hover`, `pressed`, `inView`."),
-  props: LayerPropsSchema,
-});
-
-export const BEHAVIOUR_TYPES = [
-  "follow-pointer",
-  "magnet",
-  "tilt",
-  "spring-to",
-  "inertia",
-  "noise",
-  "loop",
-  "shader-uniform",
-] as const;
-
-export const BehaviourSchema = z.object({
-  id: IdSchema,
-  layerId: IdSchema,
-  type: z.enum(BEHAVIOUR_TYPES),
-  enabled: z.boolean(),
-  params: LayerPropsSchema,
-});
+// Animation, state and behaviour primitives (Phase 7.2–7.3) live in motion.ts.
+export {
+  KeyframeSchema,
+  TrackSchema,
+  TRIGGERS,
+  TriggerSchema,
+  CLIP_TYPES,
+  ClipTypeSchema,
+  ScrollTriggerSchema,
+  StaggerSchema,
+  ClipSchema,
+  SequenceSchema,
+  StateSchema,
+  TransitionSchema,
+  BEHAVIOUR_TYPES,
+  BehaviourSchema,
+  EasingSchema,
+  SpringSchema,
+  MotionSpecSchema,
+  LagSchema,
+} from "./motion";
 
 // ---------------------------------------------------------------------------
 // Layers
@@ -164,6 +110,10 @@ export const LayerSchema = z.object({
   visible: z.boolean().optional(),
   locked: z.boolean().optional(),
   properties: LayerPropsSchema,
+  /** Custom pins (Phase 7.5 / 88.2); the 10 preset pins always exist. */
+  pins: PinsSchema.optional(),
+  /** Free-form labels a rule can target as `tag:<name>` (Phase 7.5 / 89). */
+  tags: z.array(TagSchema).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -189,6 +139,15 @@ const MotionDocumentShape = z.object({
   clips: z.record(IdSchema, ClipSchema),
   states: z.record(IdSchema, StateSchema),
   behaviours: z.record(IdSchema, BehaviourSchema),
+  sequences: z.record(IdSchema, SequenceSchema),
+  transitions: z.record(IdSchema, TransitionSchema),
+  bindings: z.record(IdSchema, BindingSchema),
+  surfaces: z.record(IdSchema, SurfaceSchema),
+  inputTapes: z.record(IdSchema, InputTapeSchema),
+  graphs: z.record(IdSchema, InteractionGraphSchema),
+  effects: z.record(IdSchema, EffectInstanceSchema),
+  components: z.record(IdSchema, ComponentSchema),
+  generators: z.record(IdSchema, GeneratorSchema),
   tokens: TokensSchema,
   exportSettings: ExportSettingsSchema,
 });
@@ -227,36 +186,13 @@ export const MotionDocumentSchema = MotionDocumentShape.superRefine((doc, ctx) =
     }
   }
 
-  const owned = (collection: "clips" | "states" | "behaviours") => {
-    for (const [key, entity] of Object.entries(doc[collection])) {
-      if (entity.id !== key) issue([collection, key, "id"], `Stored under "${key}" but has id "${entity.id}".`);
-      if (!doc.layers[entity.layerId]) issue([collection, key, "layerId"], `Layer "${entity.layerId}" does not exist.`);
-    }
-  };
-  owned("clips");
-  owned("states");
-  owned("behaviours");
+  // Every other entity: stored under its id, owned by a layer that exists,
+  // and every path, name and reference it holds resolves (references.ts).
+  checkReferences(doc, issue);
 
-  // Phase 42: one vocabulary. Every key/path must be canonical and legal for its layer.
-  const checkPath = (at: (string | number)[], path: string, archetype: (typeof ARCHETYPE_IDS)[number]) => {
-    if (!isCanonicalPath(path)) {
-      const suggestion = suggestPropertyPath(path);
-      issue(at, `Unknown property "${path}".${suggestion ? ` Did you mean "${suggestion}"?` : ""}`);
-    } else if (!isPropertyLegalFor(path, archetype)) {
-      issue(at, `"${path}" is not a property of ${archetype}.`);
-    }
-  };
   for (const [key, layer] of Object.entries(doc.layers)) {
-    for (const prop of Object.keys(layer.properties)) checkPath(["layers", key, "properties", prop], prop, layer.archetype);
     for (const bad of validateGeometryValues(layer.properties)) issue(["layers", key, "properties", bad.key], bad.message);
-  }
-  for (const [key, state] of Object.entries(doc.states)) {
-    const layer = doc.layers[state.layerId];
-    if (layer) for (const prop of Object.keys(state.props)) checkPath(["states", key, "props", prop], prop, layer.archetype);
-  }
-  for (const [key, clip] of Object.entries(doc.clips)) {
-    const layer = doc.layers[clip.layerId];
-    if (layer) clip.tracks.forEach((track, i) => checkPath(["clips", key, "tracks", i, "property"], track.property, layer.archetype));
+    for (const bad of validatePropertyValues(layer.properties)) issue(["layers", key, "properties", bad.key], bad.message);
   }
 });
 
@@ -264,17 +200,13 @@ export const MotionDocumentSchema = MotionDocumentShape.superRefine((doc, ctx) =
 // Types
 // ---------------------------------------------------------------------------
 
-export type Keyframe = z.infer<typeof KeyframeSchema>;
-export type Track = z.infer<typeof TrackSchema>;
-export type Trigger = z.infer<typeof TriggerSchema>;
-export type ClipType = z.infer<typeof ClipTypeSchema>;
-export type ScrollTriggerConfig = z.infer<typeof ScrollTriggerSchema>;
-export type StaggerConfig = z.infer<typeof StaggerSchema>;
-export type Clip = z.infer<typeof ClipSchema>;
+export type { Keyframe, Track, Trigger, ClipType, ScrollTriggerConfig, StaggerConfig, Clip, Sequence, LayerState, Transition, Behaviour, MotionSpec, SpringConfig, Lag };
 /** A clip not yet attached to a layer, e.g. an instantiated preset. */
 export type ClipTemplate = Omit<Clip, "layerId">;
-export type LayerState = z.infer<typeof StateSchema>;
-export type Behaviour = z.infer<typeof BehaviourSchema>;
+export type { Binding, BindingDraft } from "./signals";
+export type { Surface, InputTape, EffectInstance } from "./effects";
+export type { InteractionGraph } from "./graph";
+export type { Component, Generator } from "./kinetics";
 export type Layer = z.infer<typeof LayerSchema>;
 export type Tokens = z.infer<typeof TokensSchema>;
 export type ExportSettings = z.infer<typeof ExportSettingsSchema>;
@@ -346,6 +278,15 @@ export function createEmptyDocument(overrides: Partial<Pick<MotionDocument, "exp
     clips: {},
     states: {},
     behaviours: {},
+    sequences: {},
+    transitions: {},
+    bindings: {},
+    surfaces: {},
+    inputTapes: {},
+    graphs: {},
+    effects: {},
+    components: {},
+    generators: {},
     tokens: { colors: {}, spacing: {}, radii: {} },
     exportSettings: { ...DEFAULT_EXPORT_SETTINGS, ...overrides.exportSettings },
   };

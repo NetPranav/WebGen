@@ -21,7 +21,10 @@
 
 import { DEFAULT_ROOT_FRAME, canonicalizeProps, canonicalizeTrackPath, rescaleValue, type PropIssue } from "../properties";
 import { ARCHETYPE_REGISTRY, isArchetypeId, type ArchetypeId, type PropValue } from "../registry";
-import { SCHEMA_VERSION, type MotionDocument } from "../schema";
+
+
+/** v3 data: a v4 document without the Phase 7 collections (v3-to-v4.ts adds them). */
+export type V3Document = Record<string, unknown> & { schemaVersion: 3 };
 
 export interface MigrationReportEntry {
   /** e.g. `layers.btn.properties.colour` or `clips.c1.tracks.t1`. */
@@ -37,7 +40,7 @@ const isObject = (v: unknown): v is Loose => typeof v === "object" && v !== null
  * report of anything dropped. The input is treated as untrusted JSON: shapes
  * the v3 schema rejects are left for validation / repair to handle.
  */
-export function migrateV2ToV3(input: unknown): { document: MotionDocument; report: MigrationReportEntry[] } {
+export function migrateV2ToV3(input: unknown): { document: V3Document; report: MigrationReportEntry[] } {
   const doc = structuredClone(input) as Loose;
   const report: MigrationReportEntry[] = [];
   const note = (at: string, issues: PropIssue[]) => {
@@ -107,6 +110,6 @@ export function migrateV2ToV3(input: unknown): { document: MotionDocument; repor
   }
   delete doc.artboard;
 
-  doc.schemaVersion = SCHEMA_VERSION;
-  return { document: doc as unknown as MotionDocument, report };
+  doc.schemaVersion = 3;
+  return { document: doc as unknown as V3Document, report };
 }

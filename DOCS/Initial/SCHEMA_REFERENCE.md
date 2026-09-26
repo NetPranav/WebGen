@@ -11,10 +11,10 @@
 
 ---
 
-## 0. Motion Document Model (MDM, schema v3), authoritative
+## 0. Motion Document Model (MDM, schema v4), authoritative
 
 **Source of truth:** `src/core/document/schema.ts` (Zod). One source produces three outputs:
-1. TypeScript types (`MotionDocument`, `Layer`, `Clip`, `Track`, `Keyframe`, `LayerState`, `Behaviour`, …).
+1. TypeScript types (`MotionDocument`, `Layer`, `Clip`, `Track`, `Keyframe`, `LayerState`, `Behaviour`, `Binding`, `Surface`, `InteractionGraph`, `Component`, `Generator`, …).
 2. Runtime validation: `validateMotionDocument(input)` / `parseMotionDocument(input)`, including referential integrity.
 3. JSON Schema (draft 2020-12): `getMotionDocumentJsonSchema()`, for the AI layer (ROADMAP Phase 30).
 
@@ -26,29 +26,58 @@
 
 ```text
 MotionDocument
-  schemaVersion: 3
+  schemaVersion: 4
   layers         Record<id, Layer>          // top-level layers are frames (v2's document-level artboard moved onto them)
   clips          Record<id, Clip>          // a layer's animation stack = its clips, in insertion order
   states         Record<id, LayerState>
   behaviours     Record<id, Behaviour>
+  sequences      Record<id, Sequence>      // v4 (Phase 7.2)
+  transitions    Record<id, Transition>    // v4 (7.3)
+  bindings       Record<id, Binding>       // v4 (7.5)
+  surfaces       Record<id, Surface>       // v4 (7.5)
+  inputTapes     Record<id, InputTape>     // v4 (7.5)
+  graphs         Record<id, InteractionGraph>   // v4 (7.5)
+  effects        Record<id, EffectInstance>     // v4 (7.4)
+  components     Record<id, Component>     // v4 (7.5, Track K)
+  generators     Record<id, Generator>     // v4 (7.5, Track K)
   tokens         { colors, spacing, radii }
   exportSettings { framework, styling, animation, language }   // was project `target` in v1
 
-Layer      { id, name, archetype, parentId | null, children[], visible?, locked?, properties: Props }
+Layer      { id, name, archetype, parentId | null, children[], visible?, locked?, properties: Props,
+             pins?: Record<name, { x, y, unit: px | % }>, tags?: string[] }
 Props      = Record<CanonicalPath, PropValue>   // geometry included: frame.x|y|width|height|rotation, sizing.horizontal|vertical, positioning
-Clip       { id, layerId, name, type, trigger, duration, delay?, easing, repeat? (-1 = loop),
-             enabled, locked?, scrollTrigger?, stagger?, tracks: Track[] }
-Track      { id, property, muted?, locked?, keyframes: Keyframe[] }
-Keyframe   { id, time, value: PropValue, ease? }
-LayerState { id, layerId, name, props }
-Behaviour  { id, layerId, type, enabled, params }
+Clip       { id, layerId, name, type, trigger, event?, duration, delay?, easing: Easing, repeat? (-1 = loop), repeatDelay?,
+             direction? (normal | reverse | alternate | alternate-reverse), enabled, locked?, scrollTrigger?, stagger?, tracks: Track[] }
+Track      { id, property, muted?, locked?, keyframes: Keyframe[] }          // sorted by time (equal times = an instant jump), ≤ clip duration
+Keyframe   { id, time, value: PropValue, ease?: Easing, hold? }            // value typed by the property; ease = segment ending here
+Stagger    { each | amount, from: start|end|center|edges|random|index[], grid?: [rows, cols] | auto, axis?, ease?, seed?,
+             targets?: children | split | { tag } }
+Sequence   { id, name, items: { id, clipId, offset }[], stagger?, repeat? }
+LayerState { id, layerId, name, props }                                    // props typed by the property
+Transition { id, layerId, from: stateId | "*", to: stateId, trigger?, event?, motion: MotionSpec, overrides?: { property, motion }[] }
+MotionSpec = { type: tween, duration, easing, delay? } | { type: spring, spring: Spring, delay? }
+Spring     = { bounce 0–1, time s } (perceptual, Simple) | { stiffness, damping, mass? } (Pro)
+Behaviour  { id, layerId, type, enabled, params }                          // params typed per type (motion.ts)
+Binding    { id, ownerLayerId, enabled, name?, expr: { signal, operators[] }, target, blend?, guard?, priority? }
+Surface    { id, layerId, role, program, passes?, fallback: step[] ending "poster", cost: { tier, estimateMsAt1080p? },
+             uniforms?, params?, policies: { touch, reducedMotion }, poster: { at } }
+InputTape  { id, name, origin: recorded | authored | autopilot | scripted, duration, fps?, seed?, channels: { signal, samples: { t, v }[] }[] }
+InteractionGraph { id, name, ownerLayerId | null, variables[], customEvents[], nodes: { id, kind, type, params, pins[] }[], wires[] }
+EffectInstance   { id, layerId, effectId, version (semver), propOverrides, bindingOverrides, seed }
+Component  = Follow | Field | Effector | Collider | Body      // { id, layerId, type, enabled, … }
+Generator  = Split { groupLayerId, sourceLayerId, mode, detached, pieces: { layerId, index, char, wordIndex, lineIndex, home, random }[], overrides }
+           | Clone { groupLayerId, sourceLayerId, layout, pieces: { layerId, index, u?, v?, home, random }[], overrides }
 PropValue  = string | number | boolean | null | PropValue[] | { [key]: PropValue }   // JSON data only
 ```
+
+Phase 7's reasoning (strictness, the easing grammar, perceptual springs, bindings stored structured with a round-tripping text form, behaviours as binding presets, surfaces on `effectSurface` layers, graph pins, Track K types, the v3 → v4 migration) is in `decisions/0004-motion-primitives.md`. Binding text form: engine spec §3; `parseBinding` / `formatBinding` in `src/core/document/signals.ts`. Effect *definitions* (not stored in documents): `src/core/document/effect-definition.ts`, engine spec §11.
 
 - **Layer kind** (PRD §4: element, vector, text, image, group, mask, scene3d, shader, effect) is *derived* from `archetype` through the registry (`getLayerKind`); it is not stored, so it cannot disagree with the archetype.
 - **Clip `type`:** `entrance | hover | tap | scroll | loop | morph`.
 - **Triggers** (PRD §4): `mount | hover | press | focus | inView | scrollProgress | pointerMove | drag | time | custom`.
-- **Behaviour `type`:** `follow-pointer | magnet | tilt | spring-to | inertia | noise | loop | shader-uniform`.
+- **Behaviour `type`:** `follow-pointer | magnet | tilt | proximity | spring-to | inertia | noise | loop | shader-uniform`. Each expands to bindings (or a body, or a looping clip) via `behaviourToBindings` (Phase 7.5).
+- **Easing:** a string in the grammar of `parseEasing` (`motion.ts`): GSAP names (`power2.out`, `back.out(1.7)`), CSS keywords, `cubic-bezier(…)`, `steps(n)`, Motion names, and `spring(bounce: b, time: t)` / `spring(stiffness: k, damping: c)`.
+- **Interpolation** (Phase 7.1): each registry path declares one: `numeric`, `color`, `path`, `clipPath`, `vector`, `slerp`, `gradient` or `discrete` (keyframes hold).
 - **Geometry** (every visual layer, stored sparsely under its canonical paths; `getLayerGeometry()` resolves the rest): `frame { x, y, width, height, rotation }` in parent space, `sizing { horizontal, vertical: fixed | hug | fill }`, `positioning: absolute | flow`. Defaults: a top-level layer is an `absolute` frame at 0,0 sized 1440×900 that fills horizontally and hugs vertically; a child `flow`s and hugs; an explicit width or height implies `fixed`. `frame.*` is layout; the animated offset is `transform.*` (decision `decisions/0003-geometry-vs-transform.md`).
 
 ### 0.2 Integrity rules (enforced by the validator)
@@ -58,18 +87,38 @@ PropValue  = string | number | boolean | null | PropValue[] | { [key]: PropValue
 4. Props are JSON data; the key `__proto__` is rejected (JS object copying would silently drop it).
 5. Every prop key, state key and track path is a canonical path legal for its layer's archetype.
 6. Geometry values are typed: `frame.*` are finite numbers; `sizing.*`, `positioning` and the `frame.*Unit` companions come from their closed sets.
+7. *(v4)* Values are typed by their property: every state snapshot value and keyframe value, and layer values of `typed` paths (everything added from v4: `render.role`, shape parameters, counters). Declared ranges (e.g. `shape.sides` a whole number 3–64) are checked.
+8. *(v4)* Keyframes are sorted by time and sit within the clip (two at one time are an instant jump; the later holds); easings parse; a stagger sets exactly one of `each` / `amount`.
+9. *(v4)* Every reference resolves (`references.ts`):
+   - sequence items name clips;
+   - transitions name states of their own layer;
+   - binding layer refs (`self`, `parent`, ids), tags, groups, pins, states, variables and surface uniforms/params exist;
+   - a continuous binding never targets a `layout`/`none` property (`[SIG_LAYOUT]`), and discrete targets only `blend replace`;
+   - surfaces sit on `effectSurface` layers, one per layer, and a background surface is never top-level;
+   - components respect grammar 14.4 (an effector needs a field; no dynamic Input-family bodies; one of each component except effectors);
+   - a generator group's children are exactly its pieces in index order, and an attached Split spells its source text;
+   - graph wiring is typed and acyclic, and its events, variables and layer params resolve.
+10. *(v4)* Phase 7 entities are strict (unknown keys are errors); v2-era entities drop unknown keys on parse.
 
 ### 0.3 Archetype registry
-`src/core/document/registry.ts` is the single table for all 20 archetypes (10 PRD starting archetypes, `input`/`form`/`generic`, 4 SVG, 3 3D). Each entry gives its kind, family (or none), ID prefix, export tag, grammar type (for legal states), Details Inspector sections and default props. Grammar types with no archetype yet are listed in `RESERVED_GRAMMAR_TYPES`.
+`src/core/document/registry.ts` is the single table for all 27 archetypes (10 PRD starting archetypes, `input`/`form`/`generic`, 4 SVG, 6 parametric shapes (`rectangle`, `ellipse`, `line`, `polygon`, `star`, `arrow`; v4, Phase 7.6), `effectSurface` (v4, Phase 7.5), 3 3D). Each entry gives its kind, family (or none), ID prefix, export tag, grammar type (for legal states), Details Inspector sections and default props. Grammar types with no archetype yet are listed in `RESERVED_GRAMMAR_TYPES`.
 
 ### 0.4 IDs
 New entities use `createId(prefix)` → `<prefix>_<8 hex>` from `crypto.getRandomValues` (`elem_btn_3f8a109c`, `clip_…`, `trk_…`, `kf_…`). Existing ids are kept as they are.
 
 ### 0.5 Versions & migration
-`loadDocument()` (`src/core/document/migrations`) accepts any version and migrates one step at a time (v1 → v2 → v3). **v2 → v3** renames every prop key and track path onto its canonical path (per archetype: a v2 `color` is text colour on a button but line colour on a divider), splits legacy objects (`filter`, `overlay`, `focalPoint`, 3D `material`) and v1 style blocks into leaf paths, rescales image `opacity` 0–100 → 0–1 (keyframes too), splits CSS length strings into number + unit (`"100%"` → `frame.width: 100`, `frame.widthUnit: "%"`), and moves a non-default artboard size onto the top-level frames. Anything with no meaning on its layer is dropped and reported. **v1 → v2:** v1 `elements` become `layers`, and each `properties.animationStack` / top-level `animationStack` entry becomes a clip. Legacy triggers map to v2 (`onMount→mount`, `onHover→hover`, `onClick→press`, `onScroll→scrollProgress`, `ambient→time`). Unknown archetypes become `generic`, broken tree links are repaired, and missing ids are generated. Documents from a newer schema are refused. Every snapshot load (history, version control, saved projects, demo) goes through it.
+`loadDocument()` (`src/core/document/migrations`) accepts any version and migrates one step at a time (v1 → v2 → v3 → v4). **v3 → v4** (Phase 7) makes these changes and reports each one:
+- adds the nine new collections, empty;
+- gives behaviours typed params: defaults, plus any v3 param whose name and type match;
+- sorts keyframes (a stable sort, so equal times stay an instant jump), types keyframe and state values by their property (`"20px"` → 20; unreadable → the property default), and extends a clip to cover its last keyframe;
+- replaces unknown clip easings with `power1.out`;
+- removes unknown keyframe eases;
+- makes a stagger set exactly one of `each` and `amount`.
+
+**v2 → v3** renames every prop key and track path onto its canonical path (per archetype: a v2 `color` is text colour on a button but line colour on a divider), splits legacy objects (`filter`, `overlay`, `focalPoint`, 3D `material`) and v1 style blocks into leaf paths, rescales image `opacity` 0–100 → 0–1 (keyframes too), splits CSS length strings into number + unit (`"100%"` → `frame.width: 100`, `frame.widthUnit: "%"`), and moves a non-default artboard size onto the top-level frames. Anything with no meaning on its layer is dropped and reported. **v1 → v2:** v1 `elements` become `layers`, and each `properties.animationStack` / top-level `animationStack` entry becomes a clip. Legacy triggers map to v2 (`onMount→mount`, `onHover→hover`, `onClick→press`, `onScroll→scrollProgress`, `ambient→time`). Unknown archetypes become `generic`, broken tree links are repaired, and missing ids are generated. Documents from a newer schema are refused. Every snapshot load (history, version control, saved projects, demo) goes through it.
 
 ### 0.6 Writing
-Only through `documentCommands` (`src/core/store/useDocumentStore.ts`): typed commands (`addLayer`, `removeLayer`, `updateProps`, `moveLayer`, `addClip`, `setLayerClips`, `addTrack`, `setKeyframe`, `addState`, `applyDiff`, …), each an Immer recipe that yields **patches + inverse patches**. `applyDiff` validates before applying. The commands are the property-name boundary: whatever key a caller passes, only canonical, archetype-legal paths are stored (a legacy name is renamed; an unknown key is dropped with a dev warning). Readers use `propReader(props)` / `readProps(layer, view)`, which accept only canonical paths at compile time.
+Only through `documentCommands` (`src/core/store/useDocumentStore.ts`). `removeLayer` also removes every entity the deleted subtree owns or is referenced by. A Split group that loses a piece is detached and re-indexed (`removeLayerDependents`). The commands are typed (`addLayer`, `removeLayer`, `updateProps`, `moveLayer`, `addClip`, `setLayerClips`, `addTrack`, `setKeyframe`, `addState`, `applyDiff`, …), each an Immer recipe that yields **patches + inverse patches**. `applyDiff` validates before applying. The commands are the property-name boundary: whatever key a caller passes, only canonical, archetype-legal paths are stored (a legacy name is renamed; an unknown key is dropped with a dev warning). Readers use `propReader(props)` / `readProps(layer, view)`, which accept only canonical paths at compile time.
 
 ---
 

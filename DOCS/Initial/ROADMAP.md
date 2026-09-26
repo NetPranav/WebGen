@@ -1,34 +1,82 @@
-# IMPLEMENTATION ROADMAP — INITIAL PHASE (v2)
+# IMPLEMENTATION ROADMAP — INITIAL PHASE AND RELEASE PLAN (v3)
 
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
-**Document Version:** 2.1.0
-**Phase:** Initial Phase (Motion Element & Effect Studio)
-**Status:** Active. Phases 1–6 and 42 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, PR #11 for 42, all 3 browsers). Next: Phase 7 (its prerequisite 42 is done). 41.1/41.3 and 43 → 44 are still open from Stage 1. See §5.1.
+**Document Version:** 3.3.0
+**Phase:** Initial Phase = **Release 1** (Motion & Interactive Effects Studio). v3.0 also plans **Release 2** (Sites: components, sections, pages, content, site export) and re-baselines **Release 3** (Apps). See §8.
+**Status:** Active. Phases 1–7 and 42 ✅ (CI green on PR #7 for 3–4, PR #8 for 5, PR #9 for 6, PR #11 for 42, PR #13 for 7, all 3 browsers). Next: 46, then 8 ∥ 9. 41.1/41.3 and 43 → 44 are still open from Stage 1. See §5.1.
 **File Location:** `DOCS/Initial/ROADMAP.md`
-**Inputs:** `PRD.md` v2.0.0 (what and why) · `AUDIT.md` (what is wrong today) · `lazylayout_element_grammer.md` + `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` (the rules) · `DOCS/action working.md` (the 52 World Environment properties)
+**Inputs:**
+- `PRD.md` v2.4.0 (what and why)
+- `AUDIT.md` (what is wrong today)
+- The rules: `lazylayout_element_grammer.md` v0.3.1, `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` and `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md` v1.3
+- `DOCS/action working.md` (the 52 World Environment properties)
+
 **Supersedes:** v1.1.0 (8 phases). The v1.1 phases are reclassified in §4. Nothing from them is thrown away; each is either kept, fixed, or re-scoped below.
 **v2.1 (2026-09-24):** Adds Track S (Phases 41–58), the studio architecture needed for a Figma / Wix Studio viewport with an After Effects timeline. The reasons are in §4.1.
+**v3.0 (2026-09-26):** Adds the phases a production-readiness review (§4.2) found missing:
+- **Track X**, the Reactive Effects Engine (59–71): React Bits-grade interactive backgrounds, cursors, particles and shaders.
+- **Track L**, Interaction Blueprints (72–74): Unreal-style visual logic.
+- **Track W**, Web Composition (75–79): components, sections, pages, content and site export.
+- **Track P**, the Production Platform (80–85).
+- Two release gates (86, 87), plus v3.0 amendments to existing phases.
+
+The short answer to "if every v2.1 phase is done, does the product work in production as intended?" is **no**; §4.2 says why.
+
+**v3.1 (2026-09-26):** Adds **Track K**, Kinetic Composition (88–91), so users can *build* interactions from primitives instead of only picking finished effects:
+- invisible helper layers and pins (which point of a shape follows the mouse);
+- one-click Split of text into letters, words or lines, and cloners;
+- fields and effectors;
+- colliders, kinetic bodies and contact events for Blueprints.
+
+The reference build is "an invisible circle follows the mouse by a chosen point, a card's text is split into letters, and a Blueprint rule makes the letters flee the circle and spring home" (engine spec §12.7). §4.2 has the addendum.
+
+**v3.2 (2026-09-26):** A step-by-step trace of the reference build through every phase found 8 gaps. The fixes are v3.2 amendments; the trace is in §4.2.
+- **Law 17**, the Visual-First (No-Math) Law.
+- **Shape primitives early** (7.6).
+- **Track K types in the model** (7.5).
+- **Perceptual springs** ("Bounce" and "Time", 9.1).
+- **Rules that auto-attach** the colliders and fields they need (73).
+- **New actions and components:** spawn and sound actions (72, 89.4) and draggable bodies (91).
+- **One evaluation space** for kinetics across nested layers (90, 91).
+- **A 10-build composition test suite** (91.7), so "similar" interactions are tested, not assumed.
+
+**v3.3 (2026-09-26):** GPU **memory**, not only GPU contexts. The plan now has:
+- a per-tier GPU/canvas memory budget, tracked by a ledger in the compositor (61.5);
+- texture caps and compression (54);
+- pooled, reduced-resolution simulation targets (64);
+- three.js disposal rules (18);
+- iOS canvas limits (61.5);
+- leak, stress and soak tests (61, 71, 84);
+- field telemetry for tab kills (82);
+- the routing rule "WebGL only where needed; three.js only for real 3D" (8.3).
+
+Engine spec §7.8–§7.9 has the design; `AUDIT.md` AUD-58 records the gap.
 
 ---
 
 ## 1. How to Read This Roadmap
 
-- **58 phases in 9 tracks.** Tracks run roughly in order. Some phases inside a track can run in parallel (see §7).
-- **Phase numbers are identifiers, not execution order.** Track S (Phases 41–58) was added in v2.1. Its phases slot in between existing ones (e.g. 41 runs before 3, 48 before 10). §5.1 gives the order to follow. Existing numbers were kept so audit IDs, commits and progress logs stay valid.
+- **91 phases in 14 tracks, delivered in 3 releases.**
+  - **Release 1** (the Initial Phase public beta, gate Phase 40): Tracks A–H, S, X, L and K, plus Track P's 80, 82, 84 and 85.
+  - **Release 2** (Sites, GA gate Phase 86): Track W plus 81 and 83.
+  - **Release 3** (Apps): re-baselined by Phase 87 before any of it is planned in detail.
+  - Tracks run roughly in order. Some phases inside a track can run in parallel (see §7).
+- **Phase numbers are identifiers, not execution order.** Track S (41–58) was added in v2.1, Tracks X, L, W and P (59–85) plus gates 86–87 in v3.0, and Track K (88–91) in v3.1. New phases slot in between existing ones (e.g. 41 runs before 3, 48 before 10, 59 before 12, 61 before 18 and 19, 88–90 before the Stage 4 studio work). §5.1 gives the order to follow. Existing numbers were kept so audit IDs, commits and progress logs stay valid.
+- **v3.0, v3.1 and v3.2 amendments** to existing phases are marked `> **v3.0 amendment:**`, `> **v3.1 amendment:**` or `> **v3.2 amendment:**`, like the v2.1 ones. An amendment never marks work done; it changes what the phase must deliver.
 - Every phase has: **Goal**, **Closes** (audit IDs), **Depends on**, numbered **sub-phases** with checklists, **Key files**, and a **Verification Gate**.
 - Checkboxes: `[ ]` not started, `[~]` exists in code but has not passed its gate, `[x]` gate passed.
 - A phase that reuses v1.1 code says so under **Reuse**, so nobody rebuilds what already works.
-- **The last track (G, Phases 35–39) is the simplified design experience** (draw-to-design, draw-to-animate, Simple mode). It comes last on purpose: it sits on top of the document model, rules, engines, library and AI built before it.
+- **The last design track of Release 1 (G, Phases 35–39) is the simplified design experience** (draw-to-design, draw-to-animate, Simple mode). It comes last on purpose: it sits on top of the document model, rules, engines, library and AI built before it.
 
 ---
 
-## 2. Architectural Laws (v2)
+## 2. Architectural Laws (v2; extended in v2.1 and v3.0)
 
 These are binding for every phase. A Verification Gate that passes while violating a law does not count.
 
 1. **Inside-Out Law (kept):** Types/schema → Rules Engine → Diagnostics → UI. No control is built before the rule that governs it.
 2. **One Document Law (new):** Every surface (stage, layers, properties, timeline, playground, AI, code, export) reads and writes the **Motion Document Model (MDM)** through one store API. No parallel element models and no `as any` casts across model boundaries.
-3. **Preview = Export Law (new):** Every animation has a pure `evaluate(doc, layerId, t, inputs)` result. The live preview and the exported build must both match it within tolerance. Engines are adapters over the document, never the source of truth.
+3. **Preview = Export Law (new):** Every animation has a pure `evaluate(doc, layerId, t, inputs)` result. The live preview and the exported build must both match it within tolerance. Engines are adapters over the document, never the source of truth. *(v3.0: for stateful layers, "pure" means deterministic replay; see Law 15.)*
 4. **No Silent AI Writes Law (kept):** Every AI mutation is a diff that the user explicitly approves.
 5. **Real-Environment Verification Law (new):** Gates run in real environments: `tsc`, a headless browser (Playwright), and real builds of the exported code. String-contains assertions may *support* a gate but never *be* the gate.
 6. **Simple-by-Default Law (new):** Every new capability ships with a Simple face (≤ 7 controls, no jargon) before or alongside its Pro face.
@@ -37,6 +85,18 @@ These are binding for every phase. A Verification Gate that passes while violati
 9. **Hot-Path Law (v2.1):** Per-frame values (the playhead, evaluated props, drag previews) never flow through React state or the document store. They go through the frame scheduler (Phase 45) and the renderer's node registry (Phase 48). The document changes only when an edit is committed.
 10. **Document-Space Law (v2.1):** Geometry lives in the MDM, in document coordinates (Phase 42). The renderer maps it to the screen. Editor code reads layout from the DOM only through the renderer's measurement API (Phase 48.4).
 11. **One Renderer Law (v2.1):** The stage and the exporters render layers from the same per-archetype render definitions (Phase 48.1). There is no second, hand-written preview markup.
+12. **Signal Law (v3.0):** Continuous inputs (pointer, scroll, view progress, audio, device tilt, time) are sampled once per frame by the Input Bus (Phase 59). They reach targets only through signal bindings (Phase 60). No panel, effect or exported runtime attaches its own pointer or scroll listeners, or runs its own `requestAnimationFrame` loop.
+13. **Surface Budget Law (v3.0; memory added in v3.3):** Only the GPU Surface Compositor (Phase 61) creates WebGL/WebGPU contexts, within a per-page budget (by default ≤ 8 live surfaces on desktop and ≤ 4 on mobile). Anything over budget shows its poster. *(v3.3)* The compositor also owns a **GPU and canvas memory budget** per device tier (T1 96 MB, T2 256 MB, T3 512 MB initially). Every texture, render target, canvas and buffer is recorded in its ledger and released when unused, including three.js resources. Near the budget, the compositor degrades (resolution, passes, texture size, release, poster) instead of letting the browser kill the context or the tab.
+14. **Graceful Degradation Law (v3.0):** Every effect declares a fallback chain ending in a poster (WebGPU → WebGL2 → Canvas 2D/SVG/CSS → poster), a touch behaviour and a reduced-motion behaviour. The rules (Phase 8) refuse an effect that lacks any of them.
+15. **Deterministic Replay Law (v3.0):** Some things aren't a pure function of `t`: simulations, particles, stateful signal operators, trails. Each must replay exactly from `(seed, input tape, fixed step)`. That replay is what scrubbing, parity tests and the render queue use.
+16. **Untrusted Code Law (v3.0):** User-supplied code (code components, raw shaders, expressions, imported SVG/GLTF) runs only inside its sandbox boundary (Phase 80). It never runs with the editor origin's privileges, and never blocks the editor's frame loop.
+17. **Visual-First (No-Math) Law (v3.2):** Everything a user can author can be authored without typing a number or a formula. Every parameter has at least one of:
+    - a **handle on the canvas** (pin, radius, margin, offset, direction, bounds);
+    - a **plain-language choice** ("Stay inside the card", "Gentle / Clear / Strong");
+    - a **feel control**: **Bounce** and **Time** for springs, **Smoothness**, **Reach**, **Variety** with a shuffle button;
+    - a **curve or range you drag** over a live meter ("when the cursor is 0–200 px away → scale 1.2 → 1.0").
+
+    Numbers, formulas and the binding text form stay available in Pro mode. Every Simple control maps 1:1 to one Pro parameter, so switching is lossless. A CI check fails any Simple face that shows a technical parameter, such as stiffness, damping, τ, uv, ndc or a remap tuple (22, 91.7). The controls vocabulary is engine spec §13.4.
 
 ---
 
@@ -115,6 +175,91 @@ A phase is **✅ COMPLETE** only when:
 
 ---
 
+## 4.2 Production-Readiness Review v3.0 (2026-09-26)
+
+**The question.** If every phase in v2.1 reached ✅, would LazyLayout work in production as intended? The intended product is a Figma / Wix Studio-style canvas with Unreal-style Blueprint logic that exports whatever the user designs. It includes React Bits-grade interactive components, such as a background that reacts to the cursor, that anyone can add easily.
+
+**The answer: no.** The v2.1 roadmap is sound for what it scopes, and it is honest about verification. But finishing it delivers something narrower than the intended product, and the result can't be operated as a public service. The gaps fall into three groups. Each is recorded in `AUDIT.md` (section J) and assigned to a phase.
+
+**A. Scope: the product it builds is not the product intended.**
+
+| # | Gap | Evidence | Fix |
+|---|---|---|---|
+| 1 | A document is one element or one effect component. Blueprint logic, component/page design, content (CMS) and publishing are out of scope (§8 in v2.1), so completing all 58 phases yields a single-component motion studio, not a Wix/Figma site builder | PRD §1.5; ROADMAP §8 (v2.1) | Track L (Release 1), Track W (Release 2) · AUD-44 |
+| 2 | The Blueprint language exists only on the After track, for data/API logic. It has no motion, state, signal or effect nodes, and its ✅ claims predate the Real-Environment Verification Law | `src/core` node vocabulary; `src/compiler/blueprint-to-js/index.ts` only re-exports `LogicFlowEmitter` and `ApiRouteEmitter` | 72–74, 87 · AUD-50 |
+
+**B. The pitch: interactive effects can't be built on v2.1.**
+
+| # | Gap | Evidence | Fix |
+|---|---|---|---|
+| 3 | The grammar can't express a background that reacts to the cursor. Canvas is opaque with Hover blocked, there is no continuous category, and bindings can't cross elements, so Phase 8 would compile a rule table that forbids the flagship effects | grammar 3.E.3, 4.3, 12.6 | 59, 60, 8 (grammar §13) · AUD-45 |
+| 4 | No GPU effect runtime exists: nothing in `src/` creates a WebGL/WebGPU context, and there is no shader, particle or simulation code. Phase 19 plans shaders and particles in 3 sub-phases, with no compositor, render targets, simulations, texture sources or cursor layers | grep, 2026-09-26 | 61–66 · AUD-46 |
+| 5 | Per-layer canvases (18.1, 19.1) and live library thumbnails (25.1) would exceed browser WebGL context caps (Chrome: 16 on desktop, 8 on Android), and browsers silently drop the oldest context | 18.1, 19.1, 25.1 | 61 (Surface Budget Law) · AUD-49 |
+| 6 | `evaluate(t)` is defined as pure, but fluid, particle, spring-grid and trail effects depend on their history. Scrubbing, parity and the render queue have no defined behaviour for them | Law 3, Phase 9 | 64, 9 amendment (Deterministic Replay Law) · AUD-48 |
+| 7 | The engine spec routes entrances, scroll and staggers to GSAP by default. GSAP's Standard License prohibits its use in no-code visual animation tools that compete with Webflow (checked 2026-09-26) | engine spec §6.1, §7.5; LICENSES GATE-01 | 8.3, 14 amendments · AUD-47 |
+| 8 | "≥ 40 effects, 7 backgrounds" is far below the reference catalogue the PRD names: React Bits lists 200+ components, dozens of them backgrounds. Hand-building every effect for 5 export targets doesn't scale, and there is no way to bring your own component | PRD §5.2; reactbits.dev | 67, 25 amendment, 68, 70 · AUD-54 |
+| 9 | The two rules sources disagree: Badge, Spinner, Link, Avatar and Container differ, and the engine spec lists Table/List/Chart types the grammar never defines | grammar §3 vs engine spec §7, §13.5 | 8.5 · AUD-52 |
+
+**C. Production: it works in a browser, but it can't be run as a service yet.**
+
+| # | Gap | Evidence | Fix |
+|---|---|---|---|
+| 10 | There is no threat model or sandbox before user code (code components, shaders, expressions) runs. Security is a single release-gate item (40.3) | 40.3 | 80 · AUD-51 |
+| 11 | There are no accounts, cloud copies, share links, error reporting, usage metering or billing. The AI route (30) would face the internet with only per-request limits | — | 81, 82, 83 · AUD-51 |
+| 12 | Projects live only in IndexedDB, and the app never requests persistent storage, so browsers may evict them | grep `storage.persist` | 81 · AUD-53 |
+| 13 | Budgets are measured on one reference laptop. Nothing measures exported effects on phones, where thermal limits, the 8-context cap and memory kills apply | PRD §11.3, Phase 26 | 84 · AUD-55 |
+| 14 | There is no licence scanning, no third-party notices in exports, and no compliance policy | — | 85 |
+
+**Market check (2026-09-26).** At Config 2026, Figma shipped Figma Motion (a timeline with keyframes and presets; CSS, React and video export) and parameterized shader fills. Interactive shaders were announced as "coming soon" ([Figma blog](https://www.figma.com/blog/config-2026-recap/)). A timeline and static shader fills are no longer differentiators. What stays differentiating is exactly what v3.0 focuses on:
+- effects that **react** to pointer, scroll, touch and sound;
+- **interaction logic** through Blueprints;
+- **verified, production-hardened export**: parity, budgets, accessibility and embeds.
+
+**What v3.0 changes.**
+- **Five new laws** (§2, 12–16): Signal, Surface Budget, Graceful Degradation, Deterministic Replay, Untrusted Code.
+- **Track X, Reactive Effects Engine (59–71).** Signals and input tapes, bindings with a one-step Reactivity card, a budgeted GPU compositor, a Shader Graph, particles, deterministic simulations, texture distortion and cursor layers. Also the Effect SDK, code components, interactive export and embeds, an AI effect author and a GPU verification harness. The design is in `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md`.
+- **Track L, Interaction Blueprints (72–74).** The Unreal Blueprint idea for interfaces: Simple "When → Do" rules and a Pro graph over one model, compiled to plain code.
+- **Track W, Web Composition (75–79, Release 2).** Components with variants, sections and templates, pages and transitions, content collections and forms, and whole-site export.
+- **Track P, Production Platform (80–85).** Security, accounts and sharing, operations, metering, the device matrix, and licensing and compliance.
+- **Gates.** 40 becomes the Release 1 beta gate. 86 is the Release 2 GA gate. 87 re-baselines the After track (Release 3) with the same honesty as `AUDIT.md`.
+- **Amendments** to Phases 7, 8, 9, 10, 12, 14, 18, 19, 22, 24–31, 33, 39, 40, 45, 47, 49 and 54–58.
+
+**Release plan.**
+
+| Release | What a user can do | Gate |
+|---|---|---|
+| **1 · Motion & Interactive Effects Studio (public beta)** | Design components and hero sections on a Figma-grade canvas and animate them on an After Effects-style timeline. Add interactive backgrounds, cursors and effects in one step, wire interactions (Simple rules or Blueprints), import their own components, and export verified code or embeds | 40 |
+| **2 · Sites (GA)** | Build multi-page sites from components, sections and templates, bind content collections and forms, sign in, share previews, and export or deploy a whole site | 86 |
+| **3 · Apps** | Data, API, auth and backend logic in Blueprints, collaboration and plugins: the After track, after an honest audit | 87, then its own roadmap |
+
+**v3.1 addendum: design freedom (2026-09-26).** A follow-up requirement set a higher bar: build interactions *from primitives*, not only pick finished effects. The test case:
+1. make an invisible circle and have it follow the mouse by a point the user chooses;
+2. split a card's text into separate letters with one click;
+3. write a Blueprint rule so that when the circle touches a letter, the letter moves away instead of entering the circle, then springs back.
+
+v3.0 could play that as a library effect, but no user could build it. There were no logic-only layers, no follow pins, no split into real layers, no fields or colliders on DOM layers, and no overlap or contact events in the Blueprint vocabulary (`AUDIT.md` AUD-56). **Track K (88–91)** adds exactly those primitives. The build above becomes the reference test for the whole product: engine spec §12.7, the gates of 90 and 91, Journey E (58.6) and PRD §11 criterion 13. Library effects that the primitives can express ship as **open recipes** the user can inspect and change (Phase 25 v3.1 amendment).
+
+**v3.2 addendum: the reference build traced step by step (2026-09-26).** Each step of engine spec §12.7 was checked against the phase that must deliver it, and that phase's dependencies. The trace found 8 gaps, marked **G1–G8** and fixed by v3.2 amendments (`AUDIT.md` AUD-57):
+
+| Step of the reference build | Delivered by | Gap found → fix |
+|---|---|---|
+| Draw a circle (**O**, Shift) | 43.2 tool, 20.4, 49 overlay | **G1:** parametric shapes (ellipse, rectangle, line, polygon, star) existed only as a by-product of shape recognition (36.2, Stage 7); the registry has no shape archetypes → **7.6** defines them early |
+| Make it an invisible helper | 88.1 (`render.role`), 22 inspector, 48 renderer, 49 overlay | **G2:** Track K's types (helper role, pins, tags, components, split/clone groups) weren't in the model's type pass (7.5) → **7.5 extended** |
+| Follow the mouse by the bottom-centre pin, springy | 59, 60 (`position(pin)`), 88.2–88.3, 49 (pins on canvas), 9.1 springs | **G3:** springs were authored as stiffness/damping → **9.1 perceptual springs** (Bounce + Time) and **Law 17** |
+| Card with text inside | 43.2 frame and text tools, 17.3 fonts | Wording fix: a card is drawn with the **Frame** tool (F), not the rectangle (engine spec §12.7) |
+| Right-click → Split → Letters | 43 (context menu), 17.1, 89.1, 48.4 | — |
+| Rule: while overlapping → keep outside + spin; when it ends → spring home | 73.1 (Simple rules), 72 (events), 90 (Keep-Out), 91 (contacts), 74 (compile) | **G4:** a rule that mentions overlap didn't create the shapes it needs → **73.1 auto-attaches** fields and colliders sized from each layer's geometry |
+| Circle and letters live in different parents (frame vs card) | 90, 91 | **G5:** the space kinetics are computed in wasn't defined for nested or rotated parents → **90/91 evaluate in the top-level frame's space** (Law 10) and convert back |
+| Preview, record a pointer tape, scrub | 49.5, 59.3, 24, 23.4, 64.1 replay | — |
+| Export | 69 (`kinetics`, `physics2d`), 74, 89.1 accessible spans | — |
+| "Similar" builds (drag and throw letters, spawn your own shapes on click, play a sound on hit) | 91, 72 | **G6:** no draggable bodies, no runtime spawning, no sound actions → **91.2 draggable bodies**, **89.4 spawner**, **72 `PlaySound`/`Spawn` actions** |
+| "Similar" builds in general | Gates | **G7:** only one build was tested → **91.7 composition test suite** (10 builds from primitives) |
+| §5.1 claim "demonstrable right after the motion core" | §5.1 | **G8:** true for the engine (a scripted demo), not for the no-code journey, which also needs the studio canvas (49, 20, 22) and the rules UI (73) → **§5.1 wording fixed** |
+
+**What this does and doesn't prove.** The plan now names a phase for every step of the reference build and for the 10 similar builds, and it has a gate that fails if any of them doesn't work (58.6, 90, 91, 91.7, PRD §11 criterion 13). It does not prove the code will work. The gates exist for that, and the first version of each will surface issues a document can't: text measurement edge cases, physics feel, browser differences.
+
+---
+
 ## 5. Phase Overview
 
 | # | Track | Phase | Key deliverable | Depends on | Status |
@@ -125,7 +270,7 @@ A phase is **✅ COMPLETE** only when:
 | 4 | A | Real-Environment Verification Harness | Playwright, export build and pixel-parity harness | 1 | ✅ (CI green on PR #7) |
 | 5 | A | Dependency Reality & Wasm Decision | `motion`, `three`, R3F installed; fake 3D removed; Wasm go/no-go | 1 | ✅ (CI green on PR #8) |
 | 6 | A | Scope, Naming & Docs Cleanup | Initial bundle excludes After-track panels; one name; docs fixed | 1 | ✅ (CI green on PR #9; gate met — one sub-item deferred, see log) |
-| 7 | B · Motion Core | Motion Primitives: Tracks, Clips, States, Triggers, Behaviours | Formal animation model inside MDM | 2 | 📋 |
+| 7 | B · Motion Core | Motion Primitives: Tracks, Clips, States, Triggers, Behaviours | Formal animation model inside MDM | 2 | ✅ (CI green on PR #13) |
 | 8 | B | Executable Motion Rules Engine | Grammar + engine spec compiled into one rule table | 7 | 📋 |
 | 9 | B | Deterministic Evaluation Kernel | Pure `evaluate(t)`, easing and spring library | 7 | 📋 |
 | 10 | B | Live Preview Runtime & Engine Adapters | Stage actually runs the engines; scrub = seek | 8, 9 | 📋 |
@@ -158,7 +303,7 @@ A phase is **✅ COMPLETE** only when:
 | 37 | G | Draw-to-Animate Gestures | Stroke → draw anim, line → motion path, circle → orbit | 36, 16 | 📋 |
 | 38 | G | Sketch-to-Element with AI | Rough UI sketch → proposed elements + motion | 36, 31 | 📋 |
 | 39 | G | Simple Mode & Guided Flow | Draw → Pick motion → Export in 3 steps; new onboarding | 22, 25, 37 | 📋 |
-| 40 | H · Release | Initial Phase v2 Release Gate | PRD §11 DoD proven end to end | all (incl. 58) | 📋 |
+| 40 | H · Release | Initial Phase v2 Release Gate (**Release 1 beta**, v3.0) | PRD §11 DoD proven end to end | all Release 1 phases (incl. 58, 71, 74, 80, 82, 84, 85, 91) | 📋 |
 | 41 | S · Studio Architecture | Store Decomposition & Transaction API | Small document store, gesture transactions, per-layer subscriptions | 2 · *before 3* | 🚧 41.2 done (with Phase 3) |
 | 42 | S | Canonical Property Paths & Geometry Model | One property vocabulary; `frame` + sizing on every layer; schema v3 | 2 · *before 7, 20, 48* | ✅ (CI green on PR #11) |
 | 43 | S | Command Bus, Tool State Machine & Keymap | One command registry, focus-aware keys, tool state machines | 41 · *before 20* | 📋 |
@@ -177,21 +322,71 @@ A phase is **✅ COMPLETE** only when:
 | 56 | S | Workers, Baking & Hot-Path Performance | Heavy math off the main thread, content-hash caches, frame telemetry | 5, 9, 45 | 📋 |
 | 57 | S | Legacy Runtime Retirement | One renderer, one clock, one evaluator; old paths deleted, grep-gated | 10, 20, 23, 27, 48, 52 | 📋 |
 | 58 | S | Studio Architecture Integration Gate | Design → Animate → Output journeys pass in 3 browsers | 41–57, 20–24 · *before 40* | 📋 |
+| 59 | X · Reactive Effects | Signals & Input Bus | One passive input sampler per frame; typed signals; replayable input tapes | 45, 48 · *before 12* | 📋 |
+| 60 | X | Signal Bindings & the Reactivity Card | `signal \|> operators -> target`, channel blending, one-step "Reacts to" card, Pro signals panel | 59, 9, 47 · *before 12* | 📋 |
+| 61 | X | GPU Surface Compositor | Budgeted contexts, passes and render targets, device tiers, posters, context-loss recovery | 10, 45, 48, 59 · *before 18, 19* | 📋 |
+| 62 | X | Shader Graph & Shader Authoring | Material-Editor-style graph → GLSL (WebGL2) and TSL (WebGPU); raw GLSL in Pro | 61, 60, 8 | 📋 |
+| 63 | X | Particles & Force Fields | Niagara-style module stack; CPU/GPU backends by tier; pointer interaction modes | 61, 60 | 📋 |
+| 64 | X | Stateful Simulations & Deterministic Replay | Fluid, spring lattices, ropes, rigid bodies, blobs; fixed-step, seeded, snapshot seeking | 61, 63, 9, 45 | 📋 |
+| 65 | X | Media-as-Texture & Distortion Effects | Text/image/video textures; hover distortion, pixel transitions; SVG/CSS fallback | 61, 54, 17 | 📋 |
+| 66 | X | Cursor & Overlay Layer | Followers, trails, splash, magnetic targets; touch, keyboard and accessibility safeguards | 59, 60, 61, 49 | 📋 |
+| 67 | X | Effect Definition Format & Effect SDK | Effects as versioned data: props view-model, surfaces, affordances, policies, provenance | 7.4, 46, 60, 61, 62 · *before 25 waves 7–9* | 📋 |
+| 68 | X | Code Components: Import, Sandbox & Controls | Bring your own React component; opaque-origin sandbox; inferred property controls | 48, 60, 80, 27 | 📋 |
+| 69 | X | Interactive Export & Embed Runtime | Vendored runtime, SSR-safe poster-first components, Web Component, embed script, size budgets | 27, 60, 61–67 | 📋 |
+| 70 | X | AI Effect Author | Prompt/reference → shader graph + particles + bindings, validated and rendered before the ghost diff | 31, 62, 63, 67, 71 | 📋 |
+| 71 | X | GPU & Interactive Verification Harness | GPU CI, tape playback, perceptual metrics with falsifiers | 4, 45, 59 · *before 61's gate* | 📋 |
+| 72 | L · Logic | Interaction Blueprint Model, Grammar & NodeScript IR | Typed event graph in the MDM; interaction stdlib; `.nls` text form | 7, 8, 11, 60 | 📋 |
+| 73 | L | Blueprint Editor: Simple Rules, Pro Graph & Debugger | "When → Do" rules and the Unreal-style graph over one model; pulses, breakpoints, watches | 72, 44, 49 | 📋 |
+| 74 | L | Blueprint Runtime & Compiler | Scheduler-driven deterministic runtime; graphs compile to plain TS per target | 72, 45, 27 | 📋 |
+| 75 | W · Web Composition (R2) | Components, Variants & Instances | Figma-style main components, instances, overrides, variants, slots, exposed props | 40, 72 | 📋 |
+| 76 | W | Sections, Templates & Section Library | Wix Studio-style sections, scroll choreography, animated templates | 75, 50, 13 | 📋 |
+| 77 | W | Pages, Navigation & Page Transitions | Routes, nav, links, View Transitions, multi-page preview | 76 | 📋 |
+| 78 | W | Content Collections, Data Binding & Forms | CMS-lite collections, repeaters, dynamic pages, forms to user endpoints | 75, 77 | 📋 |
+| 79 | W | Site Export, SEO & Web Vitals | Whole-site Next/Vite export, SEO, Core Web Vitals budgets, deploy handoff | 77, 78, 69, 74 | 📋 |
+| 80 | P · Production Platform | Threat Model, Sandboxing & Security Hardening | STRIDE model, isolation boundaries, CSP, sanitisers, GPU safety, supply chain | 3 · *before 68, 40* | 📋 |
+| 81 | P (R2) | Accounts, Cloud Projects & Sharing | Sign-in, local-first sync, persistent storage, share links, hosted embeds | 80, 3, 54 | 📋 |
+| 82 | P | Observability, Reliability & Operations | Error reporting, opt-in telemetry, kill switches, SLOs, runbooks | 30 · *before 40* | 📋 |
+| 83 | P (R2) | Plans, Metering & AI Cost Controls | Usage metering, quotas, billing, abuse controls | 30, 33, 81 | 📋 |
+| 84 | P | Device & Browser Matrix, Real-Device Performance | Support matrix, device tiers, real-device budgets and soaks | 26, 71 · *before 40* | 📋 |
+| 85 | P | Legal, Licensing & Compliance Automation | Licence scanning, export notices, provenance, GSAP gate check, policies | 27, 68 · *before 40* | 📋 |
+| 86 | H · Release | Release 2 GA Gate — Sites | Design → react → wire → export/deploy a site, on desktop and phone | 40, 75–79, 80–85 | 📋 |
+| 87 | H | Release 3 Re-baseline — Apps (After-Track Reality Audit) | Honest audit of the After track and a gated Release 3 roadmap | 86 | 📋 |
+| 88 | K · Kinetic Composition (v3.1) | Helper Layers, Pins & Follow Behaviours | Invisible logic-only layers; any point of a layer can follow; a fully configurable Follow component | 42, 60 (anchor model shared with 51.1) | 📋 |
+| 89 | K | Split, Clone & Generators | One-click Split into letters/words/lines as real layers; cloners; per-piece `index`/`home`/`random`; tags | 17.1, 48, 88 | 📋 |
+| 90 | K | Fields & Effectors | Falloff shapes that keep out, push, attract, swirl, transform or style other layers; springs home | 88, 89, 60, 9 | 📋 |
+| 91 | K | Colliders, Contact Events & Kinetic Bodies | 2D physics for any layer; `OverlapBegin/Stay/End` and `Hit` events for Blueprints | 90, 64.1, 72, 45 | 📋 |
 
-### 5.1 Execution Order (v2.1)
+### 5.1 Execution Order (v3.1)
 
-Follow this order, not the phase numbers. Phases on the same line can run in parallel.
+Follow this order, not the phase numbers. Phases on the same line can run in parallel. v3.0 and v3.1 additions are in **bold**.
 
 | Stage | Order | Why this order |
 |---|---|---|
-| **1 · Foundation** | 41 → 3 → 4 · then 5 ∥ 6 ∥ 42 · then 43 → 44 *(actual: 3 then 4 ran first, in that order, and shipped 41.2 transactions; 41.1/41.3 follow)* | Transactions (41) must exist before undo is rebuilt on them (3). Geometry and property paths (42) must exist before the motion primitives (7) are written against them. |
-| **2 · Motion core** | 7 → 46 → (8 ∥ 9) → 45 ∥ 48 → 10 → (11 ∥ 12 ∥ 13) · 47 after 9 · 56 after 45 | The time model (46) is part of the document the rules and kernel read. The clock (45) and the renderer (48) are what the adapters (10) run on. |
-| **3 · Engines** | 14 ∥ 15 ∥ 16 ∥ 17 ∥ 18 ∥ 19 | Unchanged. |
-| **4 · Studio** | 49 → 20 → (21 ∥ 22 ∥ 50) · 52 → 23 → 53 · 51 · 24 → 25 → 26 · 54 any time after 3 | The viewport engine (49) replaces the stage foundation Phase 20 assumed. The AE workspace (52) is the container that the Phase 23 keyframing lives in. |
-| **5 · Output** | 27 → (28 ∥ 29) · 55 | The render queue (55) can start once 45 and 48 are done. |
-| **6 · AI** | 30 → 31 → (32 ∥ 33 ∥ 34) | Unchanged. |
+| **1 · Foundation** | 41 → 3 → 4 · then 5 ∥ 6 ∥ 42 · then 43 → 44 *(actual: 3 then 4 ran first, in that order, and shipped 41.2 transactions; 41.1/41.3 follow)* · **80.1 (threat model) any time** | Transactions (41) must exist before undo is rebuilt on them (3). Geometry and property paths (42) must exist before the motion primitives (7) are written against them. The threat model is cheap, and it shapes every later boundary. |
+| **2 · Motion core** | 7 (**with 7.5**) → 46 → (8 ∥ 9) → 45 ∥ 48 → 10 → (11 ∥ 12 ∥ 13) · 47 after 9 · 56 after 45 · **59 right after 45 and 48 · 60 after 59 and 47 · 12 after 60 · 71 after 59** | The time model (46) is part of the document the rules and kernel read. The clock (45) and the renderer (48) are what the adapters (10) run on. **Signals (59) are the scheduler's input phase, and behaviours (12) become binding presets over them, so 59–60 land before 12. The GPU harness (71) needs input tapes (59).** |
+| **3 · Engines** | 14 ∥ 15 ∥ 16 ∥ 17 · **61 (its gate needs 71) → (62 ∥ 63 ∥ 65 ∥ 66) → 64 · 18 and 19 after 61** *(19 closes on 61–63)* | **No engine may create a GPU context before the compositor exists (Surface Budget Law). Vertical slice first:** as soon as 60, 61 and 62 work, ship one interactive background end to end (engine spec §16) before widening. |
+| **3.2 · Kinetic composition (v3.1)** | **88 right after 60 · 17.1, then 89 · 90 after 89 · 91 after 90, 64.1 and 72** | **Helpers, pins, splits, clones and effectors need no GPU, so the reference build's *engine* (engine spec §12.7, effector form) can be demonstrated as a scripted Playground scene as soon as the motion core and the text splitter exist. (v3.2) The *no-code journey* also needs the studio canvas and inspector (49, 20, 22) and the rules UI (73), so it is proven at Journey E (58.6), after Stage 4. The physics form (91) waits for the Blueprint model (72), which provides its contact events.** |
+| **3.5 · Effects as data & logic** | **67 after 62 · 72 after 11 and 60, then (73 ∥ 74); 74's compiler after 27 · 80.2, then 68** | **Effects become data before the library is built on them. Blueprints drive states and compositions, so they follow 11. Untrusted code needs its sandbox first.** |
+| **4 · Studio** | 49 → 20 → (21 ∥ 22 ∥ 50) · 52 → 23 → 53 · 51 · 24 → 25 → 26 · 54 any time after 3 · **25's waves 7–9 after 63–67 · 26 with 84's tiers** | The viewport engine (49) replaces the stage foundation Phase 20 assumed. The AE workspace (52) is the container that the Phase 23 keyframing lives in. |
+| **5 · Output** | 27 → (28 ∥ 29) · 55 · **69 after 27 and 67** | The render queue (55) can start once 45 and 48 are done. |
+| **6 · AI** | 30 → 31 → (32 ∥ 33 ∥ 34) · **70 after 31, 62, 63, 67 and 71 · the AI route goes public only after 80.3 and 82.1** | Unchanged, plus the effect author. |
 | **7 · Draw** | 35 → 36 → (37 ∥ 38) → 39 | Unchanged. 35 now draws on the Phase 49 overlay. |
-| **8 · Release** | 57 → 58 → 40 | Retire legacy paths, prove the studio journeys, then the release gate. |
+| **8 · Release 1 (beta)** | **80 ∥ 82 ∥ 84 ∥ 85** · 57 → 58 → 40 | **Security, operations, device coverage and licensing are beta prerequisites, not post-launch chores.** Then retire legacy paths, prove the studio journeys, and run the release gate. |
+| **9 · Release 2 (Sites)** | **75 → (76 ∥ 77) → 78 → 79 · 81 → 83 · then 86** | **Components come first: sections, pages and content are all built from them.** |
+| **10 · Release 3 (Apps)** | **87, then its own roadmap** | **No Release 3 work is planned in detail until the After track is audited.** |
+
+**Critical path to the first interactive effect** (the pitch, demonstrable before the full studio):
+1. 7 (with 7.5), then 46, then 8 ∥ 9.
+2. 45 ∥ 48.
+3. 59, then 60, then 10.
+4. 71 ∥ 61, then 62.
+5. The vertical slice: one cursor-reactive shader background, scrubbed with a tape, exported, parity-checked, with reduced motion, on a phone.
+
+**(v3.1) Critical path to the first composed interaction** (the reference build: letters flee an invisible cursor circle, engine spec §12.7):
+1. Steps 1–3 above (the motion core, signals and bindings, adapters).
+2. 88 (helpers, pins, follow), then 17.1 (the splitter), then 89 (Split into real layers), then 90 (Keep-Out effector). This is the effector form as a scripted demo, with no GPU needed. (v3.2) It uses 7.6's shape primitives and 9.1's perceptual springs.
+3. 72 (overlap events in the Blueprint vocabulary), then 91 (colliders and bodies). This is the physics form, authored as a Blueprint rule.
+4. (v3.2) For the no-code journey, add 49 → 20 → 22 (canvas, tools, inspector) and 73 (Simple rules). Journey E (58.6) and the composition suite (91.7) prove it.
 
 ---
 
@@ -464,30 +659,135 @@ Bugs found and fixed along the way:
 **Goal:** A formal, complete animation model inside MDM that can express every effect in PRD §5.2.
 **Depends on:** 2
 > **v2.1 amendment:** Also depends on 42. The 7.1 animatable property registry **is** Phase 42's registry, extended with animation metadata; there is no second registry. Sequences (7.2) are placed in compositions (Phase 46), which follows directly.
+>
+> **v3.0 amendment:** The model must also *express* reactive effects (new 7.5): signal bindings, effect surfaces, input tapes and interaction graphs. Tracks X and L then extend the schema instead of migrating it. The gate adds 4 interactive reference effects. Only types and validation land here; their runtimes are Phases 59–74.
+>
+> **v3.2 amendment:** Two additions (gaps G1 and G2 in §4.2):
+> - **7.5 also covers Track K's types:** helper role, pins, tags, components (Follow, Field, Effector, Collider, Body), and Split/Clone group generators with per-piece attributes and overrides keyed by index.
+> - **New 7.6** makes the basic shapes real archetypes early, because the tools (20, 43), shape recognition (36), helpers (88), fields (90) and colliders (91) all build on them.
+>
+> The gate adds the reference build (engine spec §12.7).
 
 ### Sub-Phase 7.1: Property Paths & Value Types
-- [ ] A canonical **animatable property registry**: each path (e.g. `transform.x`, `opacity`, `filter.blur`, `svg.pathD`, `text.charOpacity[i]`, `shader.uniforms.uSpeed`, `scene.camera.fov`) declares its value type (number+unit, colour, path, transform, vector3, quaternion, enum), interpolation method, compositing class (GPU / paint / layout) and default.
-- [ ] Seed it from CONVENTIONS §4 and spec §3 (the property catalogue).
+- [x] A canonical **animatable property registry**: each path (e.g. `transform.x`, `opacity`, `filter.blur`, `svg.pathD`, `text.charOpacity[i]`, `shader.uniforms.uSpeed`, `scene.camera.fov`) declares its value type (number+unit, colour, path, transform, vector3, quaternion, enum), interpolation method, compositing class (GPU / paint / layout) and default.
+- [x] Seed it from CONVENTIONS §4 and spec §3 (the property catalogue).
 
 ### Sub-Phase 7.2: Time-Based Primitives
-- [ ] **Keyframe** (time, value, easing-out, optional hold), **Track** (path + keyframes), **Clip** (tracks + duration + repeat + direction + delay), **Sequence** (clips on a timeline with offsets and staggers).
-- [ ] **Stagger** as a first-class modifier (from: start/end/center/edges/random/index-list; grid distribution; each/amount).
+- [x] **Keyframe** (time, value, easing-out, optional hold), **Track** (path + keyframes), **Clip** (tracks + duration + repeat + direction + delay), **Sequence** (clips on a timeline with offsets and staggers).
+- [x] **Stagger** as a first-class modifier (from: start/end/center/edges/random/index-list; grid distribution; each/amount).
 
 ### Sub-Phase 7.3: State & Trigger Primitives
-- [ ] **State** (a partial property snapshot), **Transition** (from → to, spring or tween, per-property overrides), **Trigger** (PRD §4 list plus `custom` event names).
-- [ ] **Behaviour** primitives: `followPointer`, `magnet`, `tilt`, `proximity`, `springTo`, `inertia`, `noise`, `loop`, `uniformDriver`, each with typed params.
+- [x] **State** (a partial property snapshot), **Transition** (from → to, spring or tween, per-property overrides), **Trigger** (PRD §4 list plus `custom` event names).
+- [x] **Behaviour** primitives: `followPointer`, `magnet`, `tilt`, `proximity`, `springTo`, `inertia`, `noise`, `loop`, `uniformDriver`, each with typed params.
 
 ### Sub-Phase 7.4: Effect Definitions
-- [ ] The **Effect** type: props schema + internal layer template + behaviours/clips + engine routing hints + reduced-motion variant + performance class (PRD §5.3).
-- [ ] Effect *instances* in a document reference an effect definition by ID and version, and store only the prop overrides.
+- [x] The **Effect** type: props schema + internal layer template + behaviours/clips + engine routing hints + reduced-motion variant + performance class (PRD §5.3).
+- [x] Effect *instances* in a document reference an effect definition by ID and version, and store only the prop overrides.
 
-**Verification Gate:** Each of these 12 reference effects can be *expressed* as a valid MDM document with no escape hatches: split-text reveal, magnet button, 3D tilt card, aurora shader background, stroke-draw logo, path morph icon, scroll-parallax image, dock magnification, count-up, click spark, orbiting 3D object, state-machine toggle. (Validator passes; review checklist signed.)
+### Sub-Phase 7.5: Reactive, Surface & Graph Primitives (v3.0, types only)
+- [x] Schema types for:
+  - `Binding`: `signal |> operators -> target`, with blend and guard (engine spec §3.3).
+  - `Surface`: role, program reference, fallback chain, cost tier.
+  - `InputTape`: recorded or authored signals over time.
+  - Interaction `Graph`: nodes, typed exec/data pins, wires, variables, custom events (Phase 72).
+  - The effect-instance fields Phase 67 needs: seed, binding overrides.
+
+  They are validated, versioned and exported to JSON Schema like every MDM entity (Phase 2.1).
+- [x] Behaviour primitives (7.3) are recorded as named binding presets over these types, so there is one reactive model, not two.
+- [x] **(v3.2) Track K types:**
+  - `render.role` (content | helper);
+  - pins (presets and custom, layer-local);
+  - tags;
+  - the component attachments Follow, Field, Effector, Collider and Body, with their parameters;
+  - Split and Clone group generators: source, mode, per-piece attributes `index`, `count`, `lineIndex`, `wordIndex`, `char`, `u`, `v`, `home`, `random`, and overrides keyed by index and character.
+
+  All are types and validation only; the runtimes are Phases 88–91.
+
+### Sub-Phase 7.6: Shape Primitives (v3.2)
+- [x] Parametric shape archetypes in the registry (42's `properties.ts` and `registry.ts`):
+  - **rectangle** (corner radii);
+  - **ellipse** (a circle when width = height);
+  - **line** (caps, arrowheads);
+  - **polygon** (sides);
+  - **star** (points, inner radius);
+  - **arrow**.
+
+  Each has its property paths (fill, stroke, dash and the shape's own parameters), legal states and a grammar mapping to 3.E.2 (SVG/Vector). Render definitions come with 48, and export with 27.
+- [x] These are what the O/R/L tools create (20.4, 43.2) and what shape recognition produces (36.2). Colliders and fields (90, 91) derive their shape from them: an ellipse gives a circle or ellipse collider, a rectangle a box.
+
+**(v3.2) Gate addition:** the reference build (engine spec §12.7) is expressible as a valid document: a helper ellipse with a Follow on its bottom-centre pin, a Split group of letters, and the two interaction rules.
+
+**Verification Gate:** Each of these 12 reference effects can be *expressed* as a valid MDM document with no escape hatches: split-text reveal, magnet button, 3D tilt card, aurora shader background, stroke-draw logo, path morph icon, scroll-parallax image, dock magnification, count-up, click spark, orbiting 3D object, state-machine toggle. **(v3.0) So can 4 interactive ones:** a cursor-reactive shader background, a dot field with a click shockwave, a fluid splash cursor, and "hovering the CTA intensifies the background, clicking it bursts particles" (cross-layer binding plus an interaction graph). (Validator passes; review checklist signed.)
+
+### Phase 7 Progress Log
+**2026-09-26: ✅ Phase 7 complete. CI green on PR #13** (`verify`, `e2e` in Chromium, Firefox and WebKit, and `export-harness`, on both the push and pull_request runs). No CI round-trip was needed: the one issue the browser gate could catch (the legacy Sequencer writing string keyframe values) was found and fixed locally before the push. The gate's review checklist (`audit/phase7-gate-checklist.md`) awaits the reviewer's signature.
+
+**Implementation notes (written before CI):** This is types and validation only; the runtimes are later phases. The design choices are in `decisions/0004-motion-primitives.md`.
+
+- **Schema v4**: nine new top-level collections (sequences, transitions, bindings, surfaces, inputTapes, graphs, effects, components, generators) and `Layer.pins`/`tags`. `migrations/v3-to-v4.ts` is chained into `loadDocument` (v1 → v2 → v3 → v4) and reports every change. Deleting a layer cascades to everything that belongs to it or points at it (`removeLayerDependents`); a Split group that loses a piece is detached and re-indexed. Cross-entity checks live in `references.ts`.
+- **7.1** (`properties.ts`): every path declares an `interpolation` derived from its value type (`numeric`, `color`, `path`, `clipPath`, `vector`, `slerp`, `gradient`, `discrete`).
+  - The CONVENTIONS §4 discrete paths (`media.src`, `media.objectFit`, `background.blendMode`) are keyframeable as holds. This closes 42's open question.
+  - Declared ranges are checked, and a `typed` flag type-checks layer values for every path added from v4.
+  - State snapshots and keyframes are type-checked against their property.
+  - New paths: `render.role`, `content.counter.*` (count-up), `svg.strokeLinecap`/`Linejoin`, and the shape parameters.
+- **7.2** (`motion.ts`):
+  - an easing grammar (`parseEasing`) that accepts every easing literal in `src/` (a test scans for them);
+  - keyframe `hold`, keyframes sorted by time within the clip (two at one time are an instant jump), and a keyframe's `ease` is the segment ending at it;
+  - first-class **Stagger**: `each` or `amount`, `from` start/end/center/edges/random or an index list, grid, ease, seed, and targets (children, split or tag);
+  - clip `direction`, `repeatDelay` and custom `event`;
+  - **Sequence** (clips with offsets and a stagger).
+- **Write boundary:** the store types every keyframe value it writes by its property (`"20px"` → 20; unreadable → the default) and extends a clip to cover its last keyframe. So the legacy Sequencer (retired in 23/57), which wrote `"default"`/`"20px"` strings, keeps producing valid documents. The browser gate (Phase 3 persistence) caught this.
+- **7.3**:
+  - **Transition**: from a state (or `*`) to a state of the same layer, tween or spring, with per-property overrides.
+  - **Springs** are perceptual (`bounce`, `time`; Law 17) or physical.
+  - **Behaviours** have typed params: the PRD's eight plus `proximity`; `shader-uniform` is the roadmap's `uniformDriver`.
+- **7.4** (`effect-definition.ts`, `effects.ts`):
+  - the **EffectDefinition** format: engine spec §11 plus PRD §5.3, including props with descriptions, at most 7 Simple props, a template validated as a document fragment, surfaces, affordances, default bindings in text form, states, routing, performance class, policies with a reduced-motion variant, poster, export and provenance;
+  - **EffectInstance** (`effectId`, `version`, `propOverrides`, `bindingOverrides`, `seed`), checked against its definition by `validateEffectInstance`.
+- **7.5** (`signals.ts`, `graph.ts`, `effects.ts`, `kinetics.ts`, `behaviour-presets.ts`):
+  - **Binding**: typed signal, operator chain, target, blend, guard and priority, with `parseBinding`/`formatBinding` for the engine spec §3.3 text form, which round-trips. Refusals: `[SIG_LAYOUT]`, undeclared uniforms and params, missing pins, tags, groups, states and variables.
+  - **Surface**: role, program, fallback chain ending in a poster, cost tier, declared uniforms and params, touch and reduced-motion policies. Drawn by the new `effectSurface` archetype.
+  - **InputTape** and the interaction **Graph**: typed exec/data pins, wires, variables and custom events, over the grammar §13.7/§14.6 vocabulary.
+  - Behaviours expand to binding presets (`behaviourToBindings`); `inertia` becomes a draggable body and `loop` a looping clip.
+  - **Track K** (v3.2): `render.role`, pins, tags, Follow/Field/Effector/Collider/Body components, and Split/Clone generators with per-piece attributes and overrides keyed by index and character.
+- **7.6**: rectangle, ellipse, line, polygon, star and arrow archetypes (vector kind, SVG grammar 3.E.2), with their own `shape.*` paths plus the `svg.*` fill, stroke and dash paths.
+- **Gate** (`__tests__/phase7-gate.test.ts`, 21 tests): the 12 reference effects, the 4 interactive ones and the reference build (effector and Blueprint forms) are built in `__tests__/fixtures/reference-effects.ts` and validate with no escape hatches:
+  - no `generic` layers and no free-form object props;
+  - strict Phase 7 entities;
+  - every binding round-trips through its text form;
+  - every document reloads unchanged.
+  
+  The reviewer checklist is `audit/phase7-gate-checklist.md`. `motion-model.test.ts` (21 tests) plants over 50 single mistakes into those documents and checks each is refused with the right message.
+- **Spec gaps found and fixed** (engine spec v1.4 §3, decision 0004 §5):
+  - `pointer.velocity` was used in §12.3 but not defined;
+  - there was no operator to pick one axis of a vec2 (`component(x|y)`);
+  - there was no constant signal (for `spring-to`);
+  - the perceptual `spring(bounce:, time:)` and the single-axis `position(pin, x|y)` were missing.
+- **7.1's illustrative paths, resolved:**
+  - `text.charOpacity[i]` is not an indexed path; per-letter values live on Split pieces (real layers, 7.5), so every piece has ordinary paths;
+  - `shader.uniforms.uSpeed` is a binding target (`L.uniform.uSpeed`) checked against the surface's declared uniforms, not a registry path;
+  - `scene.camera.fov` is the existing `scene3d.camera.fov`.
+- **Known gap, owned by Phase 8:** `effectSurface` uses the `Canvas` grammar type (`TODO(P8)`) until the rules engine compiles grammar §13's 3.F types.
+- Numbers (local): tsc 0 errors; lint 0 errors (446 warnings, unchanged); 731/731 unit tests (+42); `next build`, bundle-scope and doc-link checks green; Playwright 15/15 on Chromium (Firefox and WebKit run in CI).
 
 ---
 
 ## Phase 8: Executable Motion Rules Engine
 **Goal:** `lazylayout_element_grammer.md` and the animation spec become one executable rule table that the UI, AI and export all consult.
-**Closes:** AUD-06 · **Depends on:** 7
+**Closes:** AUD-06, AUD-47 (routing half), AUD-52 · **Depends on:** 7
+> **v3.0 amendment:** Three changes.
+> - **8.1 grows.** It adds the grammar v0.2 content (the Reactive category, the 3.F effect-surface types, rules 6.9–6.16) and the effect rule families of `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md` §10: budgets, touch parity, reduced-motion policy, flash and dynamic-contrast sampling hooks, target stability, determinism, export and licensing.
+> - **8.3 never routes to GSAP by default.** GSAP's Standard License prohibits its use in tools that build visual animations without code and compete with Webflow (checked 2026-09-26, `LICENSES.md` GATE-01). GSAP stays an opt-in export target behind that gate. Routing also chooses **surfaces** (CSS, SVG, Canvas 2D, WebGL2, WebGPU, poster) by capability and cost.
+> - **New 8.5** reconciles the grammar and the engine spec before anything is compiled.
+>
+> **v3.3 amendment: GPU only where needed** (FX-PERF-07, engine spec §7.8). 8.3's routing tries backends from lightest to heaviest and stops at the first that can express the effect:
+> 1. CSS/DOM;
+> 2. SVG;
+> 3. Canvas 2D;
+> 4. WebGL2 through the minimal 2D helper;
+> 5. three.js, for real 3D only and loaded lazily.
+>
+> The inspector explains the choice ("runs on CSS transforms, so it needs no GPU"). A Pro override is allowed and its memory and battery cost is shown.
 
 ### Sub-Phase 8.1: Rule Table
 - [ ] `src/core/rules/`: data-driven rules (not `if` chains) for **compatibility** (layer kind × property path × trigger × behaviour), **conflicts** (Single Transform Authority, one owner engine per property per layer, priority arbitration from spec §5), **performance** (layout-triggering paths, filter cost) and **accessibility** (reduced-motion requirements, flashing limits of ≤ 3 flashes/second).
@@ -504,7 +804,18 @@ Bugs found and fixed along the way:
 - [ ] The "+" (add) menus, the drop targets and the property enablement **only** render `rules.canAdd` results (grammar §8, "the + icon is a query").
 - [ ] Remove every ad-hoc compatibility check from `src/editor/**` (tracked by grep for known patterns).
 
-**Verification Gate:** Grammar §9's full compatibility matrix is converted into a table-driven test (every cell asserted). The Playwright test "try to add an illegal animation" shows the disabled item with a reason. Zero compatibility logic remains in editor components (lint rule or grep gate).
+### Sub-Phase 8.5: Source Reconciliation (v3.0)
+- [ ] Resolve every contradiction between the grammar and the engine spec §7/§13 before compiling the table (AUD-52):
+  - Badge: Hover and StateTransition are allowed/blocked the opposite way round in the two sources.
+  - Spinner: Ambient-only with 1 track, versus 2 tracks with Entrance/Exit.
+  - Track caps for Link, Avatar and Container.
+  - Container's Press.
+  - The spec's undefined Table/List/Chart types.
+
+  The grammar wins. The spec's per-type tables (§7) are regenerated from the rule table, so the two can't drift again.
+- [ ] Grammar §13.5–§13.6 (the Reactive column and the 3.F rows) join the table-driven test.
+
+**Verification Gate:** Grammar §9's full compatibility matrix is converted into a table-driven test (every cell asserted), **(v3.0) together with the §13.5–§13.6 cells**. The Playwright test "try to add an illegal animation" shows the disabled item with a reason. Zero compatibility logic remains in editor components (lint rule or grep gate).
 
 ---
 
@@ -512,9 +823,21 @@ Bugs found and fixed along the way:
 **Goal:** A pure function gives the exact value of any animated property at any time, for any inputs. It is the oracle for preview, export parity, AI verification and scrubbing.
 **Depends on:** 7
 > **v2.1 amendment:** Also depends on 46. The signature becomes `evaluate(doc, compositionId, layerId, t, inputs)`, and it honours composition time (in/out, stretch, remap, nesting). Links and expressions (47) and parenting (51.2) are added to the composition order as they land. It replaces `interpolateTrackValue` in `MotionSequencer.tsx`, which ignores easing.
+>
+> **v3.0 amendment:** `inputs` becomes an **input tape** (59.3) plus the instance seed.
+> - **Composition order.** Signal bindings (60) are evaluated after behaviours and before the Single Transform Authority synthesis. That synthesis now consumes blended channels (grammar rule 6.9).
+> - **Stateful layers.** Simulations, particles and stateful operators are evaluated by deterministic replay from the nearest snapshot (Deterministic Replay Law; Phase 64 and its decision 0006). So `evaluate()` stays a pure function of `(doc, composition, layer, t, tape, seed)`.
+>
+> **v3.2 amendment:** Springs are authored by feel, not physics constants (Law 17, gap G3). 9.1 adds **perceptual springs**: **Bounce** (0–100%) and **Time** (how long it takes to settle visually). Every spring in the product (states, follow lag, home springs, bodies) is edited this way in Simple mode.
 
 ### Sub-Phase 9.1: Easing & Physics Library
 - [ ] One library: cubic-bezier (with the solver from the v1.1 TS spline code), named eases (the GSAP-compatible set), `steps()`, CSS `linear()` curves, and **analytic springs** (under-, critically- and over-damped) with velocity handoff.
+- [ ] **(v3.2) Perceptual springs.** `spring(bounce, time)` converts exactly to stiffness, damping and mass:
+  - damping ratio = 1 − bounce, so 0% bounce is critically damped;
+  - natural frequency from time;
+  - the constants are pinned here, and checked against Motion's `bounce`/`visualDuration` so a Motion export feels the same.
+
+  Named feels ship with it: **Snappy, Smooth, Bouncy, Lazy**. Simple mode never shows stiffness or damping; Pro mode shows both views.
 - [ ] Converters between engines: spring → CSS `linear()` (reuse `AnimationLoweringCompiler`), spring → Motion config, ease → GSAP string, ease → WAAPI easing.
 
 ### Sub-Phase 9.2: Interpolators
@@ -533,6 +856,13 @@ Bugs found and fixed along the way:
 **Goal:** The stage *runs* the chosen engines, and the timeline playhead seeks them. What you see is what you export.
 **Closes:** AUD-09 · **Depends on:** 8, 9
 > **v2.1 amendment:** Also depends on 45 and 48. Adapters are driven by the Phase 45 frame scheduler (not their own rAF loops) and write through the Phase 48 `LayerNodeRegistry` (not `postMessage`).
+>
+> **v3.0 amendment:** Three more adapters join as their phases land:
+> - `SurfaceAdapter`: GPU and Canvas surfaces through the Phase 61 compositor. It replaces the separate `ThreeAdapter`/`ShaderAdapter` contexts named in 10.1.
+> - `SignalAdapter`: bindings (60).
+> - `BlueprintAdapter`: interaction graphs (74).
+>
+> The in-editor `GsapAdapter` is blocked by the licence (see Phase 14's v3.0 amendment). Scrubbing a stateful layer uses replay (64.3), not a seek.
 
 ### Sub-Phase 10.1: Adapter Interface
 - [ ] `EngineAdapter { mount(layer, el), play(), pause(), seek(t), setInputs(inputs), dispose() }` plus capabilities (`canSeek`, `canReverse`, `supportsPaths`).
@@ -575,6 +905,12 @@ Bugs found and fixed along the way:
 ## Phase 12: Pointer, Physics & Reactive Behaviours
 **Goal:** The continuous, reactive motion behind most premium effects (magnet, tilt, spotlight, trails).
 **Depends on:** 10
+> **v3.0 amendment:** Also depends on 59 and 60. Most of this phase is now delivered by Track X:
+> - 12.1 (the input system and mappers) is Phase 59 (the Input Bus and tapes) plus Phase 60 (operators and bindings).
+> - 12.3's pointer recording is 59.3's input tape.
+> - 12.2's rigid-body mode moves to 64.2.
+>
+> Phase 12 keeps 12.2's DOM behaviours. They are implemented as **binding presets with affordances** (engine spec §9), so the Reactivity card can offer them. The gate is unchanged.
 
 ### Sub-Phase 12.1: Input System
 - [ ] Normalised inputs per layer: pointer local/global position, velocity, distance, angle, in-bounds; scroll progress; visibility ratio; device tilt (where permitted); time.
@@ -616,7 +952,14 @@ Bugs found and fixed along the way:
 
 ## Phase 14: GSAP Integration (License-Gated)
 **Goal:** GSAP as a real preview engine and export target, legally cleared.
-**Closes:** AUD-09 (GSAP half), AUD-28 · **Depends on:** 10, 6
+**Closes:** AUD-09 (GSAP half), AUD-28, AUD-47 (licence half) · **Depends on:** 10, 6
+> **v3.0 amendment:** The licence question is now sharper. GSAP's Standard License (checked 2026-09-26) defines Prohibited Uses as "any implementation and/or use of GSAP Products in tools that allow users to build visual animations without code that encourages, induces, or materially assists in creating a solution that competes with Webflow's visual animation building capabilities". LazyLayout is such a tool. So:
+> - **14.2 (an in-editor `GsapAdapter`) is blocked** unless Webflow gives written consent.
+> - **No default route (8.3) and no library effect (25) may require GSAP.** The preview and the default exports use WAAPI, Motion and LazyLayout's own sequencing and runtime (69).
+> - **GSAP stays an opt-in export target while GATE-01 is open.** 14.1's inquiry should ask about that explicitly.
+> - **User code components that bundle GSAP** (68) are tracked under GATE-03.
+>
+> The gate's "10 GSAP-routed reference animations" become 10 animations whose *optional* GSAP export passes parity.
 
 ### Sub-Phase 14.1: License Gate
 - [ ] Send the licensing inquiry (spec §11.3 draft). Record the answer in `LICENSES.md`.
@@ -675,6 +1018,10 @@ Bugs found and fixed along the way:
 ## Phase 17: Typography & Text Motion Engine
 **Goal:** The text effects that dominate premium motion libraries, done accessibly.
 **Depends on:** 10
+> **v3.1 amendment:**
+> - **17.1's splitter is the engine under Phase 89's one-click Split.** It must expose, per grapheme, its measured position and its line, word and character indices, because Split turns each piece into a real layer with a `home`.
+> - **Priority.** 17.1 should land early in Stage 3, since the reference build (§5.1, v3.1 critical path) waits on it.
+> - **Per-piece tracks** (17.2) and per-piece layers (89) are one model. A track on piece *n* of a split group is a track on that piece layer.
 
 ### Sub-Phase 17.1: Accessible Splitting
 - [ ] Split by character, word and line (line detection re-runs on resize). The container keeps an `aria-label` with the full text and the split pieces are `aria-hidden`.
@@ -693,6 +1040,16 @@ Bugs found and fixed along the way:
 ## Phase 18: Three.js / React-Three-Fiber Engine
 **Goal:** Real WebGL 3D layers inside the 2D document.
 **Closes:** AUD-11 · **Depends on:** 10, 5
+> **v3.0 amendment:** Also depends on 61.
+> - **Contexts.** 18.1's "R3F canvas per `scene3d` layer" is replaced by rendering through the Phase 61 compositor (Surface Budget Law): 3D layers share contexts within the budget, and offscreen ones show posters.
+> - **WebGPU path.** It uses three.js `WebGPURenderer` with TSL, which falls back to WebGL2 (three r171+; the project pins r186).
+> - **Pointer.** 18.3's pointer behaviours read signals (59/60).
+>
+> **v3.3 amendment: three.js memory discipline** (engine spec §7.9, FX-MEM-04). three.js is used only for real 3D (§7.8) and loaded lazily.
+> - **One renderer per context,** shared by every 3D layer through the compositor.
+> - **Reference counts and disposal.** Every geometry, material, texture and render target a layer creates is reference-counted in the 61.5 ledger and `dispose()`d when its last user goes. Loader caches for unreferenced assets are cleared: R3F's loader cache and three's own cache.
+> - **Lighter assets.** GLTF uses Draco or meshopt compression. Textures are KTX2/Basis, transcoded in a worker (56). Repeated meshes are instanced. Programs are precompiled asynchronously.
+> - **Gate addition:** the 3D reference effects pass the 61 leak test. Loading and unloading a GLTF 20 times returns `renderer.info.memory` to its baseline.
 
 ### Sub-Phase 18.1: Viewport
 - [ ] R3F canvas per `scene3d` layer, sized to the layer box. Orbit controls in edit mode, a locked camera in play mode, context-loss recovery, and a shared renderer where possible to limit contexts.
@@ -713,6 +1070,12 @@ Bugs found and fixed along the way:
 ## Phase 19: Shader & Canvas Effects Engine
 **Goal:** GPU backgrounds and particle effects (aurora, silk, waves, plasma, particles, noise), editable through props.
 **Depends on:** 10
+> **v3.0 amendment:** Also depends on 61, 62 and 63. Track X builds this phase's sub-phases on a shared engine instead of a one-off shader layer:
+> - 19.1 = 61 (compositor) + 62 (Shader Graph and raw GLSL).
+> - 19.2 = 63 (particles, with Canvas 2D and GPU backends).
+> - 19.3 = 61.3 (tiers, fallbacks, budgets).
+>
+> Phase 19 closes when its own gate passes on that stack. The gate's 5 shader backgrounds and 3 particle effects become the first members of the library's Wave 7 (25). "Uniforms bound to pointer and scroll" means Phase 60 bindings.
 
 ### Sub-Phase 19.1: Shader Layer
 - [ ] A `shader` layer kind: a fragment shader + uniform schema (typed props) on a full-layer quad (lightweight WebGL, no Three.js required).
@@ -737,6 +1100,8 @@ Bugs found and fixed along the way:
 **Goal:** Direct manipulation that feels like Figma: select, move, resize, rotate, snap, align. This is the foundation for drawing (Track G).
 **Closes:** AUD-19 (selection half), AUD-20 (Tier 1) · **Depends on:** 2, 8
 > **v2.1 amendment:** Also depends on 42, 43 and 49. Handles, guides and marquee draw on the Phase 49 overlay; tools are Phase 43 state machines; a manipulation edits `frame` (42.3) inside one Phase 41 transaction. 20.3's "one artboard" rule is superseded by multi-frame canvases (49.2).
+>
+> **v3.2 amendment:** Also depends on 7.6. The shape tools create 7.6's shape archetypes: O makes an ellipse (Shift for a circle), R a rectangle, and L a line. F (the Frame tool, 43.2) makes containers such as cards. Shift-constrained drawing, and editing shape parameters with on-canvas handles (corner radius, star points), are part of 20.1's transform handles.
 
 ### Sub-Phase 20.1: Selection & Transform
 - [ ] Click, shift-click and marquee selection. Transform handles for move, resize (with aspect lock) and rotate (15° snap with Shift), plus a transform origin handle. All of this writes MDM patches (one undo step per gesture).
@@ -758,6 +1123,11 @@ Bugs found and fixed along the way:
 ## Phase 21: Layers Panel
 **Goal:** A clear, Figma-like layer tree that also shows motion.
 **Depends on:** 20
+> **v3.1 amendment:** The tree also shows Track K structure:
+> - **Helper layers** (88.1) get a dashed icon and a "Show helpers" toggle.
+> - **Split and Clone groups** (89) show their piece count and regenerate indicator, with pieces listed and selectable. "Detach" lives in the context menu.
+> - **Tags** (89.3) appear as chips and can be filtered.
+> - **Component badges** show Follow, Field/Effector, Collider and Body (88–91), next to the motion badges of 21.2.
 
 - [ ] **21.1** Tree with drag reordering and reparenting (validated by `rules.canAdd`), groups, masks, lock and hide, rename in place, multi-select synced with the stage.
 - [ ] **21.2** Motion badges per layer (clip count, state count, behaviour icons, engine icon). Clicking a badge opens that item in the Timeline or the Playground.
@@ -772,6 +1142,13 @@ Bugs found and fixed along the way:
 **Goal:** Replace the dense Unreal-style inspector with progressive disclosure.
 **Closes:** AUD-20 (Tier 2), AUD-21 (panel half) · **Depends on:** 20
 > **v2.1 amendment:** The panel is the **Design** tab of the Phase 44 inspector (Design · Motion · Code). The Simple Motion card and state editing live in the **Motion** tab. Per-breakpoint overrides (50.3) show here.
+>
+> **v3.0 amendment:**
+> - **Design tab.** 22.4 renders an effect's props view-model (67.1) and a code component's inferred controls (68.3).
+> - **Motion tab.** It hosts the **Reactivity card** (60.3) next to the Motion card, and the **Interactions list** (73.1).
+> - **The 7-control Simple limit** applies to each card, not to the whole panel.
+>
+> **v3.2 amendment (Law 17):** The Simple face uses the controls vocabulary of engine spec §13.4 everywhere. A CI label check scans the rendered Simple inspector and fails on technical terms (stiffness, damping, τ, uv, ndc, remap, falloff exponent, restitution). Numeric fields in Simple mode are always paired with a drag handle or a preset.
 
 ### Sub-Phase 22.1: Simple Face
 - [ ] At most 7 controls per selection: position/size, fill, radius, text (if any), and **one Motion card** (current motion + Intensity + Speed + "Change motion…").
@@ -817,6 +1194,15 @@ Bugs found and fixed along the way:
 **Goal:** A focused place to play with, test and tune an animation, like a Storybook for motion.
 **Closes:** AUD-20 (Tiers 3–4) · **Depends on:** 10–13
 > **v2.1 amendment:** Time controls (24.2) are Phase 45 transport controls. The Playground can link to studio time or run its own isolated transport instance.
+>
+> **v3.0 amendment:** The Playground is where interactive effects are tuned. It adds:
+> - Input tapes for every signal (59.3): record your own, or pick "figure-8", "idle" or "fast swipe".
+> - Touch and coarse-pointer simulation.
+> - Device-tier preview (61.3: DPR, resolution, fps cap).
+> - Each effect's reduced-motion policy.
+> - Live signal meters (60.4).
+>
+> 24.4's pointer recording is the 59.3 tape recorder.
 
 - [ ] **24.0** *(moved from Phase 3.1, AUD-05 regression)* A keyframe added in the Sequencer appears in the Playground, and undo removes it there too.
 - [ ] **24.1** Full-screen isolated preview with a **props panel** (effect props and element props as live knobs), state buttons, and trigger buttons (replay mount, simulate hover or press).
@@ -831,7 +1217,20 @@ Bugs found and fixed along the way:
 
 ## Phase 25: Effects Library — "LazyLayout Bits"
 **Goal:** A curated, React Bits-grade library of parametric effects, the fastest path to a premium result.
-**Depends on:** 14–19, 24
+**Closes:** AUD-54 (with 67, 68, 70) · **Depends on:** 14–19, 24
+> **v3.0 amendment:** Also depends on 67 (and on 63–66 for waves 7–9).
+> - **Effects are data.** Every effect is an `EffectDefinition` (67) built from engine modules, with no bespoke per-effect code, so the library scales with design time.
+> - **The Release 1 target rises to ≥ 80 effects.** Waves 1–6 keep their counts. Waves 7–9 add the interactive effects that are the product's pitch: interactive backgrounds, cursors, and image/text distortion.
+> - **25.1's live thumbnails become pre-rendered loops.** They come from the render queue (55), never live GPU contexts (Surface Budget Law).
+> - **Bring your own.** Code components (68) cover what the library doesn't have.
+>
+> **v3.1 amendment: open recipes.** Also depends on 88–91 for the effects they can express. Every library effect that Track K's primitives can build ships as an **open recipe**, not a sealed instance. Inserting it creates the helpers, split or clone groups, effectors, colliders and rules on the canvas, where the user can inspect and change every part (engine spec §16). Examples:
+> - Wave 1's variable proximity and scroll-reveal text;
+> - Wave 2's magnet and cursor trail;
+> - Wave 7's dot and shape grids and magnet lines;
+> - a "text that flees the cursor" recipe (the reference build).
+>
+> Only effects that need a GPU program, such as shader fields and fluid, stay sealed definitions (67), and even those open their graphs in Pro.
 
 ### Sub-Phase 25.1: Library Infrastructure
 - [ ] Effect registry with versioning, categories (PRD §5.2), tags, search, live thumbnails (a looping preview rendered from the Playground scene), and an "insert" action that creates an effect instance.
@@ -848,17 +1247,26 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 - [ ] **Wave 4 — Components (6):** dock magnification, stacked/bounce cards, animated list, infinite/flowing menu, elastic slider, circular gallery.
 - [ ] **Wave 5 — Backgrounds (7):** aurora, silk, waves, dot grid, particles, grain/noise, light rays.
 - [ ] **Wave 6 — 3D (4):** floating object, 3D card flip, GLTF spin showcase, depth-parallax scene.
+- [ ] **(v3.0) Wave 7 — Interactive backgrounds (≥ 20).** At least 15 react to the pointer (follow, bend, repel, ripple, glow) and at least 5 to scroll. They span shader fields, pointer-physics grids, particle fields and simulations (61–64). Every one has a touch behaviour and a reduced-motion policy.
+- [ ] **(v3.0) Wave 8 — Cursor & pointer effects (≥ 10)** (66): followers, trails, liquid splash, blob, target brackets, magnetic snap, image trail, click sparks.
+- [ ] **(v3.0) Wave 9 — Image & text distortion (≥ 8)** (65): hover displacement, pixel and dither transitions, halftone reveal, glass/lens, wave text.
 
 ### Sub-Phase 25.4: Provenance & Licensing
 - [ ] Each effect records its inspiration source and confirms it is an original implementation (the Licensing Gate Law). No third-party effect code is copied.
 
-**Verification Gate:** 41+ effects are listed. For each: the Playground sweep passes, export parity passes (Phase 27), the performance budget passes (Phase 26), and the reduced variant exists. A new user inserts and customises one effect from each category in under 5 minutes (usability script).
+**Verification Gate:** 41+ effects are listed (**v3.0: 80+ including waves 7–9**). For each: the Playground sweep passes, export parity passes (Phase 27; Phase 69 for interactive effects), the performance budget passes (Phase 26, on every Phase 84 tier), and the reduced variant exists. A new user inserts and customises one effect from each category in under 5 minutes (usability script), **(v3.0) and makes an interactive background react to the cursor in under 2 minutes**.
 
 ---
 
 ## Phase 26: Motion Performance Lab
 **Goal:** Measured, enforced smoothness, replacing the Node-timed "60 FPS guarantee".
 **Closes:** AUD-13 · **Depends on:** 10, 4
+> **v3.0 amendment:** Budgets are per **device tier** (84), not measured on one reference laptop.
+> - **GPU work is traced:** draw calls, GPU time where the browser exposes it, the live context count, and context losses.
+> - **Interactive effects run under input tapes**, with a 10-minute soak for thermal throttling.
+> - **(v3.3) Memory joins every budget:** peak ledger bytes (61.5), texture and render-target sizes, and JavaScript heap growth. The regression gate (26.4) fails an effect that exceeds its tier's memory budget, the same way it fails on frame time.
+> - **26.3's shader resolution scaling** is 61.3's frame-time controller.
+> - **Hand-offs to Phase 29:** flash-rate and dynamic-contrast sampling (engine spec FX-A11Y-03/04) reuse this harness.
 
 - [ ] **26.1** Browser benchmark harness (Playwright + Chrome DevTools Protocol tracing): real frame times, dropped frames, long tasks, layout/paint counts, GPU memory estimate. A reference device profile is recorded.
 - [ ] **26.2** Per-animation performance class from the rules (Phase 8) verified against traces: GPU-only animations must show no layout during play.
@@ -877,6 +1285,12 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 **Goal:** The PRD §10 export promise, proven by builds and pixels.
 **Closes:** AUD-15, AUD-16 · **Depends on:** 4, 10–19
 > **v2.1 amendment:** React output is generated from the Phase 48 render definitions (One Renderer Law), so the stage and the export render the same components. Responsive output (50.5) and compositing output (51) join the export matrix when those phases land.
+>
+> **v3.0 amendment:** Two more things join the export matrix:
+> - **Interactive effects** export through Phase 69: a vendored runtime, poster-first client components, a Web Component and an embed script.
+> - **Interaction graphs** export through Phase 74's compiler.
+>
+> Default exports never require GSAP (Phase 14 v3.0 amendment). 27.2's `README.md` lists GSAP only when the user opted in to the GSAP target.
 
 ### Sub-Phase 27.1: Export Architecture
 - [ ] Exporters consume **MDM + routing decisions** (not UI state). The per-engine code generators move here from the runtime (`MultiEngineAnimationRuntime` code-gen, `GSAPAnimationEmitter`, the React emitters).
@@ -901,6 +1315,10 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 28: Additional Targets & Component Registry
 **Goal:** Reach beyond React, and make effects installable like shadcn/React Bits components.
 **Depends on:** 27
+> **v3.0 amendment:**
+> - **Registry items** for interactive effects include the vendored runtime modules they need (69.1) and their licence notices (85.2).
+> - **Web Component.** 28.1's Web Component target is shared with 69.2's custom element.
+> - **Hosted endpoint.** The hosted registry endpoint serves only LazyLayout's own original effects, never user-imported code components (GATE-03).
 
 - [ ] **28.1** Vue 3 SFC (reuse `VueComponentEmitter`), vanilla HTML/CSS/JS as a **Web Component** (reuse `VanillaHtmlEmitter`), and **CSS-only** export when the rules say the animation is CSS-expressible.
 - [ ] **28.2** Registry export: shadcn-compatible registry JSON per effect. Hosted registry endpoint (a static JSON route) so `npx shadcn add <url>` style installs work. Copy-as-snippet.
@@ -913,6 +1331,16 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 29: Accessibility & Reduced Motion
 **Goal:** Every animation is safe and inclusive, in the editor and in exports.
 **Closes:** AUD-14 · **Depends on:** 17, 27
+> **v3.0 amendment:** Adds the rules for continuous and interactive effects (grammar 6.11–6.15, engine spec §10.3):
+> - **A reduced-motion policy per effect:** freeze, calm or off.
+> - **A pause mechanism** for auto-playing motion that runs longer than 5 s alongside other content (WCAG 2.2.2). Exports ship a pause control and a page-wide `data-motion="paused"` switch.
+> - **Flash detection** on sampled frames of GPU effects under an aggressive input tape (WCAG 2.3.1).
+> - **Dynamic contrast** for text over animated backgrounds, with text-safe masks.
+> - **Target stability** for interactive elements under reactive motion.
+> - **Keyboard and focus parity** for informative reactions.
+> - **Cursor-layer safeguards.**
+>
+> The gate's "no spatial movement" run adds pointer tapes, so reactive displacement is checked too.
 
 - [ ] **29.1** Each animation carries a reduced-motion variant (auto-generated per spec §9: strip translate/scale/rotate and keep opacity/colour; stop loops; disable scroll scrub), editable in Pro.
 - [ ] **29.2** Exports include `prefers-reduced-motion` handling for every engine (CSS media query, Motion `useReducedMotion`, `gsap.matchMedia`, shader pause).
@@ -930,6 +1358,10 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 30: LLM Integration Layer
 **Goal:** A real, safe, schema-constrained connection to a large language model.
 **Closes:** AUD-17, AUD-18 · **Depends on:** 2, 8
+> **v3.0 amendment:**
+> - **Going public.** The AI route can be built any time after 2 and 8. It is exposed to the public internet only after 80.3 (authentication, authorisation, rate limits, prompt-injection handling) and 82.1 (error reporting). Per-user quotas and billing arrive with 83 in Release 2.
+> - **Model.** When this phase starts, re-check the 30.2 model constant against the current Claude model lineup. The PRD's default predates later releases, and the constant exists exactly so that this is a one-line change.
+> - **Tool schemas.** They also cover bindings (60), effect graphs (62/63/67) and interaction graphs (72).
 
 ### Sub-Phase 30.1: Server Boundary
 - [ ] A Next.js route handler (`src/app/api/ai/*`, per Next 16 docs) calls the Claude API through the official `@anthropic-ai/sdk`. The key lives in server environment variables; the browser never sees it.
@@ -956,6 +1388,10 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 31: AI Builder — Prompt → Motion Document
 **Goal:** "Describe it" produces a complete, editable first version.
 **Depends on:** 30, 25
+> **v3.0 amendment:**
+> - **Planner.** The planner (31.1) can pick interactive effects by **affordance** ("a background that follows the cursor") and add interaction rules (72).
+> - **Ghost diffs.** Bindings (60) and graph patches (72) arrive as ghost diffs like layer patches (31.2).
+> - **New effects.** Creating a *new* effect from scratch is Phase 70; 31 composes existing ones. Co-pilot edits (32.1) cover reactions too ("make it react less on mobile").
 
 - [ ] **31.1** Planner step: the model first chooses layers, library effects (preferred over from-scratch motion when they fit) and motion intent. Then a builder step emits patches.
 - [ ] **31.2** Streaming **ghost diff** on stage and timeline (reuse the `DiffPreview.tsx` pattern). Accept all, accept per layer, or discard.
@@ -982,6 +1418,12 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 33: AI Quality — Evals & Visual Self-Check
 **Goal:** Measure and improve the AI instead of guessing.
 **Depends on:** 31, 4
+> **v3.0 amendment:** The eval set adds three categories:
+> - **Interactive effects and reactions:** at least 40 prompts, shared with Phase 70's gate.
+> - **Interaction rules and graphs:** at least 20 prompts.
+> - **Cost.** Cost per task feeds Phase 83's metering.
+>
+> The visual self-check (33.2) renders reactive effects under input tapes (71), not only at sampled times.
 
 - [ ] **33.1** An eval set of ≥ 150 prompts across the categories (text, interaction, SVG, components, backgrounds, 3D, edits, fixes, sketches), each with graded expectations.
 - [ ] **33.2** Visual self-check: render the proposed result at sampled times (Phase 4 harness) and check it against the intent (a second model call with the images, used as a grader in evals and optionally at runtime for complex builds).
@@ -1027,6 +1469,7 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 36: Shape Recognition & Beautification
 **Goal:** Draw an oval and get a perfect ellipse. Draw a wobbly line and get a straight line. Instantly, locally, with an undo-style choice.
 **Depends on:** 35
+> **v3.2 amendment:** The "proper parametric layers" of 36.2 are 7.6's shape archetypes. This phase recognises shapes; it no longer defines them.
 
 ### Sub-Phase 36.1: Recognisers (local, < 50 ms)
 - [ ] **Line:** total-least-squares fit plus a straightness ratio (endpoint distance / path length).
@@ -1088,6 +1531,10 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 39: Simple Mode & Guided Flow
 **Goal:** Someone who has never animated anything makes something beautiful in three steps.
 **Closes:** AUD-21 · **Depends on:** 22, 25, 37
+> **v3.0 amendment:** Also depends on 60.
+> - **Step 2 becomes "Make it move and react".** It shows the motion cards plus the **Reactivity card** (60.3), listing the selected effect's affordances (Cursor → Bend, Scroll → Fade, Touch → Drift).
+> - **"Start from an effect"** includes interactive backgrounds and cursors (Waves 7–8).
+> - **Step 3** offers "Copy React component" and "Copy embed code" (69.3).
 
 ### Sub-Phase 39.1: New Start Screen
 - [ ] Replaces the v1.1 launcher's "choose framework / styling / engine" steps with three big choices: **Describe it** (prompt), **Draw it** (canvas in draw mode), **Start from an effect** (library gallery). Tech choices move to export (PRD §1.3).
@@ -1266,7 +1713,12 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 
 ## Phase 45: Transport, Global Clock & Frame Scheduler
 **Goal:** One clock for the whole studio, with per-frame work outside React.
-**Closes:** AUD-30, AUD-38 · **Depends on:** 9, 41 · **Runs before:** 10, 23, 24, 52
+**Closes:** AUD-30, AUD-38 · **Depends on:** 9, 41 · **Runs before:** 10, 23, 24, 52, 59
+> **v3.0 amendment:**
+> - **Input phase.** 45.2's **input** phase is Phase 59's Input Bus.
+> - **Render phase.** A **render** phase for the GPU compositor (61) is added between apply and overlay.
+> - **Deterministic mode.** Input tapes (59.3) plug into deterministic mode (45.3), so reactive effects scrub and render exactly.
+> - **Exported code.** The same one-loop scheduler ships, in miniature, as the exported `ticker` module (69.1), so exported pages also have one clock.
 
 ### Sub-Phase 45.1: Transport
 - [ ] `src/core/time/transport.ts`: `{ time, playing, rate, loop: "off" | "loop" | "ping-pong", workArea, fps, compositionId }`. Commands: play, pause, seek, step frame, shuttle (J/K/L), set work area.
@@ -1311,7 +1763,11 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 
 ## Phase 47: Property Links, Expressions & Drivers
 **Goal:** The equivalent of AE expressions and Rive data binding: properties that follow other properties, deterministically and safely.
-**Depends on:** 9, 46
+**Depends on:** 9, 46 · **Runs before:** 60
+> **v3.0 amendment:**
+> - **Shared evaluator.** Signal operators (60.1) reuse this parser and evaluator.
+> - **One dependency graph.** Links and bindings share one dependency graph, so `[LINK_CYCLE]` and `[SIGNAL_CYCLE]` come from the same check.
+> - **Links vs bindings.** A link whose source is an input (47.1) *is* a binding. Phase 60 owns inputs; 47 keeps property-to-property links and expressions.
 
 ### Sub-Phase 47.1: Link Model
 - [ ] `Link { target: layer.path, source: layer.path | input | time, map: range | curve | expression }`.
@@ -1358,6 +1814,17 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 49: Viewport Engine — Infinite Canvas, Camera, Hit-Testing & Overlay
 **Goal:** The Figma / Wix Studio canvas: an infinite space with several frames, precise hit-testing, and one overlay layer for all editor chrome.
 **Depends on:** 43, 48 · **Runs before:** 20, 35, 53
+> **v3.0 amendment:**
+> - **GPU surfaces follow 61.4.** Only the focused frame runs live surfaces; other frames and breakpoint copies show their last frame, so a multi-frame canvas never exceeds the context budget.
+> - **Preview mode (49.5)** is where cursor layers (66) and interaction graphs (74) run live. In Design mode, background surfaces are selectable through the overlay's hit-testing even though they have `pointer-events: none` in the rendered page.
+>
+> **v3.1 amendment:** The overlay (49.4) draws Track K's gizmos:
+> - helper outlines (88.1);
+> - pins, which can be dragged to set a follow point (88.2);
+> - field radius and falloff rings (90.3, 90.6);
+> - "Show collision" (91.5): colliders, contacts, normals and velocities.
+>
+> Helpers are hit-testable in Design mode even though they never render in Preview. Kinetic layers (Follow, effectors, bodies) run live only in Preview mode and the Playground.
 
 ### Sub-Phase 49.1: Camera
 - [ ] Document ↔ screen transform: pan, zoom (2%–6400%), zoom to fit / to selection, smooth wheel, trackpad pinch and keyboard zoom. The camera is stored per document in UI preferences. Reuses the `WhiteboardCanvas.tsx` pan/zoom math.
@@ -1406,6 +1873,9 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 51: Layer Compositing — Anchor, Parenting, Blend Modes, Masks & Effect Stacks
 **Goal:** The After Effects layer toolkit, mapped to what the web renders well.
 **Depends on:** 46, 48
+> **v3.1 amendment:** Two pieces are shared with Track K.
+> - **The anchor is a pin.** 51.1's anchor and Phase 88.2's pins share one model: the anchor is the pin used for rotation and scale, and a follow pin may be a different pin on the same layer. Whichever of 51 or 88 lands first builds the model.
+> - **Null layers are helpers.** 51.2's null layers are Phase 88.1's helper layers (`render.role: helper`). Parenting to a helper is how a group of layers follows an invisible driver.
 
 - [ ] **51.1 Anchor point** per layer (`transform-origin`), editable on the canvas.
 - [ ] **51.2 Parenting and null layers.** A layer can follow another layer's transform independently of the DOM tree (AE pick-whip parenting). `evaluate()` composes the transforms; export uses wrapper elements or computed transforms.
@@ -1461,6 +1931,13 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 54: Asset Pipeline & Media Layers
 **Goal:** Real assets (images, SVG, fonts, GLTF, video, audio) stored locally, referenced by the document, and synced to time.
 **Closes:** AUD-37 · **Depends on:** 3, 45
+> **v3.0 amendment:** Media feeds the effects engine in two ways:
+> - Audio layers feed `audio(L).*` signals (59.2), analysed in a worker.
+> - Images, video and fonts are the texture sources of Phase 65.
+>
+> Asset sanitisation follows the Phase 80 threat model. It is the same sanitiser, not a second one.
+>
+> **v3.3 amendment: textures that fit the device** (FX-MEM-02). On import, each image stores downscaled variants for every tier's largest texture edge (1024 / 2048 / 4096 px), and a KTX2/Basis GPU-compressed version made in a worker. Effects upload the variant for the current tier, never the camera original. Decoded `ImageBitmap`s are closed after upload. Video textures update only while visible and playing. Export ZIPs include only the variants the exported effects need.
 
 - [ ] **54.1 Asset store.** Content-hashed blobs in IndexedDB and a `document.assets` manifest (type, hash, name, size, duration). Import by drag-and-drop or paste. SVG and GLTF are sanitised; thumbnails render in a worker. The hard-coded Unsplash defaults in the registry are replaced by bundled sample assets.
 - [ ] **54.2 Files.** `.lazy.json` (Phase 3.3) embeds or links assets; export ZIPs include only referenced assets.
@@ -1474,6 +1951,7 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 55: Render Queue — Video, GIF, Lottie & Image Sequences
 **Goal:** An After Effects-style render queue: motion out as media, not only as code.
 **Depends on:** 9, 45, 48 (54 for audio)
+> **v3.0 amendment:** Reactive effects render from input tapes (59.3), and stateful layers render by replay (64). That makes demo loops, posters (69.3) and library thumbnails (25) deterministic. GPU surfaces are captured through the compositor (61), not by screenshots of live contexts.
 
 - [ ] **55.1 Frame-accurate capture.** The transport runs in deterministic mode one frame at a time. Capture uses headless Chromium (the Phase 4 harness) on the server, or an in-browser path where it is faithful. Record the choice in `decisions/0004-render-capture.md`.
 - [ ] **55.2 Encoders.** MP4/WebM through WebCodecs plus a muxer, GIF with palette quantisation, PNG sequences and poster frames. Settings: resolution, fps, work area only, transparent background (WebM/PNG).
@@ -1487,6 +1965,17 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 56: Workers, Baking & Hot-Path Performance
 **Goal:** The main thread handles input and DOM writes; heavy math runs in workers.
 **Depends on:** 5, 9, 45
+> **v3.0 amendment:** The worker pool also:
+> - steps CPU simulations and particle backends (63/64);
+> - compiles shaders or renders surfaces in `OffscreenCanvas` workers where 61.1's decision allows it;
+> - analyses audio (54);
+> - bundles code components with esbuild-wasm (68.1).
+>
+> 56.4's telemetry feeds 82.2.
+>
+> **v3.3 amendment:**
+> - 56.3's hot-path rules add **no per-frame JavaScript allocations** in effect runtimes: typed arrays and pools, no per-frame closures, arrays or strings (FX-MEM-06). A heap-sampling benchmark guards them.
+> - The pool also transcodes KTX2 textures (54) and decodes and downscales images off the main thread.
 
 - [ ] **56.1 Worker pool** (consolidating `WasmWorkerPool.ts` per the Phase 5 decision) for path-morph matching, arc-length tables, spring baking, spatial-index rebuilds, thumbnails and waveforms.
 - [ ] **56.2 Caches** keyed by content hash (baked curves, path tables), invalidated by document patches.
@@ -1500,6 +1989,11 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 ## Phase 57: Legacy Runtime Retirement
 **Goal:** Delete the parallel systems that Track S replaces: one renderer, one clock, one evaluator.
 **Depends on:** 10, 20, 23, 27, 48, 52
+> **v3.0 amendment:** The 57.3 grep gate also forbids:
+> - creating a WebGL/WebGPU context outside `src/core/fx/**`;
+> - pointer, scroll or wheel listeners outside `src/core/signals/**`;
+> - `Math.random()` and `Date.now()` in effect programs and operators (engine spec FX-DET-01/02);
+> - any `gsap` import in editor code (85.3).
 
 - [ ] **57.1** Remove from the design path: `buildSandboxDocument` / `generateElementMarkup`, `interpolateTrackValue`, the `SANDBOX_HOT_PATCH` design messages, the code generation in `MultiEngineAnimationRuntime.ts` (moved to the exporters in Phase 27), `AnimationSample` (Phase 7), and duplicate transform synthesisers.
 - [ ] **57.2** Split `panels.css` (7,308 lines) per panel and delete unused selectors (Playwright CSS coverage).
@@ -1511,14 +2005,814 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 
 ## Phase 58: Studio Architecture Integration Gate
 **Goal:** Prove the Figma / Wix Studio viewport plus the After Effects timeline end to end, before the release gate.
-**Depends on:** 20–24, 41–57 · **Runs before:** 40
+**Depends on:** 20–24, 41–57 (v3.0: also 69 and 74 for Journey D; v3.1: also 88–91 for Journey E) · **Runs before:** 40
 
 - [ ] **58.1 Journey A (Design):** create two frames, build a card with auto-layout and constraints, override it at the Mobile breakpoint.
 - [ ] **58.2 Journey B (Animate):** a 3-scene intro in the AE timeline with a nested composition, a parent chain, a luma matte, a `wiggle` expression and markers; edit a motion path on the canvas; check the onion skin.
 - [ ] **58.3 Journey C (Output):** export React (parity passes), render MP4 (parity passes), save and reopen the `.lazy.json` file (identical).
 - [ ] **58.4** All three journeys stay inside the Phase 26 performance budgets.
+- [ ] **58.5 (v3.0) Journey D (React):** build a hero with a cursor-reactive background, a magnetic CTA, a cursor effect and one interaction rule (hovering the CTA makes the background glow; clicking bursts particles and flips a card). Scrub it on the timeline with an input tape, open the rule as a Blueprint graph, then export it and check parity (69, 74) on desktop and a mid-tier phone profile (84).
+- [ ] **58.6 (v3.1) Journey E (Compose):** the reference build (engine spec §12.7), from primitives only:
+  1. Draw a circle and make it a helper.
+  2. Make it follow the pointer by its bottom-centre pin, with spring lag.
+  3. Put `LAZYLAYOUT` on a card and split it into letters with one click.
+  4. Add the Simple rule "while the circle overlaps any letter, keep it outside and spin it; when it stops, spring it home".
+  5. Check that no letter is drawn inside the circle at any tape checkpoint.
+  6. Open the rule as a Blueprint graph.
+  7. Export it and check tape parity, the accessibility tree (the string read once) and the touch profile (the circle follows the finger while pressed).
 
-**Verification Gate:** The three journeys pass as Playwright scripts in CI on Chromium, WebKit and Firefox, plus one recorded manual run.
+**Verification Gate:** The three journeys (**v3.0: four, with Journey D; v3.1: five, with Journey E**) pass as Playwright scripts in CI on Chromium, WebKit and Firefox, plus one recorded manual run.
+
+---
+
+# TRACK X — REACTIVE EFFECTS ENGINE (Interactive Backgrounds, Cursors, Particles & Shaders)
+
+> Added in v3.0 after the production-readiness review (§4.2). This track makes the product pitch real: React Bits-grade interactive effects that anyone can add in one step, edit visually, drive with Blueprint logic, and export as production-hardened code. Examples: a background that bends toward the cursor, a cursor that splashes, a grid that ripples on click. The design, grammar and rules are in `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md` (engine spec) and `lazylayout_element_grammer.md` §13. **Follow §5.1 for the order:** 59–60 run inside Stage 2, before Phase 12. 61 runs before 18 and 19.
+
+---
+
+## Phase 59: Signals & Input Bus
+**Goal:** One shared, normalised source for every continuous input (pointer, scroll, view progress, time, audio, device tilt). It is sampled once per frame and can be replayed, so any property or effect can react to it.
+**Closes:** AUD-45 (input half) · **Depends on:** 45, 48 · **Runs before:** 12, 60, 71
+
+### Sub-Phase 59.1: Input Bus
+- [ ] `src/core/signals/inputBus.ts` keeps one passive listener set per frame host (pointer, wheel/scroll, resize, visibility, orientation). It samples them in the scheduler's **input** phase into an immutable per-frame snapshot (Signal Law). A lint rule, like 45.2's `requestAnimationFrame` ban, forbids pointer/scroll/wheel listeners anywhere else.
+- [ ] Coordinate spaces: layer-local, parent, frame and page, each in px, uv (0–1) and ndc (−1…1). They are resolved through `renderer.measure()` (48.4), so a background with `pointer-events: none` still knows where the cursor is over it.
+
+### Sub-Phase 59.2: Signal Catalogue
+- [ ] The typed catalogue from engine spec §4:
+  - `pointer.*`: position, uv, velocity, speed, angle, down, pressure, type, coarse.
+  - Layer signals: `pointer.inside(L)`, `hover(L)`, `press(L)`, `focus(L)`, `proximity(L)`.
+  - `scroll.*` and `view(L).*`.
+  - `time` (transport time only) and `frame.dt`.
+  - `audio(L).*`, from media layers (54).
+  - `device.tilt*`, permission-gated.
+  - `state(S)`, `sm(I)`, `prop(P)`, `var(V)`, `seed`.
+- [ ] Every signal declares its unit, range and default, and what it reports on coarse pointers (touch).
+
+### Sub-Phase 59.3: Input Tapes
+- [ ] An **input tape** records or authors any signal over time; it supersedes 12.3's pointer-only recording. In deterministic mode (45.3), the transport plays tapes, so reactive effects scrub (23.4), render (55) and test (71) identically.
+- [ ] Synthetic sources: autopilot (a seeded wandering pointer), scripted paths, tap sequences, scroll curves.
+
+**Key files:** new `src/core/signals/*`, `src/core/time/*` (input phase)
+**Verification Gate:**
+- **Determinism:** Playwright replays a recorded pointer-and-scroll tape 3 times, and the per-frame signal snapshots are byte-identical each time, in Chromium, Firefox and WebKit.
+- **Performance:** with 200 bound layers, input sampling costs < 0.3 ms per frame (p95).
+- **Grep gate:** no pointer/scroll/wheel listener exists outside `src/core/signals/**` (tests allowlisted).
+
+---
+
+## Phase 60: Signal Bindings & the Reactivity Card
+**Goal:** Wire any signal to any property, uniform or state input through small, deterministic operator chains. Simple mode does it in one step; Pro mode shows the graph.
+**Closes:** AUD-45 (binding half) · **Depends on:** 59, 9, 47 · **Runs before:** 12, 88
+> **v3.1 amendment:** The binding target set is designed for Track K from the start:
+> - `L.position(pin)` places a chosen pin on a value (Phase 88.2);
+> - `Group[*]` and `tag:` targets let one binding serve every piece or clone (89.3);
+> - per-target attributes (`index`, `count`, `home`, `random`) are readable in chains.
+>
+> 60.2's target list and 60.1's text form include them, even though the pins, groups and tags themselves land in 88–89.
+>
+> **v3.2 amendment (Law 17):** The Reactivity card and the Signals panel are no-math.
+> - **Ranges** (`remap`) are drawn as "from → to" handles over a live meter of the signal.
+> - **Smoothing and springs** are Smoothness, Bounce and Time.
+> - **Thresholds** are markers dragged on the live meter ("when faster than…").
+> - **Chains** use the operator names only in Pro mode and in the text form.
+>
+> Follow, Look At and Parallax are universal affordances offered for every visual layer, including plain shapes and text (88).
+
+### Sub-Phase 60.1: Operators & Bindings
+- [ ] The operators from engine spec §5: `smooth`, `spring`, `remap`, `clamp`, `curve`, `deadzone`, `falloff`, `noise`, `delay`, `trail`, `velocity`, `accumulate`, `threshold`, `edge`, `toggle`, `sampleHold`, `quantize`, `mix`, and vector maths.
+  - All are frame-rate independent (they use `dt`) and deterministic.
+  - Stateful operators reset by replaying their tape (Deterministic Replay Law).
+  - Their arithmetic reuses the Phase 47 evaluator.
+- [ ] A binding is `signal |> operator… -> target [blend] [when guard]` (engine spec §3.3), stored as `document.bindings` (types from 7.5). The text form round-trips losslessly with the graph; the AI and the tests use it.
+
+### Sub-Phase 60.2: Targets, Blending & Cycles
+- [ ] **Targets:**
+  - Registry paths (42) whose compositing class is `gpu` or `paint`. Continuous bindings to `layout` paths are refused with `[SIG_LAYOUT]`.
+  - Shader uniforms (62) and particle/simulation parameters (63/64).
+  - State-machine inputs (11.3) and CSS custom properties.
+  - Edge `event(...)` targets for Blueprints (72).
+- [ ] **Channel blending** (`replace | add | multiply | max`, grammar rule 6.9): a float, a magnet and a tilt compose on one transform instead of fighting. The Single Transform Authority synthesis (9.3) consumes the blended channels.
+- [ ] **Cycles** are refused with `[SIGNAL_CYCLE]` and the chain shown. Links (47) and bindings share one dependency graph.
+
+### Sub-Phase 60.3: Reactivity Card (Simple face)
+- [ ] An inspector card, "Reacts to", with rows for **Cursor · Scroll · Hover on… (pick a layer) · Touch · Sound**.
+  - Each row lists only the selected layer's **affordances** (engine spec §9): follow, bend, repel, ripple, glow, tilt, parallax, speed up, calm down, burst, magnetize…
+  - Each row has **Strength** and **Smoothness** sliders.
+  - Each choice writes a canonical binding set. There is no separate model.
+- [ ] A sentence view, generated from the bindings: "When the cursor moves over *Hero*, *Aurora Veil* bends toward it, clearly." Bindings that don't match a recipe show "Custom (open in Signals)".
+
+### Sub-Phase 60.4: Signals Panel (Pro face) & Export
+- [ ] A node view of the bindings (reusing the node-canvas components), live signal meters in Preview mode, and "Open in Playground with tape".
+- [ ] Export: bindings compile to plain TypeScript in the vendored `signals` module (69.1). When a chain is CSS-expressible, they compile to CSS scroll/view timelines instead.
+
+**Key files:** new `src/core/signals/graph/*`, `src/editor/panels/details/*` (Reactivity card)
+**Verification Gate:**
+- **Correctness:** 12 reference bindings match hand-computed values at tape checkpoints. They cover magnet, tilt, parallax, spotlight, proximity scale, scroll fade, hover on another layer intensifies, and a velocity threshold that fires an event.
+- **Frame-rate independence:** the same 60 s tape played at 30, 60 and 120 Hz resolves to the same values within tolerance.
+- **Usability:** each of 5 first-time users makes "the background follow the cursor" in under 20 s in Simple mode, without help.
+
+---
+
+## Phase 61: GPU Surface Compositor
+**Goal:** One owner for GPU rendering. It manages surfaces within a context budget, passes and render targets, device tiers, pausing, context loss and posters.
+**Closes:** AUD-46 (runtime half), AUD-49 · **Depends on:** 10, 45, 48, 59 · **Runs before:** 18, 19, 62–66
+
+### Sub-Phase 61.1: Strategy (Decision Record)
+- [ ] `decisions/0005-gpu-surface-strategy.md` benchmarks three strategies (engine spec §7.3) and chooses a default per surface role:
+  - **(A)** per-surface canvases within a budget, acquired and released by visibility;
+  - **(B)** a shared page-backdrop canvas with viewport/scissor, for fixed backgrounds;
+  - **(C)** one hidden context blitting to 2D canvases, for many small editor previews.
+- [ ] It also records:
+  - WebGL2 as the baseline, and WebGPU as opt-in through three.js TSL (`WebGPURenderer` falls back to WebGL2);
+  - the 2D helper choice: a minimal in-house WebGL2 helper or OGL (Unlicense), decided by exported size;
+  - whether `OffscreenCanvas` workers are used, and where.
+- [ ] Surface roles: `background` (fills its parent frame behind its siblings, with `pointer-events: none`), `inline`, `overlay`, `cursor` (66), and `texture-source` (65).
+
+### Sub-Phase 61.2: Passes & Render Targets
+- [ ] Each surface has a pass stack:
+  - program passes;
+  - feedback (ping-pong) passes for trails and simulations;
+  - a post stack (grain, dither, vignette, bloom-lite, pixelate, chromatic offset), with blend modes.
+- [ ] Float or half-float targets are used after a capability check, with a declared 8-bit fallback.
+
+### Sub-Phase 61.3: Budget, Tiers & Lifecycle
+- [ ] **Surface Budget Law.** By default, at most 8 live GL surfaces on desktop and 4 on mobile: half the browser caps, which leaves room for the host page. Over budget, the least-visible surface releases its context and shows its poster.
+- [ ] **Device tiers T0–T3** (engine spec §7.4). A startup probe picks the tier. A frame-time controller with hysteresis then adjusts: DPR cap, dynamic resolution, and a 30 fps cap for idle ambient effects.
+- [ ] **Pausing.** Surfaces pause offscreen (IntersectionObserver) and in hidden tabs, and follow the `prefers-reduced-motion` policy and save-data.
+- [ ] **Lifecycle:** asynchronous compile (parallel shader compile where available), run, pause, release, and restore after `webglcontextlost`. The poster covers the gap during a loss, and posters are captured on demand.
+
+### Sub-Phase 61.4: Editor Integration
+- [ ] Only the focused frame runs live surfaces. Other frames (49.2) and breakpoint copies (50.4) show their last rendered frame.
+- [ ] Library thumbnails are pre-rendered loops (55), never live contexts.
+
+### Sub-Phase 61.5: GPU Memory Ledger & Budgets (v3.3)
+- [ ] **The ledger.** Every GPU resource, from the 2D helper or three.js, registers its estimated bytes and a reference count on creation and is removed on release: textures, render targets, canvas backing stores, buffers and programs. The formulas are in engine spec §7.9. The ledger is the page's single source of "memory in use", shown in the dev overlay with three.js's `renderer.info.memory`.
+- [ ] **Budgets per tier:** T1 96 MB, T2 256 MB, T3 512 MB (initial; calibrated in 84 and 82). Near the budget, the compositor degrades in order: resolution → post passes → texture size → release offscreen → poster (FX-MEM-01).
+- [ ] **Canvas limits:**
+  - backing stores are clamped under about 16.7 M pixels (Safari's per-canvas limit) through the DPR cap;
+  - released canvases are set to 0 × 0 so Safari frees them;
+  - canvas memory counts toward the budget (older iOS versions cap total canvas memory).
+- [ ] **Render-target pool** shared across effects by size and format, released on pause (FX-MEM-03).
+- [ ] **Program cache:** identical shader programs compile once; each page has a program-count budget.
+- [ ] **The editor's own budget:** one live frame (61.4); thumbnails are posters with one hover loop at a time; decoded images in a least-recently-used cache with a byte limit.
+
+**Key files:** new `src/core/fx/compositor/*`, `src/core/fx/gl/*`
+**Verification Gate:**
+- **Budget:** a page with 20 effect surfaces never exceeds the budget (context-creation counter) and never logs "Too many active WebGL contexts", in Chromium, Firefox and WebKit.
+- **Recovery:** a forced context loss restores within 1 s, with the poster shown in between.
+- **Offscreen:** surfaces make 0 draw calls while offscreen (instrumented).
+- **Low tier:** a full-screen background holds ≥ 55 fps on the Phase 84 low tier through dynamic resolution.
+- **(v3.3) Leak test:** mounting and unmounting each library effect 100 times returns the ledger to 0 and `renderer.info.memory` to its baseline. The JavaScript heap, measured after a forced garbage collection, grows by less than 2 MB.
+- **(v3.3) Stress test:** the 20-surface page stays under its tier's memory budget, and degrades in the documented order instead of losing a context.
+
+---
+
+## Phase 62: Shader Graph & Shader Authoring ("Material Blueprint")
+**Goal:** Author GPU backgrounds visually, like Unreal's Material Editor. Every parameter is a typed prop, and every input is a signal.
+**Depends on:** 61, 60, 8 · **Runs before:** 19, 67
+
+### Sub-Phase 62.1: Graph Model & Compiler
+- [ ] A typed node graph (float, vec, colour, texture, SDF). It compiles to GLSL ES 3.00 for WebGL2 and to TSL for WebGPU.
+- [ ] The uniform contract (engine spec §8.1): `uTime` from the transport, `uResolution`, `uSeed`, `uPointer`/`uPointerVelocity`/`uPointerDown` from bindings, and the effect's props.
+- [ ] The node library:
+  - inputs and maths;
+  - noise (value, simplex, Perlin, Worley, fbm, curl);
+  - SDF shapes and smooth booleans;
+  - patterns;
+  - colour (cosine palettes, token gradients, OKLab mix);
+  - distortion (domain warp, polar, twist, ripple, lens, displacement);
+  - texture sampling, feedback (previous frame), and post nodes.
+
+### Sub-Phase 62.2: Raw Shader (Pro)
+- [ ] A GLSL editor. Compile errors are mapped to lines as diagnostics, it hot-reloads, and its uniform block becomes the props schema.
+- [ ] Safety (engine spec FX-SAFE-01):
+  - loops need constant bounds;
+  - texture fetches count against a budget;
+  - compiles are asynchronous;
+  - a program that loses the context twice is disabled for the session.
+
+### Sub-Phase 62.3: Cost & Rules
+- [ ] A static cost estimate per graph (ALU, texture and loop weight × resolution) feeds the rules (8) and the tiers (61.3). Expensive nodes explain their cost in the inspector.
+
+**Key files:** new `src/core/fx/shader/*`, `src/editor/panels/shader-graph/*`
+**Verification Gate:**
+- **Coverage:** 10 reference shader backgrounds are built from the graph alone (no raw GLSL). They compile on both the WebGL2 and WebGPU backends, and the two outputs match within the Phase 71 GPU tolerance.
+- **Safety:** an injected unbounded-loop shader is refused at compile time.
+- **Editing:** changing a graph node updates the stage in under 100 ms without reallocating the context.
+
+---
+
+## Phase 63: Particles & Force Fields ("Niagara-lite")
+**Goal:** Particle effects that react to the pointer and scroll: fields, snow, sparks, swarms, constellations. They scale from 500 to 250,000 particles by tier.
+**Depends on:** 61, 60
+
+- [ ] **63.1 Module stack** (Niagara style): emitter → spawn → update (forces) → render. Forces:
+  - gravity, drag, noise and curl fields, vortex;
+  - pointer attract, repel and orbit;
+  - spring-to-home: particles that settle into a shape, logo or text from a 65 texture source;
+  - bounds: bounce, wrap or kill.
+- [ ] **63.2 Backends:**
+  - CPU: Canvas 2D or GL points, ≤ 5k particles.
+  - GPU: state textures on WebGL2, ≤ 250k.
+  - WebGPU compute: opt-in.
+
+  The tier picks the backend, and the results agree statistically.
+- [ ] **63.3 Render modes:**
+  - points and sprites (shape or texture);
+  - links to nearest neighbours through a spatial hash (reusing `SpatialIndex`);
+  - trails (a feedback pass);
+  - instanced meshes (via 18).
+- [ ] **63.4 Interaction modes as affordances:** grab, repulse, attract, bubble, burst on tap, scatter on scroll.
+
+**Key files:** new `src/core/fx/particles/*`
+**Verification Gate:**
+- **Budgets:** 5 reference particle effects hold their tier budgets (84).
+- **Backend agreement:** CPU and GPU backends match statistically: density and centroid within 2% at tape checkpoints (71).
+- **Determinism:** a seeded run is identical across reloads.
+
+---
+
+## Phase 64: Stateful Simulations & Deterministic Replay
+**Goal:** The simulation-backed effects (fluid splashes, springy grids, ribbons, ball pits, gooey blobs), made deterministic enough to scrub, test and render.
+**Closes:** AUD-48 · **Depends on:** 61, 63, 9, 45
+> **v3.1 amendment:** 64.1's determinism decision governs Track K's springs and bodies too. 64.2's rigid bodies and Phase 91's kinetic bodies use **one physics core** (`src/core/physics2d/`) with two render backends: particles and canvases here, DOM layers in 91. Whichever phase starts first builds the core.
+>
+> **v3.3 amendment: simulation memory** (FX-MEM-03). Fluid, lattice and feedback simulations run at the tier's reduced resolution: ≤ 1/8 of the surface on T1, 1/4 on T2 and 1/2 on T3. Their render targets come from 61.5's shared pool and are released on pause. Snapshots for seeking (64.1) count toward the memory budget and are thinned (fewer, further apart) when it's tight.
+
+### Sub-Phase 64.1: Determinism (Decision Record)
+- [ ] `decisions/0006-stateful-simulation.md` records:
+  - fixed-step integration (for example 1/120 s substeps) and a seeded PRNG;
+  - input tapes (59.3), with a snapshot every N frames for seeking;
+  - parity measured perceptually or statistically, not bit-exact across GPUs.
+
+  For a stateful layer, `evaluate()` (9) means replaying from the nearest snapshot. Exports run live on real input.
+
+### Sub-Phase 64.2: Modules
+- [ ] Stable fluids (advect, diffuse, project, with pointer splats).
+- [ ] Spring-mass lattices: grid distortion, elastic meshes, dot fields with shockwaves.
+- [ ] Verlet ropes and cloth: ribbons, strands, lanyards.
+- [ ] Rigid bodies: a small circle/box solver or a permissively licensed library (MIT/Apache-2.0), chosen by benchmark. This replaces 12.2's rigid-body mode.
+- [ ] Metaballs and SDF blobs (gooey cursors).
+- [ ] Optionally, reaction–diffusion.
+
+### Sub-Phase 64.3: Seek & Scrub
+- [ ] Scrubbing re-simulates from the nearest snapshot within a budget of ≤ 50 ms per seek on the reference laptop. CPU modules do this in a worker (56).
+
+**Key files:** new `src/core/fx/sims/*`
+**Verification Gate:**
+- **Replay:** each module has a reference effect whose replay matches a stored snapshot at 5 checkpoints, in 3 browsers. CPU modules must match exactly; GPU modules within the Phase 71 tolerance.
+- **Scrub consistency:** a 10-second back-and-forth scrub never shows two different states for the same `t`.
+
+---
+
+## Phase 65: Media-as-Texture & Distortion Effects
+**Goal:** Text, images and video used as GPU textures, for hover distortions, pixel transitions, halftones and liquid reveals. An SVG/CSS path covers browsers without WebGL.
+**Depends on:** 61, 54, 17
+
+- [ ] **65.1 Texture sources:**
+  - images and video (54);
+  - text rendered to SDF/MSDF or canvas textures, re-rendered when fonts load and on resize (17.3);
+  - rasterised SVG.
+
+  A general DOM subtree can't be turned into a texture on the web. The rules say so and offer the SVG/CSS path instead.
+- [ ] **65.2 Effects:** displacement/ripple on hover, pixel and dither transitions between two images, grid and wave distortion, halftone reveal, trailing image stamps, glass/lens.
+- [ ] **65.3 Accessibility & SEO:** the source content stays in the DOM (real text, real `alt`, selectable), and the GL surface is `aria-hidden`. The export keeps the real `<img>` and text.
+- [ ] **65.4 Fallback:** SVG filters (`feTurbulence`, `feDisplacementMap`) or CSS, for tiers T0 and T1.
+
+**Key files:** new `src/core/fx/textures/*`
+**Verification Gate:**
+- **Sources:** 6 reference distortion effects work on image, video and text sources.
+- **Accessibility:** the accessibility tree exposes the real text and alt exactly once (Playwright).
+- **Fallback:** the fallbacks render with WebGL disabled.
+
+---
+
+## Phase 66: Cursor & Overlay Layer
+**Goal:** Custom cursors and page-wide pointer effects (followers, trails, splashes, magnetic targets) that stay safe for touch, keyboard and accessibility.
+**Depends on:** 59, 60, 61, 49
+
+- [ ] **66.1 Cursor layer.** A singleton per frame or page (grammar 3.F.5) that renders above content with `pointer-events: none`. Modes: follower (dot or ring on a spring), blob/metaball, trail, splash (the 64 fluid), target brackets, image trail, magnetic snap.
+- [ ] **66.2 Cursor states** come from what is under the pointer: link, button, text, input, drag. Hiding the native cursor is opt-in, and never happens over text inputs, under reduced motion, or on coarse pointers (engine spec FX-A11Y-07).
+- [ ] **66.3 Touch & keyboard.** There is no cursor on coarse pointers; a tap ripple is optional. Keyboard focus never depends on the cursor layer, and focus rings stay visible above it.
+- [ ] **66.4 Editor.** The cursor layer runs live only in Preview mode and the Playground. Design mode shows its settings, not a live cursor.
+
+**Key files:** new `src/core/fx/cursor/*`
+**Verification Gate:**
+- **Profiles:** 8 reference cursor effects pass on mouse, pen and touch profiles.
+- **Lag:** a follower lags only by what its spring specifies, measured against the tape.
+- **Accessibility:** axe and keyboard-only journeys pass with the cursor layer on.
+
+---
+
+## Phase 67: Effect Definition Format & Effect SDK
+**Goal:** Effects become data: one versioned definition that the canvas, inspector, Playground, library, AI and exporters all read.
+**Closes:** AUD-54 (engine half) · **Depends on:** 7.4, 46, 60, 61, 62 · **Runs before:** 25 (waves 7–9), 69, 70
+
+- [ ] **67.1 `EffectDefinition` v1** (engine spec §11). Its JSON Schema and validator come from one source, as in 2.1. It declares:
+  - a props view-model: typed, with defaults, ranges and units, and a description for each prop for the AI;
+  - surfaces and programs (graphs by reference), plus bindings and affordances;
+  - states;
+  - policies: a fallback chain, touch behaviour and reduced-motion behaviour;
+  - tier costs;
+  - a poster, export templates and provenance.
+- [ ] **67.2 Instances & migrations.** A document stores `{ effectId, version, propOverrides, bindingOverrides, seed }`. Definitions migrate by version, like the MDM.
+- [ ] **67.3 Authoring flow.** Fork an effect into the project, edit its graphs, and publish it to the project library. Detach (25.1) converts an effect into plain layers, graphs and clips.
+- [ ] **67.4 SDK tests.** Every definition ships a tape-driven test and a Playground scene, both run by 24's sweep.
+
+**Key files:** new `src/core/effects/*`
+**Verification Gate:**
+- **No bespoke code:** every library effect is a definition, validated in CI, with no per-effect code outside the engine modules.
+- **Migrations:** a v1 → v2 definition migration round-trips 100 fixtures.
+- **End to end:** fork, edit and export works for a reference effect.
+
+---
+
+## Phase 68: Code Components — Import, Sandbox & Property Controls
+**Goal:** Bring your own animated React component, one you wrote or one you have the rights to use. It gets inspector controls for its props, and those props can be bound to signals and states. Then export it.
+**Depends on:** 48, 60, 80 (80.2 sandbox), 27
+
+- [ ] **68.1 Import.** Paste TSX/JSX, upload files, or name an npm package and export. Bundling happens in a worker (esbuild-wasm), and dependencies resolve to pinned versions with integrity hashes.
+- [ ] **68.2 Sandbox.** Code components render in an opaque-origin sandboxed iframe (`sandbox="allow-scripts"`, without `allow-same-origin`). A typed MessageChannel bridge carries props, measurements and signals (decision `decisions/0007-code-component-isolation.md`). They never touch the editor origin's storage or cookies (Untrusted Code Law).
+- [ ] **68.3 Property controls.** Inferred from TypeScript prop types and defaults (the compiler API, in a worker). Optional JSDoc hints (`@ll-control slider min=0 max=1`) refine them, so the exported source still imports nothing from LazyLayout.
+- [ ] **68.4 Binding & states.** Any prop can be bound to a signal (60), a Blueprint variable (72) or a state. Callback props (`onX`) become Blueprint events.
+- [ ] **68.5 Licence awareness.** The importer records the declared licence (an SPDX identifier, or the licence text of copied files). A component whose terms forbid redistribution (for example "MIT + Commons Clause") stays private to the user's project. It can never be published to templates or a marketplace (GATE-03).
+
+**Key files:** new `src/core/code-components/*`
+**Verification Gate:**
+- **Real-world import:** 10 fixtures (canvas, WebGL, Motion and CSS-only components) import, render, expose controls, and export to the Next fixture app, which builds.
+- **Isolation:** a malicious fixture that reads `document.cookie`, `localStorage` and `parent.document` gets nothing from the editor origin (Playwright).
+- **Latency:** a prop change reaches the component by the next frame.
+
+---
+
+## Phase 69: Interactive Export & Embed Runtime
+**Goal:** Exported interactive effects are production-hardened: small, SSR-safe, lazy, accessible, within budget, and free of LazyLayout dependencies.
+**Depends on:** 27, 60, 61–67 · **Runs before:** 28's registry items for effects
+> **v3.1 amendment:** The vendored runtime gains Track K's modules:
+> - `kinetics`: follow, pins, fields and effectors, home springs (88–90);
+> - `physics2d`: colliders, bodies, contacts (91).
+>
+> Split and clone groups export as loops over data with SSR-rendered rest poses (89), and helpers export as runtime data, never DOM (88.1). The size budgets (69.4) gain a "kinetic composition" family (target ≤ 8 KB gzip for `kinetics`, ≤ 14 KB with `physics2d`), and the reference build (engine spec §12.7) joins the export matrix.
+>
+> **v3.3 amendment:** The exported runtime carries the same memory discipline as the editor:
+> - the ledger and tier budgets (61.5), with its degrade order;
+> - tier-sized and KTX2 textures (54);
+> - disposal on unmount, including three.js (18);
+> - canvases zeroed on release.
+>
+> The export matrix adds the 61 leak test and a memory-budget check on the mid and low tiers (84).
+
+- [ ] **69.1 Vendored runtime.** The exporter copies only the runtime modules an effect uses (`ticker`, `signals`, `gl`, `particles`, `sims`, `cursor`) into the user's project, as readable source with an MIT NOTICE. There is no npm dependency on LazyLayout (PRD §10).
+- [ ] **69.2 Framework targets.**
+  - React for Next 16 and Vite: the client boundary follows the Next 16 docs; poster first; init after idle/LCP; cleanup releases contexts and listeners.
+  - Vue 3.
+  - A Web Component (a custom element).
+- [ ] **69.3 Embed script.** A framework-free package, `<script type="module">` plus `<div data-fx>`, for Webflow, Framer, Wix, WordPress and plain HTML (the Unicorn Studio-style path). The files are self-hosted in Release 1; hosted CDN embeds arrive with 81.
+- [ ] **69.4 Budgets and Web Vitals.**
+  - Per-family size budgets (engine spec §14.3), enforced in CI.
+  - Core Web Vitals defaults: the poster reserves the box (no CLS), init waits for LCP, and effects pause offscreen.
+- [ ] **69.5 Parity.** Every exported interactive effect replays the same tape as the editor and passes the Phase 71 comparisons.
+
+**Key files:** new `src/compiler/fx/*`, `tests/export-harness/fixtures/*`
+**Verification Gate:** For every library effect:
+- the export builds in the Next, Vite, Vue and plain-HTML fixtures;
+- it passes tape parity (71) and meets its size budget;
+- it scores CLS = 0, with no long task ≥ 50 ms during init, on the mid tier (84).
+
+The embed script also works when pasted into a static page with a strict, nonce-based CSP.
+
+---
+
+## Phase 70: AI Effect Author
+**Goal:** "Describe it" works for interactive effects: a prompt or reference becomes an editable effect graph with props and reactions.
+**Closes:** AUD-54 (authoring half) · **Depends on:** 31, 62, 63, 67, 71
+
+- [ ] **70.1 Constrained IR.** The model writes shader graphs, particle stacks and binding text (60.1) against their JSON Schemas. It never writes free-form GLSL by default; raw GLSL is Pro-only and compile-checked.
+- [ ] **70.2 Validation loop.** Each proposal goes through these steps before it appears as a ghost diff:
+  1. The schema check.
+  2. The rules (8), including cost, flashing, touch and reduced motion.
+  3. Compilation.
+  4. A render probe at tape checkpoints (71).
+  5. A visual self-check against the prompt or reference (33.2).
+  6. At most one repair turn.
+- [ ] **70.3 Remix edits.** "Make it react to scroll too", "calmer on mobile" and "use our brand colours" become selection-scoped patches (32).
+
+**Verification Gate:** On the 40 effect prompts in the Phase 33 eval set:
+- ≥ 90% produce a valid, compilable effect within budget, on the first attempt or after the repair;
+- ≥ 60% are accepted by reviewers without manual edits.
+
+---
+
+## Phase 71: GPU & Interactive Verification Harness
+**Goal:** Extend the Phase 4 harness so GPU, reactive and stateful effects are verified in real browsers, deterministically.
+**Depends on:** 4, 45 (deterministic mode), 59 (tapes) · **Runs before:** the gates of 61–69
+
+- [ ] **71.1 GPU in CI.** Every PR runs headless Chromium with a software WebGL2/WebGPU rasteriser. A nightly job runs on real GPUs, with at least one macOS runner and one Windows or Linux runner. Every result records the driver and renderer strings.
+- [ ] **71.2 Tape playback.** Signals are driven from input tapes, and frames are captured at exact transport times.
+- [ ] **71.3 Metrics.** Perceptual comparisons (SSIM plus a FLIP-style metric) with tolerance tiers per surface class (engine spec §15), and statistics for particles. The 4.3 pixel-ratio check stays for DOM output.
+- [ ] **71.5 (v3.3) Memory checks.** The harness reads the 61.5 ledger and `renderer.info.memory`, and measures the JavaScript heap in Chromium after a forced garbage collection (CDP). It runs the leak test (mount/unmount 100×) and the 20-surface stress test in CI on every change to `src/core/fx/**` or the exported runtime.
+- [ ] **71.4 Falsifiers.** Each tier has a deliberately broken fixture that must fail: a wrong uniform, a wrong seed, a skipped substep.
+
+**Key files:** `tests/export-harness/*`, `tests/e2e/support/*`, `.github/workflows/*`
+**Verification Gate:**
+- **Falsifiers:** the broken fixtures fail and the correct ones pass, on 3 browsers in CI and on the nightly GPU runners.
+- **Stability:** the flake rate is below 1% over 50 runs.
+
+---
+
+# TRACK L — LOGIC: INTERACTION BLUEPRINTS (Unreal-Style Visual Logic for the Web)
+
+> Added in v3.0. This track applies the Unreal Blueprint idea to interfaces: events, flow and actions are wired visually in Pro mode, or written as "When → Do" rules in Simple mode, and both are the same graph. Release 1 covers the document's own interaction logic: states, compositions, effects and variables. Data, API and backend nodes are Release 3 (Phase 87). The grammar is `lazylayout_element_grammer.md` §13.7.
+
+---
+
+## Phase 72: Interaction Blueprint Model, Grammar & NodeScript IR
+**Goal:** A typed event graph in the MDM that can express every interaction in the product, with a lossless text form for AI and review.
+**Closes:** AUD-50 (model half), AUD-45 (cross-element half), AUD-56 (rules half) · **Depends on:** 7, 8, 11, 60
+> **v3.1 amendment:** The model and stdlib cover kinetic composition (grammar §14.6):
+> - **Events:** `OverlapBegin`, `OverlapStay`, `OverlapEnd`, `Hit`, `FieldEnter`, `FieldExit`, with `other` and contact pins (point, normal, depth, impulse).
+> - **Targets:** `Group[*]` and `tag:` wildcards, so a rule runs once per overlapping pair. Per-instance reads: `other.index`, `other.count`, `other.random`, `other.home`, `other.char`.
+> - **Actions:** `KeepOut`, `SpringHome`, `AddForce`, `AddImpulse`, `AddSpin`, `SetVelocity`, `Explode`, `SetBody`, `EnableCollider`.
+>
+> The model defines these nodes. Phases 90–91 implement what they drive. The gate's 10 cross-element interactions include the reference build (engine spec §12.7).
+>
+> **v3.2 amendment (gap G6):** The stdlib adds:
+> - **`Spawn(template, at, velocity?, lifetime?)` / `Despawn`:** runtime copies of a layer the user designed, from a pool, implemented by 89.4;
+> - **`PlaySound` / `StopSound`:** for audio assets (54). Sound starts only after a user gesture (browser autoplay rules), has a volume, and respects a page-wide mute;
+> - **`Drag` events** (`DragStart`, `Drag`, `DragEnd`, with position and velocity) for draggable layers (91.2).
+
+### Sub-Phase 72.1: Graph Model
+- [ ] `document.graphs` holds an Event Graph per document (and per component in Release 2), plus functions and macros.
+  - **Variables** are typed from the registry's value types. Variables marked `exposed` become component props (75.3).
+  - **Custom events** act as dispatchers.
+  - **Pins** are exec pins and typed data pins, as in Unreal.
+- [ ] Validation runs through the rules (8): pin types, where latent nodes may sit, and bounded loops only.
+
+### Sub-Phase 72.2: Interaction Standard Library v1
+- [ ] **Events:**
+  - pointer enter, leave, down, up, click, double-click and long-press per layer;
+  - hover start/end, focus/blur, key;
+  - view enter/leave, scroll-progress crossing, breakpoint change, mount;
+  - composition marker, state enter/exit, variable changed, signal threshold (60), custom event, timer.
+- [ ] **Flow:** branch, sequence, gate, do-once, do-N, flip-flop, delay, retriggerable delay, for-each (layers or lists), switch, select.
+- [ ] **Motion & effect actions:**
+  - play, seek or reverse a composition (46). This is Unreal's "Timeline" node.
+  - set state, set a state-machine input (11.3), spring a property to a value, set a property (instantly or tweened), set a uniform;
+  - add an impulse or emit a burst (63/64), pause or resume an effect;
+  - show or hide a layer with presence animation, scroll to, focus a layer, open a URL.
+- [ ] **Data:** get/set variable, sample a signal, maths (float, vector, colour), compare, boolean logic, format string, seeded random, remap/ease.
+
+### Sub-Phase 72.3: NodeScript IR
+- [ ] Reuse `src/core/nodescript/` (lexer, parser, `grammar.peg`, language server). First audit its After-track claims: run its tests in CI and add a round-trip property test over 500 random graphs.
+- [ ] Add the `interaction` stdlib namespace. The `.nls` text form is the AI's output format for graphs, as MDM patches are for layers.
+
+### Sub-Phase 72.4: One Model With the Grammar
+- [ ] Every Simple-mode binding (the grammar's `Trigger:Category(Props)`) and every Simple rule (grammar §13.7) is a view over a canonical graph fragment. The conflict rules (grammar §6) and the graph rules therefore validate the same thing, and the rules engine (8) owns both.
+
+**Key files:** new `src/core/blueprint/*`, `src/core/nodescript/*`
+**Verification Gate:**
+- **Expressiveness:** these validate as graphs:
+  - the 6 grammar worked examples (§10) and the 3 in §13.8;
+  - 10 cross-element interactions, for example: hovering the CTA intensifies the background; a click bursts particles and plays a success composition; scrolling past 50% changes the navbar's state.
+- **Round trip:** graph → `.nls` → graph is unchanged, checked by a 500-graph property test.
+
+---
+
+## Phase 73: Blueprint Editor — Simple Rules, Pro Graph & Debugger
+**Goal:** Logic that is easy by default (rules in the style of Wix, Spline and Webflow) and deep on demand (an Unreal-style graph), with a real debugger.
+**Depends on:** 72, 44, 49
+
+- [ ] **73.1 Simple face.** An **Interactions** list in the inspector's Motion tab. Each rule reads "When [event] on [layer] → Do [actions]", in plain language, with at most 7 controls. "Open as graph" converts it losslessly. The graph converts back as long as it keeps the rule shape.
+- [ ] **73.5 (v3.2) Rules set up what they need (gap G4).** A rule that mentions overlap, hit, field enter or drag adds the missing components automatically:
+  - a collider or field sized from each layer's geometry (7.6 shapes, 89 pieces);
+  - a matching collision layer and mask;
+  - a home spring on moved text pieces (grammar 6.18).
+
+  Each auto-added component is listed under the rule ("Added: circle collider on *Cursor Circle*, box colliders on 10 letters") and stays editable. Deleting the rule offers to remove them.
+- [ ] **73.6 (v3.2) No-math rule parameters (Law 17).** Margins and reach are dragged on the canvas. Springs are Bounce and Time. Spin is "up to N°" on a dial. Randomness is Variety with a shuffle button. Counts and thresholds are dragged markers on live meters. Pro mode shows the numbers.
+- [ ] **73.2 Pro face.** The graph canvas: reuse `BlueprintCanvas.tsx`, after bringing it under the One Clock and Hot-Path laws. It adds node search that knows the pin type, comments, reroute nodes, collapse-to-function, and a variables panel.
+- [ ] **73.3 Debugger.** In Preview mode: execution pulses on wires, breakpoints, watched values, an event log, and step-through tied to the transport.
+- [ ] **73.4 AI.** "Add an interaction" prompts produce graph patches, shown as ghost diffs (31/32).
+
+**Key files:** new `src/editor/panels/interactions/*`, `src/editor/panels/blueprint/*`
+**Verification Gate:**
+- **Usability:** 5 people each build this in Simple mode in under 3 minutes: "when the button is hovered, the background glows; when it's clicked, confetti bursts and the card flips".
+- **Pro journey:** a 25-step journey (create nodes, wire them, collapse to a function, set a breakpoint, step) asserts the exact graph and trace.
+
+---
+
+## Phase 74: Blueprint Runtime & Compiler
+**Goal:** Blueprints run deterministically on the frame scheduler in the editor, and compile to plain, readable code in every export target.
+**Closes:** AUD-50 (runtime half) · **Depends on:** 72, 45, 27
+> **v3.1 amendment:**
+> - **Where contact events run.** They fire from the physics fixed step (grammar 6.21), not the display rate, and run inside that step with the per-frame node budget.
+> - **Compilation.**
+>   - A recognised "while overlapping → keep it outside; when it ends → spring home" rule compiles to the Keep-Out effector (90) or the physics constraint (91), not to per-frame graph code.
+>   - Any other contact handler compiles to a plain callback registered with the exported `physics2d` or `kinetics` module (69).
+> - **Parity.** The journey parity suite (74.3) includes the reference build in both its effector and physics forms.
+
+- [ ] **74.1 Runtime.**
+  - Events are queued in the scheduler's input phase.
+  - Latent nodes (delay, play-until-finished) are resumable continuations with cancellation.
+  - A per-frame node budget and loop guards keep graphs bounded.
+  - It is deterministic under the test clock and input tapes.
+- [ ] **74.2 Compiler.** Graph → TypeScript per target: React hooks, Vue composables, or vanilla listeners.
+  - Node names become comments; dead nodes are eliminated; latent chains use `async`/`await`.
+  - There are no imports from LazyLayout.
+  - Rules that CSS can express (hover → state) compile to CSS.
+- [ ] **74.3 Parity.** Scripted interaction journeys produce identical state and property timelines in the editor and in the export (71).
+- [ ] **74.4 Security.** Release 1 has no arbitrary-code nodes. Custom code lives in code components (68).
+
+**Key files:** new `src/core/blueprint/runtime/*`, new `src/compiler/blueprint/*`
+**Verification Gate:**
+- **Parity:** 20 reference interaction graphs pass journey parity in the Next, Vite and vanilla exports, on 3 browsers.
+- **Code quality:** the compiled code passes the fixture apps' ESLint and has no `any`.
+
+---
+
+# TRACK W — WEB COMPOSITION: COMPONENTS, SECTIONS, PAGES & SITES (Release 2)
+
+> Added in v3.0. This is the Wix Studio + Figma half of the vision: reusable components with variants, sections, pages, content, and a whole-site export. It is **Release 2**: it starts after the Release 1 beta gate (40), and it gates GA (86).
+
+---
+
+## Phase 75: Components, Variants & Instances
+**Goal:** Figma-style components: a main component, instances with overrides, variants, slots and exposed props, all exported as typed React components.
+**Closes:** AUD-44 (components half) · **Depends on:** 40, 72
+
+- [ ] **75.1** Main components and instances. Overrides are tracked per property path (42) and can be reset. Instances can be swapped or detached.
+- [ ] **75.2** Variants as a property matrix (for example size × tone × state), mapped onto states (11), so switching variants can animate.
+- [ ] **75.3** Exposed props: text, image, boolean, variant, and Blueprint variables marked `exposed` (72.1). Slots (grammar 3.C.4) hold nested content.
+- [ ] **75.4** Instance-level motion and interaction overrides: a card instance can bind its own reactions.
+- [ ] **75.5** Export: one component file per main component, with typed props. Instances become usages.
+
+**Verification Gate:** A design-system fixture: a button, a card and a nav item, 3 variants each, and 40 instances with overrides.
+- Editing the main components preserves every override.
+- The fixture exports to a Next app that builds and matches the canvas (parity).
+
+---
+
+## Phase 76: Sections, Templates & Section Library
+**Goal:** Wix Studio-style sections: full-width bands that stack into pages, with responsive rules, scroll choreography and a library of animated templates.
+**Depends on:** 75, 50, 13
+
+- [ ] **76.1** Section layers (grammar 3.B.1) with responsive behaviour per breakpoint (50.3), background slots for effect surfaces (61), and anchors.
+- [ ] **76.2** Section-level scroll choreography: pinned sequences, reveals, parallax, and scroll-driven staggers. This resolves grammar 12.2.
+- [ ] **76.3** A template library: hero, features, pricing, testimonials, FAQ, CTA and footer. Each template is original and token-themed, with default motion and at least one interactive variant.
+- [ ] **76.4** Themes: switching tokens restyles every section.
+
+**Verification Gate:**
+- **Usability:** a first-time user builds a landing page from 6 templates in under 10 minutes (usability script).
+- **Quality:** every template passes accessibility checks, the Phase 84 performance tiers, and export parity.
+
+---
+
+## Phase 77: Pages, Navigation & Page Transitions
+**Goal:** Multi-page projects with routes, navigation and animated page transitions.
+**Closes:** AUD-44 (pages half) · **Depends on:** 76
+
+- [ ] **77.1** Pages with routes, and a Pages panel (reusing the After-track Pages Manager after a reality audit). The navbar and footer are shared sections (the grammar 3.C.2–3.C.3 singletons).
+- [ ] **77.2** Links and a `navigate` action (added to 72.2), a 404 page, and per-page metadata.
+- [ ] **77.3** Page transitions through the View Transitions API, same-document and cross-document where supported, with fallbacks. Shared elements can transition between pages.
+- [ ] **77.4** Preview mode navigates between pages, and the canvas shows pages as frames.
+
+**Verification Gate:** A 5-page fixture navigates with the same transitions in Preview and in the export (parity at sampled times). Back/forward and deep links work in the exported app.
+
+---
+
+## Phase 78: Content Collections, Data Binding & Forms
+**Goal:** CMS-lite: repeated content from collections, dynamic pages, and forms, without a LazyLayout backend.
+**Depends on:** 75, 77
+
+- [ ] **78.1** Collections with a typed schema (text, rich text, image, number, date, reference) and their items, stored in the project.
+- [ ] **78.2** Repeaters: a Grid or Stack bound to a collection, with item templates, sorting, filtering and staggered entrances (grammar 7.2). Each item can have a dynamic page.
+- [ ] **78.3** Forms (grammar 3.D.1): fields, validation, and the Submitting/Success/Error states. Submission goes to a user-configured endpoint, webhook or form service, with spam protection and a privacy-notice slot.
+- [ ] **78.4** Export: collections become static JSON or MDX with typed loaders, and dynamic routes are generated statically.
+
+**Verification Gate:** A blog fixture: a collection of 50 posts, a list page, post pages and a contact form.
+- It exports to Next and builds statically.
+- The form posts to a mock endpoint, and all three form states animate.
+
+---
+
+## Phase 79: Site Export, SEO & Web Vitals
+**Goal:** "Export whatever the user designed": a complete, deployable site project that is fast, accessible and search-friendly.
+**Closes:** AUD-44 (site half) · **Depends on:** 77, 78, 69, 74
+
+- [ ] **79.1** Full project export: Next 16 App Router (primary) or a static Vite site. It includes routes, layouts, components, the effects runtime (69), compiled Blueprints (74), assets and fonts.
+- [ ] **79.2** SEO: metadata, Open Graph images, a sitemap, robots rules, structured data for common sections, and semantic landmarks.
+- [ ] **79.3** Core Web Vitals budgets (LCP, INP, CLS) run in CI on the mid and low tiers (84). Auto-fixes cover poster-first effects, image sizing and font loading.
+- [ ] **79.4** Deploy handoff: export to a Git repository, or optionally deploy in one click to the user's own hosting account through OAuth. The user owns the deployment.
+
+**Verification Gate:** The 5-page fixture:
+- exports, builds and deploys to a preview environment;
+- passes axe with 0 violations;
+- meets LCP ≤ 2.5 s, INP ≤ 200 ms and CLS ≤ 0.1 on the mid tier (84).
+
+---
+
+# TRACK P — PRODUCTION PLATFORM (What It Takes to Run This for Real Users)
+
+> Added in v3.0. The v2.1 roadmap ends at "it works in the browser". Production also needs security boundaries, accounts, operations, cost control, device coverage and legal hygiene. Phases 80, 82, 84 and 85 gate the Release 1 beta (40); 81 and 83 gate GA (86).
+
+---
+
+## Phase 80: Threat Model, Sandboxing & Security Hardening
+**Goal:** A written threat model and enforced isolation for everything untrusted, in place before untrusted content can run.
+**Closes:** AUD-51 (security half) · **Depends on:** 3 · **Runs before:** 68, 40, and public exposure of 30
+
+- [ ] **80.1** A threat model (STRIDE) covering:
+  - the editor origin and the stage iframe (48.2);
+  - code components (68), shaders (62.2) and expressions (47);
+  - imported SVG, GLTF, fonts and images (54);
+  - the AI routes (30), exported code, and share links (81).
+- [ ] **80.2** Isolation boundaries: opaque-origin sandboxes for untrusted code, typed bridges, and no editor-origin secrets reachable from any user-content frame.
+- [ ] **80.3** Hardening:
+  - a strict CSP with nonces, and Trusted Types;
+  - sanitisers for SVG, GLTF and fonts;
+  - GPU safety: compile limits and a watchdog;
+  - AI route authentication, authorisation, rate limits, and prompt-injection handling for references (34).
+- [ ] **80.4** Supply chain: dependency audit and SCA in CI, lockfile integrity, secret scanning, and pinned CDN resources with integrity hashes.
+- [ ] **80.5** Exported code security: no `eval`/`Function`, output that works under a CSP, and no inline event handlers.
+
+**Key files:** new `src/core/security/*`, `next.config.ts` (headers), `.github/workflows/*`
+**Verification Gate:**
+- **Escape corpus:** an XSS and sandbox-escape corpus cannot read editor storage, cookies or tokens in 3 browsers. It covers a malicious SVG, code component, shader, expression, GLTF, and text inside a reference image.
+- **Dependencies:** CI shows 0 high or critical SCA findings.
+- **CSP:** the editor runs with no violations under the strict policy.
+
+---
+
+## Phase 81: Accounts, Cloud Projects & Sharing (Release 2)
+**Goal:** Sign in, keep projects safe in the cloud, share previews, and host embeds.
+**Closes:** AUD-51 (platform half), AUD-53 · **Depends on:** 80, 3, 54
+
+- [ ] **81.1** Accounts (passkeys and OAuth), with account deletion and data export.
+- [ ] **81.2** Cloud projects:
+  - the local-first IndexedDB store (3) syncs to a server, with a single-writer lock per project (CRDT collaboration stays in Release 3);
+  - assets are stored by content hash;
+  - persistent storage (`navigator.storage.persist()`) is requested on the first save — a one-line fix that can land earlier;
+  - backups.
+- [ ] **81.3** Share links: a view-only Preview with live effects and Blueprints, with password and expiry options. Hosted embeds serve 69.3 from a CDN.
+- [ ] **81.4** Storage and embed-bandwidth quotas; the plans themselves are Phase 83.
+
+**Verification Gate:**
+- **Sync:** a project edited offline on device A syncs to device B with no loss.
+- **Sharing:** a share link renders the interactive preview in a logged-out browser.
+- **Deletion:** deleting an account removes its data, verified by the test harness.
+
+---
+
+## Phase 82: Observability, Reliability & Operations
+**Goal:** Know when things break for users, and be able to switch things off fast.
+**Closes:** AUD-51 (operations half) · **Depends on:** 30 · **Runs before:** 40
+
+- [ ] **82.1** Error reporting on client and server, with PII scrubbing. Source maps stay private.
+- [ ] **82.2** Opt-in performance telemetry: frame-time p95, long tasks, GPU tier and renderer, context losses, and the effect family. This field data calibrates Phase 84's budgets. **(v3.3)** It also reports peak memory-ledger size, tier downgrades, and **unexpected reloads**. A flag is set when a page loads and cleared when the page is hidden, so a flag still present on the next load means the tab was killed, usually for memory on iOS. The 82.3 kill switches can lower an effect family's memory budget on affected devices.
+- [ ] **82.3** Remote kill switches and feature flags that work without a deploy. For example: disable an effect family on a driver that crashes, or switch the AI to the offline provider. Releases go through canary, beta and stable channels.
+- [ ] **82.4** SLOs for the AI route (and, in Release 2, share links), runbooks, and a status page.
+
+**Verification Gate:**
+- **Alerting:** an injected client error and a storm of GPU context losses both appear on the dashboards within 5 minutes.
+- **Kill switch:** a kill switch disables an effect family for new sessions within 5 minutes.
+- **Release 2:** a restore drill recovers a deleted project from backup (with 81).
+
+---
+
+## Phase 83: Plans, Metering & AI Cost Controls (Release 2)
+**Goal:** AI and hosting costs stay bounded and visible, and plans and billing work.
+**Depends on:** 30, 33, 81
+
+- [ ] **83.1** Metering: AI tokens and cost per feature (tied to 33.3), storage, and embed bandwidth.
+- [ ] **83.2** Quotas per plan, graceful fallbacks (the offline AI provider, queued renders), and abuse detection.
+- [ ] **83.3** Billing integration with idempotent webhooks, upgrade and downgrade flows, and invoices.
+
+**Verification Gate:**
+- **Quotas:** quota tests block over-limit use with a clear message and a fallback.
+- **Billing:** replayed billing webhooks are idempotent.
+- **Visibility:** cost per active user is visible per feature.
+
+---
+
+## Phase 84: Device & Browser Matrix, Real-Device Performance
+**Goal:** Budgets that hold on real phones and low-end laptops, not just one reference machine.
+**Closes:** AUD-55 · **Depends on:** 26, 71 · **Runs before:** 40
+
+- [ ] **84.1** The support matrix:
+  - the editor: the current and previous desktop Chrome, Edge, Safari and Firefox;
+  - exports: those browsers plus the last 2 majors of iOS Safari and Android Chrome;
+  - the WebGPU, WebGL2, Canvas and CSS fallback path for each.
+- [ ] **84.2** Device tiers (desktop high/low, mobile high/low) with named reference devices, tested on a real-device lab: a cloud device farm or owned devices.
+- [ ] **84.3** Per-tier budgets for every library effect: frame time, memory, live surfaces and runtime size. A 10-minute soak test covers thermal throttling and tab kills (iOS memory limits). **(v3.3)** The memory budgets are calibrated here: the initial targets are T1 96 MB, T2 256 MB and T3 512 MB (61.5). During the soak, the ledger stays under budget, and nothing reloads or loses a context on the named low-end iPhone and Android devices. Large-iPad canvases stay under Safari's per-canvas pixel limit.
+- [ ] **84.4** The input matrix: mouse, trackpad, pen, touch, keyboard-only and screen reader.
+
+**Verification Gate:**
+- **Budgets:** every library effect meets its tier budgets on the matrix.
+- **Soak:** there is no crash or tab kill in a 10-minute soak on the low mobile tier.
+- **Input:** the input-matrix journeys pass.
+
+---
+
+## Phase 85: Legal, Licensing & Compliance Automation
+**Goal:** Every dependency, effect and export is licence-clean, and user data is handled compliantly.
+**Depends on:** 27, 68 · **Runs before:** 40
+
+- [ ] **85.1** A licence scanner in CI with an allowlist (MIT, BSD, Apache-2.0, ISC, Zlib, Unlicense …). It fails on copyleft or restrictive terms (GPL/AGPL, Commons Clause) in shipped code.
+- [ ] **85.2** Exports include generated third-party notices for the runtime NOTICE, fonts and assets.
+- [ ] **85.3** Effect provenance: every library effect records its inspiration source and an originality checklist (25.4). A bundle check proves `gsap` is absent from the editor runtime while GATE-01 is open.
+- [ ] **85.4** Terms of service, a privacy policy, and an AI data-use and retention policy. Telemetry (82.2) needs consent, and data-subject requests are handled (with 81 in Release 2).
+
+**Key files:** new `scripts/check-licenses.mts`, `DOCS/Initial/LICENSES.md`
+**Verification Gate:**
+- **Planted failures:** CI fails on a planted disallowed licence and on a planted `gsap` import in editor code.
+- **Notices:** every export in the matrix contains the correct notices.
+- **Provenance:** 100% of library effects have complete provenance.
+
+---
+
+# TRACK K — KINETIC COMPOSITION (Build Any Interaction From Primitives, v3.1)
+
+> Added in v3.1 (2026-09-26) for the design-freedom requirement: an invisible circle follows the mouse by a point the user chooses, a card's text splits into letters with one click, and a Blueprint rule makes the letters flee the circle and spring back. v3.0 could only play such effects as library items; Track K lets users build them. The reference build is engine spec §12.7; the grammar is `lazylayout_element_grammer.md` §14. Phases 88–90 need no GPU. Closes AUD-56.
+
+## Phase 88: Helper Layers, Pins & Follow Behaviours
+**Goal:** Any layer can be an invisible, logic-only helper; any point on a layer can be the point that follows; following is a fully configurable component.
+**Closes:** AUD-56 (helpers & follow half) · **Depends on:** 42, 60 (shares the anchor model with 51.1)
+- [ ] **88.1** `render.role: content | helper`: helpers never render in Preview or export, draw dashed in Design mode, and export as runtime data (grammar 6.17).
+- [ ] **88.2** Pins: 9 presets plus custom pins (may lie outside the box); binding target `L.position(pin)` with rotation/scale about the anchor (engine spec §8.6.2).
+- [ ] **88.3** Follow component: target, pin, offset, lag, axis, bounds, leave behaviour, rotation, scale by speed, touch and reduced-motion policies (engine spec §8.6.3).
+- [ ] **88.4 (v3.2) Simple face (Law 17).** In "Cursor → Follow":
+  - the follow point is a click on one of the 9 dots shown on the canvas, or a dragged custom pin;
+  - lag is Bounce and Time (or Snappy / Smooth / Lazy);
+  - offset is dragged as a ghost preview;
+  - "Stay inside" and "Move" are plain choices.
+
+  Follow, Look At and Parallax are offered on every visual layer, including plain shapes and text.
+
+**Verification Gate:** A helper circle following the pointer by its bottom pin matches hand-computed positions at tape checkpoints with rotation and scale applied; helpers are absent from the exported DOM.
+
+## Phase 89: Split, Clone & Generators
+**Goal:** One click turns text into letter, word or line layers, and any layer into grids, rings, paths or scatters of clones, each knowing its index.
+**Closes:** AUD-56 (split & clone half) · **Depends on:** 17.1, 48, 88
+- [ ] **89.1** One-click, non-destructive Split (grapheme-aware, measured positions, overrides kept on edit, Detach); accessible string exposed once (grammar 3.G.1, 6.18).
+- [ ] **89.2** Cloners: grid, radial, path, scatter, linear; per-clone overrides; exported as loops (grammar 3.G.2).
+- [ ] **89.3** Per-piece attributes (`index`, `count`, `home`, `random` …), layer tags, and `Group[*]` / `tag:` targets; over the tier cap, offer GPU particles (6.19).
+- [ ] **89.4 (v3.2) Spawner (gap G6).** Runtime copies of a layer the user designed, created by the `Spawn` action (72): at the pointer, a pin or a point, with an initial velocity, spin and a Variety amount.
+  - Spawned copies have a lifetime with an exit (fade, shrink, fall off), and can be kinetic bodies (91).
+  - Copies come from a pool with a maximum count per tier (FX-KIN-03). They are runtime-only: never saved into the document, never rendered on the server.
+  - Examples: confetti made from the user's own star shape, an image trail of their own images, sparks at the click point.
+  - Over the tier cap, spawning switches to GPU particles (63) using the layer as a sprite.
+
+**Verification Gate:** 5 fixture strings split within 0.5 px of the unsplit glyph positions in 3 browsers and are read once by the accessibility tree; a 20 × 20 clone grid exports as a loop and matches the stage.
+
+## Phase 90: Fields & Effectors
+**Goal:** Shapes that influence other layers by distance: keep out, push, attract, swirl, transform, style, look at, jitter.
+**Closes:** AUD-56 (fields half) · **Depends on:** 88, 89, 60, 9
+- [ ] **90.1** Fields (circle, box, capsule, own shape, path stroke, linear, noise) with inner/outer radius and falloff.
+- [ ] **90.2** Effectors with strength, spring smoothing to home, blend modes; Keep-Out is a hard constraint (6.23).
+- [ ] **90.3** Stacking order, pure evaluation, gizmos and weight heat-maps.
+- [ ] **90.4 (v3.2) One evaluation space (gap G5).** Fields and targets are evaluated in the top-level frame's space (Document-Space Law 10), using each layer's full world transform: parents, rotation, scale, parenting (51.2). The resulting offsets are converted back into each target's local `transform.*`. So a circle in the frame and letters inside a rotated, scaled card interact correctly.
+- [ ] **90.5 (v3.2) Stay inside (gap G5).** Targets can be kept inside a boundary: their parent, the frame, or none. Pushed letters then stay on the card instead of flying off it.
+- [ ] **90.6 (v3.2) Simple face (Law 17).**
+  - Reach and Gap are rings dragged on the canvas.
+  - The edge is Hard, Soft or Very soft, or a curve.
+  - Strength is Gentle, Clear or Strong.
+  - Return is Bounce and Time.
+  - Randomness is Variety plus a shuffle button.
+  - Direction is an arrow gizmo.
+
+**Verification Gate:** The reference build (effector form) never draws a letter inside the circle at any tape checkpoint, springs every letter home within 0.5 px 2 s after the circle leaves, holds 60 fps with 400 letters on the mid tier, and its export replays the tape within tolerance.
+
+## Phase 91: Colliders, Contact Events & Kinetic Bodies
+**Goal:** 2D physics for any layer, with contact events Blueprints can react to.
+**Closes:** AUD-56 (physics half) · **Depends on:** 90, 64.1, 72, 45
+- [ ] **91.1** Colliders (auto shapes, trigger/solid, collision layers and masks).
+- [ ] **91.2** Bodies: static, kinematic (momentum from motion), dynamic (home spring, damping, bounciness).
+  - **(v3.2) Draggable bodies (gap G6):** while the pointer drags a layer, it is kinematic and follows the pointer, so it pushes others. On release it becomes dynamic with the throw velocity (12.2's inertia), with optional snap points and bounds. `Drag` events are raised for Blueprints (72).
+  - **(v3.2) Simple face (Law 17):**
+    - Weight: Light, Normal or Heavy.
+    - Bounce, Grip (friction) and Return (Bounce and Time).
+    - Gravity: off, light, normal or custom, with an arrow for direction.
+  - **(v3.2) Space:** contacts are computed in the top-level frame's space, as in 90.4.
+- [ ] **91.3** One physics core `src/core/physics2d/` shared with 64.2: spatial-hash broadphase, SAT narrowphase, fixed 1/120 s step, deterministic.
+- [ ] **91.4** Blueprint events `OverlapBegin/Stay/End`, `Hit`, with `other` and contact pins; actions KeepOut, SpringHome, AddForce/Impulse/Spin, Explode (grammar 14.6).
+- [ ] **91.5** "Show collision" debug view; **91.6** vendored `physics2d` export module.
+- [ ] **91.7 (v3.2) Composition test suite (gap G7).** Ten interactions, each built from primitives only, with no code and no preset, run as Playwright journeys in 3 browsers and on the Phase 84 phone profile, then exported and parity-checked:
+  1. Letters flee an invisible cursor circle (the reference build).
+  2. A magnetic dot grid: clone grid, Attract effector, a click shockwave.
+  3. A cursor chain: 5 circles, each following the previous one's centre pin with more lag.
+  4. Falling letters: a click turns split letters into dynamic bodies that drop onto the card's floor. They can be dragged and thrown, and a "Reset" rule springs them home.
+  5. Eyes: two pupils that Look At the cursor within their eye bounds.
+  6. Scroll scatter: split words scatter by the section's scroll progress.
+  7. Click confetti: 30 of the user's own star shape spawned at the click, with gravity, fade and despawn.
+  8. A card grid that tilts away from the cursor and lifts the nearest card.
+  9. An orbit: dots cloned along a circle path orbiting a helper that follows the cursor with lag.
+  10. A hit counter: after 20 hits, play a composition and a sound.
+
+**Verification Gate:**
+- The reference build (physics form) is authored as Simple rules and opened as a graph; tape replay is identical across runs and at 30/60/120 Hz; 5 first-time users build it from primitives in under 5 minutes.
+- **(v3.2)** All 10 builds of 91.7 pass. No Simple face in them shows a technical parameter (a Law 17 check over the inspector's rendered labels).
 
 ---
 
@@ -1530,6 +2824,16 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 **Goal:** Prove PRD §11 end to end and ship a public beta of the Initial Phase.
 **Depends on:** all
 > **v2.1 amendment:** Runs after Phase 58 (Studio Architecture Integration Gate). The 40.2 matrices also include the render queue (55) and breakpoint parity (50).
+>
+> **v3.0 amendment:** This is the **Release 1 beta gate**.
+> - **Depends on:** all Release 1 phases: Tracks A–H, S, X and L, plus Track P's 80, 82, 84 and 85. Track W and Phases 81 and 83 are Release 2 and gate Phase 86 instead.
+> - **40.1** runs PRD §11 criteria 9–12 (interactive in one step, interactive export, interactions, bring your own) as well as the original 8.
+> - **40.2** adds the interactive export matrix (69), GPU verification (71), device tiers (84) and licence scanning (85).
+> - **40.3** is now Phase 80's gate, re-run at the tagged commit.
+>
+> **v3.1 amendment:** Release 1 also includes Track K (88–91). 40.1 adds PRD §11 criterion 13 (**Compose**: the reference build from primitives, engine spec §12.7). 40.2 adds the kinetic budgets (FX-KIN-03) to the performance matrix.
+>
+> **v3.2 amendment:** 40.2 also runs the 10-build composition suite (91.7) and the Law 17 label check across every Simple face.
 
 - [ ] **40.1** Run all 8 PRD §11 Definition-of-Done scenarios as automated Playwright journeys plus a recorded manual run.
 - [ ] **40.2** Full matrices green: export parity (Phase 27/28), performance budgets (26), accessibility (29), AI evals (33), recognition accuracy (36).
@@ -1541,19 +2845,50 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 
 ---
 
+## Phase 86: Release 2 GA Gate — Sites
+**Goal:** Prove the full product promise. A user designs a site on a Figma/Wix-style canvas, adds React Bits-grade interactive effects, wires interactions with Blueprints, and exports or deploys it, and all of it holds up in production.
+**Depends on:** 40, 75–79, 80–85
+
+- [ ] **86.1** The journey: a first-time user builds a 3-page site from templates. It has an interactive hero background, a cursor effect, a CMS list and a contact form, plus two Blueprint interactions. The user previews it on desktop and phone, then exports and deploys it.
+- [ ] **86.2** Every matrix is green: export parity (27/69/79), accessibility (29), performance tiers (84), Web Vitals (79.3), security (80), and licences (85).
+- [ ] **86.3** Operations are ready: SLOs, on-call and kill switches (82), and billing is live (83).
+- [ ] **86.4** A Go/No-Go review against the PRD §13 metrics, using beta telemetry.
+
+**Verification Gate:** Every item is green in CI at a tagged commit (`v1.0.0`). There is also a recorded manual run of 86.1 on desktop and on a phone.
+
+---
+
+## Phase 87: Release 3 Re-baseline — Apps (After-Track Reality Audit)
+**Goal:** Turn the After track into an honest, gated roadmap before any of it ships. That track covers data, API, auth and backend Blueprints, Database Studio, deployment, collaboration and plugins.
+**Closes:** AUD-50 (After-track half) · **Depends on:** 86
+
+- [ ] **87.1** Audit the After-track code the way `AUDIT.md` audited v1.1: NodeScript, the Blueprint canvas and runtime, `LogicFlowEmitter`/`ApiRouteEmitter`/`PrismaSchemaEmitter`, Database Studio, deployment and version control. Record what actually works in a browser and in a build.
+- [ ] **87.2** Write the Release 3 roadmap in the v2 phase format (Goal, Closes, Depends on, Verification Gate). Reuse Track L's graph model, so interaction logic and app logic share one Blueprint language.
+- [ ] **87.3** Decide the backend model (user-owned infrastructure or hosted) and its security and compliance scope, together with Track P.
+
+**Verification Gate:** The audit and the Release 3 roadmap exist. Every ✅ in `DOCS/After` has been either re-verified in a real environment or withdrawn.
+
+---
+
 ## 6. Milestones
 
 | Milestone | After phase | What you can demo |
 |---|---|---|
 | **M1 · Solid Ground** | 6, 41–44 | Same features as today, but it type-checks, builds, persists and is verified in browsers. Gestures are single undo steps; one property vocabulary; Design / Animate / Code workspaces |
-| **M2 · Real Motion Core** | 13, 45–48 | Keyframes, states, pointer and scroll motion running on a live-DOM stage from one clock, matching the math; compositions with nesting and expressions |
-| **M3 · All Engines Live** | 19 | GSAP (or its cleared alternative), Motion, SVG, text, Three.js and shaders running in the editor |
-| **M4 · The Studio** | 26, 49–53, 56 | Figma / Wix Studio canvas (multi-frame, auto-layout, breakpoints), After Effects timeline (bars, twirl-downs, work area, precomps), on-canvas motion paths, Simple/Pro properties, Playground, 40+ effects, measured performance |
-| **M5 · Trustworthy Export** | 29, 54–55 | Every effect exports to React/Vue/vanilla/CSS, builds, and matches the preview; accessible. Assets and media layers; video, GIF and Lottie render queue |
-| **M6 · AI-Native** | 34 | Prompt → animation, co-pilot edits, reference-based generation, measured quality |
+| **M2 · Real Motion Core** | 13, 45–48, **59–60** | Keyframes, states, pointer and scroll motion running on a live-DOM stage from one clock, matching the math; compositions with nesting and expressions. **(v3.0) Signals and input tapes; the one-step Reactivity card on DOM layers (magnet, tilt, parallax)** |
+| **M2.5 · First Interactive Effect (v3.0)** | 61, 62, 71 (vertical slice) | **One cursor-reactive shader background, end to end: added in one step, scrubbed with a tape, exported, parity-checked, accessible, and running on a phone** |
+| **M3 · All Engines Live** | 19, **63–66** | Motion, SVG, text, Three.js and shaders running in the editor (GSAP only as an opt-in export). **(v3.0) Particles, simulations, texture distortion and cursor layers on the budgeted compositor** |
+| **M2.7 · Compose (v3.1)** | **88–90** (with 17.1) | **Build "letters flee an invisible cursor circle" from primitives, with no code and no GPU: helper circle, follow pin, one-click Split, Keep-Out effector** |
+| **M3.5 · Effects as Data & Logic (v3.0)** | **67, 68, 72–74, 91** | **The Effect SDK; imported code components with controls; interactions as Simple rules or Blueprint graphs, compiled to code. (v3.1) Colliders, kinetic bodies and contact events, so the reference build also works as a physics Blueprint** |
+| **M4 · The Studio** | 26, 49–53, 56 | Figma / Wix Studio canvas (multi-frame, auto-layout, breakpoints), After Effects timeline (bars, twirl-downs, work area, precomps), on-canvas motion paths, Simple/Pro properties, Playground, measured performance. **(v3.0) 80+ effects, including 20+ interactive backgrounds and 10+ cursor effects** |
+| **M5 · Trustworthy Export** | 29, 54–55, **69** | Every effect exports to React/Vue/vanilla/CSS, builds, and matches the preview; accessible. Assets and media layers; video, GIF and Lottie render queue. **(v3.0) Interactive effects export with a vendored runtime, embed scripts, size budgets and tape parity** |
+| **M6 · AI-Native** | 34, **70** | Prompt → animation, co-pilot edits, reference-based generation, measured quality. **(v3.0) Prompt → new interactive effect** |
 | **M7 · Draw It** | 39 | Oval → ellipse, line → motion path, sketch → UI, three-step Simple mode |
-| **M7.5 · Studio Proven** | 57, 58 | Legacy runtime deleted; Design → Animate → Output journeys green in three browsers |
-| **M8 · Beta** | 40 | Public beta of the Initial Phase |
+| **M7.5 · Studio Proven** | 57, 58 | Legacy runtime deleted; the Design → Animate → Output journeys **and the v3.0 React journey** are green in three browsers |
+| **M8 · Beta (Release 1)** | 40 (**with 80, 82, 84, 85**) | Public beta of the Initial Phase: **secure, observable, measured on real devices, licence-clean** |
+| **M9 · Sites (v3.0)** | 75–79 | Components with variants, sections and templates, pages and transitions, collections and forms, whole-site export |
+| **M10 · GA (Release 2)** | 86 (with 81, 83) | Accounts, sharing and billing; the full "design, react, wire, export or deploy" promise in production |
+| **M11 · Apps (Release 3)** | 87 | The After track, audited and re-planned with verification gates |
 
 ---
 
@@ -1566,13 +2901,51 @@ Build these in waves. Each effect satisfies the PRD §5.3 contract and passes Pl
 - **Track E:** 27 starts per engine as engines land; 28 and 29 follow.
 - **Track F:** 30 can start right after Phases 2 and 8 (it doesn't need the engines). 31 needs the library for good results.
 - **Track G:** 35–36 only need Phase 20 and can be built early by a separate owner. 37 needs 16; 38 needs 31; 39 comes last.
-- **Track S (v2.1):** see §5.1 for where each phase slots in. In short: 41 before 3; 42 in parallel with 3; 43 → 44 alongside 6; 46 right after 7; 45 and 48 before 10; 49 before 20; 52 before 23; 47, 51, 53–56 as their dependencies land; 57 → 58 just before 40. With two owners, one can take the **time stack** (45, 46, 47, 52, 55) while the other takes the **space stack** (42, 48, 49, 50, 51, 53).
+- **Track S (v2.1):** see §5.1 for where each phase slots in. In short:
+  - 41 before 3; 42 in parallel with 3; 43 → 44 alongside 6.
+  - 46 right after 7; 45 and 48 before 10; 49 before 20; 52 before 23.
+  - 47, 51 and 53–56 as their dependencies land; 57 → 58 just before 40.
+
+  With two owners, one can take the **time stack** (45, 46, 47, 52, 55) while the other takes the **space stack** (42, 48, 49, 50, 51, 53).
+- **Track X (v3.0):**
+  - 59 → 60 inside Stage 2, with one owner (the **signals** owner, who also owns 12).
+  - 71 and 61 start together with a **GPU** owner, who then takes 62 and 65.
+  - A second GPU owner takes 63, 64 and 66.
+  - 67 → 69 goes to a **tooling/export** owner, 68 to the sandbox work (with 80), and 70 to the AI owner.
+  - Build the vertical slice (§5.1) before splitting across owners.
+- **Track L (v3.0):** 72 after 11 and 60; then 73 (editor UX) runs in parallel with 74 (runtime and compiler), with different owners.
+- **Track K (v3.1):** 88 right after 60, with the signals owner. 89 goes to the typography owner, right after 17.1. 90 goes to the signals owner. 91 goes to the logic owner together with 72, since its contact events are Blueprint events, and it shares its physics core with 64.2.
+- **Track W (v3.0, Release 2):** 75 first; then 76 ∥ 77; 78 after 75 and 77; 79 last.
+- **Track P (v3.0):**
+  - 80.1 early (Stage 1–2), and 80.2 before 68.
+  - 82 before the AI route is public; 84 alongside 26; 85 alongside 27–29.
+  - 81 and 83 for Release 2.
+- **Team shape.** Four owners fit v3.x well:
+  - **motion core, signals and kinetics** (Tracks B and the S time stack, 59–60, 88, 90);
+  - **GPU and effects** (61–66, 71);
+  - **studio and logic** (Tracks D and the S space stack, 72–74, 89, 91);
+  - **export, AI and platform** (Tracks E and F, 67–70, P).
 
 ---
 
-## 8. Explicitly Out of Scope for the Initial Phase
+## 8. Scope by Release (v3.0)
 
-These remain on the full-vision track (`DOCS/After/`) and begin only after Phase 40:
-- Multi-element **Component Design** (navbars, pricing cards, modals as editable compositions beyond single effects) and **Page / Section Design**.
-- Logic Blueprints, NodeScript, Database Studio, API/backend emitters, deployment, collaboration, plugins, and importing existing projects (`DOCS/After/ROADMAP_EXISTING_PROJECT_IMPORT.md`).
-- Mobile (React Native / Flutter) emitters.
+v2.1 placed everything below "out of scope for the Initial Phase". v3.0 schedules most of it into releases (see §4.2):
+
+| Item | v2.1 | v3.0 |
+|---|---|---|
+| Interaction logic Blueprints (events, flow, states, compositions, effects, variables) | Out of scope | **Release 1** (Track L, 72–74) |
+| NodeScript (the Blueprint text form) | Out of scope | **Release 1**, re-audited and extended with the interaction stdlib (72.3) |
+| Imported code components | Not planned | **Release 1** (68) |
+| Multi-element **Component Design** (main components, variants, instances) | Out of scope | **Release 2** (75) |
+| **Section and Page Design**, navigation, page transitions | Out of scope | **Release 2** (76, 77) |
+| Content collections (CMS-lite) and forms | Not planned | **Release 2** (78) |
+| Whole-site export, SEO, deploy handoff | Not planned | **Release 2** (79) |
+| Accounts, cloud projects, sharing, hosted embeds | Not planned | **Release 2** (81) |
+| Plans, metering, billing | Not planned | **Release 2** (83) |
+| Data/API/auth/backend Blueprints, Database Studio, deployment infrastructure | Out of scope | **Release 3**, re-baselined by 87 |
+| Real-time collaboration, plugins, marketplace | Out of scope | **Release 3**, re-baselined by 87 |
+| Importing existing projects (`DOCS/After/ROADMAP_EXISTING_PROJECT_IMPORT.md`) | Out of scope | **Release 3**, re-baselined by 87 |
+| Mobile (React Native / Flutter) emitters | Out of scope | Still out of scope; revisit after Release 3's roadmap exists |
+
+Release 3 work begins only after Phase 86, and only once Phase 87 has produced a roadmap with verification gates. The After track's existing ✅ claims don't count until they are re-verified.
