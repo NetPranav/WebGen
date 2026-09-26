@@ -9,6 +9,23 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.6.0] — 2026-09-26
+
+### Phase 8 (Executable Motion Rules Engine): in progress, not gate-complete — no PR yet
+
+`lazylayout_element_grammer.md` and the animation engine spec become one executable rule table (`decisions/0005-phase8-rule-table-and-reconciliation.md`). Sub-Phase 8.5 (reconciliation, AUD-52) and 8.1/8.2 core are done; 8.3 is Stage 1 only; 8.4 (UI contract) is not started. See ROADMAP.md's Phase 8 Progress Log for the full breakdown.
+
+#### Added
+- **`src/core/rules/`**: `conditional-gates.ts` (the ⚠️ conditional / 🔒 subsumed tier grammar §9 needs, never modelled before this phase), `clip-adapter.ts` (bridges the real `Clip`/`Trigger` schema to the grammar's `AnimationCategory`/`TriggerType`, with `PHASE8_SCHEMA_GAPS` naming what can't map yet), `performance.ts`, `accessibility.ts` (the ≤ 3 flashes/second limit), `routing.ts` (Stage 1 engine routing — CSS/SVG/three.js, never GSAP), `diagnostics.ts` and `index.ts` (the `rules.canAdd`/`validate`/`explain`/`suggestFix`/`route` query API).
+- **Diagnostic codes:** `STA_CONFLICT`, `PERF_LAYOUT`, `A11Y_FLASH` added to `DiagnosticChannel` alongside the existing `ANIM_COMPAT`.
+- **Tests:** `src/core/rules/__tests__/` — the full grammar §9 compatibility matrix (320 cells) as a table-driven test, the 5 reconciliation fixes, the clip adapter, routing, and the query API against real `MotionDocument` fixtures. 342 assertions, all green.
+
+#### Fixed
+- **`ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md`** §7.1 (Badge, Spinner, Avatar, Link), §7.2 (Container) and §13.5 corrected to match the grammar (decision 0005 §1) — the spec's own per-type tables had drifted from the grammar it was meant to mirror.
+
+#### Found (not yet fixed)
+- **AUD-59** (new): the real MDM v4 `Clip`/`Trigger` schema (Phase 7) and the grammar's `AnimationCategory`/`TriggerType` vocabulary were never reconciled. Exit, Focus, Stagger and LayoutTransition have no independent schema representation as of this entry.
+
 ## [3.5.0] — 2026-09-26
 
 ### Phase 46 (Compositions, Layer Time Bars & Nesting): complete — CI green on PR #14

@@ -1182,11 +1182,11 @@ Atomic elements are leaves with zero arbitrary children. With the exception of B
 
 #### 6. Badge (`Badge`, 3.A.6)
 - **Grammar Contract**: Status label. Max simultaneous tracks: **3**.
-- **Allowed Categories**: `Entrance`, `Exit`, `Hover`, `Ambient`, `Stagger`.
-- **Blocked Categories (Rule 6.1)**: `Press`, `Focus`, `StateTransition`.
+- **Allowed Categories**: `Entrance`, `Exit`, `Ambient`, `StateTransition`, `Stagger`. *(Corrected 2026-09-26, decision 0005: this table previously had Hover/StateTransition exactly swapped versus grammar §9 — Hover is blocked, StateTransition is allowed.)*
+- **Blocked Categories (Rule 6.1)**: `Press`, `Focus`, `Hover`.
 - **Engine Assignment**:
   - `Ambient`: Native CSS `@keyframes` pulse ring (`transform: scale(1.4); opacity: 0`).
-  - `Hover`: Framer Motion micro-spring pop (`scale: 1.08`).
+  - `StateTransition`: Framer Motion variant swap for status changes (e.g. `pending -> success`).
 - **Reduced Motion**: Pulse loop halted. Static pill indicator.
 
 #### 7. Divider (`Divider`, 3.A.7)
@@ -1198,7 +1198,7 @@ Atomic elements are leaves with zero arbitrary children. With the exception of B
 - **Reduced Motion**: Instant full-width render (`scaleX: 1`).
 
 #### 8. Avatar (`Avatar`, 3.A.8)
-- **Grammar Contract**: User profile thumbnail. Max simultaneous tracks: **3**.
+- **Grammar Contract**: User profile thumbnail. Max simultaneous tracks: **4**. *(Corrected 2026-09-26, decision 0005: was 3.)*
 - **Allowed Categories**: `Entrance`, `Exit`, `Hover`, `Press`, `Ambient`, `Stagger`.
 - **Blocked Categories (Rule 6.1)**: `Focus`, `ScrollLinked`.
 - **Engine Assignment**:
@@ -1207,7 +1207,7 @@ Atomic elements are leaves with zero arbitrary children. With the exception of B
 - **Reduced Motion**: Hover lift disabled.
 
 #### 9. Link (`Link`, 3.A.9)
-- **Grammar Contract**: Inline hyperlink navigation. Max simultaneous tracks: **3**.
+- **Grammar Contract**: Inline hyperlink navigation. Max simultaneous tracks: **4**. *(Corrected 2026-09-26, decision 0005: was 3.)*
 - **Allowed Categories**: `Entrance`, `Exit`, `Hover`, `Focus`, `Ambient`, `Stagger`.
 - **Blocked Categories (Rule 6.1)**: `Press` (handled natively by browser navigation).
 - **Engine Assignment**:
@@ -1216,9 +1216,9 @@ Atomic elements are leaves with zero arbitrary children. With the exception of B
 - **Reduced Motion**: Instant static underline.
 
 #### 10. Spinner (`Spinner`, 3.A.10)
-- **Grammar Contract**: Indeterminate progress indicator. Max simultaneous tracks: **2**.
-- **Allowed Categories**: `Entrance`, `Exit`, `Ambient`.
-- **Blocked Categories (Rule 6.1)**: All interactive gestures.
+- **Grammar Contract**: Indeterminate progress indicator. Max simultaneous tracks: **1**. *(Corrected 2026-09-26, decision 0005: this table previously also allowed Entrance/Exit and 2 tracks; grammar §9 is Ambient-only, 1 track.)*
+- **Allowed Categories**: `Ambient` only.
+- **Blocked Categories (Rule 6.1)**: `Entrance`, `Exit`, and all interactive gestures.
 - **Engine Assignment**:
   - `Ambient`: **Native CSS `@keyframes` exclusively**:
     ```css
@@ -1243,11 +1243,12 @@ Container elements provide layout grouping and structural framing for nested chi
 - **Reduced Motion**: Pinning disabled; standard natural document flow.
 
 #### 2. Container / Box (`Container`, 3.B.2)
-- **Grammar Contract**: Generic bounded flex/grid box. Max simultaneous tracks: **4**.
-- **Allowed Categories**: `Entrance`, `Exit`, `Hover`, `ScrollLinked`, `Ambient`, `LayoutTransition`, `Stagger`.
-- **Blocked Categories (Rule 6.1)**: `Press`, `Focus`.
+- **Grammar Contract**: Generic bounded flex/grid box. Max simultaneous tracks: **5**. *(Corrected 2026-09-26, decision 0005: was 4.)*
+- **Allowed Categories**: `Entrance`, `Exit`, `ScrollLinked`, `Ambient`, `LayoutTransition`, `Stagger` unconditionally; `Hover`, `Press` and `StateTransition` are **⚠️ conditional**, gated by Explicit Promotion (grammar §7.3.1, an authoring-time `interactive: true` flag) — not unconditionally allowed and not blocked outright. *(Corrected 2026-09-26, decision 0005: this table previously blocked Press outright, which is also wrong; it is conditional.)*
+- **Blocked Categories (Rule 6.1)**: `Focus`.
 - **Engine Assignment**:
   - `LayoutTransition`: Framer Motion `layout` projection for zero-reflow resizing.
+  - `Hover` / `Press` / `StateTransition` (once promoted): same engine assignment as the generic interactive suite (Framer Motion springs); the promotion gate only governs *whether* the category is offered, not which engine runs it.
 - **Reduced Motion**: Immediate layout snapping.
 
 #### 3. Card (`Card`, 3.B.3)
@@ -1827,8 +1828,8 @@ This actionable checklist serves as the authoritative verification audit for eng
   - [x] `Page`, `Navbar`, `Footer`, `Slot`.
 - [x] **Interactive Elements (7)**:
   - [x] `Form`, `Dropdown`, `Checkbox` (press-merged), `Radio`, `Switch` (press-merged), `Slider`, `Tabs`.
-- [x] **Media & Data Elements (6)**:
-  - [x] `Video`, `SVG`, `Canvas`, `Table`, `List`, `Chart`.
+- [x] **Media Elements (3)**:
+  - [x] `Video`, `SVG`, `Canvas`. *(Corrected 2026-09-26, decision 0005: this previously claimed `Table`, `List` and `Chart` were covered here too, with no §7 entry ever defining them. The grammar's 32-type taxonomy is exhaustive — see §9 — and has no such types; tabular/list/chart UI is a composition of Grid/Stack/Text primitives, per grammar §12.4.)*
 
 ### 13.6 Exhaustive Property Domain Catalog Matrix (§3)
 - [x] **3.1 Spatial Transforms (2D & 3D)**: `transform.x`, `transform.y`, `transform.z`, `transform.scale`, `transform.scaleX`, `transform.scaleY`, `transform.rotate`, `transform.rotateX`, `transform.rotateY`, `transform.skewX`, `transform.skewY` (Tier 1 GPU Compositor).

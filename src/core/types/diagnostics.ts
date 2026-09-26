@@ -14,6 +14,9 @@ export type DiagnosticChannel =
   | "DB_SCHEMA_ERR"    // Relational schema inconsistencies, missing PK, circular cascade
   | "BIND_ERR"         // Property-to-database / state binding type mismatch
   | "ANIM_COMPAT"      // Unsupported animation track for element archetype
+  | "STA_CONFLICT"     // Single Transform Authority / rule-table conflict (grammar §6.1, §6.8) (Phase 8)
+  | "PERF_LAYOUT"      // A continuous binding targets a layout-triggering property (grammar §6.8 v0.2) (Phase 8)
+  | "A11Y_FLASH"       // Sustained flashing exceeds the ≤3 flashes/second accessibility limit (Phase 8)
   | "PROP_ERR"         // Invalid CSS property value, out-of-range metric, or syntax error
   | "BLUEPRINT_ERR"    // Node pin type mismatch or execution flow cycles
   | "STATE_VAR_WARN"   // State variable type mismatch or invalid initial value warning

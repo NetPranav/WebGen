@@ -790,32 +790,46 @@ Bugs found and fixed along the way:
 > The inspector explains the choice ("runs on CSS transforms, so it needs no GPU"). A Pro override is allowed and its memory and battery cost is shown.
 
 ### Sub-Phase 8.1: Rule Table
-- [ ] `src/core/rules/`: data-driven rules (not `if` chains) for **compatibility** (layer kind × property path × trigger × behaviour), **conflicts** (Single Transform Authority, one owner engine per property per layer, priority arbitration from spec §5), **performance** (layout-triggering paths, filter cost) and **accessibility** (reduced-motion requirements, flashing limits of ≤ 3 flashes/second).
-- [ ] Reuse the logic in `ElementGrammarEngine.ts`, `AnimationValidator.ts` and `grammarHelpers.ts`, merged into this table.
+- [x] `src/core/rules/`: data-driven rules (not `if` chains) for **compatibility** (layer kind × property path × trigger × behaviour), **conflicts** (Single Transform Authority, one owner engine per property per layer, priority arbitration from spec §5), **performance** (layout-triggering paths, filter cost) and **accessibility** (reduced-motion requirements, flashing limits of ≤ 3 flashes/second). *(2026-09-26: built against the real `MotionDocument`/`Clip` model, not a hand-built shape — see decision 0005. The Reactive-category/3.F effect-surface growth this sub-phase's v3.0 amendment describes is deferred: it needs Phases 59–61 (Signals, Reactivity, GPU Compositor), which the execution order runs after Phase 8.)*
+- [x] Reuse the logic in `ElementGrammarEngine.ts`, `AnimationValidator.ts` and `grammarHelpers.ts`, merged into this table. *(As a facade — `rules.canAdd` composes `ElementGrammarEngine.evaluatePlusIcon` with the ⚠️/🔒 tier grammar §9 needs but the legacy engine never modelled; the legacy engines are unmodified.)*
 
 ### Sub-Phase 8.2: Query API
-- [ ] `rules.canAdd(doc, layerId, candidate)`, `rules.validate(doc)`, `rules.explain(diagnostic)`, `rules.suggestFix(diagnostic)`, and `rules.route(animation)` (the engine routing from PRD §7).
-- [ ] Diagnostics use stable codes (`[ANIM_COMPAT]`, `[STA_CONFLICT]`, `[PERF_LAYOUT]`, `[A11Y_FLASH]` …) with a human message and a machine-readable fix.
+- [x] `rules.canAdd(doc, layerId, candidate)`, `rules.validate(doc)`, `rules.explain(diagnostic)`, `rules.suggestFix(diagnostic)`, and `rules.route(animation)` (the engine routing from PRD §7). *(`route`'s depth is Sub-Phase 8.3's Stage 1 — see below.)*
+- [x] Diagnostics use stable codes (`[ANIM_COMPAT]`, `[STA_CONFLICT]`, `[PERF_LAYOUT]`, `[A11Y_FLASH]` …) with a human message and a machine-readable fix.
 
 ### Sub-Phase 8.3: Engine Routing
-- [ ] Implement the routing decision tree (PRD §7, spec §12) as rules with scores. Pro-mode overrides are validated and explained.
+- [~] Implement the routing decision tree (PRD §7, spec §12) as rules with scores. Pro-mode overrides are validated and explained. *(2026-09-26: Stage 1 exists — `src/core/rules/routing.ts` routes today's property catalogue lightest-first (CSS → SVG → three.js for real 3D) and never returns GSAP by construction. It has no device-tier scoring or GPU memory budget awareness yet; that needs Track X (59–61) per decision 0005 §4. Not gate-complete.)*
 
 ### Sub-Phase 8.4: UI Contract
-- [ ] The "+" (add) menus, the drop targets and the property enablement **only** render `rules.canAdd` results (grammar §8, "the + icon is a query").
+- [ ] The "+" (add) menus, the drop targets and the property enablement **only** render `rules.canAdd` results (grammar §8, "the + icon is a query"). *(Not started — see decision 0005 §5: the one call site found, `ContentBrowser.tsx`, reads from editor-local state never wired to `doc.clips`, and rewiring it needs dev-server verification this pass didn't do.)*
 - [ ] Remove every ad-hoc compatibility check from `src/editor/**` (tracked by grep for known patterns).
 
 ### Sub-Phase 8.5: Source Reconciliation (v3.0)
-- [ ] Resolve every contradiction between the grammar and the engine spec §7/§13 before compiling the table (AUD-52):
+- [x] Resolve every contradiction between the grammar and the engine spec §7/§13 before compiling the table (AUD-52):
   - Badge: Hover and StateTransition are allowed/blocked the opposite way round in the two sources.
   - Spinner: Ambient-only with 1 track, versus 2 tracks with Entrance/Exit.
   - Track caps for Link, Avatar and Container.
   - Container's Press.
   - The spec's undefined Table/List/Chart types.
 
-  The grammar wins. The spec's per-type tables (§7) are regenerated from the rule table, so the two can't drift again.
-- [ ] Grammar §13.5–§13.6 (the Reactive column and the 3.F rows) join the table-driven test.
+  The grammar wins. The spec's per-type tables (§7) are regenerated from the rule table, so the two can't drift again. *(2026-09-26: all 5 resolved — see decision 0005 §1. `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` §7/§13.5 corrected in place; `src/core/rules/__tests__/reconciliation.test.ts` locks the grammar-wins answer.)*
+- [ ] Grammar §13.5–§13.6 (the Reactive column and the 3.F rows) join the table-driven test. *(Deferred with the rest of the Reactive-category growth — see 8.1's note.)*
 
 **Verification Gate:** Grammar §9's full compatibility matrix is converted into a table-driven test (every cell asserted), **(v3.0) together with the §13.5–§13.6 cells**. The Playwright test "try to add an illegal animation" shows the disabled item with a reason. Zero compatibility logic remains in editor components (lint rule or grep gate).
+
+**Gate status (2026-09-26): not passed — do not mark this phase ✅.** Done: the 320-cell (32×10) matrix is a table-driven test (`src/core/rules/__tests__/compatibility-matrix.test.ts`, 342 assertions across the whole rules test suite, all green). Not done: the §13.5–§13.6 Reactive cells (blocked on Track X, see 8.1), the Playwright "illegal animation" test, and the editor lint/grep gate (blocked on 8.4). See the Phase 8 Progress Log below.
+
+### Phase 8 Progress Log
+
+**2026-09-26: 🚧 In progress, not gate-complete.** No PR yet — this work lands locally on `phase-8-motion-rules-engine`, branched from `main` after PR #13 (Phase 7) and PR #14 (Phase 46) merged.
+
+- **8.5 (Source Reconciliation) is done.** All 5 named contradictions between the grammar and `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` §7/§13.5 (AUD-52) are resolved grammar-wins, with the spec doc corrected in place and a table-driven test locking the answer. See `decisions/0005-phase8-rule-table-and-reconciliation.md` §1.
+- **8.1 (Rule Table) core is done** for the grammar's existing 32 types × 10 categories: `src/core/rules/conditional-gates.ts` adds the ⚠️ conditional / 🔒 subsumed tier grammar §9 needs and the pre-existing `TYPE_REGISTRY` never modelled (Container's Press and 6 other cells were silently treated as unconditionally allowed). All 320 cells are asserted against a direct transcription of grammar §9. **Found and documented, not fixed, along the way (AUD-59):** Phase 7's real `Clip`/`Trigger` schema (6 `ClipType`s, 10 `Trigger`s) was never reconciled with the grammar's 10 `AnimationCategory`s / legacy 13 `TriggerType`s that `ElementGrammarEngine` still uses — `src/core/rules/clip-adapter.ts` bridges the cells that map cleanly and names the ones that structurally can't yet (Exit, Focus, Stagger and LayoutTransition have no independent schema representation). The Reactive category / 3.F effect surfaces (this sub-phase's v3.0 amendment) are intentionally not attempted: `DOCS/order.md`'s execution order runs Phase 8 (step 10) before Phases 59–61 (steps 21–23), which the Reactive category depends on.
+- **8.2 (Query API) is done**, operating on the real `MotionDocument` (`doc.layers`/`doc.clips`/`doc.transitions`) rather than a hand-built shape: `rules.canAdd`, `rules.validate`, `rules.explain`, `rules.suggestFix`, `rules.route`. `rules.validate` emits all four stable diagnostic codes.
+- **8.3 (Engine Routing) is Stage 1 only:** lightest-first backend choice (CSS/SVG/three.js) for today's property catalogue, with GSAP excluded from `RouteBackend` by construction. No device tiers, no GPU memory budgets — that's Track X's job.
+- **8.4 (UI Contract) is not started.** The only ad-hoc-adjacent call site found (`ContentBrowser.tsx` → `ElementGrammarEngine.evaluatePlusIcon`) reads from editor-local state disconnected from `doc.clips`; rewiring it is a live-UI change this pass didn't attempt without dev-server verification (`AGENTS.md`).
+- **Tests:** `src/core/rules/__tests__/` — 5 files, 342 assertions, all green (`npx tsx --test "src/core/rules/__tests__/*.test.ts"`). Full suite (`npm run test:unit`): 1112/1112 passing. `npm run typecheck` and `npm run lint` (0 new warnings) both clean.
+- **Next:** pick up 8.4 (needs editor-state wiring + dev-server verification), then the Verification Gate's Playwright test and the editor grep gate, before this phase can be marked ✅.
 
 ---
 
