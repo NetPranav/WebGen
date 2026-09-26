@@ -1,7 +1,20 @@
 # LazyLayout Element & Animation Grammar Specification
 
-**Version:** 0.1 (Draft)
-**Scope:** Canvas element taxonomy, animation-category compatibility, state grammar, conflict resolution, hierarchy propagation, and the "+" (Continue Hierarchy) icon eligibility algorithm.
+**Version:** 0.3 (Draft).
+- v0.2 (2026-09-26, with ROADMAP v3.0) adds §13: the Reactive category, effect-surface element types (3.F), conflict rules 6.9–6.16, and the Interaction rule grammar.
+- v0.3 (2026-09-26, with ROADMAP v3.1) adds §14, kinetic composition:
+  - helper layers, pins and follow;
+  - Split and Clone groups (3.G) and tags;
+  - fields, effectors, colliders and bodies;
+  - rules 6.17–6.24;
+  - overlap and contact events.
+- v0.3.1 (ROADMAP v3.2) adds, in §14.6:
+  - drag events;
+  - `Spawn`/`Despawn` and `PlaySound`/`StopSound` actions;
+  - rules that set up their own colliders and fields.
+
+  Shape primitives (ROADMAP 7.6) use the 3.E.2 SVG/Vector grammar.
+**Scope:** Canvas element taxonomy, animation-category compatibility (including continuous, signal-driven Reactive bindings), state grammar, conflict resolution, hierarchy propagation, and the "+" (Continue Hierarchy) icon eligibility algorithm.
 **Audience:** Engine/editor implementers (human or agent) building the World Environment, Content Browser, Motion Sequencer, and Animation Stack panels.
 
 ---
@@ -35,6 +48,8 @@ If you are implementing a new panel, a new element type, or a new animation cate
 10. Worked Examples
 11. Appendix: Reserved Keyword Reference
 12. Appendix: Open Questions & Future Extensions
+13. v0.2 Extension: Reactive Category, Effect Surfaces & Interaction Rules
+14. v0.3 Extension: Kinetic Composition (Helpers, Pins, Split & Clone Groups, Fields, Colliders & Bodies)
 
 ---
 
@@ -527,6 +542,7 @@ Compound elements are the taxonomy's most state-heavy category: each one is effe
 - **Max Simultaneous Tracks:** 3
 - **"+" Icon Eligibility:** Always, unless full.
 - **Rationale:** Canvas is a deliberate scope boundary: this grammar governs the editable, visual-editor-driven world of DOM elements. A raw Canvas is an intentional trapdoor out of that world, and its grammar entry exists mainly to be explicit about where the boundary is, rather than to offer rich animation support it structurally cannot deliver.
+- **v0.2 note:** A raw Canvas stays the opaque trapdoor only for canvases LazyLayout does not author (for example, one inside an imported code component). GPU and canvas effects authored in LazyLayout are the **3.F Effect Surface** types (§13.3): their parameters are registry properties, so they are animatable, reactive and validated.
 
 ---
 
@@ -797,6 +813,9 @@ Some combinations are not resolved by 6.2's priority order because letting eithe
 - `LayoutTransition` derived from a state change, co-occurring with an explicit `ScrollLinked` or `Ambient` binding on the *same* layout-affecting property (4.10) — a reflow mid-scroll-scrub has no coherent "winner."
 - Two `StateTransition` bindings targeting the same `<From> -> <To>` edge (5.2) on the same property — a straightforward duplicate, per 6.1's general logic applied to this category specifically.
 - Any binding whose `<Trigger>` requires a state the element's `StateSet` (Section 5) does not contain — this is caught earlier, at the type-check level, before conflict resolution is even reached, but is listed here for completeness since it is, functionally, the most fundamental conflict of all: a category/state mismatch.
+- *(v0.2)* A continuous (Reactive, §13.2) binding on any `layout`-class property. Continuous layout animation has no acceptable frame cost, so no priority can make it legal.
+
+**v0.2:** Rules 6.9–6.16 (channel blending, cross-layer signals, touch parity, target stability, surface budget, dynamic contrast, reduced-motion policy, event bridging) are defined in §13.4.
 
 ---
 
@@ -907,6 +926,7 @@ function conflictsWithExisting(newBinding, existingBindings):
 - **Step 4's `enumerateValidBindings`** is where Section 5's transition graphs are consulted for any `StateTransition` category candidate — a candidate binding for an edge not present in the type's transition graph is never generated in the first place, rather than being generated and then filtered out. This keeps the candidate set correct by construction.
 - **The algorithm never produces a *priority-resolved* ranking of candidates** (Section 6.2 only applies once multiple bindings *coexist* at runtime; it has no bearing on which options the "+" icon should *offer*, since offering both a Hover and an Ambient binding on the same property is legal — they'll simply be priority-resolved later when both are active).
 - **`HIDDEN` is a first-class outcome, not an error state.** A hidden "+" icon on, say, a fully-bound Switch (3.D.5, capped at 2 tracks) is the algorithm working correctly, not a degraded fallback.
+- **v0.2 additions.** After Step 3, an effect surface (3.F) also returns `HIDDEN` when the frame's surface budget is exhausted (6.13). Step 4 offers Reactive candidates only from the layer's declared affordances (see `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md` §9), filtered by touch parity (6.11) and target stability (6.12).
 
 ---
 
@@ -1062,11 +1082,22 @@ A flat lookup of every keyword defined across this document, for quick reference
 
 **Special Symbols Used in the Compatibility Matrix (Section 9):** ✅ Allowed · ❌ Blocked · ⚠️ Conditional · 🔒 Subsumed/Merged
 
+**v0.2 additions (§13):**
+- **Element Types (7):** Effect Surface, Shader Layer, Particle System, Simulation Layer, Cursor Layer, Texture Source, Code Component.
+- **Category:** Reactive. **Trigger:** `Continuous(<SignalExpr>)`. **Blends:** replace, add, multiply, max.
+- **States:** Paused (effect surfaces); Default, Link, Text, Press, Drag, Hidden (Cursor Layer).
+- **Flags:** `decorative-optional` (6.11).
+- **Touch behaviours:** tap, drag, autopilot, gyro, static.
+- **Reduced-motion behaviours:** freeze, calm, off.
+- **Interaction events and actions:** see 13.7.
+
 ---
 
 ## 12. Appendix: Open Questions & Future Extensions
 
 Honest gaps in this v0.1 draft, flagged rather than silently glossed over, since a grammar that pretends to be more finished than it is will cost more to unwind later than one that names its own edges plainly.
+
+**v0.2 status:** 12.1 and 12.6 are resolved by §13.4. The others are scheduled; see the table in §13.9.
 
 **12.1 — Touch-Only Context Handling.** Section 4.3 notes that `Hover` "requires the element's device/input context to plausibly support hover" but does not yet define what happens to a Hover-bound element on a touch-only device: does the binding simply never fire, does it fire on first-tap-then-hold, or does the editor warn the author at design time that a touch fallback is needed? This needs a decision before Hover-heavy components (Card, Button) can be considered production-complete across device targets.
 
@@ -1081,6 +1112,472 @@ Honest gaps in this v0.1 draft, flagged rather than silently glossed over, since
 **12.6 — Multi-Element Bindings.** Every rule in this document assumes a binding belongs to exactly one element (with the sole named exception of Section 7.4's group-level indicator, which reads a sibling's layout box but is still authored on the group). A future need — e.g. "animate this Button's icon out exactly as this other Text fades in, as one coordinated pair across two unrelated elements" — is not yet expressible in this grammar and would need its own binding type (`<PairedBinding>` or similar) rather than being forced into the current single-element model.
 
 **12.7 — Version Migration.** As Element Types gain or lose allowed categories in future revisions of this document (e.g. if 12.1's touch-context decision changes Hover's legality on some type), existing projects with bindings authored under the old rules need a defined migration story — this document currently has no versioning/migration section and should gain one before the taxonomy is treated as stable enough for real user projects to depend on.
+
+---
+
+## 13. v0.2 Extension: Reactive Category, Effect Surfaces & Interaction Rules
+
+> Added 2026-09-26 with ROADMAP v3.0, after the production-readiness review (`AUDIT.md` AUD-45). v0.1 could not express the product's flagship effects. A Canvas was opaque (3.E.3), there was no continuous pointer-driven category (Hover is an enter/exit pair), and bindings could not cross elements (12.6). This section adds them in the same structural pattern as Sections 2–9. Engine detail (signals, operators, surfaces, programs, export) lives in `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md`. This section is the grammar that the Rules Engine (ROADMAP Phase 8) compiles.
+
+### 13.1 — Notation Additions
+
+```ebnf
+<AnimationCategory> ::= ... | "Reactive"
+<Trigger>           ::= ... | "Continuous(" <SignalExpr> ")"
+
+<ReactiveBinding>   ::= <SignalExpr> "->" <Target>
+                        [ "blend" ( "replace" | "add" | "multiply" | "max" ) ]
+                        [ "when" <Guard> ] [ "@" <Priority> ]
+
+-- <SignalExpr>, <Target> and <Guard> are defined in the engine specification, §3.
+```
+
+A Reactive binding is still an `<AnimationBinding>` in the sense of 1.2: a tuple bound onto an element that satisfies its type's preconditions. Its trigger is `Continuous(...)`: it applies every frame while its guard holds.
+
+### 13.2 — Category 4.11: Reactive
+
+- **Valid Triggers:** `Continuous(<SignalExpr>)` only.
+- **Typical Properties:** transform offsets (`transform.x/y`, rotations, scale), `appearance.opacity`, filters, gradient positions, shader uniforms, particle and simulation parameters, and the number inputs of a state machine.
+- **Composes With:**
+  - `Ambient`: a reaction can modulate an ambient loop's speed or amplitude.
+  - `StateTransition`: a state can scale or gate a reaction through its guard.
+  - `Hover` and `Press`, used as guards ("magnetize while hovered").
+  - Other Reactive bindings on the same channel, through blending (6.9).
+- **Conflicts With:**
+  - Any `layout`-class property. This is a hard block (6.8, v0.2 bullet).
+  - `ScrollLinked` on the same property, unless one side declares an explicit blend.
+  - A binding whose signal chain reads its own target (a cycle, 6.10).
+- **Priority:** on `replace`-blended channels, Reactive sits between StateTransition and ScrollLinked:
+  ```
+  Focus  >  Press  >  Hover  >  StateTransition  >  Reactive  >  ScrollLinked  >  Entrance/Exit  >  Ambient
+  ```
+  Channels blended with `add`, `multiply` or `max` don't suspend each other; they compose (6.9).
+- **Rationale:** Most premium effects are continuous responses to input, not timed transitions. Making them a first-class category, instead of a Hover pair or an opaque canvas, lets the rules check touch parity, target stability, budgets and accessibility for them.
+
+### 13.3 — Element Types 3.F: Effect Surfaces
+
+Effect surfaces are layers authored in LazyLayout and rendered by the GPU, Canvas 2D or CSS. Unlike a raw Canvas (3.E.3), their parameters are registry properties, so they are animatable, reactive and validated.
+
+#### 3.F.1 — Effect Surface (Background)
+- **Category:** Media (effect)
+- **Placement Constraint:** A child of a top-level frame, Section, Container or Card. It fills its parent behind its siblings. At most one per parent: a second background surface in the same parent merges into the first as another pass (6.13).
+- **Can Have Children:** No
+- **Default State Set:** `[Default, Paused]`. `Paused` is entered through the offscreen, hidden-tab and reduced-motion policies, and through the pause control.
+- **Extended States:** effect-defined states (e.g. `Calm`, `Excited`)
+- **Allowed Animation Categories:** `Entrance`, `Exit`, `ScrollLinked`, `Ambient`, `StateTransition`, `Reactive`
+- **Blocked Categories:** `Hover`, `Press`, `Focus`, `Stagger`, `LayoutTransition`. A background never takes pointer events, because it would steal clicks from the content above it. It reacts to the pointer through Reactive signals instead (`pointer.*`, `hover(L)`, `proximity(L)`).
+- **Max Simultaneous Tracks:** 4 · **Max Reactive Bindings:** 8 (cost-weighted)
+- **"+" Icon Eligibility:** Always, unless full or the frame's surface budget is exhausted (6.13).
+- **Rationale:** The interactive background is the product's flagship effect. This grammar makes "reacts to the cursor, never blocks a click" true by construction.
+
+#### 3.F.2 — Shader Layer (Inline)
+- **Category:** Media (effect)
+- **Placement Constraint:** Any container. It sits in the flow like an element (card glare, button sheen, a shader badge).
+- **Can Have Children:** No
+- **Default State Set:** `[Default, Paused]`. Extended: effect-defined states.
+- **Allowed Animation Categories:** `Entrance`, `Exit`, `ScrollLinked`, `Ambient`, `StateTransition`, `Stagger` (child), `Reactive`, and ⚠️ `Hover`/`Press`. Hover and Press are allowed only through Single-Child Promotion (7.3.2), when the layer is the visual of an interactive parent.
+- **Blocked Categories:** `Focus`, `LayoutTransition`
+- **Max Simultaneous Tracks:** 4 · **Max Reactive Bindings:** 6
+- **"+" Icon Eligibility:** Always, unless full or over budget.
+- **Rationale:** Many premium micro-effects are small GPU layers inside a component. They follow their parent's interactive contract instead of inventing their own.
+
+#### 3.F.3 — Particle System
+- **Category:** Media (effect)
+- **Placement Constraint:** Used as a background (role `background`), inline, or as an overlay.
+- **Can Have Children:** No. A shape, text or logo that particles settle into is a referenced Texture Source (3.F.6).
+- **Default State Set:** `[Default, Paused]`. Extended: effect-defined states.
+- **Allowed Animation Categories:** `Entrance` (spawn-in), `Exit` (disperse), `ScrollLinked`, `Ambient`, `StateTransition`, `Reactive`
+- **Blocked Categories:** `Hover`, `Press`, `Focus`, `Stagger`, `LayoutTransition`. A burst on click comes from a Blueprint action or a Reactive `event()` edge, not from a Press binding.
+- **Max Simultaneous Tracks:** 4 · **Max Reactive Bindings:** 8. Particle counts are capped by device tier, not by bindings.
+- **"+" Icon Eligibility:** Always, unless full or over budget.
+- **Rationale:** Particles are the most budget-sensitive surface. Routing their interactions through signals keeps every interaction measurable against the tier caps.
+
+#### 3.F.4 — Simulation Layer
+- **Category:** Media (effect)
+- **Placement Constraint:** Used as a background, inline, as an overlay, or inside the Cursor Layer.
+- **Can Have Children:** No
+- **Default State Set:** `[Default, Paused]`. Extended: effect-defined states.
+- **Allowed Animation Categories:** `Entrance`, `Exit`, `ScrollLinked`, `Ambient`, `StateTransition`, `Reactive`
+- **Blocked Categories:** `Hover`, `Press`, `Focus`, `Stagger`, `LayoutTransition`
+- **Max Simultaneous Tracks:** 3 · **Max Reactive Bindings:** 8
+- **"+" Icon Eligibility:** Always, unless full or over budget.
+- **Rationale:** Simulations keep state from frame to frame. Their only legal inputs are signals and Blueprint impulses, and those are exactly the inputs that deterministic replay can record (engine specification §8.3).
+
+#### 3.F.5 — Cursor Layer
+- **Category:** Structural (effect)
+- **Placement Constraint:** One per top-level frame (and per page in Release 2), like Navbar (3.C.2).
+- **Can Have Children:** Limited: Simulation Layers or Particle Systems that render as part of the cursor.
+- **Default State Set:** `[Default, Link, Text, Press, Drag, Hidden]`. The state comes from the type of the hovered target (hovering a Link puts the cursor in `Link`). It is `Hidden` on coarse pointers.
+- **Allowed Animation Categories:** `Ambient`, `StateTransition` (between cursor states), `Reactive`
+- **Blocked Categories:** everything else.
+- **Max Simultaneous Tracks:** 2 · **Max Reactive Bindings:** 6
+- **"+" Icon Eligibility:** Always, unless full.
+- **Rationale:** A cursor is page-wide, pointer-only and sensitive for accessibility (engine specification FX-A11Y-07). So its grammar is narrow, and its states are derived rather than authored per element.
+
+#### 3.F.6 — Texture Source
+- **Category:** Media (support)
+- **Placement Constraint:** Referenced by a surface and not rendered itself. Its DOM original stays visible and accessible where applicable.
+- **Can Have Children:** No
+- **Default State Set:** `[Default]`
+- **Allowed Animation Categories:** none. Its content can change, but it has no animation of its own.
+- **"+" Icon Eligibility:** Never.
+- **Rationale:** Distortion effects need text, images or video as textures. Keeping the source a separate, non-animatable type prevents the "animated twice" bug, where both the DOM element and its texture animate.
+
+#### 3.F.7 — Code Component
+- **Category:** Interactive or Media, as its controls declare.
+- **Placement Constraint:** Anywhere its declared root tag is legal.
+- **Can Have Children:** Only through declared slot props.
+- **Default State Set:** `[Default]`. Extended: states declared by its props (for example, a boolean `open` prop exposed as a state).
+- **Allowed Animation Categories:** `Entrance`, `Exit`, `ScrollLinked`, `Ambient`, `Stagger` (child), `Reactive` (on its declared props), and ⚠️ `Hover`/`Press`/`Focus`/`StateTransition` when its controls declare them.
+- **Blocked Categories:** `LayoutTransition`
+- **Max Simultaneous Tracks:** 6 · **Max Reactive Bindings:** 8
+- **"+" Icon Eligibility:** Always, unless full.
+- **Rationale:** An imported component is opaque inside, like 3.E.3, but its props are a typed surface. The grammar governs that surface and nothing else.
+
+### 13.4 — Rules 6.9–6.16
+
+#### 6.9 — Channel Blending (Additive Channels)
+**Rule:** Each Reactive binding declares a blend for its channel: `replace`, `add`, `multiply` or `max`. From v0.2, Ambient bindings do too. `replace` channels follow the priority order in 13.2. Channels blended with `add`, `multiply` or `max` compose, and the result is clamped to the property's range. Enum and discrete properties accept only `replace`.
+
+```
+Ambient:   float(transform.y)                                   blend add
+Reactive:  magnetize(transform.x, transform.y)  when Hover      blend add
+Reactive:  tilt(transform.rotateX, transform.rotateY)           blend add
+Hover:     lift(transform.y)                                    blend add (the default for offsets)
+→ transform.y = float + magnet.y + lift ; one STA write per frame
+```
+
+**Rationale:** Under v0.1's rule (6.2), the winner takes the property, so a floating, magnetic, tilting button was impossible. Offsets naturally add.
+
+#### 6.10 — Cross-Layer Signals
+**Rule:** A Reactive binding may read signals from any layer in the same document (`hover(cta)`, `proximity(card)`, `view(section).progress`). It may write only its own layer's targets. A chain whose signal depends on its own target, directly or through other bindings and links, is refused with `[SIGNAL_CYCLE]`, and the chain is shown.
+
+**Rationale:** This resolves 12.6 for continuous reactions ("the background glows as the cursor nears the CTA"). It still doesn't let one element write another's properties. That stays the job of Interaction Blueprint actions (6.16).
+
+#### 6.11 — Touch Parity
+**Rule:** A layer with a binding that reads `pointer.*`, `hover(L)`, `press(L)` or `proximity(L)` must do one of two things. Either it declares a touch behaviour (`tap`, `drag`, `autopilot`, `gyro` or `static`), or it marks the reaction `decorative-optional`, which means the reaction simply doesn't run on coarse pointers. If neither is declared, the rules raise an `[INPUT_TOUCH]` error.
+
+**Rationale:** This resolves 12.1. Hover-driven design is legal, but it never breaks silently on phones.
+
+#### 6.12 — Target Stability
+**Rule:**
+- Reactive displacement of an interactive target is capped at 12 px from its rest position, counting the sum of all `add` channels. Interactive targets are Button, Link, a clickable Card, a Tab header, and a Code Component declared interactive.
+- Input-family types (Input and form fields) accept no Reactive displacement at all. Only non-spatial reactions are allowed on them.
+
+**Rationale:** A button that runs away from the cursor fails its users. The cap keeps a magnetic effect within the range where aiming still works. Input's no-displacement rule mirrors the trust rationale in 3.A.5.
+
+#### 6.13 — Surface Budget
+**Rule:**
+- Every effect surface declares a cost tier.
+- The summed cost of the live surfaces in a frame (and, in Release 2, in a page) must fit the target device tier.
+- The count of live GL surfaces must fit the context budget (engine specification §7.3).
+- Two background surfaces in one parent merge into one surface with two passes.
+
+**Rationale:** Performance is part of the grammar because it decides what can legally be added. The "+" icon hides when the budget is exhausted, exactly as it does when track capacity is full.
+
+#### 6.14 — Dynamic Contrast & Text Safety
+**Rule:** When a surface renders behind text, the text's contrast is checked across sampled frames under a standard input tape. It must stay at or above 4.5:1, or 3:1 for large text. A failing layer gets a suggested fix: a scrim, a text-safe mask that softens the surface under the text's box, or lower intensity.
+
+**Rationale:** Animated backgrounds are the most common cause of unreadable hero text, and a static contrast check can't see the problem.
+
+#### 6.15 — Reduced-Motion Policy Required
+**Rule:** Every Reactive binding and every effect surface resolves to one reduced-motion behaviour. Defaults come from the effect family, and the author can override them per layer.
+- `freeze`: show a poster frame.
+- `calm`: at most 20% speed or amplitude, and no pointer displacement over 4 px.
+- `off`: the reaction doesn't run.
+
+**Rationale:** This extends 12.5. Reduced motion is enforced per binding instead of being left to each engine.
+
+#### 6.16 — Event Bridging
+**Rule:**
+- Continuous-to-discrete crossings go through an explicit edge. A Reactive `event(Name)` target fires on a rising edge with hysteresis, so a `threshold` or `edge` operator is required upstream.
+- Discrete cross-element changes are Interaction Blueprint actions (13.7), never Reactive targets. Examples: setting another layer's state, playing a composition, bursting a particle system.
+
+**Rationale:** Continuous bindings stay side-effect-free and replayable. "What happens when" lives in one place you can inspect.
+
+### 13.5 — Reactive Column for the v0.1 Types
+
+| # | Element Type | Rct | Notes |
+|---|---|---|---|
+| 3.A.1 | Text | ✅ | Glyph-level proximity (scale, offset, variable-font weight via transforms or font-variation axes). Never layout paths. Off under reduced motion |
+| 3.A.2 | Icon | ✅ | Look-at, follow, spin by velocity |
+| 3.A.3 | Image | ✅ | Tilt, parallax; distortion through a 3.F.6 texture source |
+| 3.A.4 | Button | ✅ | Magnetize, tilt, glow; 6.12 caps displacement |
+| 3.A.5 | Input | ⚠️ | Non-spatial only (glow, border colour) |
+| 3.A.6 | Badge / Tag | ⚠️ | Non-spatial only |
+| 3.A.7 | Divider | ✅ | Sheen or length following the pointer or scroll |
+| 3.A.8 | Avatar | ✅ | Look-at, tilt (team grids) |
+| 3.A.9 | Link | ✅ | Magnetize within 6.12 |
+| 3.A.10 | Spinner | ❌ | Ambient only, by design |
+| 3.B.1 | Section | ⚠️ | Non-spatial, or parallax ≤ 24 px. Section-wide effects belong on a 3.F.1 child |
+| 3.B.2 | Container | ⚠️ | When promoted (7.3.1) or used as a parallax group |
+| 3.B.3 | Card | ✅ | Tilt, glare, spotlight: the canonical host |
+| 3.B.4 | Stack | ❌ | Layout primitive (its children may react) |
+| 3.B.5 | Grid | ❌ | Layout primitive (its children may react) |
+| 3.B.6 | Modal / Dialog | ❌ | |
+| 3.B.7 | Tooltip / Popover | ❌ | |
+| 3.B.8 | Accordion | ❌ | |
+| 3.C.1 | Page | ❌ | Page-wide effects are 3.F.1 or 3.F.5 layers |
+| 3.C.2 | Navbar | ❌ | Its children may react |
+| 3.C.3 | Footer | ❌ | |
+| 3.C.4 | Slot | ❌ | |
+| 3.D.1 | Form | ❌ | |
+| 3.D.2 | Dropdown / Select | ❌ | |
+| 3.D.3 | Checkbox | ❌ | |
+| 3.D.4 | Radio (Group) | ❌ | |
+| 3.D.5 | Switch / Toggle | ❌ | |
+| 3.D.6 | Slider | ❌ | |
+| 3.D.7 | Tabs | ⚠️ | A group hover indicator that follows the pointer (the 7.4 pattern) |
+| 3.E.1 | Video | ✅ | Playhead mapped to pointer x (hover-scrub previews), like ScrollLinked's playhead mode |
+| 3.E.2 | SVG / Vector | ✅ | Look-at, path deformation, stroke draw by proximity |
+| 3.E.3 | Canvas | ⚠️ | Only through exposed parameters; its internals stay opaque |
+
+### 13.6 — Compatibility Matrix for the 3.F Types
+
+**Columns:** as in Section 9, plus **Rct** (Reactive).
+
+| # | Element Type | Ent | Exit | Hover | Press | Focus | SL | Amb | ST | Stg | LT | Rct |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 3.F.1 | Effect Surface (Background) | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| 3.F.2 | Shader Layer (Inline) | ✅ | ✅ | ⚠️ | ⚠️ | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| 3.F.3 | Particle System | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| 3.F.4 | Simulation Layer | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| 3.F.5 | Cursor Layer | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| 3.F.6 | Texture Source | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| 3.F.7 | Code Component | ✅ | ✅ | ⚠️ | ⚠️ | ⚠️ | ✅ | ✅ | ⚠️ | ✅ | ❌ | ✅ |
+
+- ⚠️ Hover/Press on 3.F.2: only through Single-Child Promotion (7.3.2).
+- ⚠️ on 3.F.7: only when the component's controls declare that interaction or state.
+
+### 13.7 — Interaction Rule Grammar (Event → Action)
+
+This is the Simple face of the Interaction Blueprint (ROADMAP Phases 72–74). Every rule compiles to a canonical Event Graph fragment, and the Pro graph is the same model.
+
+```ebnf
+<Rule>     ::= "When" <Event> [ "on" <LayerRef> ] [ "if" <Guard> ] "->" <Action> { "," <Action> }
+
+<Event>    ::= "PointerEnter" | "PointerLeave" | "PointerDown" | "PointerUp" | "Click" | "DoubleClick"
+             | "LongPress" | "HoverStart" | "HoverEnd" | "Focus" | "Blur" | "Key(" <key> ")"
+             | "ViewEnter" | "ViewLeave" | "ScrollCross(" <progress> ")" | "Breakpoint(" <name> ")"
+             | "Mount" | "Marker(" <markerName> ")" | "StateEnter(" <StateName> ")" | "StateExit(" <StateName> ")"
+             | "VarChanged(" <VarName> ")" | "SignalCross(" <SignalExpr> "," <number> ")"
+             | "Custom(" <EventName> ")" | "Timer(" <seconds> ")" | "MediaEnded"
+
+<Action>   ::= "Play(" <CompRef> [ "," <rate> ] ")" | "Seek(" <CompRef> "," ( <time> | <marker> ) ")"
+             | "Reverse(" <CompRef> ")" | "SetState(" <LayerRef> "," <StateName> ")"
+             | "SetInput(" <LayerRef> "," <InputName> "," <value> ")"
+             | "SpringTo(" <LayerRef> "." <Property> "," <value> ")"
+             | "Set(" <LayerRef> "." <Property> "," <value> [ "," <tween> ] ")"
+             | "SetUniform(" <LayerRef> "," <name> "," <value> ")"
+             | "Burst(" <LayerRef> "," <count> ")" | "Impulse(" <LayerRef> "," <kind> "," <strength> ")"
+             | "Pause(" <LayerRef> ")" | "Resume(" <LayerRef> ")"
+             | "Show(" <LayerRef> ")" | "Hide(" <LayerRef> ")"
+             | "SetVar(" <VarName> "," <value> ")" | "Emit(" <EventName> ")"
+             | "ScrollTo(" <LayerRef> ")" | "FocusLayer(" <LayerRef> ")" | "Wait(" <seconds> ")"
+             | "OpenURL(" <url> ")"
+```
+
+**Rules:**
+1. Actions run in order. `Wait` and `Play(...)` are *latent* (`Play` waits until the composition finishes), and they resume in later frames.
+2. An action that creates or changes a binding is validated by Section 6 when it is authored. For example, `SetState` on a Checkbox follows 6.3's merge rule, and `SetState` on an Accordion during a transition is refused by 6.7's in-flight lock.
+3. `Set` on a `layout`-class property is a one-time state change, which is allowed. It is never continuous.
+4. `Emit` and `Custom(...)` let rules talk across layers and, in Release 2, across component instances.
+
+### 13.8 — Worked Examples (v0.2)
+
+#### 13.8.1 — Cursor-Reactive Hero Background (exercises 3.F.1, 13.2, 6.11, 6.14)
+```
+Background.Continuous(pointer.uv(local) |> smooth(0.18))        : Reactive(uniform.uWarpCenter)
+Background.Continuous(pointer.inside(parent) |> smooth(0.3))    : Reactive(uniform.uWarp)
+Background.touch = autopilot ; Background.reducedMotion = freeze
+```
+The background never receives pointer events (3.F.1 blocks Hover), so the CTA above it stays clickable. It reads the pointer through signals instead. `autopilot` satisfies 6.11, and 6.14 samples the headline's contrast over the moving surface.
+
+#### 13.8.2 — Floating, Magnetic, Tilting Button (exercises 6.9, 6.12, 6.2)
+```
+Ambient:                                                    Ambient(transform.y)                        blend add
+Continuous(pointer.px(local) |> spring(200,20)) when Hover:  Reactive(transform.x, transform.y)          blend add
+Continuous(pointer.ndc(local) |> spring(170,20)):            Reactive(transform.rotateX, transform.rotateY) blend add
+OnPress:                                                    Press(transform.scale)                      -- replace, by 6.2 priority
+```
+All offsets add (6.9) into one Single Transform Authority write, and the magnet is capped at 12 px (6.12). `Press` still replaces `transform.scale` by priority, because scale is a `replace` channel in this example.
+
+#### 13.8.3 — Hover the CTA and the Background Responds; Click and Sparks Burst (exercises 6.10, 6.16, 13.7)
+```
+Background.Continuous(proximity(cta) |> falloff(smoothstep, 260) |> spring(120,16)) : Reactive(uniform.uIntensity) blend add
+When Click on cta -> Burst(sparks, 60), SetState(Background, Excited), Wait(1.2), SetState(Background, Default)
+```
+The background reads the CTA's proximity, which 6.10 allows because reading across layers is legal. The click's cross-layer changes are Blueprint actions (6.16), not Reactive writes.
+
+### 13.9 — Resolution of the Section 12 Open Questions
+
+| Question | v0.2 status |
+|---|---|
+| 12.1 Touch-only context | Resolved by 6.11 (a touch behaviour is required) |
+| 12.2 ScrollLinked-driven stagger | Scheduled: Reactive `view(L).progress` signals plus ROADMAP Phase 76.2 (section scroll choreography) |
+| 12.3 A literal validator | ROADMAP Phase 8, table-driven and compiled from this grammar and the engine specification |
+| 12.4 Composite patterns | Scheduled: ROADMAP Phases 75–76 (components and sections) |
+| 12.5 Accessibility beyond focus | Partly resolved by 6.14 and 6.15; the rest is ROADMAP Phase 29 |
+| 12.6 Multi-element bindings | Resolved by 6.10 (continuous) and 13.7 (discrete) |
+| 12.7 Version migration | Grammar and effect-definition versions migrate with the document (ROADMAP Phases 8 and 67.2) |
+
+---
+
+## 14. v0.3 Extension: Kinetic Composition (Helpers, Pins, Split & Clone Groups, Fields, Colliders & Bodies)
+
+> Added 2026-09-26 with ROADMAP v3.1 (Track K, Phases 88–91; `AUDIT.md` AUD-56). v0.2 made reactive effects expressible, but only as effects someone had already built. v0.3 makes them *composable*, so a user can build an interaction from primitives. The reference build is "an invisible circle follows the mouse by a chosen point; a card's text is split into letters with one click; a rule makes the letters flee the circle and spring back home" (engine specification §12.7). Engine detail is in `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md` §8.6.
+
+### 14.1 — Notation Additions
+
+```ebnf
+<Layer>         ::= ... [ "role:" ( "content" | "helper" ) ] [ "tags:" <Tag> { "," <Tag> } ]
+                        [ <Pin> { <Pin> } ] { <Component> }
+
+<Pin>           ::= "pin" <PinName> "(" <x> "," <y> ")"        -- layer-local px or %, may lie outside the box
+<PinName>       ::= "center" | "top" | "bottom" | "left" | "right" | "topLeft" | "topRight"
+                  | "bottomLeft" | "bottomRight" | "bottomCentre" | <identifier>
+
+<Component>     ::= <Follow> | <Field> | <Effector> | <Collider> | <Body>
+<Follow>        ::= "Follow(" <FollowTarget> "," "pin=" <PinName> [ "," <FollowOption> ]* ")"
+<Field>         ::= "Field(" <FieldShape> "," "inner=" <r> "," "outer=" <r> "," "falloff=" <Falloff> ")"
+<Effector>      ::= "Effector(" <EffectorKind> "," "targets=" <TargetSet> [ "," <EffectorOption> ]* ")"
+<EffectorKind>  ::= "KeepOut" | "Push" | "Attract" | "Swirl" | "Transform" | "Style" | "LookAt" | "Jitter" | "Custom"
+<Collider>      ::= "Collider(" <ColliderShape> "," ( "trigger" | "solid" ) "," "layer=" <name> "," "mask=" <name> { "|" <name> } ")"
+<Body>          ::= "Body(" ( "static" | "kinematic" | "dynamic" ) [ "," <BodyOption> ]* ")"
+
+<TargetSet>     ::= <LayerRef> | <GroupRef> "[*]" | "tag:" <Tag> | "self" | "other"
+<PositionTarget>::= <LayerRef> ".position(" <PinName> ")"          -- a Reactive binding target
+```
+
+A component is an attachment, not an animation category. Its continuous effect on a layer is a **Reactive** binding (4.11). Its discrete moments (overlap begins, a hit) are **Interaction events** (14.6).
+
+### 14.2 — Helper Role (any visual element type)
+- **Meaning:** a `helper` layer is logic-only. It keeps its geometry, pins, components and events, but it is never rendered in Preview or export. In Design mode it draws as a dashed outline with its name.
+- **Allowed Animation Categories:** the same as its element type, minus anything purely visual (a helper has no Style effect on itself). Its Reactive position and rotation still matter, because they move its field or collider.
+- **Rationale:** the Unreal trigger volume and the After Effects null object both prove that invisible, active objects are how complex interactions get built. Without them, users fake a helper with a transparent visible layer. That fake then leaks into exports and focus order.
+
+### 14.3 — Element Types 3.G: Generator Groups
+
+#### 3.G.1 — Split Group
+- **Category:** Container (generated)
+- **Placement Constraint:** created from a Text layer (3.A.1) by Split into letters, words or lines. It stays linked to its source text unless detached.
+- **Can Have Children:** yes, exactly the generated pieces. Each piece follows the Text grammar (3.A.1) plus the Reactive category, and carries `index`, `count`, `lineIndex`, `wordIndex`, `char`, `home` and `random`.
+- **Default State Set:** `[Default]`
+- **Allowed Animation Categories:** `Entrance`, `Exit`, `ScrollLinked`, `Ambient`, `Stagger` (source; order modes from 7.2 plus `random`), `Reactive`. A piece can be the target of effectors and bodies.
+- **Blocked Categories:** `Hover`, `Press`, `Focus`, `StateTransition`, `LayoutTransition`. Split text is still text (3.A.1): wrap it in a Link or Button for interaction.
+- **Max Simultaneous Tracks:** 4 on the group and 3 per piece.
+- **"+" Icon Eligibility:** always, unless full or over the kinetic budget (6.19).
+- **Rationale:** per-letter motion is the most requested text effect. Making pieces real layers, instead of an opaque animation mode, is what lets rules target them one by one.
+
+#### 3.G.2 — Clone Group
+- **Category:** Container (generated)
+- **Placement Constraint:** created from any layer or group by Clone. Its layouts are grid, radial, path, scatter or linear.
+- **Can Have Children:** yes, exactly the generated clones. Each clone follows its source's grammar and carries `index`, `count`, `u`, `v`, `home` and `random`, and can be overridden individually.
+- **Allowed Animation Categories:** those of its source, plus `Stagger` (source) and `Reactive`.
+- **"+" Icon Eligibility:** always, unless full or over the kinetic budget (6.19).
+- **Rationale:** a grid of dots that repel from the cursor, or a ring of lines that look at it, is a Clone Group plus one effector. It is not a separate effect type.
+
+### 14.4 — Component Compatibility
+
+| Component | Allowed on | Notes |
+|---|---|---|
+| Pin | Every visual layer | The anchor (transform origin) is a pin; follow pins may differ from it |
+| Follow | Every visual layer | Interactive targets obey 6.12 when following something other than the pointer |
+| Field | Every visual layer, typically a helper | A field has no visual output of its own |
+| Effector | Every layer that has a field | Its targets are any `TargetSet`; Input-family targets accept only non-spatial effectors (6.12) |
+| Collider | Every visual layer, including helpers | Text pieces default to box colliders; ellipses to circles; paths to convex polygons |
+| Body `kinematic` | Every visual layer | Its velocity comes from its motion |
+| Body `dynamic` | Every visual layer except the Input family | Interactive archetypes are capped by 6.24 |
+
+### 14.5 — Rules 6.17–6.24
+
+#### 6.17 — Helpers Stay Invisible and Inert
+**Rule:** A helper never renders in Preview or export, never receives focus, is never announced by assistive technology, and never takes part in layout (it is absolutely positioned).
+**Rationale:** Logic objects must not leak into the product a visitor sees.
+
+#### 6.18 — Split Text Stays Readable
+**Rule:**
+- The full string is exposed to assistive technology exactly once: an `aria-label` on the group, or a visually hidden copy in export. The pieces are `aria-hidden`.
+- Any piece moved by an effector or body has a home spring.
+- After the influence ends, the text returns to its readable rest within 3 s.
+
+**Rationale:** Letters that scatter are delightful only if the sentence comes back. This rule extends 12.5.
+
+#### 6.19 — Kinetic Budget
+**Rule:** The number of DOM layers moved by bodies or effectors per frame (and, in Release 2, per page) stays under the device-tier cap (engine specification FX-KIN-03). Over the cap, the "+" icon hides kinetic options and offers **Render as GPU particles** with the same behaviours.
+**Rationale:** Transforms are cheap, but not free. Hundreds of moving DOM nodes are fine; tens of thousands belong on the GPU.
+
+#### 6.20 — Collision Matrix
+**Rule:**
+- Bodies interact only through declared collision layers and masks.
+- By default, a pointer-driven collider affects dynamic bodies only.
+- Body-to-body contacts are opt-in per collision layer, and the inspector shows their cost.
+
+**Rationale:** Most UI physics is "one moving thing pushes many things". All-pairs contacts are an explicit, priced choice.
+
+#### 6.21 — Kinetic Determinism
+**Rule:**
+- Physics and effector springs step at a fixed rate, and per-piece randomness comes only from the seeded `random` attribute.
+- Contact events fire from the fixed step, not from the display rate.
+- The same input tape therefore produces the same motion and the same events at 30, 60 and 120 Hz.
+
+**Rationale:** This extends the Deterministic Replay Law to kinetic layers, so the timeline can scrub them and tests can check them.
+
+#### 6.22 — Pointer-Driven Kinetics Declare Touch Behaviour
+**Rule:** A Follow on the pointer and a kinematic collider driven by the pointer declare a touch behaviour. The default is to follow the finger while it is pressed.
+**Rationale:** This extends 6.11, so kinetic rules never silently die on phones.
+
+#### 6.23 — Keep-Out Is a Hard Constraint
+**Rule:** A Keep-Out effector (or `KeepOut` action) is applied after smoothing, so no target's collider is inside the field's inner shape at any rendered frame. Springs affect how a target returns home, never whether it enters.
+**Rationale:** "The letters don't enter the circle" must be literally true, not approximately true during fast moves.
+
+#### 6.24 — Interactive Targets Stay Clickable
+**Rule:** An interactive archetype (Button, Link, clickable Card, Tab header) used as a dynamic body or effector target is capped at 12 px of displacement (6.12), unless its author marks it `decorative`. A decorative one is then removed from the tab order while displaced.
+**Rationale:** Physics must not make a control impossible to click.
+
+### 14.6 — Event Grammar Additions (extends 13.7)
+
+```ebnf
+<Event>    ::= ... | "OverlapBegin(" <LayerRef> ")" | "OverlapStay(" <LayerRef> ")" | "OverlapEnd(" <LayerRef> ")"
+             | "Hit(" <LayerRef> [ "," <minImpulse> ] ")" | "FieldEnter(" <LayerRef> ")" | "FieldExit(" <LayerRef> ")"
+             | "DragStart" | "Drag" | "DragEnd"                                             -- (v0.3.1) draggable layers
+
+<Rule>     ::= "When" <Event> [ "on" <TargetSet> ] [ "if" <Guard> ] "->" <Action> { "," <Action> }
+             -- with a group or tag target, the rule runs once per overlapping pair; "other" is the piece or clone
+
+<Action>   ::= ... | "KeepOut(" <TargetSet> "," <margin> ")" | "SpringHome(" <TargetSet> "," <k> "," <c> ")"
+             | "AddForce(" <TargetSet> "," <vec2> ")" | "AddImpulse(" <TargetSet> "," <vec2> ")"
+             | "AddSpin(" <TargetSet> "," <degrees> ")" | "SetVelocity(" <TargetSet> "," <vec2> ")"
+             | "Explode(" <LayerRef> "," <strength> ")" | "SetBody(" <TargetSet> "," <BodyType> ")"
+             | "EnableCollider(" <TargetSet> "," <bool> ")"
+             | "Spawn(" <LayerRef> "," <At> [ "," <velocity> ] [ "," <lifetime> ] ")" | "Despawn(" <TargetSet> ")"   -- (v0.3.1)
+             | "PlaySound(" <AssetRef> [ "," <volume> ] ")" | "StopSound(" <AssetRef> ")"                            -- (v0.3.1)
+<At>       ::= "pointer" | <LayerRef> "." <PinName> | "contact.point" | <vec2>
+
+<Value>    ::= ... | "other." ( "index" | "count" | "random" | "home" | "char" ) | "contact." ( "point" | "normal" | "depth" | "impulse" )
+```
+
+**Rules:**
+1. `OverlapStay` fires once per fixed step per overlapping pair (6.21). A per-frame node budget applies, and in export it compiles to a plain callback inside the physics step.
+2. The rule "While A overlaps B → `KeepOut` … ; when it ends → `SpringHome` …" is recognised and compiled to the Keep-Out effector (6.23) when no momentum or body-to-body contact is needed. Otherwise it compiles to physics. The author sees one rule either way.
+3. Continuous kinetic effects (following, keeping out, springs) are Reactive (4.11). Contact moments are events. The two never write the same property on the same frame without a blend mode (6.9).
+4. *(v0.3.1)* Spawned copies (`Spawn`) are runtime-only. They follow their template's grammar, are pooled and capped per tier (6.19), are never saved to the document, and carry `index` and `random` like clones.
+5. *(v0.3.1)* `PlaySound` waits for the first user gesture (browser autoplay rules) and respects a page-wide mute. Under reduced motion, sounds tied to motion are skipped unless the author marks them essential.
+6. *(v0.3.1)* A rule that uses an overlap, hit, field or drag event adds the colliders, fields, collision layers and home springs it needs, sized from each layer's geometry (ROADMAP 73.5).
+
+### 14.7 — Worked Example: Letters Flee an Invisible Cursor Circle (exercises 14.2, 3.G.1, 6.18, 6.23, 14.6)
+
+```
+Cursor Circle   role: helper · pin bottomCentre(60, 120)
+                Follow(pointer, pin=bottomCentre, lag=spring(300,28), touch=while-pressed)
+                Field(circle, inner=60, outer=60, falloff=hard) · Collider(circle, trigger, layer=Cursor, mask=Letters)
+Split "LAZYLAYOUT" (letters)  tags: letter · pieces: Body(dynamic, homeSpring(180,14))
+
+When OverlapStay(Cursor Circle) on "LAZYLAYOUT"[*] -> KeepOut(other, 6), AddSpin(other, other.random × 12)
+When OverlapEnd(Cursor Circle)  on "LAZYLAYOUT"[*] -> SpringHome(other, 180, 14)
+```
+
+The circle is a helper, so the visitor never sees it (6.17). Only the pieces it touches react, because the rules target the split group and the collider's mask is `Letters` (6.20). Keep-Out is a hard constraint, so no letter is ever drawn inside the circle (6.23), and each letter tumbles its own way (`other.random`). The sentence is read once and returns to rest within 3 s (6.18). On touch, the circle follows the finger while pressed (6.22).
 
 ---
 
