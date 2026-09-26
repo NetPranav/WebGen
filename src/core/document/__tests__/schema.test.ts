@@ -126,15 +126,18 @@ const propValueArb: fc.Arbitrary<PropValue> = fc
 // layer keeps only the ones legal for its archetype (see the `.map` below).
 // Geometry values are type-checked (numbers / closed sets); arbitrary JSON would be
 // rejected by design, so geometry round-trips are covered in property-gate.test.ts.
-const NON_GEOMETRY_PATHS = PROPERTY_PATHS.filter((p) => !/^(frame\.|sizing\.|positioning$)/.test(p));
+// v4: `typed` paths (render.role, shape parameters, counters) are value-checked the same way.
+const NON_GEOMETRY_PATHS = PROPERTY_PATHS.filter((p) => !/^(frame\.|sizing\.|positioning$)/.test(p) && !PROPERTY_REGISTRY[p].typed);
 const propsArb = fc.dictionary(fc.constantFrom(...NON_GEOMETRY_PATHS), propValueArb, {
   maxKeys: 6,
   noNullPrototype: true,
 });
 
-/** First animatable canonical path legal for the archetype (every archetype has one). */
+/** First animatable numeric path legal for the archetype (every archetype has one); v4 type-checks keyframe values. */
 const trackPathFor = (archetype: ArchetypeId) =>
-  PROPERTY_PATHS.find((p) => PROPERTY_REGISTRY[p].animatable && PROPERTY_REGISTRY[p].archetypes.includes(archetype))!;
+  PROPERTY_PATHS.find(
+    (p) => PROPERTY_REGISTRY[p].animatable && PROPERTY_REGISTRY[p].interpolation === "numeric" && PROPERTY_REGISTRY[p].archetypes.includes(archetype)
+  )!;
 
 /** A random valid document: a forest where each layer's parent comes earlier in the list. */
 const documentArb: fc.Arbitrary<MotionDocument> = fc
@@ -151,9 +154,10 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
         trigger: fc.constantFrom(...TRIGGERS),
         duration: fc.double({ min: 0, max: 10, noNaN: true, noDefaultInfinity: true }),
         repeat: fc.option(fc.integer({ min: -1, max: 5 }), { nil: undefined }),
-        keyframes: fc.array(
-          fc.record({ time: fc.double({ min: 0, max: 10, noNaN: true, noDefaultInfinity: true }), value: propValueArb }),
-          { maxLength: 4 }
+        // Fractions of the duration: v4 keyframes strictly increase and sit inside the clip.
+        keyframes: fc.uniqueArray(
+          fc.record({ at: fc.integer({ min: 0, max: 1000 }), value: fc.double({ min: -1e6, max: 1e6, noNaN: true, noDefaultInfinity: true }).map((v) => v || 0) }),
+          { maxLength: 4, selector: (k) => k.at }
         ),
       }),
       { maxLength: 6 }
@@ -193,7 +197,11 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
             {
               id: `trk_${i.toString(16).padStart(8, "0")}`,
               property: trackPathFor(doc.layers[layerId].archetype),
-              keyframes: clip.keyframes.map((k, j) => ({ id: `kf_${j.toString(16).padStart(8, "0")}`, ...k })),
+              keyframes: [...clip.keyframes]
+                .sort((a, b) => a.at - b.at)
+                .map((k) => ({ time: (k.at / 1000) * clip.duration, value: k.value }))
+                .filter((k, j, all) => j === 0 || k.time > all[j - 1].time)
+                .map((k, j) => ({ id: `kf_${j.toString(16).padStart(8, "0")}`, ...k })),
             },
           ],
         };
@@ -202,7 +210,7 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
     return doc;
   });
 
-describe("MDM v3 schema: property-based round trip", () => {
+describe("MDM v4 schema: property-based round trip", () => {
   it("500 random documents survive validate → serialise → parse → validate unchanged", () => {
     fc.assert(
       fc.property(documentArb, (doc) => {

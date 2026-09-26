@@ -9,6 +9,65 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.0] — 2026-09-26
+
+### Phase 7 (Motion Primitives): implemented, awaiting CI
+
+The Motion Document can now *express* every effect the product promises: timed, state-based, reactive, GPU, Blueprint-driven and kinetic. This is types and validation only; the runtimes are later phases. Schema **v3 → v4**. The design choices are in `decisions/0004-motion-primitives.md`.
+
+#### Added
+- **`src/core/document/motion.ts`** (7.2–7.3):
+  - the easing grammar (`parseEasing`);
+  - perceptual springs (`{ bounce, time }`, Law 17) and physical ones;
+  - `MotionSpec` (tween or spring);
+  - keyframe `hold`;
+  - a first-class `Stagger` (`each`/`amount`, `from` including edges and index lists, grid, ease, seed, targets);
+  - clip `direction`/`repeatDelay`/`event`;
+  - `Sequence` and `Transition`;
+  - typed behaviour params (adds `proximity`).
+- **`signals.ts`** (7.5): signals, operators, targets, guards and bindings, plus `parseBinding`/`formatBinding` for the engine spec §3.3 text form (round-trips).
+- **`effects.ts`** (7.4–7.5): `Surface` (a fallback chain ending in `poster`, declared uniforms and params, policies), `InputTape` and `EffectInstance`.
+- **`effect-definition.ts`** (7.4): the library `EffectDefinition` format (engine spec §11 plus PRD §5.3) and `validateEffectInstance`.
+- **`graph.ts`** (7.5): interaction graphs, with the grammar §13.7/§14.6 event and action vocabulary, typed exec/data pins, wire rules, variables and custom events.
+- **`kinetics.ts`** (7.5, v3.2): pins, tags, Follow/Field/Effector/Collider/Body components, and Split/Clone generators.
+- **`behaviour-presets.ts`**: `behaviourToBindings`, so there is one reactive model.
+- **`references.ts`**: cross-entity validation.
+- **`migrations/v3-to-v4.ts`**.
+- **Registry** (7.1, 7.6):
+  - an `interpolation` per path;
+  - `range` and `typed` value checks;
+  - keyframeable holds for `media.src`, `media.objectFit` and `background.blendMode`;
+  - `render.role`, `content.counter.*`, `svg.strokeLinecap`/`Linejoin` and `shape.*`;
+  - archetypes `rectangle`, `ellipse`, `line`, `polygon`, `star`, `arrow` and `effectSurface` (27 in total).
+- **Gate:**
+  - `__tests__/phase7-gate.test.ts` covers the 12 + 4 reference effects and the reference build in effector and Blueprint forms, built in `__tests__/fixtures/reference-effects.ts`;
+  - `__tests__/motion-model.test.ts` covers the easing grammar (checked against every easing literal in `src/`), binding syntax, 56 planted mistakes that must be refused, migration, cascades, effect definitions and JSON Schema;
+  - `audit/phase7-gate-checklist.md` is the reviewer checklist.
+- **`decisions/0004-motion-primitives.md`**.
+
+#### Changed
+- **Schema v4:** nine new collections and `Layer.pins`/`tags`.
+  - State and keyframe values are typed by their property.
+  - Keyframes are sorted within their clip; equal times are an instant jump.
+  - `loadDocument` chains v1 → v2 → v3 → v4.
+- **The store's write boundary:**
+  - types keyframe values (`"20px"` → 20) and extends a clip to cover its last keyframe;
+  - on `removeLayer`, removes everything that belongs to or points at the deleted subtree (`removeLayerDependents`); a Split group that loses a piece is detached.
+- **Stagger panel:** offers `edges` and keeps `each`/`amount` exclusive.
+- **Engine spec v1.4 §3:**
+  - `pointer.velocity` (used by §12.3, never defined);
+  - a constant signal;
+  - `component(x|y)`;
+  - the perceptual `spring(bounce:, time:)`;
+  - the `position(pin[, axis])` target;
+  - `self` on set targets.
+- **Docs:** SCHEMA_REFERENCE §0 for v4; ROADMAP Phase 7 is `[~]` with a progress log; AUDIT AUD-57 records G1 and G2 as delivered in code.
+
+#### Known gap
+- `effectSurface` uses the `Canvas` grammar type until Phase 8 compiles grammar §13's 3.F types (`TODO(P8)`).
+
+---
+
 ## [3.3.0] — 2026-09-26
 
 ### ROADMAP v3.3: GPU memory budget, resource lifecycle, and "WebGL only where needed"

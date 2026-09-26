@@ -64,9 +64,9 @@ describe("Phase 4.3 & 4.4: ScrollTrigger & Stagger/Loop Manager", () => {
       assert.strictEqual(stagger.amount, 0.1);
       assert.strictEqual(stagger.from, "center");
 
-      const origins: Array<StaggerConfig["from"]> = ["start", "center", "end", "random"];
+      const origins: Array<StaggerConfig["from"]> = ["start", "center", "end", "edges", "random", [2, 0, 1]];
       for (const origin of origins) {
-        assert.ok(["start", "center", "end", "random"].includes(origin));
+        assert.ok(Array.isArray(origin) || ["start", "center", "end", "edges", "random"].includes(origin));
       }
     });
   });

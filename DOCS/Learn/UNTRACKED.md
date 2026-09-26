@@ -113,6 +113,15 @@
 | `src/core/document/migrations/index.ts` | ⬜ | Migration runner — applies schema migrations in sequence |
 | `src/core/document/migrations/v1-to-v2.ts` | ⬜ | Schema migration from version 1 → 2 |
 | `src/core/document/migrations/v2-to-v3.ts` | ⬜ | Schema migration from version 2 → 3 |
+| `src/core/document/migrations/v3-to-v4.ts` | ⬜ | Schema migration from version 3 → 4 (Phase 7): new collections, typed behaviour params, clip timing repairs |
+| `src/core/document/motion.ts` | ⬜ | Phase 7.2–7.3 primitives: easing grammar, springs, keyframes, tracks, staggers, clips, sequences, states, transitions, typed behaviours |
+| `src/core/document/signals.ts` | ⬜ | Phase 7.5 bindings: signals, operators, targets, guards, and the `signal \|> operators -> target` text-form parser/printer |
+| `src/core/document/effects.ts` | ⬜ | Phase 7.4–7.5: GPU surfaces (fallback chains, policies), input tapes, effect instances |
+| `src/core/document/effect-definition.ts` | ⬜ | Phase 7.4: the library effect definition format and instance checks |
+| `src/core/document/graph.ts` | ⬜ | Phase 7.5: interaction graphs (Blueprint model): nodes, typed pins, wires, variables, custom events |
+| `src/core/document/kinetics.ts` | ⬜ | Phase 7.5 Track K: pins, tags, Follow/Field/Effector/Collider/Body components, Split/Clone generators |
+| `src/core/document/behaviour-presets.ts` | ⬜ | Phase 7.5: expands each behaviour into bindings (or a body / looping clip) |
+| `src/core/document/references.ts` | ⬜ | Cross-entity validation: every id, pin, tag, state, uniform and property path resolves |
 
 ---
 

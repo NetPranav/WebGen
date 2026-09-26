@@ -37,7 +37,8 @@ export const StaggerManager: React.FC<StaggerManagerProps> = ({
   if (!isOpen) return null;
 
   const isInfiniteLoop = repeat === -1;
-  const staggerFrom = stagger?.from || "start";
+  // An explicit index order (Phase 7.2) has no dropdown entry yet; it shows as "custom".
+  const staggerFrom = typeof stagger?.from === "string" ? stagger.from : stagger ? "custom" : "start";
   const staggerAmount = stagger?.amount ?? 0.05;
 
   return (
@@ -125,8 +126,10 @@ export const StaggerManager: React.FC<StaggerManagerProps> = ({
                   max="1.0"
                   value={staggerAmount}
                   onChange={(e) =>
+                    // `each` and `amount` are exclusive (Phase 7.2); this field edits `amount`.
                     onUpdateStagger({
                       ...stagger,
+                      each: undefined,
                       amount: parseFloat(e.target.value) || 0,
                     })
                   }
@@ -144,7 +147,7 @@ export const StaggerManager: React.FC<StaggerManagerProps> = ({
                 onChange={(e) =>
                   onUpdateStagger({
                     ...stagger,
-                    from: e.target.value as "start" | "center" | "end" | "random",
+                    from: e.target.value as "start" | "center" | "end" | "edges" | "random",
                   })
                 }
                 className="form-select"
@@ -153,7 +156,13 @@ export const StaggerManager: React.FC<StaggerManagerProps> = ({
                 <option value="start">start</option>
                 <option value="center">center</option>
                 <option value="end">end</option>
+                <option value="edges">edges</option>
                 <option value="random">random</option>
+                {staggerFrom === "custom" && (
+                  <option value="custom" disabled>
+                    custom order
+                  </option>
+                )}
               </select>
             </div>
           </div>

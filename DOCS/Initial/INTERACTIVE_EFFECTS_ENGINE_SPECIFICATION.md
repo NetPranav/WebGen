@@ -1,6 +1,7 @@
 # LazyLayout Interactive Effects Engine Specification ("LazyLayout FX")
 
-**Version:** 1.3.0 (Draft). v1.3 adds §7.8 (where WebGL is used: GPU only where needed; three.js only for real 3D), §7.9 (GPU memory budget and resource lifecycle) and rules FX-PERF-07 and FX-MEM-01 … 06.
+**Version:** 1.4.0 (Draft). v1.4 (ROADMAP Phase 7) adds to the §3 grammar what the model needed: `pointer.velocity`, a constant signal, `component(x|y)`, the perceptual `spring(bounce:, time:)` and the `position(pin[, axis])` target; bindings and effect instances are now typed in the document (decision 0004).
+- v1.3 adds §7.8 (where WebGL is used: GPU only where needed; three.js only for real 3D), §7.9 (GPU memory budget and resource lifecycle) and rules FX-PERF-07 and FX-MEM-01 … 06.
 - v1.1 adds GPU resilience (§7.7), kinetic composition (§8.6, §10.8) and the reference build (§12.7).
 - v1.2 adds, after a step-by-step trace of the reference build:
   - the no-math controls vocabulary (§13.4);
@@ -9,7 +10,7 @@
   - rules that set up their own colliders and fields (§8.6.7).
 **Date:** 2026-09-26
 **File Location:** `DOCS/Initial/INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md`
-**Status:** Design specification. **Nothing in this document runs in the code yet** (see `AUDIT.md` AUD-45 … AUD-49 and AUD-56). Each section names the roadmap phase that builds it.
+**Status:** Design specification. Since ROADMAP Phase 7 the document model can *express* everything here (types and validation in `src/core/document/`), but **no runtime in this document runs in the code yet** (see `AUDIT.md` AUD-45 … AUD-49 and AUD-56). Each section names the roadmap phase that builds it.
 **Owner phases:** `ROADMAP.md` v3.1:
 - Track X (Phases 59–71);
 - Track L (Phases 72–74);
@@ -158,9 +159,10 @@ The notation follows `lazylayout_element_grammer.md` §2 (loose EBNF). The **tex
                   | "time" | "frame.dt" | <AudioSignal> | <DeviceSignal>
                   | "state(" <StateName> ")" | "sm(" <InputName> ")"
                   | "prop(" <PropName> ")" | "var(" <VarName> ")" | "seed"
+                  | <number>                                    -- (v1.4) a constant, e.g. `0 |> spring(…)`
 
-<PointerSignal> ::= "pointer." ( "x" | "y" | "dx" | "dy" | "speed" | "angle" | "down"
-                               | "pressure" | "type" | "coarse" )
+<PointerSignal> ::= "pointer." ( "x" | "y" | "dx" | "dy" | "speed" | "angle" | "velocity" | "down"
+                               | "pressure" | "type" | "coarse" )  -- (v1.4) `velocity`: vec2 px/s, used by §12.3
                   | "pointer." ( "uv" | "ndc" | "px" ) "(" <Space> ")"
                   | "pointer.inside(" <LayerRef> ")"
 <Space>         ::= "local" | "parent" | "frame" | "page"
@@ -181,6 +183,7 @@ The notation follows `lazylayout_element_grammer.md` §2 (loose EBNF). The **tex
 <SignalExpr>    ::= <Signal> { "|>" <Operator> }
 <Operator>      ::= "smooth(" <tau> ")"                         -- frame-rate independent exponential smoothing
                   | "spring(" <stiffness> "," <damping> [ "," <mass> ] ")"
+                  | "spring(bounce:" <0..1> ", time:" <seconds> ")"      -- (v1.4) perceptual spring, Law 17
                   | "remap(" <inMin> "," <inMax> "," <outMin> "," <outMax> [ ",clamp" ] ")"
                   | "clamp(" <min> "," <max> ")" | "curve(" <CurveRef> ")"
                   | "deadzone(" <radius> ")"
@@ -193,6 +196,7 @@ The notation follows `lazylayout_element_grammer.md` §2 (loose EBNF). The **tex
                   | "add(" <x> ")" | "mul(" <x> ")" | "min(" <x> ")" | "max(" <x> ")" | "abs"
                   | "length" | "normalize" | "rotate(" <deg> ")" | "distance(" <SignalExpr> ")"
                   | "angleTo(" <SignalExpr> ")" | "select(" <SignalExpr> "," <SignalExpr> ")"
+                  | "component(" ( "x" | "y" ) ")"                       -- (v1.4) one axis of a vec2
 ```
 
 ### 3.3 Bindings
@@ -203,6 +207,7 @@ The notation follows `lazylayout_element_grammer.md` §2 (loose EBNF). The **tex
                   | <LayerRef> ".param." <identifier>            -- a particle/simulation parameter (63/64)
                   | <LayerRef> ".input." <identifier>            -- a state-machine input (11.3)
                   | <LayerRef> ".cssvar." <identifier>           -- a CSS custom property (export-visible)
+                  | <LayerRef> ".position(" <PinName> [ "," ( "x" | "y" ) ] ")"  -- a pin lands on the value (§6, §8.6.2)
                   | "event(" <EventName> ")"                     -- edge-triggered, for Blueprints (72)
 <Blend>         ::= "replace" | "add" | "multiply" | "max"
 <Guard>         ::= <Condition> { ( "and" | "or" ) <Condition> }
@@ -219,6 +224,8 @@ pointer.ndc(local) |> spring(200, 20) |> remap(-1, 1, -10, 10)      -> cta.trans
 scroll.progress |> remap(0, 0.4, 1, 0, clamp)                       -> bg.appearance.opacity blend multiply
 pointer.speed |> threshold(1200, 600) |> edge(rise)                 -> event(Shockwave)
 ```
+
+*(v1.4, ROADMAP Phase 7)* `<LayerRef>` in the text form may also be `tag:<name>` or `<GroupRef>[*]` on the target side (§6 group and tag targets). When a target is a set, `self` in the binding's signals means each target. Bindings are stored structured in the document and round-trip through this text form (`src/core/document/signals.ts`, decision 0004 §5).
 
 ### 3.4 Effect definition (shape)
 ```ebnf

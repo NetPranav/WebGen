@@ -51,6 +51,28 @@ export type PropertyValueType =
  */
 export type CompositingClass = "gpu" | "paint" | "layout" | "none";
 
+/**
+ * How a property's value moves between two keyframes (Phase 7.1). Derived from
+ * the value type; the evaluation kernel (Phase 9) implements each method.
+ * `discrete` properties can still be keyframed when `animatable`: every
+ * keyframe is a hold (the value switches at the keyframe's time).
+ */
+export type InterpolationMethod =
+  | "numeric" //    number / length / angle: lerp through the easing
+  | "color" //      colours: mixed in OKLab (Phase 9.2)
+  | "path" //       SVG path data: point-matched morph (Phase 16.2)
+  | "clipPath" //   CSS clip-path shapes of the same kind
+  | "vector" //     vector3: per-component lerp
+  | "slerp" //      quaternion: spherical lerp
+  | "gradient" //   gradient stops: per-stop colour + offset
+  | "discrete"; //  strings, enums, booleans, objects: step (hold)
+
+/** Numeric constraints for values the schema can check without an engine. */
+export interface ValueRange {
+  min?: number;
+  max?: number;
+  integer?: boolean;
+}
 /** Which archetypes carry a property. */
 type Scope =
   | { kind: "visual" }
@@ -69,8 +91,34 @@ export interface PropertyDefinition {
   animatable: boolean;
   /** Allowed values for `enum` properties, when the set is closed. */
   options?: readonly string[];
+  /** Checked by `validatePropertyValues` when present. */
+  range?: ValueRange;
+  /**
+   * Values are type-checked on layers (`validatePropertyValues`). True for every
+   * path added from schema v4 on; older paths are checked in states and
+   * keyframes and gain it as the inspector (Phase 22) types their writers.
+   */
+  typed?: boolean;
+  /** How keyframed values move between keyframes (Phase 7.1). */
+  interpolation: InterpolationMethod;
   archetypes: readonly ArchetypeId[];
 }
+
+const INTERPOLATION_BY_TYPE: Record<PropertyValueType, InterpolationMethod> = {
+  number: "numeric",
+  length: "numeric",
+  angle: "numeric",
+  color: "color",
+  pathData: "path",
+  clipPath: "clipPath",
+  vector3: "vector",
+  quaternion: "slerp",
+  gradientStops: "gradient",
+  string: "discrete",
+  enum: "discrete",
+  boolean: "discrete",
+  object: "discrete",
+};
 
 // ---------------------------------------------------------------------------
 // Scopes
@@ -98,7 +146,7 @@ function resolveScope(scope: Scope): ArchetypeId[] {
 // Definitions
 // ---------------------------------------------------------------------------
 
-type Def = Omit<PropertyDefinition, "path" | "archetypes"> & { scope: Scope };
+type Def = Omit<PropertyDefinition, "path" | "archetypes" | "interpolation"> & { scope: Scope };
 
 const num = (dflt: number, css: string | null, compositing: CompositingClass, scope: Scope, animatable = true): Def => ({
   valueType: "number", default: dflt, css, compositing, animatable, scope,
@@ -122,13 +170,21 @@ const flag = (dflt: boolean, compositing: CompositingClass, scope: Scope): Def =
   valueType: "boolean", default: dflt, css: null, compositing, animatable: false, scope,
 });
 const unitOf = (scope: Scope): Def => oneOf(["px", "rem", "em", "%", "vw", "vh", "auto"], "px", null, "layout", scope);
+/** A value with bounds the schema checks (Phase 7.1 / 7.6). */
+const ranged = (def: Def, range: ValueRange): Def => ({ ...def, range, typed: true });
+/** A v4 path whose layer values are type-checked. */
+const typed = (def: Def): Def => ({ ...def, typed: true });
+/** CONVENTIONS §4 lists these discrete paths as keyframeable: they animate as holds. */
+const held = (def: Def): Def => ({ ...def, animatable: true });
 
 const TYPOGRAPHY = section("typography", "text_content");
 const LAYOUT = section("layout", "container_layout");
 const FLEX = section("container_layout");
 const BUTTON = only("button", "fab");
 const IMAGE = only("image");
-const SVG_STROKED = only("icon", "svgPath", "svgGroup", "svgUse", "svgText");
+/** Parametric shape archetypes (Phase 7.6). */
+export const SHAPE_ARCHETYPES = ["rectangle", "ellipse", "line", "polygon", "star", "arrow"] as const satisfies readonly ArchetypeId[];
+const SVG_STROKED = only("icon", "svgPath", "svgGroup", "svgUse", "svgText", ...SHAPE_ARCHETYPES);
 const INTERACTIVE = only("button", "toggle", "fab", "input", "form");
 const OBJECT3D = only("object3D");
 const CAMERA3D = only("camera3D");
@@ -183,6 +239,11 @@ const DEFS = {
   "appearance.pointerEvents": oneOf(["auto", "none"], "auto", "pointer-events", "none", VISUAL),
   "appearance.userSelect": oneOf(["auto", "none", "text", "all"], "auto", "user-select", "none", VISUAL),
   "appearance.willChange": oneOf(["auto", "transform", "opacity"], "auto", "will-change", "none", VISUAL),
+  /**
+   * Kinetic composition (Phase 7.5 types, 88.1 runtime): a `helper` is logic-only —
+   * never rendered in Preview or export, never focused or announced (grammar 6.17).
+   */
+  "render.role": typed(oneOf(["content", "helper"], "content", null, "none", VISUAL)),
   "filter.blur": px(0, "filter", "paint", VISUAL),
 
   // --- Typography (CONVENTIONS §4.2) ----------------------------------------
@@ -220,6 +281,12 @@ const DEFS = {
   "content.isRichText": flag(false, "layout", only("text")),
   "content.icon": str("plus", null, "layout", only("fab")),
   "content.iconName": str("Sparkles", null, "layout", only("icon")),
+  /** Count-up text (PRD §5.2): the displayed number, formatted by the fields below. */
+  "content.counter.value": typed(num(0, null, "layout", only("text"))),
+  "content.counter.decimals": ranged(num(0, null, "layout", only("text"), false), { min: 0, max: 6, integer: true }),
+  "content.counter.prefix": typed(str("", null, "layout", only("text"))),
+  "content.counter.suffix": typed(str("", null, "layout", only("text"))),
+  "content.counter.separator": typed(oneOf(["none", "comma", "space", "locale"], "none", null, "layout", only("text"))),
 
   // --- Layout (flow and container) -------------------------------------------
   "layout.display": oneOf(["block", "flex", "grid", "inline", "inline-flex", "none"], "block", "display", "layout", LAYOUT),
@@ -301,10 +368,10 @@ const DEFS = {
   "input.errorMessage": str("", null, "layout", only("input", "form")),
 
   // --- Media: image (CONVENTIONS §4.3) ----------------------------------------
-  "media.src": str("", null, "paint", IMAGE),
+  "media.src": held(str("", null, "paint", IMAGE)),
   "media.fallbackSrc": str("", null, "none", IMAGE),
   "media.alt": str("", null, "none", IMAGE),
-  "media.objectFit": oneOf(["cover", "contain", "fill", "none", "scale-down"], "cover", "object-fit", "paint", IMAGE),
+  "media.objectFit": held(oneOf(["cover", "contain", "fill", "none", "scale-down"], "cover", "object-fit", "paint", IMAGE)),
   "media.objectPosition": str("center", "object-position", "paint", IMAGE),
   "media.aspectRatio": str("auto", "aspect-ratio", "layout", IMAGE),
   "media.loadingMode": oneOf(["lazy", "eager"], "lazy", null, "none", IMAGE),
@@ -334,6 +401,30 @@ const DEFS = {
   "svg.filter.gaussianBlur": num(0, "filter", "paint", SVG_STROKED),
   "svg.filter.colorMatrix": str("", "filter", "paint", SVG_STROKED),
   "svg.filter.displacementScale": num(0, "filter", "paint", SVG_STROKED),
+  "svg.strokeLinecap": typed(oneOf(["butt", "round", "square"], "butt", "stroke-linecap", "paint", SVG_STROKED)),
+  "svg.strokeLinejoin": typed(oneOf(["miter", "round", "bevel"], "miter", "stroke-linejoin", "paint", SVG_STROKED)),
+
+  // --- Parametric shapes (Phase 7.6) -------------------------------------------
+  // Geometry is the layer's frame; these are the shape's own parameters. Fill,
+  // stroke and dash are the `svg.*` paths above. Render definitions: Phase 48.
+  "shape.cornerRadius": ranged(px(0, "rx", "paint", only("rectangle")), { min: 0 }),
+  "shape.cornerRadius.topLeft": ranged(px(0, null, "paint", only("rectangle")), { min: 0 }),
+  "shape.cornerRadius.topRight": ranged(px(0, null, "paint", only("rectangle")), { min: 0 }),
+  "shape.cornerRadius.bottomRight": ranged(px(0, null, "paint", only("rectangle")), { min: 0 }),
+  "shape.cornerRadius.bottomLeft": ranged(px(0, null, "paint", only("rectangle")), { min: 0 }),
+  /** Polygon side count. Changing it re-topologises the path, so it holds. */
+  "shape.sides": held(ranged(num(6, null, "paint", only("polygon"), false), { min: 3, max: 64, integer: true })),
+  "shape.points": held(ranged(num(5, null, "paint", only("star"), false), { min: 3, max: 64, integer: true })),
+  /** Star inner radius as a fraction of the outer radius. */
+  "shape.innerRadius": ranged(num(0.5, null, "paint", only("star")), { min: 0, max: 1 }),
+  /** Corner rounding of polygon and star vertices. */
+  "shape.vertexRadius": ranged(px(0, null, "paint", only("polygon", "star")), { min: 0 }),
+  /** Line and arrow ends. A line runs across its frame's width at mid-height; rotate the frame to angle it. */
+  "shape.startCap": typed(oneOf(["none", "arrow", "triangle", "circle", "square"], "none", null, "paint", only("line", "arrow"))),
+  "shape.endCap": typed(oneOf(["none", "arrow", "triangle", "circle", "square"], "none", null, "paint", only("line", "arrow"))),
+  "shape.headLength": ranged(px(16, null, "paint", only("arrow")), { min: 0 }),
+  "shape.headWidth": ranged(px(16, null, "paint", only("arrow")), { min: 0 }),
+  "shape.shaftWidth": ranged(px(4, null, "paint", only("arrow")), { min: 0 }),
 
   // --- Divider (CONVENTIONS §4.4) ---------------------------------------------
   "divider.orientation": oneOf(["horizontal", "vertical"], "horizontal", null, "layout", only("divider")),
@@ -353,7 +444,7 @@ const DEFS = {
   "background.gradient.stopOffset": num(0, "background-image", "paint", only("background")),
   "background.gradient.stopColor": color("#0f172a", "background-image", "paint", only("background")),
   "background.parallax.speed": num(0, null, "gpu", only("background")),
-  "background.blendMode": oneOf(null, "normal", "mix-blend-mode", "paint", only("background")),
+  "background.blendMode": held(oneOf(null, "normal", "mix-blend-mode", "paint", only("background"))),
   "background.noise.opacity": num(0, "opacity", "paint", only("background")),
   "background.pattern": str("none", "background-image", "paint", only("background")),
 
@@ -397,7 +488,10 @@ const DEFS = {
 export type PropertyPath = keyof typeof DEFS;
 
 export const PROPERTY_REGISTRY: Readonly<Record<string, PropertyDefinition>> = Object.fromEntries(
-  Object.entries(DEFS as Record<string, Def>).map(([path, { scope, ...def }]) => [path, { path, ...def, archetypes: resolveScope(scope) }])
+  Object.entries(DEFS as Record<string, Def>).map(([path, { scope, ...def }]) => [
+    path,
+    { path, ...def, interpolation: INTERPOLATION_BY_TYPE[def.valueType], archetypes: resolveScope(scope) },
+  ])
 );
 
 export const PROPERTY_PATHS: readonly string[] = Object.keys(PROPERTY_REGISTRY);
@@ -992,6 +1086,86 @@ export function normalizeGeometryProps(props: Record<string, PropValue>): PropIs
     if (match[2] && match[2] !== "px") props[`frame.${axis}Unit`] = match[2];
   }
   return issues;
+}
+
+/** Does `value` have the shape the property's value type needs? */
+export function valueFitsProperty(def: PropertyDefinition, value: PropValue): boolean {
+  switch (def.valueType) {
+    case "number":
+    case "length":
+    case "angle":
+      return typeof value === "number" && Number.isFinite(value);
+    case "color":
+    case "string":
+    case "pathData":
+    case "clipPath":
+      return typeof value === "string";
+    case "enum":
+      return typeof value === "string" && (!def.options || def.options.includes(value));
+    case "boolean":
+      return typeof value === "boolean";
+    case "vector3":
+      return Array.isArray(value) && value.length === 3 && value.every((v) => typeof v === "number");
+    case "quaternion":
+      return Array.isArray(value) && value.length === 4 && value.every((v) => typeof v === "number");
+    case "gradientStops":
+      return Array.isArray(value);
+    case "object":
+      return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+}
+
+const LEADING_NUMBER = /^\s*(-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?)\s*(px|deg|%|s|ms|rem|em|turn)?\s*$/;
+
+/**
+ * The value as its property's value type, when it can be read as one: a
+ * number from a numeric string with a unit (`"20px"` → 20, `"1"` → 1), or the
+ * value itself when it already fits. Otherwise the property's default. The
+ * store's write boundary and the v3 → v4 migration use it, so keyframes and
+ * state values written by older UI (strings, `"default"`) become typed.
+ */
+export function coercePropertyValue(def: PropertyDefinition, value: PropValue): PropValue {
+  if (valueFitsProperty(def, value)) return value;
+  if (def.valueType === "number" || def.valueType === "length" || def.valueType === "angle") {
+    if (typeof value === "string") {
+      const m = LEADING_NUMBER.exec(value);
+      if (m && (!m[2] || m[2] === def.unit || (def.unit === undefined && m[2] === "px"))) return Number(m[1]);
+    }
+    if (typeof value === "boolean") return value ? 1 : 0;
+  }
+  if ((def.valueType === "color" || def.valueType === "string" || def.valueType === "pathData" || def.valueType === "clipPath") && typeof value === "number") {
+    return String(value);
+  }
+  return def.default;
+}
+
+/**
+ * Layer values of `typed` paths (Phase 7.1): the wrong type, not one of an
+ * enum's options, out of a declared range, or not an integer.
+ */
+export function validatePropertyValues(props: Record<string, PropValue>): PropIssue[] {
+  const issues: PropIssue[] = [];
+  for (const [path, value] of Object.entries(props)) {
+    const def = getPropertyDefinition(path);
+    if (!def?.typed) continue;
+    if (!valueFitsProperty(def, value)) {
+      const expected = def.options ? `one of ${def.options.join(", ")}` : `a ${def.valueType}`;
+      issues.push({ key: path, message: `${path} must be ${expected} (got ${JSON.stringify(value)}).` });
+      continue;
+    }
+    const problem = def.range ? checkRange(value, def.range) : null;
+    if (problem) issues.push({ key: path, message: `${path} ${problem} (got ${JSON.stringify(value)}).` });
+  }
+  return issues;
+}
+
+/** Why `value` breaks `range`, or null when it fits. */
+export function checkRange(value: PropValue, range: ValueRange): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "must be a finite number";
+  if (range.integer && !Number.isInteger(value)) return "must be a whole number";
+  if (range.min !== undefined && value < range.min) return `must be at least ${range.min}`;
+  if (range.max !== undefined && value > range.max) return `must be at most ${range.max}`;
+  return null;
 }
 
 /** Type issues in stored geometry values (numbers for the frame, the closed sets for sizing/positioning). */

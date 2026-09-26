@@ -196,6 +196,20 @@ const COMMON_NON_3D_DISALLOWED_TRACKS: Record<string, DisallowedTrackReason> = {
   },
 };
 
+/** Parametric shapes (Phase 7.6) animate like SVG paths, except their outline comes from shape parameters, not `d`. */
+const shapeCompatibility = (archetype: ArchetypeId): ArchetypeAnimationCompatibilityRule => ({
+  archetype,
+  allowedTracks: ["opacity", "translateX", "translateY", "scale", "rotate", "color", "filterBlur", "strokeDashoffset", "motionPath", "feGaussianBlur"],
+  disallowedTracks: {
+    ...COMMON_3D_DISALLOWED_TRACKS,
+    pathMorph: {
+      trackId: "pathMorph",
+      reason: "A parametric shape's outline comes from its shape parameters, not path data.",
+      alternativeSuggestion: "Convert the shape to an svgPath to morph it.",
+    },
+  },
+});
+
 /**
  * Universal Archetype Animation Compatibility Matrix.
  * Specifies exactly which tracks are legally permitted on each element archetype.
@@ -655,6 +669,17 @@ export const ARCHETYPE_ANIMATION_COMPATIBILITY: Record<
         alternativeSuggestion: "Apply lightColor to a light3D archetype.",
       },
     },
+  },
+  rectangle: shapeCompatibility("rectangle"),
+  ellipse: shapeCompatibility("ellipse"),
+  line: shapeCompatibility("line"),
+  polygon: shapeCompatibility("polygon"),
+  star: shapeCompatibility("star"),
+  arrow: shapeCompatibility("arrow"),
+  effectSurface: {
+    archetype: "effectSurface",
+    allowedTracks: ["opacity", "translateX", "translateY", "scale", "rotate"],
+    disallowedTracks: {},
   },
   light3D: {
     archetype: "light3D",
