@@ -209,8 +209,8 @@ export const LiveCodeInspector: React.FC<LiveCodeInspectorProps> = ({ className,
       return (
         lower.includes(shortId) ||
         lower.includes(`className="${cleanName}`) ||
-        lower.includes(`>${el.properties?.textContent}<`) ||
-        lower.includes(`>${el.properties?.label}<`)
+        lower.includes(`>${el.properties?.["content.text"]}<`) ||
+        lower.includes(`>${el.properties?.["content.label"]}<`)
       );
     });
 

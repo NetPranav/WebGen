@@ -16,6 +16,7 @@ import { Minus, ChevronRight } from "lucide-react";
 import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
 import type { PropValue } from "@/core/document/registry";
 import { readProps } from "@/core/document/props";
+import type { PropertyPath } from "@/core/document/properties";
 
 export interface DividerSectionProps {
   elementId: string;
@@ -30,7 +31,7 @@ export const DividerSection: React.FC<DividerSectionProps> = ({
   const currentElement = elements[elementId];
   const props = readProps(currentElement, "divider");
 
-  const updateProp = (key: string, val: PropValue) => {
+  const updateProp = (key: PropertyPath, val: PropValue) => {
     documentCommands.updateProps(elementId, { [key]: val }, `Update divider ${key}`);
   };
 
@@ -49,14 +50,14 @@ export const DividerSection: React.FC<DividerSectionProps> = ({
           <button
             type="button"
             className={`form-mode-btn ${orientation === "horizontal" ? "form-mode-btn--active" : ""}`}
-            onClick={() => updateProp("orientation", "horizontal")}
+            onClick={() => updateProp("divider.orientation", "horizontal")}
           >
             Horizontal
           </button>
           <button
             type="button"
             className={`form-mode-btn ${orientation === "vertical" ? "form-mode-btn--active" : ""}`}
-            onClick={() => updateProp("orientation", "vertical")}
+            onClick={() => updateProp("divider.orientation", "vertical")}
           >
             Vertical
           </button>
@@ -75,7 +76,7 @@ export const DividerSection: React.FC<DividerSectionProps> = ({
           step="1"
           className="form-slider"
           value={length}
-          onChange={(e) => updateProp("length", Number(e.target.value))}
+          onChange={(e) => updateProp("divider.length", Number(e.target.value))}
         />
       </div>
 
@@ -90,7 +91,7 @@ export const DividerSection: React.FC<DividerSectionProps> = ({
               max="40"
               className="form-number-scrub__input"
               value={thickness}
-              onChange={(e) => updateProp("thickness", Number(e.target.value))}
+              onChange={(e) => updateProp("divider.thickness", Number(e.target.value))}
             />
           </div>
         </div>
@@ -100,7 +101,7 @@ export const DividerSection: React.FC<DividerSectionProps> = ({
           <select
             className="form-select"
             value={style}
-            onChange={(e) => updateProp("style", e.target.value)}
+            onChange={(e) => updateProp("divider.style", e.target.value)}
           >
             <option value="solid">Solid</option>
             <option value="dashed">Dashed</option>
@@ -121,7 +122,7 @@ export const DividerSection: React.FC<DividerSectionProps> = ({
             type="text"
             className="form-input"
             value={color}
-            onChange={(e) => updateProp("color", e.target.value)}
+            onChange={(e) => updateProp("divider.color", e.target.value)}
           />
         </div>
       </div>

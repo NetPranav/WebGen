@@ -14,6 +14,7 @@ import { PageDefinition, StateVariable } from "@/core/store/useProjectStore";
 import { ComponentEmitterOptions, EmittedFile } from "@/core/types/compiler";
 import { StyleEmitter } from "./StyleEmitter";
 import type { Layer } from "@/core/document/schema";
+import { propReader } from "@/core/document/properties";
 
 export class ReactComponentEmitter {
   /**
@@ -33,11 +34,12 @@ export class ReactComponentEmitter {
    * Determines the optimal semantic HTML tag for an element.
    */
   public static resolveSemanticTag(element: Layer): string {
-    const props = element.properties || {};
+    const get = propReader(element.properties);
 
-    // 1. Explicit semanticTag property
-    if (typeof props.semanticTag === "string" && props.semanticTag.trim()) {
-      return props.semanticTag.trim().toLowerCase();
+    // 1. Explicit semantic tag
+    const explicitTag = get("export.tag");
+    if (typeof explicitTag === "string" && explicitTag.trim()) {
+      return explicitTag.trim().toLowerCase();
     }
 
     // 2. Archetype-specific deduction
@@ -52,12 +54,13 @@ export class ReactComponentEmitter {
         return "form";
       case "text": {
         // Infer from font size or role
-        const fontSize = typeof props.fontSize === "number" ? props.fontSize : 16;
+        const size = get("typography.fontSize");
+        const fontSize = typeof size === "number" ? size : 16;
         if (fontSize >= 32) return "h1";
         if (fontSize >= 26) return "h2";
         if (fontSize >= 22) return "h3";
         if (fontSize >= 18) return "h4";
-        const role = String(props.role || "").toLowerCase();
+        const role = String(get("a11y.role") || "").toLowerCase();
         if (role === "label") return "label";
         if (role === "caption" || role === "span") return "span";
         return "p";
@@ -93,10 +96,6 @@ export class ReactComponentEmitter {
     if (el.archetype === "button" || el.archetype === "input" || el.archetype === "form") {
       return true;
     }
-    if (el.properties?.onClick || el.properties?.onChange || el.properties?.onSubmit) {
-      return true;
-    }
-
     for (const childId of el.children || []) {
       if (ReactComponentEmitter.requiresClientDirective(childId, elements)) {
         return true;
@@ -119,7 +118,7 @@ export class ReactComponentEmitter {
 
     const indent = " ".repeat(depth * 2);
     const tag = ReactComponentEmitter.resolveSemanticTag(el);
-    const props = el.properties || {};
+    const get = propReader(el.properties);
     const className = StyleEmitter.getElementClassName(el, { classPrefix: options?.styleIdentifier });
 
     const attributes: string[] = [];
@@ -134,35 +133,35 @@ export class ReactComponentEmitter {
     // Accessibility attributes (WCAG standard)
     if (options?.includeAccessibility !== false) {
       if (tag === "img") {
-        const altText = props.alt || props.ariaLabel || el.name || "Visual graphic";
+        const altText = get("media.alt") || get("a11y.label") || el.name || "Visual graphic";
         attributes.push(`alt="${altText}"`);
         attributes.push(`loading="lazy"`);
       } else if (tag === "button") {
-        attributes.push(`type="${props.type === "submit" ? "submit" : "button"}"`);
-        if (props.ariaLabel) {
-          attributes.push(`aria-label="${props.ariaLabel}"`);
+        attributes.push(`type="${get("button.type") === "submit" ? "submit" : "button"}"`);
+        if (get("a11y.label")) {
+          attributes.push(`aria-label="${get("a11y.label")}"`);
         }
       } else if (tag === "input") {
-        const inputType = props.type || "text";
+        const inputType = get("input.type") || "text";
         attributes.push(`type="${inputType}"`);
-        if (props.placeholder) attributes.push(`placeholder="${props.placeholder}"`);
-        if (props.ariaLabel) attributes.push(`aria-label="${props.ariaLabel}"`);
-        if (props.required) attributes.push(`aria-required="true"`);
+        if (get("input.placeholder")) attributes.push(`placeholder="${get("input.placeholder")}"`);
+        if (get("a11y.label")) attributes.push(`aria-label="${get("a11y.label")}"`);
+        if (get("input.required")) attributes.push(`aria-required="true"`);
       }
 
-      if (props.disabled) {
+      if (get("interaction.disabled")) {
         attributes.push(`disabled`);
         attributes.push(`aria-disabled="true"`);
       }
 
-      if (props.role && tag === "div") {
-        attributes.push(`role="${props.role}"`);
+      if (get("a11y.role") && tag === "div") {
+        attributes.push(`role="${get("a11y.role")}"`);
       }
     }
 
     // Image Source
-    if (tag === "img" && props.src) {
-      attributes.push(`src="${props.src}"`);
+    if (tag === "img" && get("media.src")) {
+      attributes.push(`src="${get("media.src")}"`);
     }
 
     // Interactive event handlers
@@ -179,12 +178,9 @@ export class ReactComponentEmitter {
     }
 
     // Content: textContent or children
-    const textContent =
-      typeof props.textContent === "string"
-        ? props.textContent
-        : typeof props.label === "string"
-        ? props.label
-        : null;
+    const text = get("content.text");
+    const label = get("content.label");
+    const textContent = typeof text === "string" ? text : typeof label === "string" ? label : null;
 
     const childIds = el.children || [];
 

@@ -36,21 +36,21 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
   // --------------------------------------------------------------------------
   // 2. Element Property Translation & Kebab-Casing
   // --------------------------------------------------------------------------
-  it("converts camelCase properties to CSS kebab-case and formats units", () => {
+  it("maps canonical property paths to CSS through the registry and formats units", () => {
     const containerEl: Layer = {
       id: "el_card_123",
       name: "HeroCard",
       archetype: "container",
       parentId: null,
       properties: {
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-        padding: 32,
-        backgroundColor: "#1E293B",
-        borderRadius: 12,
-        opacity: 0.95,
-        fontWeight: 600,
+        "layout.display": "flex",
+        "layout.flexDirection": "column",
+        "layout.gap": 24,
+        "layout.padding": 32,
+        "appearance.background.color": "#1E293B",
+        "appearance.radius": 12,
+        "appearance.opacity": 0.95,
+        "typography.fontWeight": 600,
       },
       children: [],
     };
@@ -77,25 +77,24 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
       archetype: "button",
       parentId: null,
       properties: {
-        backgroundColor: "#206859",
-        color: "#FFFFFF",
-        hoverStyles: {
-          backgroundColor: "#2A8572",
-          transform: "translateY(-2px)",
-        },
-        activeStyles: {
-          transform: "translateY(0px)",
-        },
+        "appearance.background.color": "#206859",
+        "typography.color": "#FFFFFF",
       },
       children: [],
     };
 
-    const rules = StyleEmitter.emitElementRules(btnEl);
+    const rules = StyleEmitter.emitElementRules(btnEl, {
+      stateStyles: {
+        hover: { "appearance.background.color": "#2A8572", "transform.y": -2 },
+        active: { "transform.y": 0 },
+      },
+    });
     assert.match(rules, /cursor: pointer;/);
     assert.match(rules, /display: inline-flex;/);
     assert.match(rules, /\.submitbtn_btn_subm:hover \{/);
     assert.match(rules, /background-color: #2A8572;/);
     assert.match(rules, /transform: translateY\(-2px\);/);
+    assert.match(rules, /transform: translateY\(0px\);/);
     assert.match(rules, /\.submitbtn_btn_subm:active \{/);
     assert.match(rules, /\.submitbtn_btn_subm:disabled \{/);
   });
@@ -110,22 +109,42 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
       archetype: "container",
       parentId: null,
       properties: {
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        mediaQueries: {
-          mobile: {
-            gridTemplateColumns: "1fr",
-            padding: 16,
-          },
-        },
+        "layout.display": "grid",
+        "layout.gridTemplateColumns": "repeat(3, 1fr)",
       },
       children: [],
     };
 
-    const rules = StyleEmitter.emitElementRules(el);
+    const rules = StyleEmitter.emitElementRules(el, {
+      breakpointOverrides: { mobile: { "layout.gridTemplateColumns": "1fr", "layout.padding": 16 } },
+    });
     assert.match(rules, /@media \(max-width: 640px\) \{/);
     assert.match(rules, /grid-template-columns: 1fr;/);
     assert.match(rules, /padding: 16px;/);
+  });
+
+  it("combines transform and filter paths, honours unit companions, and skips non-CSS paths", () => {
+    const el: Layer = {
+      id: "el_mix",
+      name: "Mix",
+      archetype: "text",
+      parentId: null,
+      properties: {
+        "transform.x": 10,
+        "transform.rotate": 45,
+        "transform.scale": 1.2,
+        "filter.blur": 4,
+        "typography.fontSize": 2,
+        "typography.fontSizeUnit": "rem",
+        "content.text": "Hello",
+      },
+      children: [],
+    };
+    const rules = StyleEmitter.emitElementRules(el);
+    assert.match(rules, /transform: translateX\(10px\) rotate\(45deg\) scale\(1.2\);/);
+    assert.match(rules, /filter: blur\(4px\);/);
+    assert.match(rules, /font-size: 2rem;/);
+    assert.doesNotMatch(rules, /Hello|content|font-size-unit/);
   });
 
   // --------------------------------------------------------------------------
@@ -138,7 +157,7 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
         name: "Header",
         archetype: "container",
         parentId: null,
-        properties: { height: 64 },
+        properties: { "frame.height": 64 },
         children: [],
       },
       el_2: {
@@ -146,7 +165,7 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
         name: "Logo",
         archetype: "image",
         parentId: "el_1",
-        properties: { width: 120 },
+        properties: { "frame.width": 120 },
         children: [],
       },
     };
@@ -155,5 +174,36 @@ describe("Sub-Phase 6.1: StyleEmitter (Scoped CSS & Design Tokens)", () => {
     assert.equal(file.path, "styles/elements.css");
     assert.match(file.content, /\.header_1 \{/);
     assert.match(file.content, /\.logo_2 \{/);
+  });
+});
+
+describe("StyleEmitter geometry (Phase 42.3)", () => {
+  const layer = (parentId: string | null, properties: Layer["properties"]): Layer => ({
+    id: "el_geo",
+    name: "Geo",
+    archetype: "container",
+    parentId,
+    children: [],
+    properties,
+  });
+
+  it("emits fixed sizes with their unit, explicit fill as 100%, and nothing for hug", () => {
+    const rules = StyleEmitter.emitElementRules(
+      layer("root", { "frame.width": 50, "frame.widthUnit": "%", "frame.height": 120, "sizing.vertical": "fixed" })
+    );
+    assert.match(rules, /width: 50%;/);
+    assert.match(rules, /height: 120px;/);
+    assert.doesNotMatch(StyleEmitter.emitElementRules(layer("root", {})), /width|height/);
+    assert.match(StyleEmitter.emitElementRules(layer("root", { "sizing.horizontal": "fill" })), /width: 100%;/);
+  });
+
+  it("positions absolute children, never roots, and emits layout rotation separately from transform", () => {
+    const child = StyleEmitter.emitElementRules(layer("root", { positioning: "absolute", "frame.x": 12, "frame.y": 34, "frame.rotation": 15 }));
+    assert.match(child, /position: absolute;/);
+    assert.match(child, /left: 12px;/);
+    assert.match(child, /top: 34px;/);
+    assert.match(child, /rotate: 15deg;/);
+    const root = StyleEmitter.emitElementRules(layer(null, { positioning: "absolute", "frame.x": 40 }));
+    assert.doesNotMatch(root, /position: absolute|left:/);
   });
 });

@@ -18,9 +18,9 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Interactive Family (Button)",
     parentId: null,
     children: [],
     properties: {
-      label: "Get Started Now",
-      variant: "primary",
-      size: "lg",
+      "content.label": "Get Started Now",
+      "appearance.variant": "primary",
+      "button.size": "lg",
     },
   };
 
@@ -73,9 +73,9 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Media Family (Image)", () => 
     parentId: null,
     children: [],
     properties: {
-      src: "https://images.unsplash.com/photo-nature",
-      alt: "Lush Forest",
-      objectFit: "cover",
+      "media.src": "https://images.unsplash.com/photo-nature",
+      "media.alt": "Lush Forest",
+      "media.objectFit": "cover",
     },
   };
 
@@ -128,9 +128,9 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Structural Family (Divider)",
     parentId: null,
     children: [],
     properties: {
-      orientation: "horizontal",
-      style: "gradient",
-      thickness: 2,
+      "divider.orientation": "horizontal",
+      "divider.style": "gradient",
+      "divider.thickness": 2,
     },
   };
 
@@ -178,9 +178,9 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Text Family (Text)", () => {
     parentId: null,
     children: [],
     properties: {
-      textContent: "Visual Motion Engine",
-      fontSize: 48,
-      fontWeight: 800,
+      "content.text": "Visual Motion Engine",
+      "typography.fontSize": 48,
+      "typography.fontWeight": 800,
     },
   };
 

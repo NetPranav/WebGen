@@ -295,7 +295,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
       },
       tracks: [
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: -60, ease: "none" },
             { time: 1.0, value: 60, ease: "none" },
@@ -381,7 +381,7 @@ export const STRUCTURAL_PRESETS: MotionPreset[] = [
       enabled: true,
       tracks: [
         {
-          property: "transform.translateX",
+          property: "transform.x",
           keyframes: [
             { time: 0, value: -20, ease: "sine.inOut" },
             { time: 4.0, value: 20, ease: "sine.inOut" },

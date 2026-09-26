@@ -11,7 +11,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
       name: "MainNavbar",
       archetype: "container",
       parentId: null,
-      properties: { display: "flex", gap: 16 },
+      properties: { "layout.display": "flex", "layout.gap": 16 },
       children: ["el_brand_title", "el_cta_button"],
     },
     el_brand_title: {
@@ -19,7 +19,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
       name: "BrandTitle",
       archetype: "text",
       parentId: "el_nav",
-      properties: { textContent: "Visual Studio", fontSize: 32 },
+      properties: { "content.text": "Visual Studio", "typography.fontSize": 32 },
       children: [],
     },
     el_cta_button: {
@@ -27,7 +27,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
       name: "CtaButton",
       archetype: "button",
       parentId: "el_nav",
-      properties: { label: "Get Started", ariaLabel: "Get Started Free" },
+      properties: { "content.label": "Get Started", "a11y.label": "Get Started Free" },
       children: [],
     },
     el_avatar_img: {
@@ -35,7 +35,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
       name: "Avatar",
       archetype: "image",
       parentId: null,
-      properties: { src: "/avatar.png", alt: "User profile avatar" },
+      properties: { "media.src": "/avatar.png", "media.alt": "User profile avatar" },
       children: [],
     },
     el_email_input: {
@@ -43,7 +43,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
       name: "EmailInput",
       archetype: "input",
       parentId: null,
-      properties: { type: "email", placeholder: "Enter your email", required: true },
+      properties: { "input.type": "email", "input.placeholder": "Enter your email", "input.required": true },
       children: [],
     },
   };
@@ -85,7 +85,7 @@ describe("Sub-Phase 6.1: ReactComponentEmitter (React 19 & Next.js 15 JSX)", () 
       name: "CustomBox",
       archetype: "container",
       parentId: null,
-      properties: { semanticTag: "aside" },
+      properties: { "export.tag": "aside" },
       children: [],
     };
     assert.equal(ReactComponentEmitter.resolveSemanticTag(customEl), "aside");

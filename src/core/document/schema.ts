@@ -7,15 +7,22 @@
  *   2. Runtime validation    (`parseMotionDocument` / `validateMotionDocument`)
  *   3. JSON Schema           (`getMotionDocumentJsonSchema`, for the AI in Phase 30)
  *
- * Units: times and durations are in seconds (SCHEMA_REFERENCE §4). Track
- * `property` values are CONVENTIONS §4 dot-paths such as `transform.x`.
+ * Units: times and durations are in seconds (SCHEMA_REFERENCE §4). Layer
+ * prop keys, state snapshot keys and track `property` values are canonical
+ * paths from `properties.ts` (CONVENTIONS §4 names such as `transform.x`).
  * ============================================================================
  */
 
 import { z } from "zod";
 import { ARCHETYPE_IDS, type PropValue } from "./registry";
+import { isCanonicalPath, isPropertyLegalFor, suggestPropertyPath, validateGeometryValues } from "./properties";
 
-export const SCHEMA_VERSION = 2 as const;
+/**
+ * v3 (Phase 42): every prop key and track path is a canonical `properties.ts`
+ * path, and geometry (`frame.*`, `sizing.*`, `positioning`) lives on layers —
+ * a top-level layer is a frame; there is no document-level artboard.
+ */
+export const SCHEMA_VERSION = 3 as const;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -42,7 +49,7 @@ export const PropValueSchema: z.ZodType<PropValue> = z.lazy(() =>
 
 export const LayerPropsSchema = z
   .record(z.string(), PropValueSchema)
-  .describe("Archetype-specific props; the registry lists each archetype's defaults.");
+  .describe("Props keyed by canonical property path (properties.ts); each must be legal for the layer's archetype.");
 
 // ---------------------------------------------------------------------------
 // Animation: keyframes, tracks, clips
@@ -57,7 +64,7 @@ export const KeyframeSchema = z.object({
 
 export const TrackSchema = z.object({
   id: IdSchema,
-  property: z.string().min(1).describe("CONVENTIONS §4 dot-path, e.g. `transform.y`."),
+  property: z.string().min(1).describe("Canonical property path (properties.ts), e.g. `transform.y`."),
   muted: z.boolean().optional(),
   locked: z.boolean().optional(),
   keyframes: z.array(KeyframeSchema),
@@ -163,12 +170,6 @@ export const LayerSchema = z.object({
 // Document
 // ---------------------------------------------------------------------------
 
-export const ArtboardSchema = z.object({
-  width: z.number().positive(),
-  height: z.number().positive(),
-  background: z.string(),
-});
-
 export const TokensSchema = z.object({
   colors: z.record(z.string(), z.string()),
   spacing: z.record(z.string(), z.number()),
@@ -184,7 +185,6 @@ export const ExportSettingsSchema = z.object({
 
 const MotionDocumentShape = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
-  artboard: ArtboardSchema,
   layers: z.record(IdSchema, LayerSchema),
   clips: z.record(IdSchema, ClipSchema),
   states: z.record(IdSchema, StateSchema),
@@ -236,6 +236,28 @@ export const MotionDocumentSchema = MotionDocumentShape.superRefine((doc, ctx) =
   owned("clips");
   owned("states");
   owned("behaviours");
+
+  // Phase 42: one vocabulary. Every key/path must be canonical and legal for its layer.
+  const checkPath = (at: (string | number)[], path: string, archetype: (typeof ARCHETYPE_IDS)[number]) => {
+    if (!isCanonicalPath(path)) {
+      const suggestion = suggestPropertyPath(path);
+      issue(at, `Unknown property "${path}".${suggestion ? ` Did you mean "${suggestion}"?` : ""}`);
+    } else if (!isPropertyLegalFor(path, archetype)) {
+      issue(at, `"${path}" is not a property of ${archetype}.`);
+    }
+  };
+  for (const [key, layer] of Object.entries(doc.layers)) {
+    for (const prop of Object.keys(layer.properties)) checkPath(["layers", key, "properties", prop], prop, layer.archetype);
+    for (const bad of validateGeometryValues(layer.properties)) issue(["layers", key, "properties", bad.key], bad.message);
+  }
+  for (const [key, state] of Object.entries(doc.states)) {
+    const layer = doc.layers[state.layerId];
+    if (layer) for (const prop of Object.keys(state.props)) checkPath(["states", key, "props", prop], prop, layer.archetype);
+  }
+  for (const [key, clip] of Object.entries(doc.clips)) {
+    const layer = doc.layers[clip.layerId];
+    if (layer) clip.tracks.forEach((track, i) => checkPath(["clips", key, "tracks", i, "property"], track.property, layer.archetype));
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -254,7 +276,6 @@ export type ClipTemplate = Omit<Clip, "layerId">;
 export type LayerState = z.infer<typeof StateSchema>;
 export type Behaviour = z.infer<typeof BehaviourSchema>;
 export type Layer = z.infer<typeof LayerSchema>;
-export type Artboard = z.infer<typeof ArtboardSchema>;
 export type Tokens = z.infer<typeof TokensSchema>;
 export type ExportSettings = z.infer<typeof ExportSettingsSchema>;
 export type MotionDocument = z.infer<typeof MotionDocumentShape>;
@@ -318,10 +339,9 @@ export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {
   language: "typescript",
 };
 
-export function createEmptyDocument(overrides: Partial<Pick<MotionDocument, "exportSettings" | "artboard">> = {}): MotionDocument {
+export function createEmptyDocument(overrides: Partial<Pick<MotionDocument, "exportSettings">> = {}): MotionDocument {
   return {
     schemaVersion: SCHEMA_VERSION,
-    artboard: { width: 1440, height: 900, background: "#ffffff", ...overrides.artboard },
     layers: {},
     clips: {},
     states: {},

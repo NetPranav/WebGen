@@ -85,7 +85,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
           ],
         },
         {
-          property: "transform.translateX",
+          property: "transform.x",
           keyframes: [
             { time: 0, value: -12, ease: "power1.inOut" },
             { time: 5.0, value: 12, ease: "power1.inOut" },
@@ -93,7 +93,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
           ],
         },
         {
-          property: "transform.translateY",
+          property: "transform.y",
           keyframes: [
             { time: 0, value: -8, ease: "power1.inOut" },
             { time: 5.0, value: 8, ease: "power1.inOut" },
@@ -442,7 +442,7 @@ export const MEDIA_PRESETS: MotionPreset[] = [
       enabled: true,
       tracks: [
         {
-          property: "transform.translateX",
+          property: "transform.x",
           keyframes: [
             { time: 0, value: 0, ease: "linear" },
             { time: 0.05, value: -6, ease: "linear" },

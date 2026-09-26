@@ -38,7 +38,7 @@ describe("documentCommands", () => {
     const id = documentCommands.addLayer({ archetype: "button", parentId: "card", index: 0 });
     const doc = getDocument();
     assert.match(id, /^elem_btn_[0-9a-f]{8}$/);
-    assert.equal(doc.layers[id].properties.variant, "primary");
+    assert.equal(doc.layers[id].properties["appearance.variant"], "primary");
     assert.deepEqual(doc.layers.card.children, [id, "label"]);
     assert.ok(validateMotionDocument(doc).ok);
   });
@@ -62,10 +62,27 @@ describe("documentCommands", () => {
   });
 
   it("updateProps merges, and an undefined value deletes the prop", () => {
-    documentCommands.updateProps("label", { textContent: "Hi", fontSize: undefined });
+    documentCommands.updateProps("label", { "content.text": "Hi", "typography.fontSize": undefined });
     const props = getDocument().layers.label.properties;
-    assert.equal(props.textContent, "Hi");
-    assert.ok(!("fontSize" in props));
+    assert.equal(props["content.text"], "Hi");
+    assert.ok(!("typography.fontSize" in props));
+  });
+
+  it("updateProps stores only canonical paths: legacy names are renamed, unknown keys dropped (Phase 42)", () => {
+    const warn = console.warn;
+    const warnings: string[] = [];
+    console.warn = (msg: string) => warnings.push(msg);
+    try {
+      documentCommands.updateProps("label", { fontSize: 30, notAProperty: 1, "media.src": "x.png" });
+    } finally {
+      console.warn = warn;
+    }
+    const props = getDocument().layers.label.properties;
+    assert.equal(props["typography.fontSize"], 30);
+    assert.ok(!("fontSize" in props) && !("notAProperty" in props) && !("media.src" in props));
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /notAProperty/);
+    assert.match(warnings[0], /media\.src.*not a property of text/);
   });
 
   it("setLayerClips replaces the stack in order; setKeyframe keeps tracks sorted", () => {
@@ -108,12 +125,12 @@ describe("documentCommands", () => {
   });
 
   it("every command records one undo step (unlabelled ones as \"Edit\")", () => {
-    documentCommands.updateProps("label", { textContent: "draft" });
+    documentCommands.updateProps("label", { "content.text": "draft" });
     assert.equal(useHistoryStore.getState().getLastActionLabel(), "Edit");
-    documentCommands.updateProps("label", { textContent: "final" }, "Edit text");
+    documentCommands.updateProps("label", { "content.text": "final" }, "Edit text");
     assert.equal(useHistoryStore.getState().past.length, 2);
     historyCommands.undo();
-    assert.equal(getDocument().layers.label.properties.textContent, "draft");
+    assert.equal(getDocument().layers.label.properties["content.text"], "draft");
   });
 });
 

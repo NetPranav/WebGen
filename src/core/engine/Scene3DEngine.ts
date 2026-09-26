@@ -14,9 +14,10 @@ import {
   Vector3D,
   Quaternion,
   Matrix4x4,
-  Object3DProperties,
   DEFAULT_OBJECT3D_PROPERTIES,
 } from "../types/scene3d";
+import { readProps } from "../document/props";
+import type { LayerProps } from "../document/registry";
 
 export interface Scene3DNode {
   id: string;
@@ -326,10 +327,10 @@ export class Scene3DEngine {
       const node = nodes[nodeId];
       if (!node) return;
 
-      const props = (node.properties || {}) as Partial<Object3DProperties>;
-      const pos = props.position3D || DEFAULT_OBJECT3D_PROPERTIES.position3D;
-      const rot = props.rotation3D || DEFAULT_OBJECT3D_PROPERTIES.rotation3D;
-      const scl = props.scale3D || DEFAULT_OBJECT3D_PROPERTIES.scale3D;
+      const props = readProps({ properties: (node.properties ?? {}) as LayerProps }, "object3D");
+      const pos = (props.position as Vector3D | undefined) || DEFAULT_OBJECT3D_PROPERTIES.position3D;
+      const rot = (props.rotation as Quaternion | undefined) || DEFAULT_OBJECT3D_PROPERTIES.rotation3D;
+      const scl = (props.scale as Vector3D | undefined) || DEFAULT_OBJECT3D_PROPERTIES.scale3D;
 
       const localMatrix = this.composeMatrix(pos, rot, scl);
       const worldMatrix = this.multiplyMatrices(parentWorldMatrix, localMatrix);

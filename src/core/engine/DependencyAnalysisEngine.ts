@@ -249,7 +249,7 @@ export class DependencyAnalysisEngine {
 
     // D. Element -> Blueprint trigger (Event Handlers)
     for (const el of Object.values(elements)) {
-      const graphId = (el.properties as Record<string, unknown>)?.blueprintGraphId;
+      const graphId = el.properties?.["logic.blueprintGraphId"];
       if (typeof graphId === "string" && nodes[graphId]) {
         addEdge(
           el.id,

@@ -15,6 +15,7 @@
  */
 
 import type { Layer } from "@/core/document/schema";
+import { propReader } from "@/core/document/properties";
 
 export interface MediaEmitterOptions {
   framework?: "nextjs" | "react";
@@ -58,13 +59,13 @@ export class MediaEmitter {
       : "";
     const refProp = options.useAnimationHook ? ` ref={containerRef}` : "";
 
-    const props = element.properties || {};
-    const src = String(props.src || props.imageSrc || "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&q=80");
-    const alt = String(props.alt || element.name || "Visual Image");
-    const width = Number(props.width) || 600;
-    const height = Number(props.height) || 400;
-    const objectFit = String(props.objectFit || "cover");
-    const hasOverlay = Boolean(props.overlayColor || props.overlayOpacity);
+    const get = propReader(element.properties);
+    const src = String(get("media.src") || "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&q=80");
+    const alt = String(get("media.alt") || element.name || "Visual Image");
+    const width = Number(get("frame.width")) || 600;
+    const height = Number(get("frame.height")) || 400;
+    const objectFit = String(get("media.objectFit") || "cover");
+    const hasOverlay = Boolean(get("media.overlay.opacity"));
 
     const tsxCode = `"use client";
 
@@ -171,10 +172,10 @@ export default ${name};
       : "";
     const refProp = options.useAnimationHook ? ` ref={iconRef}` : "";
 
-    const props = element.properties || {};
-    const d = String(props.d || props.path || "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5");
-    const viewBox = String(props.viewBox || "0 0 24 24");
-    const size = Number(props.size) || 24;
+    const get = propReader(element.properties);
+    const d = String(get("svg.path") || "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5");
+    const viewBox = String(get("svg.viewBox") || "0 0 24 24");
+    const size = Number(get("svg.size")) || 24;
 
     const tsxCode = `"use client";
 

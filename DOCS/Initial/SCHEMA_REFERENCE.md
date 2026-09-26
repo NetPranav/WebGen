@@ -1,6 +1,6 @@
 # JSON SCHEMA REFERENCE CONTRACTS — INITIAL PHASE
 
-> **Status:** §0 (Motion Document Model v2) is current and authoritative as of ROADMAP Phase 2. §1–§8 below still describe Initial Phase v1.1 (the `elements` map, `animationStack`, v1 trigger names); they are kept for reference and rewritten in ROADMAP v2 Phase 6.3. Where they conflict with §0, §0 wins.
+> **Status:** §0 (Motion Document Model, schema v3) is current and authoritative as of ROADMAP Phase 42. §1–§8 below still describe Initial Phase v1.1 (the `elements` map, `animationStack`, v1 trigger names); they are kept for reference and rewritten in ROADMAP v2 Phase 6.3. Where they conflict with §0, §0 wins.
 
 ## Project Name: LazyLayout
 **Internal Codename:** "Unreal Engine for Animation & Frontend Design"
@@ -11,22 +11,23 @@
 
 ---
 
-## 0. Motion Document Model v2 (MDM v2), authoritative
+## 0. Motion Document Model (MDM, schema v3), authoritative
 
 **Source of truth:** `src/core/document/schema.ts` (Zod). One source produces three outputs:
 1. TypeScript types (`MotionDocument`, `Layer`, `Clip`, `Track`, `Keyframe`, `LayerState`, `Behaviour`, …).
 2. Runtime validation: `validateMotionDocument(input)` / `parseMotionDocument(input)`, including referential integrity.
 3. JSON Schema (draft 2020-12): `getMotionDocumentJsonSchema()`, for the AI layer (ROADMAP Phase 30).
 
-**Units:** times and durations are in **seconds**. Track `property` values are CONVENTIONS §4 dot-paths (`transform.y`, `appearance.opacity`, …).
+**Units:** times and durations are in **seconds**.
+
+**One property vocabulary (v3, Phase 42):** layer prop keys, state snapshot keys and track `property` values are all canonical paths from `src/core/document/properties.ts` (CONVENTIONS §4 names: `transform.y`, `appearance.opacity`, `appearance.background.color`, `typography.fontSize`, …). Each path declares its value type, unit, default, CSS mapping, compositing class, animatability and owning archetypes; a key that is unknown, or not a property of the layer's archetype, fails validation with the closest valid path suggested. Props are stored flat: `properties: { "content.text": "Hi", "typography.fontSize": 24 }`.
 
 ### 0.1 Shape
 
 ```text
 MotionDocument
-  schemaVersion: 2
-  artboard       { width, height, background }
-  layers         Record<id, Layer>
+  schemaVersion: 3
+  layers         Record<id, Layer>          // top-level layers are frames (v2's document-level artboard moved onto them)
   clips          Record<id, Clip>          // a layer's animation stack = its clips, in insertion order
   states         Record<id, LayerState>
   behaviours     Record<id, Behaviour>
@@ -34,6 +35,7 @@ MotionDocument
   exportSettings { framework, styling, animation, language }   // was project `target` in v1
 
 Layer      { id, name, archetype, parentId | null, children[], visible?, locked?, properties: Props }
+Props      = Record<CanonicalPath, PropValue>   // geometry included: frame.x|y|width|height|rotation, sizing.horizontal|vertical, positioning
 Clip       { id, layerId, name, type, trigger, duration, delay?, easing, repeat? (-1 = loop),
              enabled, locked?, scrollTrigger?, stagger?, tracks: Track[] }
 Track      { id, property, muted?, locked?, keyframes: Keyframe[] }
@@ -47,12 +49,15 @@ PropValue  = string | number | boolean | null | PropValue[] | { [key]: PropValue
 - **Clip `type`:** `entrance | hover | tap | scroll | loop | morph`.
 - **Triggers** (PRD §4): `mount | hover | press | focus | inView | scrollProgress | pointerMove | drag | time | custom`.
 - **Behaviour `type`:** `follow-pointer | magnet | tilt | spring-to | inertia | noise | loop | shader-uniform`.
+- **Geometry** (every visual layer, stored sparsely under its canonical paths; `getLayerGeometry()` resolves the rest): `frame { x, y, width, height, rotation }` in parent space, `sizing { horizontal, vertical: fixed | hug | fill }`, `positioning: absolute | flow`. Defaults: a top-level layer is an `absolute` frame at 0,0 sized 1440×900 that fills horizontally and hugs vertically; a child `flow`s and hugs; an explicit width or height implies `fixed`. `frame.*` is layout; the animated offset is `transform.*` (decision `decisions/0003-geometry-vs-transform.md`).
 
 ### 0.2 Integrity rules (enforced by the validator)
 1. Every entity is stored under its own `id`.
 2. `parentId` points at an existing layer that lists this layer in `children`. Every child exists and points back. No duplicate children and no cycles.
 3. Every clip, state and behaviour belongs to an existing layer.
 4. Props are JSON data; the key `__proto__` is rejected (JS object copying would silently drop it).
+5. Every prop key, state key and track path is a canonical path legal for its layer's archetype.
+6. Geometry values are typed: `frame.*` are finite numbers; `sizing.*`, `positioning` and the `frame.*Unit` companions come from their closed sets.
 
 ### 0.3 Archetype registry
 `src/core/document/registry.ts` is the single table for all 20 archetypes (10 PRD starting archetypes, `input`/`form`/`generic`, 4 SVG, 3 3D). Each entry gives its kind, family (or none), ID prefix, export tag, grammar type (for legal states), Details Inspector sections and default props. Grammar types with no archetype yet are listed in `RESERVED_GRAMMAR_TYPES`.
@@ -61,10 +66,10 @@ PropValue  = string | number | boolean | null | PropValue[] | { [key]: PropValue
 New entities use `createId(prefix)` → `<prefix>_<8 hex>` from `crypto.getRandomValues` (`elem_btn_3f8a109c`, `clip_…`, `trk_…`, `kf_…`). Existing ids are kept as they are.
 
 ### 0.5 Versions & migration
-`loadDocument()` (`src/core/document/migrations`) accepts any version. v1 `elements` become `layers`, and each `properties.animationStack` / top-level `animationStack` entry becomes a clip. Legacy triggers map to v2 (`onMount→mount`, `onHover→hover`, `onClick→press`, `onScroll→scrollProgress`, `ambient→time`). Unknown archetypes become `generic`, broken tree links are repaired, and missing ids are generated. Documents from a newer schema are refused. Every snapshot load (history, version control, saved projects, demo) goes through it.
+`loadDocument()` (`src/core/document/migrations`) accepts any version and migrates one step at a time (v1 → v2 → v3). **v2 → v3** renames every prop key and track path onto its canonical path (per archetype: a v2 `color` is text colour on a button but line colour on a divider), splits legacy objects (`filter`, `overlay`, `focalPoint`, 3D `material`) and v1 style blocks into leaf paths, rescales image `opacity` 0–100 → 0–1 (keyframes too), splits CSS length strings into number + unit (`"100%"` → `frame.width: 100`, `frame.widthUnit: "%"`), and moves a non-default artboard size onto the top-level frames. Anything with no meaning on its layer is dropped and reported. **v1 → v2:** v1 `elements` become `layers`, and each `properties.animationStack` / top-level `animationStack` entry becomes a clip. Legacy triggers map to v2 (`onMount→mount`, `onHover→hover`, `onClick→press`, `onScroll→scrollProgress`, `ambient→time`). Unknown archetypes become `generic`, broken tree links are repaired, and missing ids are generated. Documents from a newer schema are refused. Every snapshot load (history, version control, saved projects, demo) goes through it.
 
 ### 0.6 Writing
-Only through `documentCommands` (`src/core/store/useDocumentStore.ts`): typed commands (`addLayer`, `removeLayer`, `updateProps`, `moveLayer`, `addClip`, `setLayerClips`, `addTrack`, `setKeyframe`, `addState`, `applyDiff`, …), each an Immer recipe that yields **patches + inverse patches**. `applyDiff` validates before applying.
+Only through `documentCommands` (`src/core/store/useDocumentStore.ts`): typed commands (`addLayer`, `removeLayer`, `updateProps`, `moveLayer`, `addClip`, `setLayerClips`, `addTrack`, `setKeyframe`, `addState`, `applyDiff`, …), each an Immer recipe that yields **patches + inverse patches**. `applyDiff` validates before applying. The commands are the property-name boundary: whatever key a caller passes, only canonical, archetype-legal paths are stored (a legacy name is renamed; an unknown key is dropped with a dev warning). Readers use `propReader(props)` / `readProps(layer, view)`, which accept only canonical paths at compile time.
 
 ---
 

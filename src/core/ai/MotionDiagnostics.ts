@@ -11,11 +11,12 @@
  */
 
 import type { PropValue } from "../document/registry";
+import { propReader, type PropertyPath } from "../document/properties";
 import type { ClipTemplate, Layer } from "../document/schema";
 
 /** What an auto-fix changes: props to merge into the layer, and the layer's new clip stack. */
 export interface MotionDiagnosticFix {
-  propsPatch: Record<string, PropValue>;
+  propsPatch: Partial<Record<PropertyPath, PropValue>>;
   updatedAnimations: ClipTemplate[];
 }
 
@@ -81,12 +82,12 @@ export class MotionDiagnostics {
             title: `Layout Reflow Detected on "${track.property}"`,
             message: `Animating "${track.property}" forces browser layout recalibration on every frame, causing CPU frame drops below 60 FPS.`,
             impact: "High CPU frame cost; potential jank on mobile viewports.",
-            suggestedFix: `Replace "${track.property}" with hardware-accelerated "transform.translateX", "transform.translateY", or "transform.scale".`,
+            suggestedFix: `Replace "${track.property}" with hardware-accelerated "transform.x", "transform.y", or "transform.scale".`,
             autoFixable: true,
             fixAction: () => {
               const updatedTracks = anim.tracks!.map((t) => {
-                if (t.property.includes("top")) return { ...t, property: "transform.translateY" };
-                if (t.property.includes("left")) return { ...t, property: "transform.translateX" };
+                if (t.property.includes("top")) return { ...t, property: "transform.y" };
+                if (t.property.includes("left")) return { ...t, property: "transform.x" };
                 if (t.property.includes("width")) return { ...t, property: "transform.scaleX" };
                 if (t.property.includes("height")) return { ...t, property: "transform.scaleY" };
                 return t;
@@ -144,9 +145,9 @@ export class MotionDiagnostics {
     const issues: MotionDiagnosticIssue[] = [];
     if (element.archetype !== "image") return issues;
 
-    const props = element.properties as Record<string, unknown>;
-    const width = Number(props.width || 0);
-    const height = Number(props.height || 0);
+    const get = propReader(element.properties);
+    const width = Number(get("frame.width") || 0);
+    const height = Number(get("frame.height") || 0);
 
     if (width > 2000 || height > 2000) {
       issues.push({
@@ -160,7 +161,7 @@ export class MotionDiagnostics {
         autoFixable: true,
         fixAction: () => {
           return {
-            propsPatch: { objectFit: "cover", layout: "fill", loading: "lazy" },
+            propsPatch: { "media.objectFit": "cover", "media.loadingMode": "lazy" },
             updatedAnimations: [...animations],
           };
         },
@@ -175,9 +176,7 @@ export class MotionDiagnostics {
    */
   private checkFilterStacking(element: Layer, animations: ClipTemplate[]): MotionDiagnosticIssue[] {
     const issues: MotionDiagnosticIssue[] = [];
-    const props = element.properties as Record<string, unknown>;
-
-    const hasNoise = Boolean(props.noise || (props.background as Record<string, unknown>)?.noise);
+    const hasNoise = Number(propReader(element.properties)("background.noise.opacity") ?? 0) > 0;
     let blurRadius = 0;
 
     for (const anim of animations) {
@@ -234,7 +233,7 @@ export class MotionDiagnostics {
     const issues: MotionDiagnosticIssue[] = [];
     const hasTransformTracks = animations.some((a) => a.tracks?.some((t) => t.property.startsWith("transform.")));
 
-    if (hasTransformTracks && element.properties.willChange !== "transform") {
+    if (hasTransformTracks && propReader(element.properties)("appearance.willChange") !== "transform") {
       issues.push({
         id: `gpu_will_change_${element.id}`,
         severity: "info",
@@ -245,7 +244,7 @@ export class MotionDiagnostics {
         suggestedFix: "Promote layer with GPU will-change compositing hint.",
         autoFixable: true,
         fixAction: () => {
-          return { propsPatch: { willChange: "transform" }, updatedAnimations: [...animations] };
+          return { propsPatch: { "appearance.willChange": "transform" }, updatedAnimations: [...animations] };
         },
       });
     }

@@ -15,6 +15,7 @@
  */
 
 import type { Layer } from "@/core/document/schema";
+import { propReader } from "@/core/document/properties";
 
 export interface TextEmitterOptions {
   stylingSystem?: "tailwind" | "css-modules" | "vanilla";
@@ -43,10 +44,10 @@ export class TextEmitter {
       : "";
     const refProp = options.useAnimationHook ? ` ref={textRef as any}` : "";
 
-    const props = element.properties || {};
-    const content = String(props.textContent || props.content || props.text || element.name || "Heading Title");
-    const fontSize = Number(props.fontSize) || 16;
-    const splitMode = options.splitTextMode || (props.splitText ? String(props.splitText) : "none");
+    const get = propReader(element.properties);
+    const content = String(get("content.text") || element.name || "Heading Title");
+    const fontSize = Number(get("typography.fontSize")) || 16;
+    const splitMode = options.splitTextMode || (get("typography.split") ? String(get("typography.split")) : "none");
 
     // Infer semantic tag
     let tag = "p";
@@ -54,8 +55,8 @@ export class TextEmitter {
     else if (fontSize >= 26) tag = "h2";
     else if (fontSize >= 22) tag = "h3";
     else if (fontSize >= 18) tag = "h4";
-    else if (props.role === "label") tag = "label";
-    else if (props.role === "caption") tag = "span";
+    else if (get("a11y.role") === "label") tag = "label";
+    else if (get("a11y.role") === "caption") tag = "span";
 
     const tailwindClasses = [
       tag === "h1" ? "text-4xl font-bold tracking-tight text-gray-900" :

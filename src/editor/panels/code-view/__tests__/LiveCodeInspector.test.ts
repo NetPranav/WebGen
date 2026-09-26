@@ -27,7 +27,7 @@ describe("Sub-Phase 6.3: LiveCodeInspector Compilation & AST Mapping", () => {
       name: "HeroContainer",
       archetype: "container",
       parentId: null,
-      properties: { display: "flex", gap: 16 },
+      properties: { "layout.display": "flex", "layout.gap": 16 },
       children: ["el_btn"],
     },
     el_btn: {
@@ -35,7 +35,7 @@ describe("Sub-Phase 6.3: LiveCodeInspector Compilation & AST Mapping", () => {
       name: "ActionBtn",
       archetype: "button",
       parentId: "el_container",
-      properties: { label: "Launch", ariaLabel: "Launch Application" },
+      properties: { "content.label": "Launch", "a11y.label": "Launch Application" },
       children: [],
     },
   };

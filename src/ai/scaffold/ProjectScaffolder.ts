@@ -164,11 +164,11 @@ export class ProjectScaffolder {
         archetype: "container",
         parentId: null,
         properties: {
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "100vh",
-          backgroundColor: "#0B0F19",
-          color: "#F8FAFC",
+          "layout.display": "flex",
+          "layout.flexDirection": "column",
+          "layout.minHeight": "100vh",
+          "appearance.background.color": "#0B0F19",
+          "typography.color": "#F8FAFC",
         },
         children: [],
       };
@@ -181,11 +181,11 @@ export class ProjectScaffolder {
         archetype: "container",
         parentId: rootId,
         properties: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "16px 24px",
-          borderBottom: "1px solid #1E293B",
+          "layout.display": "flex",
+          "layout.justifyContent": "space-between",
+          "layout.alignItems": "center",
+          "layout.padding": "16px 24px",
+          "appearance.border.bottom": "1px solid #1E293B",
         },
         children: [],
       };
@@ -199,10 +199,10 @@ export class ProjectScaffolder {
         archetype: "text",
         parentId: headerId,
         properties: {
-          content: `${spec.name} - Studio Engine`,
-          fontSize: "20px",
-          fontWeight: "bold",
-          color: "#38BDF8",
+          "content.text": `${spec.name} - Studio Engine`,
+          "typography.fontSize": "20px",
+          "typography.fontWeight": "bold",
+          "typography.color": "#38BDF8",
         },
         children: [],
       };
@@ -216,10 +216,10 @@ export class ProjectScaffolder {
         archetype: "container",
         parentId: rootId,
         properties: {
-          display: "flex",
-          flexDirection: "column",
-          padding: "32px 24px",
-          flex: 1,
+          "layout.display": "flex",
+          "layout.flexDirection": "column",
+          "layout.padding": "32px 24px",
+          "layout.flex": 1,
         },
         children: [],
       };
@@ -233,7 +233,7 @@ export class ProjectScaffolder {
           name: "Auth Form",
           archetype: "form",
           parentId: contentId,
-          properties: { maxWidth: "400px", margin: "0 auto" },
+          properties: { "layout.maxWidth": "400px", "layout.margin": "0 auto" },
           children: [],
         };
         elements[contentId].children.push(formId);
@@ -244,7 +244,7 @@ export class ProjectScaffolder {
           name: "Email Input",
           archetype: "input",
           parentId: formId,
-          properties: { placeholder: "user@example.com", type: "email" },
+          properties: { "input.placeholder": "user@example.com", "input.type": "email" },
           children: [],
         };
         const passInput = "pass_input";
@@ -253,7 +253,7 @@ export class ProjectScaffolder {
           name: "Password Input",
           archetype: "input",
           parentId: formId,
-          properties: { placeholder: "••••••••", type: "password" },
+          properties: { "input.placeholder": "••••••••", "input.type": "password" },
           children: [],
         };
         const loginBtn = "login_btn";
@@ -262,7 +262,7 @@ export class ProjectScaffolder {
           name: "Login Button",
           archetype: "button",
           parentId: formId,
-          properties: { label: "Sign In", variant: "primary" },
+          properties: { "content.label": "Sign In", "appearance.variant": "primary" },
           children: [],
         };
 
@@ -274,7 +274,7 @@ export class ProjectScaffolder {
           name: "Pricing Grid",
           archetype: "container",
           parentId: contentId,
-          properties: { display: "flex", gap: "24px", justifyContent: "center" },
+          properties: { "layout.display": "flex", "layout.gap": "24px", "layout.justifyContent": "center" },
           children: [],
         };
         elements[contentId].children.push(pricingGrid);
@@ -286,7 +286,7 @@ export class ProjectScaffolder {
             name: `${tier} Card`,
             archetype: "container",
             parentId: pricingGrid,
-            properties: { padding: "24px", borderRadius: "12px", border: "1px solid #334155" },
+            properties: { "layout.padding": "24px", "appearance.radius": "12px", "appearance.border": "1px solid #334155" },
             children: [],
           };
           elements[pricingGrid].children.push(cardId);
@@ -297,7 +297,7 @@ export class ProjectScaffolder {
             name: `${tier} Title`,
             archetype: "text",
             parentId: cardId,
-            properties: { content: `${tier} Plan`, fontSize: "18px", fontWeight: "600" },
+            properties: { "content.text": `${tier} Plan`, "typography.fontSize": "18px", "typography.fontWeight": "600" },
             children: [],
           };
           const tierBtn = `btn_${tier.toLowerCase()}`;
@@ -306,7 +306,7 @@ export class ProjectScaffolder {
             name: `Select ${tier} Button`,
             archetype: "button",
             parentId: cardId,
-            properties: { label: `Choose ${tier}` },
+            properties: { "content.label": `Choose ${tier}` },
             children: [],
           };
           elements[cardId].children.push(tierTitle, tierBtn);
@@ -318,7 +318,7 @@ export class ProjectScaffolder {
           name: "Metrics Row",
           archetype: "container",
           parentId: contentId,
-          properties: { display: "flex", gap: "16px", marginBottom: "24px" },
+          properties: { "layout.display": "flex", "layout.gap": "16px", "layout.marginBottom": "24px" },
           children: [],
         };
         elements[contentId].children.push(statsRow);
@@ -329,7 +329,7 @@ export class ProjectScaffolder {
           name: "Revenue Stat",
           archetype: "container",
           parentId: statsRow,
-          properties: { padding: "16px", backgroundColor: "#1E293B", borderRadius: "8px" },
+          properties: { "layout.padding": "16px", "appearance.background.color": "#1E293B", "appearance.radius": "8px" },
           children: [],
         };
         const statRevText = "stat_revenue_text";
@@ -338,7 +338,7 @@ export class ProjectScaffolder {
           name: "Revenue Text",
           archetype: "text",
           parentId: statRev,
-          properties: { content: "$124,500 MRR", fontSize: "24px", fontWeight: "bold" },
+          properties: { "content.text": "$124,500 MRR", "typography.fontSize": "24px", "typography.fontWeight": "bold" },
           children: [],
         };
         elements[statRev].children.push(statRevText);

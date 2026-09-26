@@ -325,7 +325,7 @@ export class GsapEngineAdapter implements IEngineAdapter {
       if (b.properties.includes("transform.x")) transformState.x = `${time * 20}px`;
       if (b.properties.includes("transform.y")) transformState.y = `${Math.sin(time) * 15}px`;
       if (b.properties.includes("transform.rotate")) transformState.rotate = (time * 45) % 360;
-      if (b.properties.includes("opacity")) patch.opacity = `${Math.min(1, Math.max(0, time))}`;
+      if (b.properties.includes("appearance.opacity") || b.properties.includes("opacity")) patch.opacity = `${Math.min(1, Math.max(0, time))}`;
     }
 
     const matrix = synthesizeSingleTransformMatrix(transformState);

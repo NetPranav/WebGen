@@ -38,7 +38,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     archetype: "button",
     name: "PrimaryButton",
     family: "interactive",
-    properties: { label: "Click Me", variant: "primary", size: "md" },
+    properties: { "content.label": "Click Me", "appearance.variant": "primary", "button.size": "md" },
     motionProperty: "scale",
     motionKeyframes: [
       { time: 0, value: 1 },
@@ -51,7 +51,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     archetype: "toggle",
     name: "DarkModeToggle",
     family: "interactive",
-    properties: { label: "Dark Mode", defaultChecked: true },
+    properties: { "content.label": "Dark Mode", "toggle.checked": true },
     motionProperty: "translateX",
     motionKeyframes: [
       { time: 0, value: 0 },
@@ -63,7 +63,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     archetype: "badge",
     name: "StatusBadge",
     family: "interactive",
-    properties: { label: "Active", variant: "success" },
+    properties: { "content.label": "Active", "appearance.variant": "success" },
     motionProperty: "opacity",
     motionKeyframes: [
       { time: 0, value: 0 },
@@ -75,7 +75,7 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     archetype: "fab",
     name: "AddActionFab",
     family: "interactive",
-    properties: { label: "Create Task", size: "lg" },
+    properties: { "content.label": "Create Task", "button.size": "lg" },
     motionProperty: "scale",
     motionKeyframes: [
       { time: 0, value: 0 },
@@ -88,12 +88,12 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "HeroCoverImage",
     family: "media",
     properties: {
-      src: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
-      alt: "Hero Artwork",
-      width: 800,
-      height: 450,
-      objectFit: "cover",
-      blur: 0,
+      "media.src": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
+      "media.alt": "Hero Artwork",
+      "frame.width": 800,
+      "frame.height": 450,
+      "media.objectFit": "cover",
+      "media.filter.blur": 0,
     },
     motionProperty: "scale",
     motionKeyframes: [
@@ -107,9 +107,9 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "CheckmarkIcon",
     family: "media",
     properties: {
-      path: "M5 13l4 4L19 7",
-      viewBox: "0 0 24 24",
-      size: 24,
+      "svg.path": "M5 13l4 4L19 7",
+      "svg.viewBox": "0 0 24 24",
+      "svg.size": 24,
     },
     motionProperty: "rotate",
     motionKeyframes: [
@@ -123,9 +123,9 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "ContentDivider",
     family: "structural",
     properties: {
-      orientation: "horizontal",
-      thickness: 1,
-      styleType: "solid",
+      "divider.orientation": "horizontal",
+      "divider.thickness": 1,
+      "divider.style": "solid",
     },
     motionProperty: "scaleX",
     motionKeyframes: [
@@ -139,8 +139,9 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "AmbientBackground",
     family: "structural",
     properties: {
-      blendMode: "screen",
-      gradient: "linear-gradient(135deg, #10b981, #059669)",
+      "background.blendMode": "screen",
+      "background.type": "gradient",
+      "background.gradient.angle": 135,
     },
     motionProperty: "opacity",
     motionKeyframes: [
@@ -154,10 +155,10 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "FlexContainer",
     family: "structural",
     properties: {
-      layout: "flex",
-      direction: "column",
-      gap: 16,
-      padding: 24,
+      "layout.display": "flex",
+      "layout.flexDirection": "column",
+      "layout.gap": 16,
+      "layout.padding": 24,
     },
     motionProperty: "translateY",
     motionKeyframes: [
@@ -171,9 +172,9 @@ const ARCHETYPES: ArchetypeDefinition[] = [
     name: "HeroHeading",
     family: "text",
     properties: {
-      textContent: "Next-Gen Visual Motion",
-      fontSize: 36,
-      fontWeight: 700,
+      "content.text": "Next-Gen Visual Motion",
+      "typography.fontSize": 36,
+      "typography.fontWeight": 700,
     },
     motionProperty: "translateY",
     motionKeyframes: [
@@ -227,19 +228,19 @@ describe("Sub-Phase 8.4: 10-Archetype × 5-Dimension Verification Matrix", () =>
 
         // Verify archetype-specific details inspector fields
         if (item.archetype === "button" || item.archetype === "toggle" || item.archetype === "badge" || item.archetype === "fab") {
-          assert.ok(props.label || props.variant || props.defaultChecked !== undefined);
+          assert.ok(props["content.label"] || props["appearance.variant"] || props["toggle.checked"] !== undefined);
         } else if (item.archetype === "image") {
-          assert.ok(props.src && props.alt);
+          assert.ok(props["media.src"] && props["media.alt"]);
         } else if (item.archetype === "icon") {
-          assert.ok(props.path || props.d || props.viewBox);
+          assert.ok(props["svg.path"] || props["svg.viewBox"]);
         } else if (item.archetype === "divider") {
-          assert.ok(props.orientation && props.thickness);
+          assert.ok(props["divider.orientation"] && props["divider.thickness"]);
         } else if (item.archetype === "background") {
-          assert.ok(props.blendMode || props.gradient);
+          assert.ok(props["background.blendMode"] || props["background.type"]);
         } else if (item.archetype === "container") {
-          assert.ok(props.layout && props.gap !== undefined);
+          assert.ok(props["layout.display"] && props["layout.gap"] !== undefined);
         } else if (item.archetype === "text") {
-          assert.ok(props.textContent && props.fontSize);
+          assert.ok(props["content.text"] && props["typography.fontSize"]);
         }
 
         verificationMatrix[item.archetype].detailsInspectorCorrect = true;

@@ -52,6 +52,10 @@ export interface StyleEmitterOptions {
   indent?: number;
   /** Custom responsive breakpoints in pixels (e.g. { mobile: 640, tablet: 768, desktop: 1024 }) */
   responsiveBreakpoints?: Record<string, number>;
+  /** Pseudo-class style overrides (canonical property paths), e.g. from the layer's `hover` state. */
+  stateStyles?: Partial<Record<"hover" | "active" | "focus", Record<string, unknown>>>;
+  /** Per-breakpoint overrides (canonical property paths), keyed like `responsiveBreakpoints`. */
+  breakpointOverrides?: Record<string, Record<string, unknown>>;
 }
 
 export interface GSAPAnimationEmitterOptions {

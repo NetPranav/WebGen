@@ -16,6 +16,7 @@ import { Feather } from "lucide-react";
 import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
 import type { PropValue } from "@/core/document/registry";
 import { readProps } from "@/core/document/props";
+import type { PropertyPath } from "@/core/document/properties";
 
 export interface SvgVectorSectionProps {
   elementId: string;
@@ -30,7 +31,7 @@ export const SvgVectorSection: React.FC<SvgVectorSectionProps> = ({
   const currentElement = elements[elementId];
   const props = readProps(currentElement, "icon");
 
-  const updateProp = (key: string, val: PropValue) => {
+  const updateProp = (key: PropertyPath, val: PropValue) => {
     documentCommands.updateProps(elementId, { [key]: val }, `Update svg ${key}`);
   };
 
@@ -53,7 +54,7 @@ export const SvgVectorSection: React.FC<SvgVectorSectionProps> = ({
             type="text"
             className="form-input"
             value={stroke}
-            onChange={(e) => updateProp("stroke", e.target.value)}
+            onChange={(e) => updateProp("svg.stroke", e.target.value)}
           />
         </div>
       </div>
@@ -70,7 +71,7 @@ export const SvgVectorSection: React.FC<SvgVectorSectionProps> = ({
           step="0.5"
           className="form-slider"
           value={strokeWidth}
-          onChange={(e) => updateProp("strokeWidth", Number(e.target.value))}
+          onChange={(e) => updateProp("svg.strokeWidth", Number(e.target.value))}
         />
       </div>
 
@@ -86,7 +87,7 @@ export const SvgVectorSection: React.FC<SvgVectorSectionProps> = ({
           step="5"
           className="form-slider"
           value={strokeDashoffset}
-          onChange={(e) => updateProp("strokeDashoffset", Number(e.target.value))}
+          onChange={(e) => updateProp("svg.strokeDashoffset", Number(e.target.value))}
         />
       </div>
 
@@ -101,7 +102,7 @@ export const SvgVectorSection: React.FC<SvgVectorSectionProps> = ({
             type="text"
             className="form-input"
             value={fill}
-            onChange={(e) => updateProp("fill", e.target.value)}
+            onChange={(e) => updateProp("svg.fill", e.target.value)}
           />
         </div>
       </div>
@@ -113,7 +114,7 @@ export const SvgVectorSection: React.FC<SvgVectorSectionProps> = ({
           className="form-input form-input--code"
           rows={2}
           value={path}
-          onChange={(e) => updateProp("path", e.target.value)}
+          onChange={(e) => updateProp("svg.path", e.target.value)}
         />
       </div>
     </div>

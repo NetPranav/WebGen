@@ -25,6 +25,7 @@ import {
 import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
 import type { PropValue } from "@/core/document/registry";
 import { readProps } from "@/core/document/props";
+import type { PropertyPath } from "@/core/document/properties";
 
 export interface MediaSectionProps {
   elementId: string;
@@ -52,14 +53,8 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
     setOpenSubgroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const updateProp = (key: string, val: PropValue) => {
-    documentCommands.updateProps(elementId, { [key]: val }, `Update image ${key}`);
-  };
-
-  const updateNested = (parentKey: "focalPoint" | "filter" | "overlay", childKey: string, val: PropValue) => {
-    const parentObj: Record<string, PropValue> = { ...(props[parentKey] || {}) };
-    parentObj[childKey] = val;
-    documentCommands.updateProps(elementId, { [parentKey]: parentObj }, `Update image ${parentKey}.${childKey}`);
+  const updateProp = (path: PropertyPath, val: PropValue) => {
+    documentCommands.updateProps(elementId, { [path]: val }, `Update image ${path}`);
   };
 
   // Extract properties with defaults
@@ -68,21 +63,21 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
   const alt = props.alt || elementName || "Image element";
   const objectFit = props.objectFit || "cover";
   const aspectRatio = props.aspectRatio || "16:9";
-  const focalX = props.focalPoint?.x ?? 50;
-  const focalY = props.focalPoint?.y ?? 50;
+  const focalX = props.focalPoint.x ?? 50;
+  const focalY = props.focalPoint.y ?? 50;
 
-  const filters = props.filter || {
-    grayscale: 0,
-    blur: 0,
-    brightness: 1,
-    contrast: 1,
-    saturate: 1,
+  const filters = {
+    grayscale: props.filter.grayscale ?? 0,
+    blur: props.filter.blur ?? 0,
+    brightness: props.filter.brightness ?? 1,
+    contrast: props.filter.contrast ?? 1,
+    saturate: props.filter.saturate ?? 1,
   };
 
-  const overlay = props.overlay || {
-    color: "#000000",
-    opacity: 0,
-    blendMode: "normal",
+  const overlay = {
+    color: props.overlay.color ?? "#000000",
+    opacity: props.overlay.opacity ?? 0,
+    blendMode: props.overlay.blendMode ?? "normal",
   };
 
   const clipPath = props.clipPath || "none";
@@ -116,7 +111,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 className="form-input form-input--code"
                 placeholder="https://... or /assets/image.png"
                 value={src}
-                onChange={(e) => updateProp("src", e.target.value)}
+                onChange={(e) => updateProp("media.src", e.target.value)}
               />
             </div>
 
@@ -128,7 +123,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 className="form-input form-input--code"
                 placeholder="Fallback on error"
                 value={fallbackSrc}
-                onChange={(e) => updateProp("fallbackSrc", e.target.value)}
+                onChange={(e) => updateProp("media.fallbackSrc", e.target.value)}
               />
             </div>
 
@@ -140,7 +135,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 className="form-input"
                 placeholder="Accessibility label"
                 value={alt}
-                onChange={(e) => updateProp("alt", e.target.value)}
+                onChange={(e) => updateProp("media.alt", e.target.value)}
               />
             </div>
           </div>
@@ -173,7 +168,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 id="object-fit-select"
                 className="form-select"
                 value={objectFit}
-                onChange={(e) => updateProp("objectFit", e.target.value)}
+                onChange={(e) => updateProp("media.objectFit", e.target.value)}
               >
                 <option value="cover">cover (Fill & crop)</option>
                 <option value="contain">contain (Letterbox)</option>
@@ -192,7 +187,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                     key={ratio}
                     type="button"
                     className={`form-mode-btn ${aspectRatio === ratio ? "form-mode-btn--active" : ""}`}
-                    onClick={() => updateProp("aspectRatio", ratio)}
+                    onClick={() => updateProp("media.aspectRatio", ratio)}
                   >
                     {ratio}
                   </button>
@@ -218,7 +213,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                     max="100"
                     className="form-number-scrub__input"
                     value={focalX}
-                    onChange={(e) => updateNested("focalPoint", "x", Number(e.target.value))}
+                    onChange={(e) => updateProp("media.focalPoint.x", Number(e.target.value))}
                   />
                 </div>
                 <div className="form-number-scrub">
@@ -229,7 +224,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                     max="100"
                     className="form-number-scrub__input"
                     value={focalY}
-                    onChange={(e) => updateNested("focalPoint", "y", Number(e.target.value))}
+                    onChange={(e) => updateProp("media.focalPoint.y", Number(e.target.value))}
                   />
                 </div>
               </div>
@@ -270,7 +265,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 step="0.05"
                 className="form-slider"
                 value={filters.grayscale || 0}
-                onChange={(e) => updateNested("filter", "grayscale", Number(e.target.value))}
+                onChange={(e) => updateProp("media.filter.grayscale", Number(e.target.value))}
               />
             </div>
 
@@ -287,7 +282,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 step="1"
                 className="form-slider"
                 value={filters.blur || 0}
-                onChange={(e) => updateNested("filter", "blur", Number(e.target.value))}
+                onChange={(e) => updateProp("media.filter.blur", Number(e.target.value))}
               />
             </div>
 
@@ -304,7 +299,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 step="0.05"
                 className="form-slider"
                 value={filters.brightness ?? 1}
-                onChange={(e) => updateNested("filter", "brightness", Number(e.target.value))}
+                onChange={(e) => updateProp("media.filter.brightness", Number(e.target.value))}
               />
             </div>
 
@@ -321,7 +316,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 step="0.05"
                 className="form-slider"
                 value={filters.contrast ?? 1}
-                onChange={(e) => updateNested("filter", "contrast", Number(e.target.value))}
+                onChange={(e) => updateProp("media.filter.contrast", Number(e.target.value))}
               />
             </div>
 
@@ -338,7 +333,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 step="0.05"
                 className="form-slider"
                 value={filters.saturate ?? 1}
-                onChange={(e) => updateNested("filter", "saturate", Number(e.target.value))}
+                onChange={(e) => updateProp("media.filter.saturate", Number(e.target.value))}
               />
             </div>
           </div>
@@ -372,7 +367,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                     key={shape}
                     type="button"
                     className={`form-mode-btn ${clipPath === shape ? "form-mode-btn--active" : ""}`}
-                    onClick={() => updateProp("clipPath", shape)}
+                    onClick={() => updateProp("media.clipPath", shape)}
                   >
                     {shape.startsWith("polygon") ? "diamond" : shape}
                   </button>
@@ -388,7 +383,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 className="form-input form-input--code"
                 placeholder="e.g. circle(50% at 50% 50%)"
                 value={clipPath}
-                onChange={(e) => updateProp("clipPath", e.target.value)}
+                onChange={(e) => updateProp("media.clipPath", e.target.value)}
               />
             </div>
           </div>
@@ -428,7 +423,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                   type="text"
                   className="form-input"
                   value={overlay.color}
-                  onChange={(e) => updateNested("overlay", "color", e.target.value)}
+                  onChange={(e) => updateProp("media.overlay.color", e.target.value)}
                 />
               </div>
             </div>
@@ -445,7 +440,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
                 step="0.05"
                 className="form-slider"
                 value={overlay.opacity || 0}
-                onChange={(e) => updateNested("overlay", "opacity", Number(e.target.value))}
+                onChange={(e) => updateProp("media.overlay.opacity", Number(e.target.value))}
               />
             </div>
 
@@ -454,7 +449,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({
               <select
                 className="form-select"
                 value={overlay.blendMode || "normal"}
-                onChange={(e) => updateNested("overlay", "blendMode", e.target.value)}
+                onChange={(e) => updateProp("media.overlay.blendMode", e.target.value)}
               >
                 <option value="normal">normal</option>
                 <option value="multiply">multiply</option>

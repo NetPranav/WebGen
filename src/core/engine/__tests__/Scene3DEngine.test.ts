@@ -84,9 +84,9 @@ test("Sub-Phase 8.1 Verification Gate: Nested 3-level Object3D hierarchy world t
       parentId: null,
       children: [childId],
       properties: {
-        position3D: [10, 0, 0],
-        rotation3D: [0, 0, 0, 1],
-        scale3D: [1, 1, 1],
+        "scene3d.position": [10, 0, 0],
+        "scene3d.rotation": [0, 0, 0, 1],
+        "scene3d.scale": [1, 1, 1],
       },
     },
     [childId]: {
@@ -95,9 +95,9 @@ test("Sub-Phase 8.1 Verification Gate: Nested 3-level Object3D hierarchy world t
       parentId: rootId,
       children: [grandchildId],
       properties: {
-        position3D: [0, 0, 0],
-        rotation3D: qZ90,
-        scale3D: [1, 1, 1],
+        "scene3d.position": [0, 0, 0],
+        "scene3d.rotation": qZ90,
+        "scene3d.scale": [1, 1, 1],
       },
     },
     [grandchildId]: {
@@ -106,9 +106,9 @@ test("Sub-Phase 8.1 Verification Gate: Nested 3-level Object3D hierarchy world t
       parentId: childId,
       children: [],
       properties: {
-        position3D: [0, 5, 0],
-        rotation3D: [0, 0, 0, 1],
-        scale3D: [1, 1, 1],
+        "scene3d.position": [0, 5, 0],
+        "scene3d.rotation": [0, 0, 0, 1],
+        "scene3d.scale": [1, 1, 1],
       },
     },
   };

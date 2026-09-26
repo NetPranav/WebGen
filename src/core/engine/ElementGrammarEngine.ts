@@ -584,13 +584,13 @@ export class ElementGrammarEngineService {
           {
             category: "Entrance",
             defaultTrigger: "OnLoad",
-            suggestedProperties: ["transform.y", "opacity"],
+            suggestedProperties: ["transform.y", "appearance.opacity"],
             description: "Fade and slide into view on page load",
           },
           {
             category: "Entrance",
             defaultTrigger: "OnScrollEnter",
-            suggestedProperties: ["transform.y", "opacity"],
+            suggestedProperties: ["transform.y", "appearance.opacity"],
             description: "Reveal element when scrolled into viewport",
           },
         ];
@@ -599,7 +599,7 @@ export class ElementGrammarEngineService {
           {
             category: "Exit",
             defaultTrigger: "OnScrollExit",
-            suggestedProperties: ["transform.y", "opacity"],
+            suggestedProperties: ["transform.y", "appearance.opacity"],
             description: "Animate out when leaving viewport",
           },
         ];
@@ -652,7 +652,7 @@ export class ElementGrammarEngineService {
         return contract.transitionGraph.map((edge) => ({
           category: "StateTransition",
           defaultTrigger: "OnStateChange",
-          suggestedProperties: ["opacity", "transform.scale"],
+          suggestedProperties: ["appearance.opacity", "transform.scale"],
           description: edge.description || `Transition from ${edge.from} to ${edge.to}`,
           fromState: edge.from,
           toState: edge.to,
@@ -662,7 +662,7 @@ export class ElementGrammarEngineService {
           {
             category: "Stagger",
             defaultTrigger: "OnScrollEnter",
-            suggestedProperties: ["transform.y", "opacity"],
+            suggestedProperties: ["transform.y", "appearance.opacity"],
             description: "Orchestrate sequential delays across direct children",
           },
         ];
@@ -771,7 +771,7 @@ export class ElementGrammarEngineService {
     );
 
     // If all properties were spatial transforms, replace with opacity
-    const finalProps = strippedProps.length > 0 ? strippedProps : ["opacity"];
+    const finalProps = strippedProps.length > 0 ? strippedProps : ["appearance.opacity"];
 
     return {
       ...binding,

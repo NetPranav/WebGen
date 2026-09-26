@@ -15,7 +15,8 @@
 
 import React from "react";
 import { Box, Layers, Eye } from "lucide-react";
-import { PbrMaterialConfig, Object3DProperties } from "@/core/types/scene3d";
+import { PbrMaterialConfig } from "@/core/types/scene3d";
+import { readProps } from "@/core/document/props";
 import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
 import type { PropValue } from "@/core/document/registry";
 
@@ -30,27 +31,29 @@ export const MaterialInspectorSection: React.FC<MaterialInspectorSectionProps> =
 }) => {
   const elements = useLayers();
   const currentElement = elements[elementId];
-  const props = (currentElement?.properties || {}) as Partial<Object3DProperties>;
+  const props = readProps(currentElement, "object3D");
 
-  const material: PbrMaterialConfig = props.material || {
-    color: "#4f46e5",
-    roughness: 0.4,
-    metalness: 0.2,
-    emissive: "#000000",
-    emissiveIntensity: 0,
-    wireframe: false,
-    transparent: false,
-    opacity: 1,
+  const material: PbrMaterialConfig = {
+    color: props.material.color ?? "#4f46e5",
+    roughness: props.material.roughness ?? 0.4,
+    metalness: props.material.metalness ?? 0.2,
+    emissive: props.material.emissive ?? "#000000",
+    emissiveIntensity: props.material.emissiveIntensity ?? 0,
+    wireframe: props.material.wireframe ?? false,
+    transparent: props.material.transparent ?? false,
+    opacity: props.material.opacity ?? 1,
   };
 
+  /** Each material field is its own canonical path (`scene3d.material.roughness`, …). */
   const updateMaterial = (patch: Partial<PbrMaterialConfig>) => {
-    const updated = { ...material, ...patch };
-    documentCommands.updateProps(elementId, { material: updated as PropValue }, `Update PBR material`);
+    const flat: Record<string, PropValue> = {};
+    for (const [key, value] of Object.entries(patch)) flat[`scene3d.material.${key}`] = value as PropValue;
+    documentCommands.updateProps(elementId, flat, `Update PBR material`);
   };
 
   const updateGeometry = (type: string) => {
     const currGeom = props.geometry || { type: "box", dimensions: [1, 1, 1] };
-    documentCommands.updateProps(elementId, { geometry: { ...currGeom, type } as PropValue }, "Update 3D geometry");
+    documentCommands.updateProps(elementId, { "scene3d.geometry": { ...currGeom, type } as PropValue }, "Update 3D geometry");
   };
 
   return (

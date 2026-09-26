@@ -3,10 +3,13 @@ import assert from "node:assert/strict";
 import { createDefaultBlankSnapshot } from "../ProjectDatabase";
 import { LazyFileError, lazyFileName, parseLazyFile, serializeLazyFile, LAZY_FILE_FORMAT } from "../lazyFile";
 import { SCHEMA_VERSION } from "../../document/schema";
+import { createLayer } from "../../document/factories";
 
 const snapshot = () => {
   const s = createDefaultBlankSnapshot("prj_file", "Launch Hero", { framework: "vite-react" });
-  s.document.layers.elem_canvas_root.properties.src = "https://example.com/hero.png";
+  const image = createLayer({ id: "el_hero_img", archetype: "image", parentId: "elem_canvas_root", properties: { "media.src": "https://example.com/hero.png" } });
+  s.document.layers[image.id] = image;
+  s.document.layers.elem_canvas_root.children.push(image.id);
   return s;
 };
 
@@ -53,7 +56,7 @@ describe(".lazy.json files (Phase 3.3)", () => {
     };
     const parsed = parseLazyFile(JSON.stringify(v1));
     assert.equal(parsed.snapshot.document.schemaVersion, SCHEMA_VERSION);
-    assert.equal(parsed.snapshot.document.layers.el_btn.properties.label, "Buy");
+    assert.equal(parsed.snapshot.document.layers.el_btn.properties["content.label"], "Buy");
   });
 
   it("names files safely", () => {

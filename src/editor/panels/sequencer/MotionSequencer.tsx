@@ -26,7 +26,9 @@ import { ScrollTriggerBar } from "./ScrollTriggerBar";
 import { StaggerManager } from "./StaggerManager";
 import { CurveEditor } from "@/editor/panels/curves/CurveEditor";
 import { Plus, ChevronDown, Trash2, Copy, Sliders, ChevronsLeftRight } from "lucide-react";
-import { synthesizeSingleTransformMatrix, TransformComponents } from "@/core/runtime/EngineAdapters";
+import { interpolateTrackValue, scrubStylesForTracks } from "./scrubPatch";
+
+export { interpolateTrackValue };
 import { createId } from "@/core/ids";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import type { Layer } from "@/core/document/schema";
@@ -131,36 +133,6 @@ export function getValidPropertiesForArchetype(
   return result;
 }
 
-/**
- * Interpolates value of a track at given timestamp t.
- */
-export function interpolateTrackValue(track: Track, time: number): unknown {
-  if (!track.keyframes || track.keyframes.length === 0) return undefined;
-  if (track.keyframes.length === 1) return track.keyframes[0].value;
-
-  const sorted = [...track.keyframes].sort((a, b) => a.time - b.time);
-  if (time <= sorted[0].time) return sorted[0].value;
-  if (time >= sorted[sorted.length - 1].time) return sorted[sorted.length - 1].value;
-
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const kf0 = sorted[i];
-    const kf1 = sorted[i + 1];
-    if (time >= kf0.time && time <= kf1.time) {
-      const span = kf1.time - kf0.time;
-      const progress = span > 0 ? (time - kf0.time) / span : 0;
-
-      const v0 = parseFloat(String(kf0.value).replace(/[^0-9.-]/g, ""));
-      const v1 = parseFloat(String(kf1.value).replace(/[^0-9.-]/g, ""));
-      if (!isNaN(v0) && !isNaN(v1)) {
-        const val = v0 + (v1 - v0) * progress;
-        const unit = String(kf1.value).replace(/[0-9.-]/g, "").trim();
-        return unit ? `${val.toFixed(2)}${unit}` : val.toFixed(2);
-      }
-      return progress > 0.5 ? kf1.value : kf0.value;
-    }
-  }
-  return sorted[sorted.length - 1].value;
-}
 
 function findKeyframe(tracks: Track[], keyframeId: string | null) {
   if (!keyframeId) return null;
@@ -238,55 +210,7 @@ export const MotionSequencer: React.FC = () => {
   useEffect(() => {
     if (!activeElement || typeof window === "undefined") return;
 
-    const stylesToApply: Record<string, string> = {};
-    const transformComponents: Partial<TransformComponents> = {};
-
-    tracks.forEach((track) => {
-      if (track.muted) return;
-      const val = interpolateTrackValue(track, currentTime);
-      if (val === undefined) return;
-
-      if (track.property === "transform.x") {
-        transformComponents.x = String(val);
-      } else if (track.property === "transform.y") {
-        transformComponents.y = String(val);
-      } else if (track.property === "transform.z") {
-        transformComponents.z = String(val);
-      } else if (track.property === "transform.scale") {
-        const num = parseFloat(String(val));
-        if (!isNaN(num)) transformComponents.scale = num;
-      } else if (track.property === "transform.scaleX") {
-        const num = parseFloat(String(val));
-        if (!isNaN(num)) transformComponents.scaleX = num;
-      } else if (track.property === "transform.scaleY") {
-        const num = parseFloat(String(val));
-        if (!isNaN(num)) transformComponents.scaleY = num;
-      } else if (track.property === "transform.rotate") {
-        const num = parseFloat(String(val));
-        if (!isNaN(num)) transformComponents.rotate = num;
-      } else if (track.property === "transform.rotateX") {
-        const num = parseFloat(String(val));
-        if (!isNaN(num)) transformComponents.rotateX = num;
-      } else if (track.property === "transform.rotateY") {
-        const num = parseFloat(String(val));
-        if (!isNaN(num)) transformComponents.rotateY = num;
-      } else if (track.property === "appearance.opacity") {
-        stylesToApply.opacity = String(val);
-      } else if (track.property === "appearance.background.color") {
-        stylesToApply.backgroundColor = String(val);
-      } else if (track.property === "filter.blur") {
-        stylesToApply.filter = `blur(${val})`;
-      } else if (track.property === "media.filter.grayscale") {
-        stylesToApply.filter = `grayscale(${val})`;
-      } else if (track.property === "divider.length") {
-        stylesToApply.width = `${val}`;
-      }
-    });
-
-    const unifiedTransform = synthesizeSingleTransformMatrix(transformComponents);
-    if (unifiedTransform !== "none") {
-      stylesToApply.transform = unifiedTransform;
-    }
+    const stylesToApply = scrubStylesForTracks(tracks, currentTime, interpolateTrackValue);
 
     // Post to all runtime iframes
     const iframes = document.querySelectorAll("iframe");

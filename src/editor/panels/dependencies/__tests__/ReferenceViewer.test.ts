@@ -45,7 +45,7 @@ describe("Sub-Phase 8.3: Panel 26 — Reference Viewer & Dependency Graph", () =
           parentId: "el_container",
           children: [],
           properties: {
-            content: "Hello {{state.userName}}",
+            "content.text": "Hello {{state.userName}}",
           },
         },
         el_btn_submit: {
@@ -55,7 +55,7 @@ describe("Sub-Phase 8.3: Panel 26 — Reference Viewer & Dependency Graph", () =
           parentId: "el_container",
           children: [],
           properties: {
-            blueprintGraphId: "graph_save_user",
+            "logic.blueprintGraphId": "graph_save_user",
           },
         },
         el_profile_root: {

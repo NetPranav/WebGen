@@ -330,7 +330,7 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
       archetype: "container",
       name: "RootContainer",
       children: ["el_hero_heading", "el_buy_button"],
-      properties: { display: "flex", flexDirection: "column", gap: 16, padding: 24 },
+      properties: { "layout.display": "flex", "layout.flexDirection": "column", "layout.gap": 16, "layout.padding": 24 },
     }),
     createLayer({
       id: "el_hero_heading",
@@ -338,10 +338,10 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
       name: "HeroHeading",
       parentId: "el_root_container",
       properties: {
-        textContent: "Unreal Engine for Web Applications",
-        fontSize: 32,
-        fontWeight: 700,
-        color: "#ffffff",
+        "content.text": "Unreal Engine for Web Applications",
+        "typography.fontSize": 32,
+        "typography.fontWeight": 700,
+        "typography.color": "#ffffff",
       },
     }),
     createLayer({
@@ -349,7 +349,7 @@ const INITIAL_PROJECT_STATE: ProjectStateSnapshot = {
       archetype: "button",
       name: "BuyButton",
       parentId: "el_root_container",
-      properties: { label: "Get Started Free", disabled: false, backgroundColor: "#206859" },
+      properties: { "content.label": "Get Started Free", "interaction.disabled": false, "appearance.background.color": "#206859" },
     }),
   ]),
   databaseSchemas: {
@@ -679,9 +679,9 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     // Registry defaults, with the project name used as the element's visible text.
     const rootProperties = getDefaultProps(arch);
     if (params.projectName) {
-      if (arch === "button" || arch === "badge") rootProperties.label = params.projectName;
-      else if (arch === "image") rootProperties.alt = params.projectName;
-      else if (arch === "text") rootProperties.textContent = params.projectName;
+      if (arch === "button" || arch === "badge") rootProperties["content.label"] = params.projectName;
+      else if (arch === "image") rootProperties["media.alt"] = params.projectName;
+      else if (arch === "text") rootProperties["content.text"] = params.projectName;
     }
 
     const newPage: PageDefinition = {
@@ -1329,7 +1329,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
         id: rootElId,
         archetype: "container",
         name: `${newPage.name} Container`,
-        properties: { display: "flex", flexDirection: "column", minHeight: "100vh", padding: 24 },
+        properties: { "layout.display": "flex", "layout.flexDirection": "column", "layout.minHeight": "100vh", "layout.padding": 24 },
       });
 
     if (actionLabel) {

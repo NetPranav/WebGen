@@ -26,7 +26,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
     name: "Primary CTA Button",
     archetype: "button",
     parentId: null,
-    properties: { label: "Get Started" },
+    properties: { "content.label": "Get Started" },
     children: [],
     animationStack: [],
   };
@@ -36,7 +36,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
     name: "Hero Showcase Image",
     archetype: "image",
     parentId: null,
-    properties: { src: "/images/hero.webp", objectFit: "cover" },
+    properties: { "media.src": "/images/hero.webp", "media.objectFit": "cover" },
     children: [],
     animationStack: [],
   };
@@ -46,7 +46,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
     name: "Section Divider",
     archetype: "divider",
     parentId: null,
-    properties: { orientation: "horizontal" },
+    properties: { "divider.orientation": "horizontal" },
     children: [],
     animationStack: [],
   };
@@ -56,7 +56,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
     name: "Ambient Gradient Backdrop",
     archetype: "background",
     parentId: null,
-    properties: { type: "linear-gradient" },
+    properties: { "background.type": "linear-gradient" },
     children: [],
     animationStack: [],
   };
@@ -66,7 +66,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
     name: "Hero Heading Title",
     archetype: "text",
     parentId: null,
-    properties: { content: "Build visually. Ship flawlessly." },
+    properties: { "content.text": "Build visually. Ship flawlessly." },
     children: [],
     animationStack: [],
   };
@@ -141,7 +141,7 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
       assert.equal(res.targetFamily, "text");
       assert.ok(res.ghostAnimation);
       assert.ok(res.ghostAnimation.stagger);
-      assert.ok(res.ghostAnimation.tracks?.some((t) => t.property === "transform.translateY"));
+      assert.ok(res.ghostAnimation.tracks?.some((t) => t.property === "transform.y"));
     });
 
     it("strictly enforces Rule 6.1 (Category Hard Block) by intercepting tap on plain text", () => {
@@ -291,13 +291,13 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
 
       // Execute auto-fix
       const fixed = reflowIssue.fixAction!();
-      assert.equal(fixed.updatedAnimations[0].tracks![0].property, "transform.translateY");
+      assert.equal(fixed.updatedAnimations[0].tracks![0].property, "transform.y");
     });
 
     it("flags oversized unoptimized images > 2000px", () => {
       const hugeImage: TestElement = {
         ...dummyImage,
-        properties: { width: 3840, height: 2160 },
+        properties: { "frame.width": 3840, "frame.height": 2160 },
       };
 
       const issues = motionDiagnostics.analyze(hugeImage, []);
@@ -308,13 +308,14 @@ describe("Phase 7: MotionAI Co-Pilot & Preset Ecosystem", () => {
       assert.ok(imgIssue.autoFixable);
 
       const fixed = imgIssue.fixAction!();
-      assert.equal(fixed.propsPatch.layout, "fill");
+      assert.equal(fixed.propsPatch["media.objectFit"], "cover");
+      assert.equal(fixed.propsPatch["media.loadingMode"], "lazy");
     });
 
     it("flags heavy filter stacking with blur > 24px and noise texture", () => {
       const noisyHeavyElement: TestElement = {
         ...dummyBackground,
-        properties: { noise: { opacity: 0.15 } },
+        properties: { "background.noise.opacity": 0.15 },
         animationStack: [
           {
             id: "anim_heavy_blur",
