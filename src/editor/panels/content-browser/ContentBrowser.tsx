@@ -81,11 +81,7 @@ import {
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
 import { TreeNode, INITIAL_TREE_DATA } from "@/editor/panels/outliner/OutlinerTree";
-import {
-  ElementGrammarEngine,
-  TYPE_REGISTRY,
-  CandidateBindingOffer,
-} from "@/core/engine/ElementGrammarEngine";
+import { TYPE_REGISTRY } from "@/core/engine/ElementGrammarEngine";
 import {
   AnimationBinding,
   AnimationCategory,
@@ -97,6 +93,13 @@ import {
   getPropertyRenderingTier,
   getCategoryPriorityInfo,
 } from "@/core/engine/grammarHelpers";
+// Phase 8, Sub-Phase 8.4: the "+" menu and every add/block decision below
+// come only from `rules.canAdd`-family calls, not from reading
+// `TYPE_REGISTRY.allowedCategories`/`blockedCategories` directly (grammar §8;
+// decision 0005 §5). `TYPE_REGISTRY` above is still read for pure metadata
+// display (max-track counts, the contract's category label) — never for a
+// compatibility decision.
+import { canAddFromBindings, type CanAddCandidate } from "@/core/rules";
 import { createId } from "@/core/ids";
 
 export type AnimationTrigger = "load" | "hover" | "click" | "scroll" | "state";
@@ -879,13 +882,9 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
     return convertTracksToGrammarBindings(activeTargetId, activeTracks);
   }, [activeTargetId, activeTracks]);
 
-  // Evaluate "+" Plus Icon decision per Grammar §8
+  // Evaluate "+" Plus Icon decision per Grammar §8, through the Phase 8 rules engine (8.4).
   const plusDecision = useMemo(() => {
-    return ElementGrammarEngine.evaluatePlusIcon({
-      id: activeTargetId,
-      type: activeElementType,
-      bindings: activeGrammarBindings,
-    });
+    return canAddFromBindings(activeElementType, activeGrammarBindings, undefined, {}, { id: activeTargetId });
   }, [activeTargetId, activeElementType, activeGrammarBindings]);
 
   const handleCommitStackName = () => {
@@ -931,23 +930,23 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
     setToastMessage(`Added preset ${preset.name} to ${activeElementType}`);
   };
 
-  const handleAddCandidateOffer = (candidate: CandidateBindingOffer) => {
+  const handleAddCandidateOffer = (candidate: CanAddCandidate) => {
     let trigger: AnimationTrigger = "load";
-    if (candidate.defaultTrigger === "OnHoverEnter" || candidate.defaultTrigger === "OnHoverExit") {
+    if (candidate.trigger === "OnHoverEnter" || candidate.trigger === "OnHoverExit") {
       trigger = "hover";
-    } else if (candidate.defaultTrigger === "OnPress" || candidate.defaultTrigger === "OnRelease") {
+    } else if (candidate.trigger === "OnPress" || candidate.trigger === "OnRelease") {
       trigger = "click";
     } else if (
-      candidate.defaultTrigger === "OnScrollEnter" ||
-      candidate.defaultTrigger === "OnScrollExit" ||
-      candidate.defaultTrigger === "OnScrollScrub"
+      candidate.trigger === "OnScrollEnter" ||
+      candidate.trigger === "OnScrollExit" ||
+      candidate.trigger === "OnScrollScrub"
     ) {
       trigger = "scroll";
-    } else if (candidate.defaultTrigger === "OnStateChange") {
+    } else if (candidate.trigger === "OnStateChange") {
       trigger = "state";
     }
 
-    const properties: PropertyDelta[] = candidate.suggestedProperties.map((p) => {
+    const properties: PropertyDelta[] = candidate.properties.map((p) => {
       if (p === "transform.y") return { property: "transform.y", from: "20px", to: "0px" };
       if (p === "transform.x") return { property: "transform.x", from: "-20px", to: "0px" };
       if (p === "transform.scale") return { property: "transform.scale", from: "0.95", to: "1.05" };
@@ -1184,7 +1183,7 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
               const pInfo = getCategoryPriorityInfo(offer.category);
               return (
                 <div
-                  key={`${offer.category}_${offer.defaultTrigger}_${idx}`}
+                  key={`${offer.category}_${offer.trigger}_${idx}`}
                   className="eas-preset-item"
                   onClick={() => handleAddCandidateOffer(offer)}
                 >
@@ -1217,14 +1216,14 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
                         color: "var(--accent-primary, #206859)",
                       }}
                     >
-                      {offer.defaultTrigger}
+                      {offer.trigger}
                     </span>
                   </div>
                   <div style={{ fontSize: 9.5, color: "#64748B", lineHeight: 1.3 }}>
                     {offer.description}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2, flexWrap: "wrap" }}>
-                    {offer.suggestedProperties.map((prop) => {
+                    {offer.properties.map((prop) => {
                       const tier = getPropertyRenderingTier(prop);
                       return (
                         <span
@@ -1263,10 +1262,11 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
             else if (preset.trigger === "scroll") cat = "ScrollLinked";
             else if (preset.trigger === "state") cat = "StateTransition";
 
-            const isCategoryAllowed = activeContract?.allowedCategories.includes(cat);
-            const isBlocked = activeContract?.blockedCategories.includes(cat);
+            // Phase 8, Sub-Phase 8.4: the only compatibility check here is `rules.canAdd`
+            // (via `canAddFromBindings`) — no direct read of allowed/blockedCategories.
             const hasSlot = activeTracks.length < (activeContract?.maxSimultaneousTracks || 4);
-            const canAdd = isCategoryAllowed && !isBlocked && hasSlot;
+            const presetCheck = canAddFromBindings(activeElementType, activeGrammarBindings, { category: cat }, {}, { id: activeTargetId });
+            const canAdd = presetCheck.visible;
 
             return (
               <div

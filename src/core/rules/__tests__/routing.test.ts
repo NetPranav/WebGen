@@ -40,4 +40,26 @@ describe("Sub-Phase 8.3: engine routing", () => {
     assert.equal(decision.isProOverride, true);
     assert.equal(decision.memoryAndBatteryCost, "high");
   });
+
+  it("degrades to a device tier's ceiling when the properties need more than it can sustain (FX-PERF-02)", () => {
+    const decision = routeAnimation({ properties: ["rotation3D"], deviceTier: "T0" });
+    assert.equal(decision.backend, "css");
+    assert.equal(decision.isTierDowngrade, true);
+  });
+
+  it("does not downgrade when the device tier already covers what the properties need", () => {
+    const decision = routeAnimation({ properties: ["transform.y"], deviceTier: "T0" });
+    assert.equal(decision.backend, "css");
+    assert.ok(!decision.isTierDowngrade);
+  });
+
+  it("caps a Pro override at the device tier's ceiling unless explicitly forced", () => {
+    const capped = routeAnimation({ properties: ["opacity"], requestedBackend: "threejs", deviceTier: "T1" });
+    assert.equal(capped.backend, "canvas2d");
+    assert.equal(capped.isTierDowngrade, true);
+
+    const forced = routeAnimation({ properties: ["opacity"], requestedBackend: "threejs", deviceTier: "T1", forceRequestedBackend: true });
+    assert.equal(forced.backend, "threejs");
+    assert.equal(forced.isProOverride, true);
+  });
 });

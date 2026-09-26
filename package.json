@@ -18,7 +18,8 @@
     "test:e2e": "playwright test",
     "export-harness": "tsx tests/export-harness/build.mts",
     "check:bundle-scope": "tsx scripts/check-bundle-scope.mts",
-    "check:doc-links": "tsx scripts/check-doc-links.mts"
+    "check:doc-links": "tsx scripts/check-doc-links.mts",
+    "check:no-adhoc-compat": "tsx scripts/check-no-adhoc-compat.mts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

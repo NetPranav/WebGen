@@ -29,7 +29,9 @@ export type ConditionalGateKind =
   | "explicit-promotion" // 7.3.1 — an authoring-time `interactive: true` flag
   | "single-child-promotion" // 7.3.2 — sole interactive-relevant child of a Button/Link
   | "stagger-context" // 7.2.4 — legal only outside an inherited-stagger relationship
-  | "group-indicator"; // 7.4 — legal only for the group-level indicator-slide binding
+  | "group-indicator" // 7.4 — legal only for the group-level indicator-slide binding
+  | "non-spatial-reactive" // §13.5 (v0.2) — Reactive is legal only on non-spatial properties (colour, filter, box-shadow — never transform.*)
+  | "component-declared"; // §13.3 (v0.2), 3.F.7 — legal only when the Code Component's own declared controls expose that interaction/state
 
 export interface PromotionContext {
   /** 7.3.1: this instance opted into Hover/Active/StateTransition via `interactive: true`. */
@@ -40,9 +42,13 @@ export interface PromotionContext {
   inheritsStagger?: boolean;
   /** 7.4: the candidate is the group-level indicator-slide binding, not a per-child one. */
   isGroupIndicatorBinding?: boolean;
+  /** §13.5 (v0.2): the candidate Reactive binding's target properties, checked against the non-spatial-reactive gate. */
+  candidateProperties?: string[];
+  /** §13.3 (v0.2), 3.F.7: the Code Component's own props/controls declare this interaction or state. */
+  componentDeclaresInteraction?: boolean;
 }
 
-export const RULE_DIAGNOSTIC_CODES = ["ANIM_COMPAT", "STA_CONFLICT", "PERF_LAYOUT", "A11Y_FLASH"] as const;
+export const RULE_DIAGNOSTIC_CODES = ["ANIM_COMPAT", "STA_CONFLICT", "PERF_LAYOUT", "A11Y_FLASH", "SIGNAL_CYCLE", "INPUT_TOUCH"] as const;
 export type RuleDiagnosticCode = (typeof RULE_DIAGNOSTIC_CODES)[number];
 
 export interface RuleDiagnostic {
@@ -54,9 +60,18 @@ export interface RuleDiagnostic {
   trackId?: string;
 }
 
-/** PRD §7 / engine spec §7.2: the backend a routed animation should run on. */
-export const ROUTE_BACKENDS = ["css", "svg", "canvas2d", "webgl2", "threejs"] as const;
+/**
+ * PRD §7 / engine spec §7.2: the backend a routed animation should run on.
+ * Aligned with `SURFACE_BACKENDS` (`src/core/document/effects.ts`) plus
+ * `threejs`, which the v3.3 amendment calls out as its own tier above
+ * `webgl2` — real 3D only, loaded lazily (engine spec §7.8).
+ */
+export const ROUTE_BACKENDS = ["css", "svg", "canvas2d", "webgl2", "webgpu", "threejs"] as const;
 export type RouteBackend = (typeof ROUTE_BACKENDS)[number];
+
+/** Engine spec §7.4: device tiers, lightest to heaviest capability. */
+export const DEVICE_TIERS = ["T0", "T1", "T2", "T3"] as const;
+export type DeviceTier = (typeof DEVICE_TIERS)[number];
 
 export interface RouteDecision {
   backend: RouteBackend;
@@ -65,6 +80,8 @@ export interface RouteDecision {
   isProOverride?: boolean;
   /** Present when `requestedBackend` is heavier than needed and was honoured anyway. */
   memoryAndBatteryCost?: "low" | "medium" | "high";
+  /** True when a device-tier or GPU-budget constraint forced a lighter backend than the properties alone would need (FX-PERF-02). */
+  isTierDowngrade?: boolean;
 }
 
 export interface CanAddCandidate {

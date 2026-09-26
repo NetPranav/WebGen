@@ -7,14 +7,16 @@ import {
 import { AnimationBinding } from "../../types/element-grammar";
 
 describe("ElementGrammarEngine & Plus Icon Evaluator (lazylayout_element_grammer.md)", () => {
-  it("should have all 32 Element Types registered in TYPE_REGISTRY", () => {
+  it("should have all 32 v0.1 Element Types plus the 7 v0.2 Effect Surface types (§13.3) registered in TYPE_REGISTRY", () => {
     const keys = Object.keys(TYPE_REGISTRY);
-    assert.equal(keys.length, 32);
+    assert.equal(keys.length, 39);
     assert.ok(TYPE_REGISTRY.Text);
     assert.ok(TYPE_REGISTRY.Button);
     assert.ok(TYPE_REGISTRY.Modal);
     assert.ok(TYPE_REGISTRY.Checkbox);
     assert.ok(TYPE_REGISTRY.Video);
+    assert.ok(TYPE_REGISTRY.EffectSurface);
+    assert.ok(TYPE_REGISTRY.CodeComponent);
   });
 
   describe("Plus Icon Decision Algorithm (Grammar Section 8)", () => {

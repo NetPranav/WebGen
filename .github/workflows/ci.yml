@@ -1,5 +1,6 @@
 # ROADMAP Phase 1.4 — every push and PR must typecheck, lint, test and build.
 # ROADMAP Phase 6 — plus the edition=initial bundle-scope gate and a doc-link check.
+# ROADMAP Phase 8.4 — plus the editor ad-hoc-compatibility grep gate.
 name: CI
 
 on:
@@ -42,6 +43,9 @@ jobs:
 
       - name: Doc links (DOCS/Initial)
         run: npm run check:doc-links
+
+      - name: No ad-hoc compatibility logic in the editor (Phase 8.4)
+        run: npm run check:no-adhoc-compat
 
   # ROADMAP Phase 4.1 — the Phase 3 and Phase 4 browser gates, in CI, on
   # every push/PR, on Chromium, Firefox and WebKit (playwright.config.ts).

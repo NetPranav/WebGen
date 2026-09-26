@@ -11,20 +11,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.6.0] — 2026-09-26
 
-### Phase 8 (Executable Motion Rules Engine): in progress, not gate-complete — no PR yet
+### Phase 8 (Executable Motion Rules Engine): complete — Verification Gate green, no PR yet
 
-`lazylayout_element_grammer.md` and the animation engine spec become one executable rule table (`decisions/0005-phase8-rule-table-and-reconciliation.md`). Sub-Phase 8.5 (reconciliation, AUD-52) and 8.1/8.2 core are done; 8.3 is Stage 1 only; 8.4 (UI contract) is not started. See ROADMAP.md's Phase 8 Progress Log for the full breakdown.
+`lazylayout_element_grammer.md` and the animation engine spec become one executable rule table (`decisions/0005-phase8-rule-table-and-reconciliation.md`). All of 8.1 (including the v0.2 Reactive category/3.F growth), 8.2, 8.3, 8.4 and 8.5 are done. See ROADMAP.md's Phase 8 Progress Log for the full breakdown.
 
 #### Added
-- **`src/core/rules/`**: `conditional-gates.ts` (the ⚠️ conditional / 🔒 subsumed tier grammar §9 needs, never modelled before this phase), `clip-adapter.ts` (bridges the real `Clip`/`Trigger` schema to the grammar's `AnimationCategory`/`TriggerType`, with `PHASE8_SCHEMA_GAPS` naming what can't map yet), `performance.ts`, `accessibility.ts` (the ≤ 3 flashes/second limit), `routing.ts` (Stage 1 engine routing — CSS/SVG/three.js, never GSAP), `diagnostics.ts` and `index.ts` (the `rules.canAdd`/`validate`/`explain`/`suggestFix`/`route` query API).
-- **Diagnostic codes:** `STA_CONFLICT`, `PERF_LAYOUT`, `A11Y_FLASH` added to `DiagnosticChannel` alongside the existing `ANIM_COMPAT`.
-- **Tests:** `src/core/rules/__tests__/` — the full grammar §9 compatibility matrix (320 cells) as a table-driven test, the 5 reconciliation fixes, the clip adapter, routing, and the query API against real `MotionDocument` fixtures. 342 assertions, all green.
+- **`src/core/rules/`**: `conditional-gates.ts` (the ⚠️ conditional / 🔒 subsumed tier grammar §9 needs, never modelled before this phase), `clip-adapter.ts` (bridges the real `Clip`/`Trigger` schema to the grammar's `AnimationCategory`/`TriggerType`, with `PHASE8_SCHEMA_GAPS` naming what can't map yet), `performance.ts`, `accessibility.ts` (the ≤ 3 flashes/second limit), `reactive-rules.ts` (grammar §13.4 rules 6.9/6.10/6.16 and 6.11 partially, with `REACTIVE_RULE_GAPS` naming 6.12–6.15), `routing.ts` (the full scored routing decision tree — property-driven floor, device-tier ceiling, GSAP excluded by construction), `diagnostics.ts` and `index.ts` (the `rules.canAdd`/`canAddFromBindings`/`validate`/`explain`/`suggestFix`/`route` query API).
+- **The Reactive category and 7 Effect Surface types** (grammar §13, v0.2): `AnimationCategory` gains `Reactive`; `GrammarElementType` gains `EffectSurface`, `ShaderLayer`, `ParticleSystem`, `SimulationLayer`, `CursorLayer`, `TextureSource`, `CodeComponent` — `TYPE_REGISTRY` now has all 39 entries.
+- **Diagnostic codes:** `STA_CONFLICT`, `PERF_LAYOUT`, `A11Y_FLASH`, `SIGNAL_CYCLE`, `INPUT_TOUCH` added to `DiagnosticChannel` alongside the existing `ANIM_COMPAT`.
+- **`scripts/check-no-adhoc-compat.mts`** (wired into CI): fails if any `src/editor/**` file imports `ElementGrammarEngine`/`AnimationValidator` directly or reads `allowedCategories`/`blockedCategories.includes(...)`.
+- **`tests/e2e/phase8-rules-engine.spec.ts`**: the Verification Gate's Playwright test — an illegal animation (Container's Hover, ungated) shows disabled with a reason and refuses the add. Green on Chromium, Firefox and WebKit.
+- **Tests:** `src/core/rules/__tests__/` — 6 files, 465 assertions, all green. Full unit suite: 1235/1235.
 
 #### Fixed
 - **`ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md`** §7.1 (Badge, Spinner, Avatar, Link), §7.2 (Container) and §13.5 corrected to match the grammar (decision 0005 §1) — the spec's own per-type tables had drifted from the grammar it was meant to mirror.
+- **`ContentBrowser.tsx`**: its Curated Presets grid read `allowedCategories`/`blockedCategories` directly, bypassing the conditional-gate overlay — Container's Hover/Press/StateTransition presets rendered as unconditionally enabled. Migrating it to `canAddFromBindings` (8.4) fixed a real bug, verified live in a dev server.
 
 #### Found (not yet fixed)
-- **AUD-59** (new): the real MDM v4 `Clip`/`Trigger` schema (Phase 7) and the grammar's `AnimationCategory`/`TriggerType` vocabulary were never reconciled. Exit, Focus, Stagger and LayoutTransition have no independent schema representation as of this entry.
+- **AUD-59** (new, still open): the real MDM v4 `Clip`/`Trigger` schema (Phase 7) and the grammar's `AnimationCategory`/`TriggerType` vocabulary aren't reconciled for Exit, Focus, Stagger and LayoutTransition, which have no independent schema representation. Named in `PHASE8_SCHEMA_GAPS`; closing it needs a schema amendment, out of this phase's scope.
 
 ## [3.5.0] — 2026-09-26
 

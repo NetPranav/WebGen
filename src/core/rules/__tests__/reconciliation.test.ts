@@ -33,9 +33,9 @@ describe("Sub-Phase 8.5: grammar-vs-engine-spec reconciliation", () => {
     assert.equal(getCategoryCompatibilityKind("Container", "Press"), "conditional");
   });
 
-  it("Table/List/Chart are not element types — the grammar's 32-type taxonomy is exhaustive (spec falsely claimed 3 more)", () => {
+  it("Table/List/Chart are not element types — the grammar's v0.1 taxonomy (32 types) plus the v0.2 Effect Surfaces (7 types, §13.3) is exhaustive; the spec falsely claimed 3 more", () => {
     const types = Object.keys(TYPE_REGISTRY);
-    assert.equal(types.length, 32);
+    assert.equal(types.length, 39);
     for (const phantom of ["Table", "List", "Chart"]) {
       assert.ok(!types.includes(phantom), `"${phantom}" must not be a registered grammar element type`);
     }

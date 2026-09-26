@@ -32,6 +32,7 @@ export function isFilterCostProperty(property: string): boolean {
 const CONTINUOUS_CATEGORIES: ReadonlySet<AnimationCategory> = new Set<AnimationCategory>([
   "ScrollLinked",
   "Ambient",
+  "Reactive",
 ]);
 
 export function isContinuousCategory(category: AnimationCategory): boolean {

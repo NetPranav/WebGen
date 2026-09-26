@@ -24,14 +24,16 @@
  * ============================================================================
  */
 
-import { ElementGrammarEngine, TYPE_REGISTRY } from "../engine/ElementGrammarEngine";
+import { ElementGrammarEngine, TYPE_REGISTRY, type EvaluatedElement } from "../engine/ElementGrammarEngine";
+import { AnimationValidator } from "../engine/AnimationValidator";
 import { getArchetype } from "../document/registry";
 import type { Clip, MotionDocument } from "../document/schema";
-import type { AnimationCategory } from "../types/element-grammar";
+import type { AnimationBinding, AnimationCategory, GrammarElementType } from "../types/element-grammar";
 import { getCategoryCompatibilityKind, passesConditionalGate } from "./conditional-gates";
 import { convertClipsToGrammarBindings, CLIP_TYPE_TO_CATEGORY } from "./clip-adapter";
 import { findLayoutPerformanceViolations } from "./performance";
 import { exceedsFlashLimit, estimateFlashesPerSecond } from "./accessibility";
+import { findReactiveRuleViolations } from "./reactive-rules";
 import { animCompatDiagnostic, staConflictDiagnostic, perfLayoutDiagnostic, a11yFlashDiagnostic, explain, suggestFix } from "./diagnostics";
 import { routeAnimation } from "./routing";
 import type { CanAddResult, PromotionContext, RuleDiagnostic } from "./types";
@@ -43,6 +45,10 @@ export { isLayoutTriggeringProperty, isFilterCostProperty, isContinuousCategory,
 export { MAX_FLASHES_PER_SECOND, resolveReducedMotion, applyReducedMotionFallback, isFlashableProperty, estimateFlashesPerSecond, exceedsFlashLimit } from "./accessibility";
 export { routeAnimation } from "./routing";
 export { explain, suggestFix, emitRuleDiagnostic } from "./diagnostics";
+export { findBlendConflicts, findSignalCycles, findTouchParityViolations, findEventBridgingViolations, findReactiveRuleViolations, REACTIVE_RULE_GAPS } from "./reactive-rules";
+
+/** Track-level compatibility (a property track against an archetype) — Sub-Phase 8.1's other reused engine. */
+export const validateTrackCompatibility = AnimationValidator.validateSampleForElement.bind(AnimationValidator);
 
 /** 7.3.1 explicit promotion's authoring-time flag, expressed as a layer tag. */
 export const EXPLICIT_PROMOTION_TAG = "interactive";
@@ -66,6 +72,43 @@ function layerContext(doc: MotionDocument, layerId: string): PromotionContext {
 }
 
 /**
+ * Sub-Phase 8.2/8.4's core: the same question `canAdd` answers, without
+ * needing a real `MotionDocument` — just a grammar type and its current
+ * bindings. This is what editor panels not yet wired to the document store
+ * (e.g. `ContentBrowser.tsx`'s local `elementTracks` state) can call directly,
+ * so the "+" menu still renders only rules-engine results (8.4) even before
+ * that panel's own migration to `doc.clips` (tracked separately — decision
+ * 0005 §5). `canAdd(doc, layerId, ...)` below is a thin wrapper around this.
+ */
+export function canAddFromBindings(
+  type: GrammarElementType,
+  bindings: AnimationBinding[],
+  candidate?: { category: AnimationCategory },
+  context: PromotionContext = {},
+  elementRef: Omit<EvaluatedElement, "type" | "bindings"> = { id: "unknown" }
+): CanAddResult {
+  const base = ElementGrammarEngine.evaluatePlusIcon({ ...elementRef, type, bindings });
+  if (!base.visible) return { visible: false, reason: base.reason };
+
+  const candidates = base.candidates.filter((c) => passesConditionalGate(type, c.category, context));
+  const scoped = candidate ? candidates.filter((c) => c.category === candidate.category) : candidates;
+
+  if (scoped.length === 0) {
+    if (candidate) {
+      const kind = getCategoryCompatibilityKind(type, candidate.category);
+      const gateNote = kind === "conditional" ? " (its promotion gate is not satisfied)" : "";
+      return { visible: false, reason: `"${candidate.category}" is not currently offered for ${type}${gateNote}.` };
+    }
+    return { visible: false, reason: "All allowed categories or property slots are occupied." };
+  }
+
+  return {
+    visible: true,
+    candidates: scoped.map((c) => ({ category: c.category, trigger: c.defaultTrigger, properties: c.suggestedProperties, description: c.description })),
+  };
+}
+
+/**
  * Sub-Phase 8.2/8.4: is `candidate` (or, with no candidate, is *anything*)
  * addable to this layer? The "+" menu and drop targets render only this.
  */
@@ -83,25 +126,7 @@ function canAdd(
   const bindings = convertClipsToGrammarBindings(existingClips);
   const mergedContext = { ...layerContext(doc, layerId), ...context };
 
-  const base = ElementGrammarEngine.evaluatePlusIcon({ id: layerId, type: grammarType, bindings, hasInFlightTransition: false });
-  if (!base.visible) return { visible: false, reason: base.reason };
-
-  const candidates = base.candidates.filter((c) => passesConditionalGate(grammarType, c.category, mergedContext));
-  const scoped = candidate ? candidates.filter((c) => c.category === candidate.category) : candidates;
-
-  if (scoped.length === 0) {
-    if (candidate) {
-      const kind = getCategoryCompatibilityKind(grammarType, candidate.category);
-      const gateNote = kind === "conditional" ? " (its promotion gate is not satisfied)" : "";
-      return { visible: false, reason: `"${candidate.category}" is not currently offered for ${grammarType}${gateNote}.` };
-    }
-    return { visible: false, reason: "All allowed categories or property slots are occupied." };
-  }
-
-  return {
-    visible: true,
-    candidates: scoped.map((c) => ({ category: c.category, trigger: c.defaultTrigger, properties: c.suggestedProperties, description: c.description })),
-  };
+  return canAddFromBindings(grammarType, bindings, candidate, mergedContext, { id: layerId, hasInFlightTransition: false });
 }
 
 /** Sub-Phase 8.2: a full-document sweep. Everything a static read of `doc` can decide. */
@@ -215,6 +240,8 @@ function validate(doc: MotionDocument): RuleDiagnostic[] {
       }
     }
   }
+
+  diagnostics.push(...findReactiveRuleViolations(doc));
 
   return diagnostics;
 }

@@ -51,22 +51,34 @@ export type InteractiveElementType =
 
 export type MediaElementType = "Video" | "SVG" | "Canvas";
 
+/** Grammar §13.3 (v0.2): the 7 Effect Surface types (3.F.1–3.F.7). */
+export type EffectElementType =
+  | "EffectSurface"
+  | "ShaderLayer"
+  | "ParticleSystem"
+  | "SimulationLayer"
+  | "CursorLayer"
+  | "TextureSource"
+  | "CodeComponent";
+
 export type GrammarElementType =
   | AtomicElementType
   | ContainerElementType
   | StructuralElementType
   | InteractiveElementType
-  | MediaElementType;
+  | MediaElementType
+  | EffectElementType;
 
 export type TopLevelElementCategory =
   | "Atomic"
   | "Container"
   | "Structural"
   | "Interactive"
-  | "Media";
+  | "Media"
+  | "Effect";
 
 // ============================================================================
-// 2. ANIMATION CATEGORIES (10 CATEGORIES)
+// 2. ANIMATION CATEGORIES (11 CATEGORIES, v0.2 adds Reactive)
 // ============================================================================
 
 export type AnimationCategory =
@@ -79,14 +91,17 @@ export type AnimationCategory =
   | "Ambient"
   | "StateTransition"
   | "Stagger"
-  | "LayoutTransition";
+  | "LayoutTransition"
+  | "Reactive";
 
-// Priority hierarchy per Grammar §6.2
+// Priority hierarchy per Grammar §6.2, with Reactive inserted per §13.2 (v0.2):
+// Focus > Press > Hover > StateTransition > Reactive > ScrollLinked > Entrance/Exit > Ambient
 export const CATEGORY_PRIORITY_ORDER: AnimationCategory[] = [
   "Focus",
   "Press",
   "Hover",
   "StateTransition",
+  "Reactive",
   "ScrollLinked",
   "Entrance",
   "Exit",
@@ -112,7 +127,8 @@ export type TriggerType =
   | "OnBlur"
   | "OnStateChange"
   | "OnChildEvent"
-  | "Ambient";
+  | "Ambient"
+  | "Continuous"; // Grammar §13.1 (v0.2): Reactive's trigger, `Continuous(<SignalExpr>)`
 
 export type GrammarStateName =
   | "Default"
@@ -141,7 +157,13 @@ export type GrammarStateName =
   | "Dragging"
   | "ActiveIndex"
   | "HasSelection"
-  | "NoSelection";
+  | "NoSelection"
+  // Cursor Layer states (grammar §13.3, 3.F.5): derived from the hovered target's type.
+  | "Link"
+  | "Text"
+  | "Press"
+  | "Drag"
+  | "Hidden";
 
 // ============================================================================
 // 4. ANIMATION BINDINGS (<AnimationBinding> TUPLE)

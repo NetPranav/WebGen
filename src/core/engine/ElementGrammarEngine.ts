@@ -37,7 +37,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: false,
     defaultStateSet: ["Default"],
     extendedStates: ["Selected"],
-    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "Stagger"],
+    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "Stagger", "Reactive"],
     blockedCategories: ["Press", "Focus", "StateTransition", "Hover", "LayoutTransition"],
     maxSimultaneousTracks: 3,
     transitionGraph: [],
@@ -48,7 +48,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: false,
     defaultStateSet: ["Default"],
     extendedStates: ["Hover", "Active"],
-    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "Ambient", "ScrollLinked", "Stagger"],
+    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "Ambient", "ScrollLinked", "Stagger", "Reactive"],
     blockedCategories: ["Focus", "StateTransition", "LayoutTransition"],
     maxSimultaneousTracks: 3,
     transitionGraph: [],
@@ -58,7 +58,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     category: "Atomic",
     canHaveChildren: false,
     defaultStateSet: ["Default", "Loading", "Error"],
-    allowedCategories: ["Entrance", "Exit", "Hover", "ScrollLinked", "Ambient", "StateTransition", "Stagger"],
+    allowedCategories: ["Entrance", "Exit", "Hover", "ScrollLinked", "Ambient", "StateTransition", "Stagger", "Reactive"],
     blockedCategories: ["Press", "Focus", "LayoutTransition"],
     maxSimultaneousTracks: 4,
     transitionGraph: [
@@ -84,6 +84,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
       "ScrollLinked",
       "Stagger",
       "LayoutTransition",
+      "Reactive",
     ],
     blockedCategories: [],
     maxSimultaneousTracks: 6,
@@ -102,7 +103,8 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     maxNestingDepth: 1,
     defaultStateSet: ["Default", "Focus", "Disabled", "Error", "Empty"],
     extendedStates: ["Success"],
-    allowedCategories: ["Entrance", "Exit", "Focus", "StateTransition", "Ambient", "Stagger"],
+    // Reactive is ⚠️ conditional (grammar §13.5): non-spatial only (glow, border colour).
+    allowedCategories: ["Entrance", "Exit", "Focus", "StateTransition", "Ambient", "Stagger", "Reactive"],
     blockedCategories: ["Hover", "Press", "ScrollLinked", "LayoutTransition"],
     maxSimultaneousTracks: 4,
     transitionGraph: [
@@ -121,7 +123,8 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     maxNestingDepth: 1,
     defaultStateSet: ["Default"],
     extendedStates: ["Selected"],
-    allowedCategories: ["Entrance", "Exit", "StateTransition", "Ambient", "Stagger"],
+    // Reactive is ⚠️ conditional (grammar §13.5): non-spatial only.
+    allowedCategories: ["Entrance", "Exit", "StateTransition", "Ambient", "Stagger", "Reactive"],
     blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "LayoutTransition"],
     maxSimultaneousTracks: 3,
     transitionGraph: [
@@ -134,7 +137,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     category: "Atomic",
     canHaveChildren: false,
     defaultStateSet: ["Default"],
-    allowedCategories: ["Entrance", "ScrollLinked", "Ambient"],
+    allowedCategories: ["Entrance", "ScrollLinked", "Ambient", "Reactive"],
     blockedCategories: ["Exit", "Hover", "Press", "Focus", "StateTransition", "Stagger", "LayoutTransition"],
     maxSimultaneousTracks: 2,
     transitionGraph: [],
@@ -146,7 +149,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     maxNestingDepth: 1,
     defaultStateSet: ["Default", "Loading"],
     extendedStates: ["Selected"],
-    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "StateTransition", "Stagger"],
+    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "StateTransition", "Stagger", "Reactive"],
     blockedCategories: ["Focus", "ScrollLinked", "Ambient", "LayoutTransition"],
     maxSimultaneousTracks: 4,
     transitionGraph: [
@@ -160,7 +163,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     maxNestingDepth: 1,
     defaultStateSet: ["Default", "Hover", "Active", "Focus"],
-    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "Ambient", "Stagger"],
+    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "Ambient", "Stagger", "Reactive"],
     blockedCategories: ["ScrollLinked", "StateTransition", "LayoutTransition"],
     maxSimultaneousTracks: 4,
     transitionGraph: [],
@@ -171,7 +174,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: false,
     defaultStateSet: ["Default"],
     allowedCategories: ["Ambient"],
-    blockedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "ScrollLinked", "StateTransition", "Stagger", "LayoutTransition"],
+    blockedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "ScrollLinked", "StateTransition", "Stagger", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 1,
     transitionGraph: [],
   },
@@ -182,7 +185,8 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     category: "Container",
     canHaveChildren: true,
     defaultStateSet: ["Default"],
-    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "Stagger"],
+    // Reactive is ⚠️ conditional (grammar §13.5): non-spatial, or parallax ≤ 24px.
+    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "Stagger", "Reactive"],
     blockedCategories: ["Hover", "Press", "Focus", "StateTransition", "LayoutTransition"],
     maxSimultaneousTracks: 5,
     transitionGraph: [],
@@ -193,7 +197,8 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Default"],
     extendedStates: ["Hover", "Active"],
-    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "ScrollLinked", "Ambient", "LayoutTransition", "Stagger", "StateTransition"],
+    // Reactive is ⚠️ conditional (grammar §13.5): when promoted (7.3.1) or used as a parallax group.
+    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "ScrollLinked", "Ambient", "LayoutTransition", "Stagger", "StateTransition", "Reactive"],
     blockedCategories: ["Focus"],
     maxSimultaneousTracks: 5,
     transitionGraph: [
@@ -207,7 +212,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Default", "Hover"],
     extendedStates: ["Selected", "Active"],
-    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "ScrollLinked", "Ambient", "StateTransition", "LayoutTransition", "Stagger"],
+    allowedCategories: ["Entrance", "Exit", "Hover", "Press", "ScrollLinked", "Ambient", "StateTransition", "LayoutTransition", "Stagger", "Reactive"],
     blockedCategories: ["Focus"],
     maxSimultaneousTracks: 6,
     transitionGraph: [
@@ -222,7 +227,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Default"],
     allowedCategories: ["Entrance", "Exit", "Stagger", "LayoutTransition", "Ambient"],
-    blockedCategories: ["Hover", "Press", "Focus", "StateTransition", "ScrollLinked"],
+    blockedCategories: ["Hover", "Press", "Focus", "StateTransition", "ScrollLinked", "Reactive"],
     maxSimultaneousTracks: 3,
     transitionGraph: [],
   },
@@ -232,7 +237,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Default"],
     allowedCategories: ["Entrance", "Exit", "Stagger", "LayoutTransition", "ScrollLinked", "Ambient"],
-    blockedCategories: ["Hover", "Press", "Focus", "StateTransition"],
+    blockedCategories: ["Hover", "Press", "Focus", "StateTransition", "Reactive"],
     maxSimultaneousTracks: 4,
     transitionGraph: [],
   },
@@ -243,7 +248,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     defaultStateSet: ["Closed", "Open"],
     extendedStates: ["Loading"],
     allowedCategories: ["StateTransition", "Ambient", "Stagger"],
-    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "LayoutTransition"],
+    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 3,
     isClosedDefault: true,
     transitionGraph: [
@@ -260,7 +265,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     maxNestingDepth: 3,
     defaultStateSet: ["Closed", "Open"],
     allowedCategories: ["StateTransition", "Ambient"],
-    blockedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "ScrollLinked", "Stagger", "LayoutTransition"],
+    blockedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "ScrollLinked", "Stagger", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 2,
     isClosedDefault: true,
     transitionGraph: [
@@ -275,7 +280,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     defaultStateSet: ["Closed", "Open"],
     extendedStates: ["Disabled"],
     allowedCategories: ["StateTransition", "LayoutTransition", "Stagger"],
-    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient"],
+    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient", "Reactive"],
     maxSimultaneousTracks: 3,
     isClosedDefault: true,
     transitionGraph: [
@@ -291,7 +296,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Default", "Loading"],
     allowedCategories: ["Entrance", "Exit", "Ambient", "Stagger"],
-    blockedCategories: ["Hover", "Press", "Focus", "StateTransition", "ScrollLinked", "LayoutTransition"],
+    blockedCategories: ["Hover", "Press", "Focus", "StateTransition", "ScrollLinked", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 3,
     transitionGraph: [
       { from: "Loading", to: "Default" },
@@ -304,7 +309,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     defaultStateSet: ["Default"],
     extendedStates: ["Scrolled"],
     allowedCategories: ["Entrance", "StateTransition", "ScrollLinked", "Stagger"],
-    blockedCategories: ["Exit", "Hover", "Press", "Focus", "Ambient", "LayoutTransition"],
+    blockedCategories: ["Exit", "Hover", "Press", "Focus", "Ambient", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 3,
     transitionGraph: [
       { from: "Default", to: "Scrolled", description: "Shrink navbar on scroll" },
@@ -317,7 +322,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Default"],
     allowedCategories: ["Entrance", "ScrollLinked", "Stagger"],
-    blockedCategories: ["Exit", "Hover", "Press", "Focus", "StateTransition", "Ambient", "LayoutTransition"],
+    blockedCategories: ["Exit", "Hover", "Press", "Focus", "StateTransition", "Ambient", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 2,
     transitionGraph: [],
   },
@@ -328,7 +333,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     maxNestingDepth: 1,
     defaultStateSet: ["Empty", "Filled"],
     allowedCategories: ["StateTransition"],
-    blockedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "ScrollLinked", "Ambient", "Stagger", "LayoutTransition"],
+    blockedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "ScrollLinked", "Ambient", "Stagger", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 1,
     transitionGraph: [
       { from: "Empty", to: "Filled" },
@@ -343,7 +348,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Default", "Submitting", "Success", "Error"],
     allowedCategories: ["StateTransition", "Stagger", "Entrance", "Exit"],
-    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient", "LayoutTransition"],
+    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 4,
     transitionGraph: [
       { from: "Default", to: "Submitting" },
@@ -359,7 +364,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Closed", "Open", "Disabled"],
     allowedCategories: ["StateTransition", "Stagger"],
-    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient", "Entrance", "Exit", "LayoutTransition"],
+    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient", "Entrance", "Exit", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 3,
     isClosedDefault: true,
     transitionGraph: [
@@ -375,7 +380,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     defaultStateSet: ["Unchecked", "Checked", "Disabled"],
     extendedStates: ["Indeterminate"],
     allowedCategories: ["StateTransition", "Hover", "Focus", "Entrance", "Exit", "Stagger"],
-    blockedCategories: ["Press", "ScrollLinked", "Ambient", "LayoutTransition"],
+    blockedCategories: ["Press", "ScrollLinked", "Ambient", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 3,
     pressMergesWithStateTransition: true,
     transitionGraph: [
@@ -390,7 +395,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     maxNestingDepth: 2,
     defaultStateSet: ["NoSelection", "HasSelection", "Disabled"],
     allowedCategories: ["StateTransition", "Stagger", "LayoutTransition"],
-    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient", "Entrance", "Exit"],
+    blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient", "Entrance", "Exit", "Reactive"],
     maxSimultaneousTracks: 3,
     transitionGraph: [
       { from: "NoSelection", to: "HasSelection" },
@@ -403,7 +408,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: false,
     defaultStateSet: ["Off", "On", "Disabled"],
     allowedCategories: ["StateTransition", "Focus", "Stagger"],
-    blockedCategories: ["Hover", "Press", "Entrance", "Exit", "ScrollLinked", "Ambient", "LayoutTransition"],
+    blockedCategories: ["Hover", "Press", "Entrance", "Exit", "ScrollLinked", "Ambient", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 2,
     pressMergesWithStateTransition: true,
     transitionGraph: [
@@ -417,7 +422,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: false,
     defaultStateSet: ["Default", "Dragging", "Focus", "Disabled"],
     allowedCategories: ["StateTransition", "Focus"],
-    blockedCategories: ["Hover", "Press", "Entrance", "Exit", "ScrollLinked", "Ambient", "Stagger", "LayoutTransition"],
+    blockedCategories: ["Hover", "Press", "Entrance", "Exit", "ScrollLinked", "Ambient", "Stagger", "LayoutTransition", "Reactive"],
     maxSimultaneousTracks: 2,
     transitionGraph: [
       { from: "Default", to: "Dragging" },
@@ -429,7 +434,8 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     category: "Interactive",
     canHaveChildren: true,
     defaultStateSet: ["ActiveIndex"],
-    allowedCategories: ["StateTransition", "Stagger"],
+    // Reactive is ⚠️ conditional (grammar §13.5): the group's own hover-indicator binding (7.4 pattern).
+    allowedCategories: ["StateTransition", "Stagger", "Reactive"],
     blockedCategories: ["Hover", "Press", "Focus", "ScrollLinked", "Ambient", "Entrance", "Exit", "LayoutTransition"],
     maxSimultaneousTracks: 3,
     transitionGraph: [
@@ -444,7 +450,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     maxNestingDepth: 1,
     defaultStateSet: ["Paused", "Playing", "Loading", "Ended"],
-    allowedCategories: ["Entrance", "Exit", "StateTransition", "ScrollLinked", "Ambient", "Stagger"],
+    allowedCategories: ["Entrance", "Exit", "StateTransition", "ScrollLinked", "Ambient", "Stagger", "Reactive"],
     blockedCategories: ["Hover", "Press", "Focus", "LayoutTransition"],
     maxSimultaneousTracks: 4,
     transitionGraph: [
@@ -460,7 +466,7 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     canHaveChildren: true,
     defaultStateSet: ["Default"],
     extendedStates: ["Hover", "Active"],
-    allowedCategories: ["Entrance", "Exit", "Hover", "ScrollLinked", "Ambient", "StateTransition", "Stagger"],
+    allowedCategories: ["Entrance", "Exit", "Hover", "ScrollLinked", "Ambient", "StateTransition", "Stagger", "Reactive"],
     blockedCategories: ["Press", "Focus", "LayoutTransition"],
     maxSimultaneousTracks: 4,
     transitionGraph: [],
@@ -470,12 +476,112 @@ export const TYPE_REGISTRY: Record<GrammarElementType, ElementTypeContract> = {
     category: "Media",
     canHaveChildren: false,
     defaultStateSet: ["Default", "Loading"],
-    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient"],
+    // Reactive is ⚠️ conditional (grammar §13.5): only through exposed parameters; internals stay opaque.
+    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "Reactive"],
     blockedCategories: ["Hover", "Press", "Focus", "StateTransition", "Stagger", "LayoutTransition"],
     maxSimultaneousTracks: 3,
     transitionGraph: [
       { from: "Loading", to: "Default" },
     ],
+  },
+
+  // 3.F Effect Surfaces (grammar §13.3, v0.2)
+  EffectSurface: {
+    type: "EffectSurface",
+    category: "Effect",
+    canHaveChildren: false,
+    defaultStateSet: ["Default", "Paused"],
+    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "StateTransition", "Reactive"],
+    blockedCategories: ["Hover", "Press", "Focus", "Stagger", "LayoutTransition"],
+    maxSimultaneousTracks: 4,
+    transitionGraph: [
+      { from: "Default", to: "Paused" },
+      { from: "Paused", to: "Default" },
+    ],
+  },
+  ShaderLayer: {
+    type: "ShaderLayer",
+    category: "Effect",
+    canHaveChildren: false,
+    defaultStateSet: ["Default", "Paused"],
+    // Hover/Press are ⚠️ conditional: single-child promotion only (7.3.2), when this layer is an interactive parent's visual.
+    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "StateTransition", "Stagger", "Reactive", "Hover", "Press"],
+    blockedCategories: ["Focus", "LayoutTransition"],
+    maxSimultaneousTracks: 4,
+    transitionGraph: [
+      { from: "Default", to: "Paused" },
+      { from: "Paused", to: "Default" },
+    ],
+  },
+  ParticleSystem: {
+    type: "ParticleSystem",
+    category: "Effect",
+    canHaveChildren: false,
+    defaultStateSet: ["Default", "Paused"],
+    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "StateTransition", "Reactive"],
+    blockedCategories: ["Hover", "Press", "Focus", "Stagger", "LayoutTransition"],
+    maxSimultaneousTracks: 4,
+    transitionGraph: [
+      { from: "Default", to: "Paused" },
+      { from: "Paused", to: "Default" },
+    ],
+  },
+  SimulationLayer: {
+    type: "SimulationLayer",
+    category: "Effect",
+    canHaveChildren: false,
+    defaultStateSet: ["Default", "Paused"],
+    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "StateTransition", "Reactive"],
+    blockedCategories: ["Hover", "Press", "Focus", "Stagger", "LayoutTransition"],
+    maxSimultaneousTracks: 3,
+    transitionGraph: [
+      { from: "Default", to: "Paused" },
+      { from: "Paused", to: "Default" },
+    ],
+  },
+  CursorLayer: {
+    type: "CursorLayer",
+    category: "Effect",
+    canHaveChildren: true,
+    maxNestingDepth: 1,
+    defaultStateSet: ["Default", "Link", "Text", "Press", "Drag", "Hidden"],
+    allowedCategories: ["Ambient", "StateTransition", "Reactive"],
+    blockedCategories: ["Entrance", "Exit", "Hover", "Focus", "ScrollLinked", "Stagger", "LayoutTransition"],
+    maxSimultaneousTracks: 2,
+    transitionGraph: [
+      { from: "Default", to: "Link" },
+      { from: "Link", to: "Default" },
+      { from: "Default", to: "Text" },
+      { from: "Text", to: "Default" },
+      { from: "Default", to: "Press" },
+      { from: "Press", to: "Default" },
+      { from: "Default", to: "Drag" },
+      { from: "Drag", to: "Default" },
+      { from: "Default", to: "Hidden" },
+      { from: "Hidden", to: "Default" },
+    ],
+  },
+  TextureSource: {
+    type: "TextureSource",
+    category: "Effect",
+    canHaveChildren: false,
+    defaultStateSet: ["Default"],
+    allowedCategories: [],
+    blockedCategories: ["Entrance", "Exit", "Hover", "Press", "Focus", "ScrollLinked", "Ambient", "StateTransition", "Stagger", "LayoutTransition", "Reactive"],
+    maxSimultaneousTracks: 0,
+    transitionGraph: [],
+  },
+  CodeComponent: {
+    type: "CodeComponent",
+    category: "Effect",
+    canHaveChildren: true,
+    maxNestingDepth: 1,
+    defaultStateSet: ["Default"],
+    // Hover/Press/Focus/StateTransition are ⚠️ conditional: only when the component's own controls declare them.
+    allowedCategories: ["Entrance", "Exit", "ScrollLinked", "Ambient", "Stagger", "Reactive", "Hover", "Press", "Focus", "StateTransition"],
+    blockedCategories: ["LayoutTransition"],
+    maxSimultaneousTracks: 6,
+    transitionGraph: [],
   },
 };
 
@@ -673,6 +779,19 @@ export class ElementGrammarEngineService {
             defaultTrigger: "OnStateChange",
             suggestedProperties: ["transform.x", "transform.y"],
             description: "Smooth FLIP reflow when siblings change size or reorder",
+          },
+        ];
+      case "Reactive":
+        // Grammar §13.2 (v0.2): a continuous response to a signal (pointer, scroll,
+        // proximity, or another layer's state). The concrete signal chain and
+        // target (uniform/param/property) are authored per binding, not templated
+        // here — this is a generic starting offer for the "+" menu.
+        return [
+          {
+            category: "Reactive",
+            defaultTrigger: "Continuous",
+            suggestedProperties: ["transform.x", "transform.y"],
+            description: "Continuously react to a signal (pointer, scroll, proximity, or another layer)",
           },
         ];
       default:

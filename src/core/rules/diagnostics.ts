@@ -32,6 +32,14 @@ export function a11yFlashDiagnostic(params: { layerId: string; message: string; 
   return { code: "A11Y_FLASH", layerId: params.layerId, message: params.message, suggestion: params.suggestion, clipId: params.clipId };
 }
 
+export function signalCycleDiagnostic(params: { layerId: string; message: string; suggestion: string }): RuleDiagnostic {
+  return { code: "SIGNAL_CYCLE", layerId: params.layerId, message: params.message, suggestion: params.suggestion };
+}
+
+export function inputTouchDiagnostic(params: { layerId: string; message: string; suggestion: string }): RuleDiagnostic {
+  return { code: "INPUT_TOUCH", layerId: params.layerId, message: params.message, suggestion: params.suggestion };
+}
+
 export function explain(diagnostic: RuleDiagnostic): string {
   return `[${diagnostic.code}] ${diagnostic.message}`;
 }
@@ -45,6 +53,8 @@ const SEVERITY_BY_CODE: Record<RuleDiagnostic["code"], DiagnosticSeverity> = {
   STA_CONFLICT: "error",
   PERF_LAYOUT: "warning",
   A11Y_FLASH: "error",
+  SIGNAL_CYCLE: "error",
+  INPUT_TOUCH: "warning",
 };
 
 /** Forwards a rule diagnostic to Panel 07's Output Log via `DiagnosticBus`. */

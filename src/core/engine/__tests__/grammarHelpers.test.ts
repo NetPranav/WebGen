@@ -96,9 +96,11 @@ describe("Grammar UI & Runtime Helpers", () => {
       assert.equal(hover.priority, 3);
       assert.equal(hover.badge, "P#3");
 
+      // Grammar §13.2 (v0.2) inserts Reactive between StateTransition and
+      // ScrollLinked, so Entrance moves from P#6 to P#7.
       const entrance = getCategoryPriorityInfo("Entrance");
-      assert.equal(entrance.priority, 6);
-      assert.equal(entrance.badge, "P#6");
+      assert.equal(entrance.priority, 7);
+      assert.equal(entrance.badge, "P#7");
     });
   });
 });

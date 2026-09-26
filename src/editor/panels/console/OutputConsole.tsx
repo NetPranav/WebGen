@@ -26,7 +26,8 @@ import {
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { DatabaseValidator } from "@/core/engine/DatabaseValidator";
 import { ConnectionPipeline } from "@/core/engine/ConnectionPipeline";
-import { AnimationValidator } from "@/core/engine/AnimationValidator";
+// Phase 8, Sub-Phase 8.4: track compatibility goes through the rules engine, not the validator directly.
+import { validateTrackCompatibility } from "@/core/rules";
 import { GSAPTimelineCompiler } from "@/core/engine/GSAPTimelineCompiler";
 import { DiagnosticEvent } from "@/core/types/diagnostics";
 import "@/editor/styles/panels.css";
@@ -376,7 +377,7 @@ export const OutputConsole: React.FC = () => {
         ],
       };
 
-      const valRes = AnimationValidator.validateSampleForElement(
+      const valRes = validateTrackCompatibility(
         sampleWithIncompatibleTrack,
         {
           elementId: "img_hero_banner",

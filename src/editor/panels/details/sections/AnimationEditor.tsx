@@ -31,7 +31,8 @@ import {
   CubicBezierHandle,
 } from "@/core/types/animations";
 import type { ArchetypeId } from "@/core/document/registry";
-import { AnimationValidator } from "@/core/engine/AnimationValidator";
+// Phase 8, Sub-Phase 8.4: track compatibility goes through the rules engine, not the validator directly.
+import { validateTrackCompatibility } from "@/core/rules";
 import { KeyframeTimeline } from "../controls/KeyframeTimeline";
 import { BezierCurveModal } from "../controls/BezierCurveModal";
 import "@/editor/styles/panels.css";
@@ -60,10 +61,10 @@ export const AnimationEditor: React.FC<AnimationEditorProps> = ({
   const allSamples = Object.values(animationSamples);
   const activeSample = attachedSampleId ? animationSamples[attachedSampleId] : allSamples[0];
 
-  // Evaluate track compatibility in real time using AnimationValidator
+  // Evaluate track compatibility in real time via the Phase 8 rules engine
   const compatibilityResult = useMemo(() => {
     if (!activeSample) return null;
-    return AnimationValidator.validateSampleForElement(activeSample, {
+    return validateTrackCompatibility(activeSample, {
       elementId,
       elementName,
       archetype,

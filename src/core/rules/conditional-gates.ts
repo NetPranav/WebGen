@@ -38,7 +38,28 @@ const CONDITIONAL_CELLS: Array<{ cell: Cell; gate: ConditionalGateKind }> = [
   { cell: ["Checkbox", "Entrance"], gate: "stagger-context" },
   { cell: ["Checkbox", "Exit"], gate: "stagger-context" },
   { cell: ["Radio", "LayoutTransition"], gate: "group-indicator" },
+
+  // Grammar §13.5 (v0.2): the Reactive column's ⚠️ cells for the v0.1 types.
+  { cell: ["Input", "Reactive"], gate: "non-spatial-reactive" }, // non-spatial only (glow, border colour)
+  { cell: ["Badge", "Reactive"], gate: "non-spatial-reactive" }, // non-spatial only
+  { cell: ["Section", "Reactive"], gate: "non-spatial-reactive" }, // non-spatial (the ≤24px parallax exception is not modelled)
+  { cell: ["Container", "Reactive"], gate: "explicit-promotion" }, // when promoted (7.3.1) or used as a parallax group
+  { cell: ["Tabs", "Reactive"], gate: "group-indicator" }, // the group's own hover-indicator binding (7.4 pattern)
+  { cell: ["Canvas", "Reactive"], gate: "component-declared" }, // only through exposed parameters; internals stay opaque
+
+  // Grammar §13.6 (v0.2): the 3.F Effect Surface types' ⚠️ cells.
+  { cell: ["ShaderLayer", "Hover"], gate: "single-child-promotion" },
+  { cell: ["ShaderLayer", "Press"], gate: "single-child-promotion" },
+  { cell: ["CodeComponent", "Hover"], gate: "component-declared" },
+  { cell: ["CodeComponent", "Press"], gate: "component-declared" },
+  { cell: ["CodeComponent", "Focus"], gate: "component-declared" },
+  { cell: ["CodeComponent", "StateTransition"], gate: "component-declared" },
 ];
+
+/** §13.5 (v0.2): properties allowed on a `non-spatial-reactive` gate — never `transform.*`. */
+function isNonSpatialProperty(property: string): boolean {
+  return !property.startsWith("transform.");
+}
 
 /**
  * Grammar §9.1's one 🔒 cell that isn't already derivable from
@@ -122,6 +143,11 @@ export function passesConditionalGate(
       return !context.inheritsStagger;
     case "group-indicator":
       return Boolean(context.isGroupIndicatorBinding);
+    case "non-spatial-reactive":
+      // Fails closed: with no declared candidate properties, we can't prove they're non-spatial.
+      return Boolean(context.candidateProperties?.length) && context.candidateProperties!.every(isNonSpatialProperty);
+    case "component-declared":
+      return Boolean(context.componentDeclaresInteraction);
     default:
       return false;
   }
