@@ -8,13 +8,16 @@ import { SCHEMA_VERSION, validateMotionDocument, type ExportSettings, type Motio
 import { migrateElementsToDocument, repairTree } from "./v1-to-v2";
 import { migrateV2ToV3 } from "./v2-to-v3";
 import { migrateV3ToV4 } from "./v3-to-v4";
+import { migrateV4ToV5 } from "./v4-to-v5";
+import { syncCompositions } from "../compositions";
 import { coercePropertyValue, getPropertyDefinition, isCanonicalPath, isPropertyLegalFor, validateGeometryValues, validatePropertyValues } from "../properties";
 import { isEasing } from "../motion";
 import { bindingLayerRefs } from "../signals";
 
 export { migrateAttachedAnimation, migrateTrigger, LEGACY_TRIGGER_MAP, toPropValue } from "./v1-to-v2";
 export { migrateV2ToV3, type MigrationReportEntry, type V3Document } from "./v2-to-v3";
-export { migrateV3ToV4, DEFAULT_BEHAVIOUR_PARAMS } from "./v3-to-v4";
+export { migrateV3ToV4, DEFAULT_BEHAVIOUR_PARAMS, type V4Document } from "./v3-to-v4";
+export { migrateV4ToV5 } from "./v4-to-v5";
 
 /** The parts of a stored project snapshot that can hold document data, in any version. */
 export interface DocumentSource {
@@ -28,8 +31,8 @@ export interface DocumentSource {
 export class DocumentVersionError extends Error {}
 
 /**
- * Returns a valid current-version document from v1–v4 data. Older data is
- * migrated forward one version at a time (v1 → v2 → v3 → v4); v4 data with
+ * Returns a valid current-version document from v1–v5 data. Older data is
+ * migrated forward one version at a time (v1 → v2 → v3 → v4 → v5); v5 data with
  * broken tree links or invalid props is repaired. Throws only for documents
  * from a newer schema version or data that cannot be repaired.
  */
@@ -44,14 +47,17 @@ export function loadDocument(source: DocumentSource): MotionDocument {
       );
     }
     if (version === SCHEMA_VERSION) return validateOrRepair(raw);
-    if (version === 3) return validateOrRepair(migrateV3ToV4(raw as Record<string, unknown>).document);
-    if (version === 2) return validateOrRepair(migrateV3ToV4(migrateV2ToV3(raw).document).document);
+    if (version === 4) return validateOrRepair(migrateV4ToV5(raw as Record<string, unknown>).document);
+    if (version === 3) return validateOrRepair(migrateV4ToV5(migrateV3ToV4(raw as Record<string, unknown>).document).document);
+    if (version === 2) return validateOrRepair(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(raw).document).document).document);
   }
 
   const target = source.target && typeof source.target === "object" ? (source.target as Partial<ExportSettings>) : undefined;
   const exportSettings = target ? stripUndefined(target) : undefined;
   // v1 → v2 builds the document with v2 prop names; v2 → v3 renames them.
-  return validateOrRepair(migrateV3ToV4(migrateV2ToV3(migrateElementsToDocument(source.elements, exportSettings)).document).document);
+  return validateOrRepair(
+    migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateElementsToDocument(source.elements, exportSettings)).document).document).document
+  );
 }
 
 function validateOrRepair(data: unknown): MotionDocument {
@@ -132,7 +138,7 @@ export function removeLayerDependents(doc: MotionDocument, layerIds: ReadonlySet
 export function normalizeDocument(doc: MotionDocument): MotionDocument {
   repairTree(doc);
   for (const [collection] of LAYER_OWNED_COLLECTIONS) if (!doc[collection] || typeof doc[collection] !== "object") (doc as Record<string, unknown>)[collection] = {};
-  for (const collection of ["sequences", "inputTapes", "graphs"] as const) if (!doc[collection] || typeof doc[collection] !== "object") doc[collection] = {};
+  for (const collection of ["sequences", "inputTapes", "graphs", "compositions"] as const) if (!doc[collection] || typeof doc[collection] !== "object") doc[collection] = {};
   const missing = new Set<string>();
   for (const [collection, field] of LAYER_OWNED_COLLECTIONS) {
     for (const entity of Object.values(doc[collection] as unknown as Record<string, Record<string, unknown>>)) {
@@ -175,6 +181,7 @@ export function normalizeDocument(doc: MotionDocument): MotionDocument {
       }
     }
   }
+  syncCompositions(doc);
   return doc;
 }
 

@@ -148,5 +148,7 @@ export const EffectInstanceSchema = z.strictObject({
   /** Keyed by the definition's binding key; strength scales the binding's output. */
   bindingOverrides: z.record(z.string().min(1), z.strictObject({ enabled: z.boolean().optional(), strength: z.number().min(0).max(2).optional() })),
   seed: z.number().int().min(0),
+  /** Phase 46.3: the effect's own timeline placed in a composition (an effect instance is a composition with exposed props). */
+  time: z.strictObject({ compositionId: Id, start: Finite, stretch: z.number().gt(0).max(100) }).optional(),
 });
 export type EffectInstance = z.infer<typeof EffectInstanceSchema>;

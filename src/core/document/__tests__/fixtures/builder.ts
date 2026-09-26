@@ -11,6 +11,7 @@ import { splitGraphemes, type Component, type Generator } from "../../kinetics";
 import type { Surface, InputTape, EffectInstance } from "../../effects";
 import type { InteractionGraph, GraphNode } from "../../graph";
 import type { LayerState, Transition, Sequence } from "../../motion";
+import { syncCompositions } from "../../compositions";
 
 type Draft<T> = T extends unknown ? Omit<T, "id" | "layerId"> : never;
 
@@ -147,7 +148,9 @@ export class DocBuilder {
     return id;
   }
 
+  /** Places every clip in a composition, as the store does on every write (Phase 46). */
   build(): MotionDocument {
+    syncCompositions(this.doc);
     return this.doc;
   }
 }

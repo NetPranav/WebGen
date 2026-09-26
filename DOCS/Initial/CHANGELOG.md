@@ -9,6 +9,34 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.5.0] — 2026-09-26
+
+### Phase 46 (Compositions, Layer Time Bars & Nesting): implemented, awaiting CI
+
+The After Effects time model inside the document, with the web's trigger model expressed in it (`decisions/0002-time-model.md`). Schema **v4 → v5**.
+
+#### Added
+- **`src/core/document/compositions.ts`**:
+  - `Composition` (main, interaction or precomp), sparse layer time bars, clip placements, nested precomps with time remap, and markers;
+  - golden-tested time maths (`layerTime`, `clipTime`, `remapTime`, `childTime`, `compositionTimes`, `clipTimeInComposition`);
+  - `syncCompositions`.
+- **`migrations/v4-to-v5.ts`**: adds `comp_main`, places every clip, and reports each placement.
+- **Effects:** an effect definition's template may carry a composition, and instances place it with `time`.
+- **Tests:**
+  - `__tests__/compositions.test.ts` (39): golden edges, stretch, remap, nesting, the gate, planted mistakes, sync and migration;
+  - `__tests__/fixtures/intro-sequence.ts`: a 3-scene intro with a nested composition;
+  - `tests/e2e/composition-migration.spec.ts` with `tests/e2e/fixtures/showcase-v4.lazy.json`.
+- **`DOCS/order.md`**: every phase in a dependency-checked execution order.
+- **`decisions/0002-time-model.md`**.
+
+#### Changed
+- The store's `commit` runs `syncCompositions` after every write, and `createDocumentFromLayers` and repair do too.
+- `loadDocument` chains to v5.
+- The e2e screenshot helpers moved to `tests/e2e/support/editor.ts`.
+- SCHEMA_REFERENCE §0 (v5); ROADMAP Phase 46 is `[~]` with a progress log, and §5.1 points to `DOCS/order.md`; AUDIT AUD-36 is in progress.
+
+---
+
 ## [3.4.0] — 2026-09-26
 
 ### Phase 7 (Motion Primitives): complete — CI green on PR #13

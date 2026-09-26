@@ -42,6 +42,7 @@ import { BindingSchema } from "./signals";
 import { SurfaceSchema, InputTapeSchema, EffectInstanceSchema } from "./effects";
 import { InteractionGraphSchema } from "./graph";
 import { ComponentSchema, GeneratorSchema, PinsSchema, TagSchema } from "./kinetics";
+import { CompositionSchema, createMainComposition, MAIN_COMPOSITION_ID } from "./compositions";
 import { checkReferences } from "./references";
 
 /**
@@ -54,8 +55,12 @@ import { checkReferences } from "./references";
  * effect instances (7.4); bindings, surfaces, input tapes and interaction
  * graphs (7.5); Track K pins, tags, components and Split/Clone generators
  * (7.5 v3.2); shape and effect-surface archetypes (7.6).
+ *
+ * v5 (Phase 46): compositions — the After Effects time model. A `main`
+ * composition plus interaction compositions for triggered clips, layer time
+ * bars, nesting with stretch and time remap, markers (compositions.ts).
  */
-export const SCHEMA_VERSION = 4 as const;
+export const SCHEMA_VERSION = 5 as const;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -148,6 +153,7 @@ const MotionDocumentShape = z.object({
   effects: z.record(IdSchema, EffectInstanceSchema),
   components: z.record(IdSchema, ComponentSchema),
   generators: z.record(IdSchema, GeneratorSchema),
+  compositions: z.record(IdSchema, CompositionSchema),
   tokens: TokensSchema,
   exportSettings: ExportSettingsSchema,
 });
@@ -207,6 +213,7 @@ export type { Binding, BindingDraft } from "./signals";
 export type { Surface, InputTape, EffectInstance } from "./effects";
 export type { InteractionGraph } from "./graph";
 export type { Component, Generator } from "./kinetics";
+export type { Composition, CompositionLayer, NestedComposition, Marker, TimeRemap } from "./compositions";
 export type Layer = z.infer<typeof LayerSchema>;
 export type Tokens = z.infer<typeof TokensSchema>;
 export type ExportSettings = z.infer<typeof ExportSettingsSchema>;
@@ -287,6 +294,7 @@ export function createEmptyDocument(overrides: Partial<Pick<MotionDocument, "exp
     effects: {},
     components: {},
     generators: {},
+    compositions: { [MAIN_COMPOSITION_ID]: createMainComposition() },
     tokens: { colors: {}, spacing: {}, radii: {} },
     exportSettings: { ...DEFAULT_EXPORT_SETTINGS, ...overrides.exportSettings },
   };

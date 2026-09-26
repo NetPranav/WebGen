@@ -1,0 +1,272 @@
+{
+  "format": "lazylayout-project",
+  "formatVersion": 1,
+  "schemaVersion": 4,
+  "exportedAt": "2026-09-26T09:25:39.540Z",
+  "project": {
+    "name": "Showcase Demo",
+    "settings": {
+      "framework": "nextjs-app"
+    }
+  },
+  "snapshot": {
+    "projectId": "project_showcase_demo",
+    "projectName": "Showcase Demo",
+    "scope": "element",
+    "rootArchetype": "container",
+    "activePageId": "page_home",
+    "pages": {
+      "page_home": {
+        "id": "page_home",
+        "name": "Home",
+        "slug": "/",
+        "rootElementId": "el_root_container"
+      }
+    },
+    "document": {
+      "schemaVersion": 4,
+      "layers": {
+        "el_root_container": {
+          "id": "el_root_container",
+          "name": "RootContainer",
+          "archetype": "container",
+          "parentId": null,
+          "properties": {
+            "layout.display": "flex",
+            "layout.flexDirection": "column",
+            "layout.gap": 16,
+            "layout.padding": 24
+          },
+          "children": [
+            "el_hero_heading",
+            "el_buy_button"
+          ]
+        },
+        "el_hero_heading": {
+          "id": "el_hero_heading",
+          "name": "HeroHeading",
+          "archetype": "text",
+          "parentId": "el_root_container",
+          "properties": {
+            "content.text": "Unreal Engine for Web Applications",
+            "typography.fontSize": 32,
+            "typography.fontWeight": 700,
+            "typography.color": "#0F172A"
+          },
+          "children": []
+        },
+        "el_buy_button": {
+          "id": "el_buy_button",
+          "name": "BuyButton",
+          "archetype": "button",
+          "parentId": "el_root_container",
+          "properties": {
+            "content.label": "Get Started Free",
+            "interaction.disabled": false,
+            "appearance.background.color": "#206859"
+          },
+          "children": []
+        }
+      },
+      "clips": {},
+      "states": {},
+      "behaviours": {},
+      "sequences": {},
+      "transitions": {},
+      "bindings": {},
+      "surfaces": {},
+      "inputTapes": {},
+      "graphs": {},
+      "effects": {},
+      "components": {},
+      "generators": {},
+      "tokens": {
+        "colors": {},
+        "spacing": {},
+        "radii": {}
+      },
+      "exportSettings": {
+        "framework": "nextjs-app",
+        "styling": "tailwind",
+        "animation": "gsap",
+        "language": "typescript"
+      }
+    },
+    "databaseSchemas": {
+      "Products": {
+        "id": "col_products",
+        "name": "Products",
+        "displayName": "Products",
+        "fields": {
+          "id": {
+            "id": "f_id",
+            "name": "id",
+            "type": "Int",
+            "isPrimaryKey": true
+          },
+          "title": {
+            "id": "f_title",
+            "name": "title",
+            "type": "String"
+          },
+          "price": {
+            "id": "f_price",
+            "name": "price",
+            "type": "Float"
+          },
+          "inStock": {
+            "id": "f_stock",
+            "name": "inStock",
+            "type": "Boolean"
+          }
+        }
+      }
+    },
+    "databaseRecords": {
+      "Products": [
+        {
+          "id": 1,
+          "title": "Pro Subscription",
+          "price": 29.99,
+          "inStock": true
+        },
+        {
+          "id": 2,
+          "title": "Enterprise License",
+          "price": 199,
+          "inStock": true
+        }
+      ]
+    },
+    "stateVariables": {
+      "cartTotal": {
+        "id": "cartTotal",
+        "name": "cartTotal",
+        "type": "number",
+        "value": 0,
+        "defaultValue": 0,
+        "scope": "global",
+        "description": "Total value of items in checkout"
+      },
+      "isUserLoggedIn": {
+        "id": "isUserLoggedIn",
+        "name": "isUserLoggedIn",
+        "type": "boolean",
+        "value": false,
+        "defaultValue": false,
+        "scope": "global",
+        "description": "Current authentication status"
+      }
+    },
+    "animationSamples": {
+      "sample_btn_pulse": {
+        "id": "sample_btn_pulse",
+        "name": "Buy Button Pulse",
+        "duration": 1000,
+        "easing": "power2.inOut",
+        "iterations": 1,
+        "direction": "normal",
+        "fillMode": "forwards",
+        "tracks": [
+          {
+            "trackId": "scale",
+            "keyframes": [
+              {
+                "offset": 0,
+                "value": 1,
+                "easing": "power2.out"
+              },
+              {
+                "offset": 50,
+                "value": 1.05,
+                "easing": "power2.inOut"
+              },
+              {
+                "offset": 100,
+                "value": 1,
+                "easing": "power2.out"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "bindings": {},
+    "databaseLatches": {},
+    "blueprintGraphs": {
+      "graph_main_event": {
+        "id": "graph_main_event",
+        "name": "Main Event Graph",
+        "type": "event",
+        "nodes": {},
+        "wires": [],
+        "variables": []
+      }
+    },
+    "activeBlueprintGraphId": "graph_main_event",
+    "redirectRules": {},
+    "environment": {
+      "viewport": {
+        "pan": {
+          "enabled": true,
+          "trigger": "space_drag"
+        },
+        "zoom": {
+          "enabled": true,
+          "speed": "normal",
+          "min": 10,
+          "max": 400
+        },
+        "grid": {
+          "style": "dots",
+          "size": 24
+        },
+        "axes": {
+          "enabled": true
+        }
+      },
+      "elements": {
+        "dragEnabled": true,
+        "autoReparent": true,
+        "collision": "pass_through",
+        "marqueeMode": "intersects"
+      },
+      "snapping": {
+        "snapToGrid": true,
+        "snapToElements": true,
+        "details": {
+          "distanceHUD": true,
+          "magneticDistance": 8,
+          "rotationStep": 15,
+          "equalDistribution": true
+        }
+      },
+      "theme": {
+        "palette": "clean_light",
+        "defaultRadius": 12,
+        "typography": {
+          "family": "Inter",
+          "scaleRatio": 1.25
+        },
+        "elevation": "subtle_float",
+        "feedback": "subtle_lift"
+      },
+      "motion": {
+        "timeScale": 1,
+        "springPreset": "snappy",
+        "spring": {
+          "stiffness": 180,
+          "damping": 24,
+          "mass": 1
+        },
+        "reducedMotion": false
+      },
+      "diagnostics": {
+        "inspectMode": false
+      }
+    }
+  },
+  "assets": {
+    "linked": []
+  }
+}

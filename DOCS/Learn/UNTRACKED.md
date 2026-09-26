@@ -122,6 +122,8 @@
 | `src/core/document/kinetics.ts` | ⬜ | Phase 7.5 Track K: pins, tags, Follow/Field/Effector/Collider/Body components, Split/Clone generators |
 | `src/core/document/behaviour-presets.ts` | ⬜ | Phase 7.5: expands each behaviour into bindings (or a body / looping clip) |
 | `src/core/document/references.ts` | ⬜ | Cross-entity validation: every id, pin, tag, state, uniform and property path resolves |
+| `src/core/document/compositions.ts` | ⬜ | Phase 46 time model: main/interaction/precomp compositions, layer time bars, nesting, markers, time maths |
+| `src/core/document/migrations/v4-to-v5.ts` | ⬜ | Schema migration from version 4 → 5 (Phase 46): adds the main composition and places every clip |
 
 ---
 
