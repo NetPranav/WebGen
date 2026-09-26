@@ -9,6 +9,19 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.7.0] — 2026-09-26
+
+### Phase 9 (Deterministic Evaluation Kernel): complete — Verification Gate green, no PR yet
+
+A pure function gives the exact value of any animated property at any time, for any inputs — the oracle for preview, export parity, AI verification and scrubbing (`decisions/0007-deterministic-evaluation-kernel.md`).
+
+#### Added
+- **`src/core/kernel/`**: `easing.ts` (named GSAP-family formulas ported from `gsap-core.js`'s own source, `cubic-bezier()`'s Newton-Raphson/bisection solver, CSS `steps()`), `springs.ts` (perceptual→physical conversion ported from Motion's own `spring.mjs`, an analytic under/critically/over-damped integrator with velocity handoff, cross-engine converters), `color.ts` (sRGB ⇄ OKLab, Björn Ottosson's constants), `interpolators.ts` (dispatches on `PROPERTY_REGISTRY`'s existing `InterpolationMethod`, reusing `PathMorphSolver.morph` and `Scene3DEngine.quaternionSlerp` directly), `evaluate.ts` (the composition-order kernel: base props → state → clips by grammar §6.2 priority → behaviours → Single Transform Authority synthesis, reusing `compositions.ts` and `synthesizeSingleTransformMatrix`).
+- **Tests:** `src/core/kernel/__tests__/` — 111 assertions across 5 files, including golden-value checks against the real, installed `gsap` and `motion` packages (not hand-derived approximations of them) and a 200-sample determinism fuzz test.
+
+#### Found (not yet fixed)
+- Confirms **AUD-48**'s concern is real and scopes it precisely: `evaluate()` is genuinely pure, but only for what it covers. `follow-pointer`/`magnet`/`tilt`/`inertia`/`noise`/`spring-to` (pointer/scroll-history-dependent behaviours) and stateful simulations are named in `KERNEL_GAPS`, closing with Phase 64's Deterministic Replay Law and the Phase 9 v3.0 amendment (signal bindings, input tape).
+
 ## [3.6.0] — 2026-09-26
 
 ### Phase 8 (Executable Motion Rules Engine): complete — Verification Gate green, no PR yet

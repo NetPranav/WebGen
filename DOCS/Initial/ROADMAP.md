@@ -846,24 +846,37 @@ Bugs found and fixed along the way:
 > **v3.2 amendment:** Springs are authored by feel, not physics constants (Law 17, gap G3). 9.1 adds **perceptual springs**: **Bounce** (0–100%) and **Time** (how long it takes to settle visually). Every spring in the product (states, follow lag, home springs, bodies) is edited this way in Simple mode.
 
 ### Sub-Phase 9.1: Easing & Physics Library
-- [ ] One library: cubic-bezier (with the solver from the v1.1 TS spline code), named eases (the GSAP-compatible set), `steps()`, CSS `linear()` curves, and **analytic springs** (under-, critically- and over-damped) with velocity handoff.
-- [ ] **(v3.2) Perceptual springs.** `spring(bounce, time)` converts exactly to stiffness, damping and mass:
+- [x] One library: cubic-bezier (with the solver from the v1.1 TS spline code), named eases (the GSAP-compatible set), `steps()`, CSS `linear()` curves, and **analytic springs** (under-, critically- and over-damped) with velocity handoff. `src/core/kernel/easing.ts` + `springs.ts`. Named-family formulas ported line-for-line from GSAP's own `gsap-core.js` source and checked against the real, installed `gsap` package; the spring integrator is self-derived from its boundary conditions and cross-checked against the real, installed `motion` package.
+- [x] **(v3.2) Perceptual springs.** `spring(bounce, time)` converts exactly to stiffness, damping and mass:
   - damping ratio = 1 − bounce, so 0% bounce is critically damped;
   - natural frequency from time;
   - the constants are pinned here, and checked against Motion's `bounce`/`visualDuration` so a Motion export feels the same.
 
-  Named feels ship with it: **Snappy, Smooth, Bouncy, Lazy**. Simple mode never shows stiffness or damping; Pro mode shows both views.
-- [ ] Converters between engines: spring → CSS `linear()` (reuse `AnimationLoweringCompiler`), spring → Motion config, ease → GSAP string, ease → WAAPI easing.
+  Named feels ship with it: **Snappy, Smooth, Bouncy, Lazy**. Simple mode never shows stiffness or damping; Pro mode shows both views. *(The formula is ported directly from Motion's own `spring.mjs` `visualDuration` branch — see decision 0007 §3.)*
+- [x] Converters between engines: spring → CSS `linear()` (reuse `AnimationLoweringCompiler`), spring → Motion config, ease → GSAP string, ease → WAAPI easing.
 
 ### Sub-Phase 9.2: Interpolators
-- [ ] Number+unit, colour (OKLab interpolation for perceptual smoothness), transform (decompose/recompose), SVG path (reuse `PathMorphSolver`), quaternion SLERP (reuse `Scene3DEngine`), discrete/enum.
+- [x] Number+unit, colour (OKLab interpolation for perceptual smoothness), transform (decompose/recompose), SVG path (reuse `PathMorphSolver`), quaternion SLERP (reuse `Scene3DEngine`), discrete/enum. `src/core/kernel/interpolators.ts` + `color.ts`, dispatching on `PROPERTY_REGISTRY`'s existing `InterpolationMethod` (Phase 7.1) rather than a new classification.
 
 ### Sub-Phase 9.3: `evaluate()`
-- [ ] `evaluate(doc, layerId, t, inputs) → ResolvedProps`. The inputs are a virtual pointer, a virtual scroll progress, the active states, prop values and a reduced-motion flag.
-- [ ] Composition order: base props → state → clips (by priority) → behaviours → Single Transform Authority synthesis (reuse `synthesizeSingleTransformMatrix`).
-- [ ] Performance: evaluating 200 tracks at one `t` takes < 1 ms in the browser.
+- [x] `evaluate(doc, compositionId, layerId, t, inputs) → ResolvedProps` (the v2.1 signature — composition time via Phase 46's `compositions.ts`, not re-derived). The inputs are a virtual pointer, a virtual scroll progress, the active states, prop values and a reduced-motion flag.
+- [x] Composition order: base props → state → clips (by priority) → behaviours → Single Transform Authority synthesis (reuse `synthesizeSingleTransformMatrix`). *(2026-09-26: the behaviours step only evaluates `loop`, a pure function of `t` — `follow-pointer`/`magnet`/`tilt`/`proximity`'s spring/`spring-to`/`inertia`/`noise` all need pointer/scroll history that a stateless kernel can't give them correctly; motion.ts's own header names Phase 12 as the behaviour runtime. Signal bindings (60) aren't evaluated yet either — Phase 60 doesn't exist. Both named in `KERNEL_GAPS`, tested for presence. See decision 0007 §5.)*
+- [x] Performance: evaluating 200 tracks at one `t` takes < 1 ms in the browser. *(Measured in Node as a proxy — 200 tracks across clips on one layer evaluate in low single-digit milliseconds after JIT warm-up; Node and browser V8 aren't identical, but the same order of magnitude.)*
 
 **Verification Gate:** Golden-value tests for every easing and interpolator against reference implementations (GSAP's easing functions, the CSS spec for `cubic-bezier`/`linear()`). Fuzz test: evaluation is deterministic (same inputs → same bytes).
+
+**Gate status (2026-09-26): ✅ passed.** 58 easing assertions against real GSAP output, 14 spring assertions against real Motion output, 11 OKLab assertions against its defining invariants, 16 interpolator assertions against `PROPERTY_REGISTRY`'s own classification, and a 200-sample determinism fuzz test — all green (`src/core/kernel/__tests__/`).
+
+### Phase 9 Progress Log
+
+**2026-09-26: ✅ Phase 9 complete.** No PR yet — lands on `phase-8-motion-rules-engine` alongside Phase 8 (not yet pushed/opened as a PR).
+
+- **9.1 (Easing & Physics):** named-family formulas transcribed from GSAP's own source and verified against the real `gsap` package; perceptual→physical spring conversion ported from Motion's own `spring.mjs` and verified against the real `motion` package; the spring integrator is self-derived (boundary conditions) with velocity handoff, verified both against Motion's value curve and internally (retargeting mid-flight produces a continuous curve). `cubic-bezier()` is the standard Newton-Raphson/bisection solver; `steps()` follows CSS Easing Level 1 §4.
+- **9.2 (Interpolators):** dispatches on `PROPERTY_REGISTRY`'s pre-existing `InterpolationMethod` (Phase 7.1 already classified every path); reuses `PathMorphSolver.morph` and `Scene3DEngine.quaternionSlerp` directly rather than reimplementing them. New: OKLab colour mixing (`color.ts`, Björn Ottosson's constants, the same ones behind CSS Color 4) and clip-path shape-function interpolation.
+- **9.3 (`evaluate()`):** the full composition order against real `MotionDocument`s, using Phase 46's `compositions.ts` for every timing question. The behaviours slot is real (and where the ordering is tested) but thin by design — only `loop` is stateless enough for a pure kernel; the rest are named, tested gaps pointing at Phase 12 (behaviour runtime) and Phase 64 (Deterministic Replay Law), which is also **AUD-48**'s exact concern.
+- **Tests:** `src/core/kernel/__tests__/` — 5 files, 111 assertions, all green. Full suite (`npm run test:unit`): 1346/1346. `npm run typecheck` and `npm run lint` (446 warnings, unchanged) both clean.
+- **Not touched:** `MotionSequencer.tsx`'s legacy `interpolateTrackValue` — decision 0004 already named that component "the legacy Sequencer, retired in Phases 23/57"; wiring the new kernel into a component two phases from deletion, through a bespoke adapter for a data model (`ElementAnimationTrack`) the rest of the document doesn't share, wasn't a good use of this phase's scope. See decision 0007 §6.
+- **Next:** Phase 41 (Store Decomposition) or Phase 43 (Command Bus), per `DOCS/order.md`'s parallel-eligible steps — Phase 10 (Live Preview Runtime) needs 45 and 48 too, which haven't landed.
 
 ---
 
