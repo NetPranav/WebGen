@@ -25,7 +25,7 @@ import {
   Sparkles,
   Layers,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import {
   CollectionSchema,
   DatabaseField,
@@ -52,7 +52,7 @@ export const DatabaseDesigner: React.FC<DatabaseDesignerProps> = ({ onClose }) =
     deleteDatabaseCollection,
     addFieldToCollection,
     deleteFieldFromCollection,
-  } = useProjectStore();
+  } = useFullEditionProjectStore();
 
   const [viewMode, setViewMode] = useState<DesignerViewMode>("diagram");
   const [selectedCollection, setSelectedCollection] = useState<string>("Products");

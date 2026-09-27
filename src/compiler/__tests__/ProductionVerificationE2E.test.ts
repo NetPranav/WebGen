@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 
 // Core Stores and AST
 import { useProjectStore, StateVariable } from "../../core/store/useProjectStore";
+import { getFullEditionState } from "../../core/store/fullEditionTypes";
+// Sub-Phase 41.1: detectRouteCollisions is After-track; this file exercises it directly.
+import "../../after/store/pagesActions";
 import { BlueprintGraph } from "../../core/ast/ASTManager";
 import { CollectionSchema } from "../../core/types/database";
 import { AnimationSample } from "../../core/types/animations";
@@ -76,7 +79,7 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
     assert.strictEqual(store.pages.page_product.parameters?.[0].name, "productId");
 
     // Verify route collisions check passes with 0 collisions
-    const collisions = store.detectRouteCollisions();
+    const collisions = getFullEditionState().detectRouteCollisions();
     assert.strictEqual(collisions.length, 0);
   });
 

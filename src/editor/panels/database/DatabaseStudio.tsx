@@ -15,7 +15,7 @@
  */
 
 import React, { useState } from "react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore, getFullEditionState } from "@/core/store/fullEditionTypes";
 import { StudioHeader } from "@/editor/shell/StudioHeader";
 import { DatabaseLeftExplorer } from "./DatabaseLeftExplorer";
 import { DatabaseCenterStage } from "./DatabaseCenterStage";
@@ -40,7 +40,7 @@ interface DatabaseStudioProps {
 }
 
 export const DatabaseStudio: React.FC<DatabaseStudioProps> = ({ onBackToEditor }) => {
-  const { databaseSchemas, addDatabaseCollection } = useProjectStore();
+  const { databaseSchemas, addDatabaseCollection } = useFullEditionProjectStore();
 
   // Active selection state
   const [selectedTableId, setSelectedTableId] = useState<string | null>(
@@ -307,7 +307,7 @@ export const DatabaseStudio: React.FC<DatabaseStudioProps> = ({ onBackToEditor }
               : undefined
           }
           onSave={(updatedField) => {
-            useProjectStore.getState().addFieldToCollection(fieldEditorTarget.tableName, updatedField);
+            getFullEditionState().addFieldToCollection(fieldEditorTarget.tableName, updatedField);
             setFieldEditorTarget(null);
           }}
           onCancel={() => setFieldEditorTarget(null)}

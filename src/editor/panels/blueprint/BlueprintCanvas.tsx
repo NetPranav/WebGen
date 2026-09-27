@@ -41,7 +41,7 @@ import {
   Maximize2,
   RotateCcw,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { useHistoryStore } from "@/core/store/useHistoryStore";
 import { historyCommands } from "@/core/store/useDocumentStore";
 import {
@@ -151,7 +151,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     disconnectBlueprintWire,
     setBlueprintPinValue,
     compileActiveBlueprintGraph,
-  } = useProjectStore();
+  } = useFullEditionProjectStore();
   const { undo, redo } = historyCommands;
 
   const canUndo = useHistoryStore((s) => s.past.length > 0);

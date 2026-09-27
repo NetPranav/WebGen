@@ -28,7 +28,7 @@ import {
   Code2,
   RefreshCw,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { ASTManager, BlueprintValidationIssue } from "@/core/ast/ASTManager";
 import { errorMessage } from "@/core/errors";
 
@@ -48,7 +48,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
     activeBlueprintGraphId,
     compileActiveBlueprintGraph,
     loadBlueprintGraph,
-  } = useProjectStore();
+  } = useFullEditionProjectStore();
 
   const [isCompiling, setIsCompiling] = useState(false);
   const [lastValidationTime, setLastValidationTime] = useState<string | null>(null);

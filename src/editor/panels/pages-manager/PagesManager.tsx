@@ -33,6 +33,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useProjectStore, PageDefinition } from "@/core/store/useProjectStore";
+import { type FullEditionProjectStoreState } from "@/core/store/fullEditionTypes";
 import { RedirectRule, RouteParameter, extractRouteParameters, normalizeRouteSlug } from "@/core/types/routing";
 import { RouteCard } from "./RouteCard";
 import { NavigationFlowDiagram } from "./NavigationFlowDiagram";
@@ -51,13 +52,15 @@ export const PagesManager: React.FC<PagesManagerProps> = ({ className, style }) 
   const activePageId = useProjectStore((s) => s.activePageId);
   const redirectRules = useProjectStore((s) => s.redirectRules || {});
   const setActivePage = useProjectStore((s) => s.setActivePage);
-  const addPage = useProjectStore((s) => s.addPage);
-  const updatePage = useProjectStore((s) => s.updatePage);
-  const deletePage = useProjectStore((s) => s.deletePage);
-  const duplicatePage = useProjectStore((s) => s.duplicatePage);
-  const addRedirectRule = useProjectStore((s) => s.addRedirectRule);
-  const updateRedirectRule = useProjectStore((s) => s.updateRedirectRule);
-  const deleteRedirectRule = useProjectStore((s) => s.deleteRedirectRule);
+  // These are After-track actions (Sub-Phase 41.1): undefined unless `edition === "full"`.
+  // PagesManager only renders behind that gate (see afterTrackPanels.tsx), so the cast is safe.
+  const addPage = useProjectStore((s) => (s as FullEditionProjectStoreState).addPage);
+  const updatePage = useProjectStore((s) => (s as FullEditionProjectStoreState).updatePage);
+  const deletePage = useProjectStore((s) => (s as FullEditionProjectStoreState).deletePage);
+  const duplicatePage = useProjectStore((s) => (s as FullEditionProjectStoreState).duplicatePage);
+  const addRedirectRule = useProjectStore((s) => (s as FullEditionProjectStoreState).addRedirectRule);
+  const updateRedirectRule = useProjectStore((s) => (s as FullEditionProjectStoreState).updateRedirectRule);
+  const deleteRedirectRule = useProjectStore((s) => (s as FullEditionProjectStoreState).deleteRedirectRule);
 
   // Local UI states
   const [activeTab, setActiveTab] = useState<ManagerTab>("tree");

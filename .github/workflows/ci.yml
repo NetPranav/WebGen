@@ -1,6 +1,9 @@
 # ROADMAP Phase 1.4 — every push and PR must typecheck, lint, test and build.
 # ROADMAP Phase 6 — plus the edition=initial bundle-scope gate and a doc-link check.
 # ROADMAP Phase 8.4 — plus the editor ad-hoc-compatibility grep gate.
+# ROADMAP Sub-Phase 41.1 — plus a second unit-test pass with NEXT_PUBLIC_EDITION=full,
+# since the After-track store split added real edition-dependent logic (not just
+# bundle inclusion) for the first time.
 name: CI
 
 on:
@@ -34,6 +37,9 @@ jobs:
 
       - name: Unit tests
         run: npm run test:unit
+
+      - name: Unit tests (full edition — After-track behavior, Sub-Phase 41.1)
+        run: npm run test:unit:full-edition
 
       - name: Production build
         run: npm run build

@@ -14,6 +14,29 @@ import { ProjectStateSnapshot, PageDefinition, StateVariable } from "../store/us
 import { DEFAULT_ENVIRONMENT_SETTINGS } from "../types/environment";
 import type { Layer } from "@/core/document/schema";
 import { createDocumentFromLayers } from "../document/factories";
+import { edition } from "../flags";
+
+/**
+ * Sub-Phase 41.1: `mountDemoProject`/`clearToBlankCanvas` are core (both
+ * editions), but their demo content predates the After-track split and
+ * includes a full blueprint graph, database and state variables. Outside the
+ * full edition, this trims a snapshot back to that content's empty defaults
+ * (matching `INITIAL_PROJECT_STATE`'s) so mounting the demo can't hand the
+ * Initial edition working After-track data through the back door.
+ */
+function trimToEditionScope(snapshot: ProjectStateSnapshot): ProjectStateSnapshot {
+  if (edition === "full") return snapshot;
+  return {
+    ...snapshot,
+    databaseSchemas: {},
+    databaseRecords: {},
+    stateVariables: {},
+    databaseLatches: {},
+    blueprintGraphs: {},
+    activeBlueprintGraphId: "",
+    redirectRules: {},
+  };
+}
 
 /**
  * Clean Blank Canvas Snapshot: Empty element hierarchy ready for AI creation.
@@ -45,7 +68,7 @@ export function createBlankCanvasSnapshot(): ProjectStateSnapshot {
     rootElementId: "el_root_container",
   };
 
-  return {
+  return trimToEditionScope({
     projectId: "project_blank_canvas",
     projectName: "New Component Project",
     scope: "element",
@@ -74,7 +97,7 @@ export function createBlankCanvasSnapshot(): ProjectStateSnapshot {
     activeBlueprintGraphId: "graph_main_event",
     redirectRules: {},
     environment: DEFAULT_ENVIRONMENT_SETTINGS,
-  };
+  });
 }
 
 /**
@@ -153,7 +176,7 @@ export function createShowcaseSnapshot(): ProjectStateSnapshot {
     },
   };
 
-  return {
+  return trimToEditionScope({
     projectId: "project_showcase_demo",
     projectName: "Showcase Demo",
     scope: "element",
@@ -217,5 +240,5 @@ export function createShowcaseSnapshot(): ProjectStateSnapshot {
     activeBlueprintGraphId: "graph_main_event",
     redirectRules: {},
     environment: DEFAULT_ENVIRONMENT_SETTINGS,
-  };
+  });
 }

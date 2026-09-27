@@ -13,7 +13,8 @@
  */
 
 import React, { useState, useMemo, useRef } from "react";
-import { useProjectStore, DatabaseFunctionLatch } from "@/core/store/useProjectStore";
+import { DatabaseFunctionLatch } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { EntityTableCard } from "./EntityTableCard";
 import { MockDataGrid } from "./MockDataGrid";
 import { DatabaseLatchPickerModal, LatchCandidate } from "./DatabaseLatchPickerModal";
@@ -75,7 +76,7 @@ export const DatabaseCenterStage: React.FC<DatabaseCenterStageProps> = ({
     databaseLatches,
     addDatabaseLatch,
     removeDatabaseLatch,
-  } = useProjectStore();
+  } = useFullEditionProjectStore();
   const [engineType, setEngineType] = useState<DatabaseEngineType>("postgresql");
   const [viewMode, setViewMode] = useState<DatabaseViewMode>("canvas");
   const [zoomLevel, setZoomLevel] = useState(100);

@@ -1,7 +1,11 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../useProjectStore";
+import { getFullEditionState } from "../fullEditionTypes";
 import { ASTManager } from "../../ast/ASTManager";
+// Sub-Phase 41.1: blueprint actions and the demo `graph_main_event` seed are
+// After-track; this file tests them directly, so it registers them itself.
+import "../../../after/store/blueprintActions";
 
 describe("Sub-Phase 3.4 & 3.5: Blueprint Store Integration & Validation", () => {
   test("Store initializes with default graph_main_event and activeBlueprintGraphId", () => {
@@ -17,7 +21,7 @@ describe("Sub-Phase 3.4 & 3.5: Blueprint Store Integration & Validation", () => 
   });
 
   test("Graph CRUD: create, switch active, add node, move node, remove node", () => {
-    const store = useProjectStore.getState();
+    const store = getFullEditionState();
 
     // 1. Create Graph
     const graphId = store.createBlueprintGraph("Custom Checkout Flow", "event", "Create Checkout Graph");
@@ -55,7 +59,7 @@ describe("Sub-Phase 3.4 & 3.5: Blueprint Store Integration & Validation", () => 
   });
 
   test("Wire connection & Pin compatibility in store", () => {
-    const store = useProjectStore.getState();
+    const store = getFullEditionState();
     const graphId = store.createBlueprintGraph("Wiring Test", "event");
 
     const n1 = store.addBlueprintNode(graphId, "event/onClick", { x: 50, y: 50 });
@@ -78,7 +82,7 @@ describe("Sub-Phase 3.4 & 3.5: Blueprint Store Integration & Validation", () => 
   });
 
   test("Variable system: add, update, remove variable", () => {
-    const store = useProjectStore.getState();
+    const store = getFullEditionState();
     const graphId = "graph_main_event";
 
     // Add variable
@@ -111,7 +115,7 @@ describe("Sub-Phase 3.4 & 3.5: Blueprint Store Integration & Validation", () => 
   });
 
   test("Compile & JSON Serialization round-trip", () => {
-    const store = useProjectStore.getState();
+    const store = getFullEditionState();
     store.setActiveBlueprintGraph("graph_main_event");
 
     const compileResult = store.compileActiveBlueprintGraph();

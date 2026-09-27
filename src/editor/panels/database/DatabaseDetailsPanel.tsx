@@ -15,7 +15,7 @@
  */
 
 import React, { useState } from "react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { DatabaseField, DatabaseFieldType, DeleteRule, Cardinality } from "@/core/types/database";
 import {
   Sliders,
@@ -65,7 +65,7 @@ export const DatabaseDetailsPanel: React.FC<DatabaseDetailsPanelProps> = ({
     deleteFieldFromCollection,
     deleteDatabaseCollection,
     addDatabaseRecord,
-  } = useProjectStore();
+  } = useFullEditionProjectStore();
 
   // Unreal-style Latch Picker Modal state
   const [isLatchPickerOpen, setIsLatchPickerOpen] = useState(false);

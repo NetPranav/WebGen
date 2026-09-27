@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../useProjectStore";
+import { getFullEditionState } from "../fullEditionTypes";
 import { ConnectionPipeline } from "../../engine/ConnectionPipeline";
 import { AnimationValidator } from "../../engine/AnimationValidator";
 import { DatabaseValidator } from "../../engine/DatabaseValidator";
@@ -8,9 +9,13 @@ import { DiagnosticBus } from "../../engine/DiagnosticBus";
 import { DataBindingDescriptor } from "../../types/data-binding";
 import { DatabaseField } from "../../types/database";
 import { AnimationSample } from "../../types/animations";
+// Sub-Phase 41.1: the demo "Products" database seed and its CRUD actions
+// (updateDatabaseRecord/addFieldToCollection/deleteFieldFromCollection) this
+// file tests are After-track.
+import "../../../after/store/databaseActions";
 
 test("Sub-Phase 2.5: DataBinding Store Integration & ConnectionPipeline live evaluation", () => {
-  const store = useProjectStore.getState();
+  const store = getFullEditionState();
 
   // Create a binding descriptor for comp_hero: bind 'text' to Products.title
   const titleBinding: DataBindingDescriptor = {
@@ -133,7 +138,7 @@ test("Sub-Phase 2.5: Animation Editor Keyframe & Bezier validation", () => {
 });
 
 test("Sub-Phase 2.5: Database Designer Schema & Collection Store mutations", () => {
-  const store = useProjectStore.getState();
+  const store = getFullEditionState();
 
   // Add new field to Products collection
   const ratingField: DatabaseField = {

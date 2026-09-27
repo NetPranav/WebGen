@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../useProjectStore";
+import { getFullEditionState } from "../fullEditionTypes";
 import { useSelectionStore } from "../useSelectionStore";
 import { useHistoryStore } from "../useHistoryStore";
 import { EventBus } from "../../events/EventBus";
@@ -8,6 +9,10 @@ import { ConnectionPipeline } from "../../engine/ConnectionPipeline";
 import { DiagnosticBus } from "../../engine/DiagnosticBus";
 import { StateVariableValidator } from "../../engine/StateVariableValidator";
 import { documentCommands, getDocument, historyCommands } from "@/core/store/useDocumentStore";
+// Sub-Phase 41.1: the demo databaseSchemas/stateVariables seed and the
+// addStateVariable/updateStateVariable actions this file tests are After-track.
+import "../../../after/store/databaseActions";
+import "../../../after/store/stateVariableActions";
 
 test("useProjectStore: Initializes with default pages, elements, and schemas", () => {
   const state = useProjectStore.getState();
@@ -73,7 +78,7 @@ test("useProjectStore & ConnectionPipeline: State variable update triggers react
   assert.equal(properties.label, "$0.00");
 
   // Update state variable in store
-  useProjectStore.getState().updateStateVariable("cartTotal", 49.99);
+  getFullEditionState().updateStateVariable("cartTotal", 49.99);
 
   // Verify updated context
   const updatedCtx = useProjectStore.getState().getDataContext();
@@ -157,7 +162,7 @@ test("StateVariableValidator: Traps invalid initial value ('hello' for number) a
 test("useProjectStore.addStateVariable: Traps type mismatch on creation and logs [STATE_VAR_WARN]", () => {
   DiagnosticBus.clearHistory();
 
-  useProjectStore.getState().addStateVariable({
+  getFullEditionState().addStateVariable({
     id: "user_score",
     name: "user_score",
     type: "number",

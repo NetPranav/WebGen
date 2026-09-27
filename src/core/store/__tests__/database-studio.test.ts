@@ -1,11 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../useProjectStore";
+import { getFullEditionState } from "../fullEditionTypes";
 import { DatabaseValidator } from "../../engine/DatabaseValidator";
 import { CollectionSchema, DatabaseField } from "../../types/database";
+// Sub-Phase 41.1: database actions are After-track; this file tests them directly.
+import "../../../after/store/databaseActions";
 
 test("Database Studio: Schema creation, relational foreign keys, and validation", () => {
-  const store = useProjectStore.getState();
+  const store = getFullEditionState();
 
   // 1. Create a new collection 'Orders' with a Foreign Key to 'Users'
   const ordersSchema: CollectionSchema = {

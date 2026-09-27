@@ -31,7 +31,7 @@ import {
   ArrowRightCircle,
   HelpCircle,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { BlueprintVariable } from "@/core/ast/ASTManager";
 import { PIN_COLOR_MAP, PinDataType } from "@/core/types/node-registry";
 
@@ -53,7 +53,7 @@ export const MyBlueprintPanel: React.FC<MyBlueprintPanelProps> = ({
     createBlueprintGraph,
     addBlueprintVariable,
     removeBlueprintVariable,
-  } = useProjectStore();
+  } = useFullEditionProjectStore();
 
   const activeGraph = blueprintGraphs[activeBlueprintGraphId] || Object.values(blueprintGraphs)[0];
 

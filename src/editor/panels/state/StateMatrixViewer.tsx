@@ -26,11 +26,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
-  useProjectStore,
   StateVariable,
   StateVariableScope,
   StateVariableType,
 } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { StateVariableValidator } from "@/core/engine/StateVariableValidator";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
@@ -41,7 +41,7 @@ export const StateMatrixViewer: React.FC = () => {
     addStateVariable,
     updateStateVariable,
     deleteStateVariable,
-  } = useProjectStore();
+  } = useFullEditionProjectStore();
 
   const [activeScope, setActiveScope] = useState<"all" | StateVariableScope>("all");
   const [searchQuery, setSearchQuery] = useState("");

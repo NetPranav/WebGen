@@ -460,9 +460,12 @@ export class GlobalSearchEngineManager {
       useSelectionStore.getState().select(elementId, "element");
     }
 
-    // 3. Blueprint switch & node focus
+    // 3. Blueprint switch & node focus. `setActiveBlueprintGraph` is After-track
+    // (Sub-Phase 41.1): undefined in the Initial edition, where `blueprintGraphs`
+    // is also always empty, so this branch is unreachable there anyway — the
+    // `?.()` is defensive, not load-bearing.
     if (graphId && storeState.blueprintGraphs[graphId]) {
-      storeState.setActiveBlueprintGraph(graphId);
+      storeState.setActiveBlueprintGraph?.(graphId);
     }
 
     // 4. Panel docking transition

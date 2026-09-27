@@ -1,6 +1,9 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
+import { getFullEditionState } from "../../../../core/store/fullEditionTypes";
+// Sub-Phase 41.1: the multi-page CRUD and redirect actions this file tests are After-track.
+import "../../../../after/store/pagesActions";
 import {
   extractRouteParameters,
   normalizeRouteSlug,
@@ -74,7 +77,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
     });
 
     it("adds a new page and automatically extracts dynamic parameters", () => {
-      const store = useProjectStore.getState();
+      const store = getFullEditionState();
       const pageId = store.addPage({
         name: "Product Detail",
         slug: "/products/[id]",
@@ -93,7 +96,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
     });
 
     it("switches active page via setActivePage", () => {
-      const store = useProjectStore.getState();
+      const store = getFullEditionState();
       const pageId = store.addPage({
         name: "About Us",
         slug: "/about",
@@ -107,7 +110,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
     });
 
     it("updates page title, slug, and re-parses parameters", () => {
-      const store = useProjectStore.getState();
+      const store = getFullEditionState();
       const pageId = store.addPage({
         name: "Old Title",
         slug: "/old-slug",
@@ -129,7 +132,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
     });
 
     it("duplicates page with cloned root element and unique slug", () => {
-      const store = useProjectStore.getState();
+      const store = getFullEditionState();
       const copyId = store.duplicatePage("page_home");
 
       const state = useProjectStore.getState();
@@ -141,7 +144,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
     });
 
     it("deletes a page and resets activePageId safely, preventing last page deletion", () => {
-      const store = useProjectStore.getState();
+      const store = getFullEditionState();
       const tempId = store.addPage({ name: "Temporary", slug: "/temp" });
 
       assert.strictEqual(Object.keys(useProjectStore.getState().pages).length, 2);
@@ -168,7 +171,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
         }
       });
 
-      const store = useProjectStore.getState();
+      const store = getFullEditionState();
       store.addPage({ name: "User By ID", slug: "/users/[id]" });
       store.addPage({ name: "User By Name", slug: "/users/[username]" });
 
@@ -183,7 +186,7 @@ describe("Sub-Phase 6.5: Pages & Routing Manager (Panel 30)", () => {
 
   describe("Redirect Rules Management", () => {
     it("adds, updates, and deletes redirect rules", () => {
-      const store = useProjectStore.getState();
+      const store = getFullEditionState();
       const ruleId = store.addRedirectRule({
         sourcePattern: "/legacy-blog",
         targetPattern: "/blog",

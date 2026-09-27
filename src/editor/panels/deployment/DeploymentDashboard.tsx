@@ -22,6 +22,7 @@ import {
 } from "@/core/types/deployment";
 import { DeploymentEngine } from "@/runtime/DeploymentEngine";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { type FullEditionProjectStoreState } from "@/core/store/fullEditionTypes";
 import { ProviderSelector } from "./ProviderSelector";
 import { DomainManager } from "./DomainManager";
 import { DeploymentHistory } from "./DeploymentHistory";
@@ -63,7 +64,9 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
   const projectName = useProjectStore((s) => s.projectName);
   const pages = useProjectStore((s) => s.pages);
   const databaseSchemas = useProjectStore((s) => s.databaseSchemas);
-  const detectRouteCollisions = useProjectStore((s) => s.detectRouteCollisions);
+  // After-track action (Sub-Phase 41.1): undefined unless `edition === "full"`.
+  // DeploymentDashboard only renders behind that gate, so the cast is safe.
+  const detectRouteCollisions = useProjectStore((s) => (s as FullEditionProjectStoreState).detectRouteCollisions);
 
   // Engine state subscriptions
   const [currentDeployment, setCurrentDeployment] = useState<DeploymentRecord | null>(

@@ -5,6 +5,9 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../useProjectStore";
+import { getFullEditionState } from "../fullEditionTypes";
+// Sub-Phase 41.1: addPage is After-track; this file tests its undo behavior directly.
+import "../../../after/store/pagesActions";
 import { useHistoryStore, inferActionCategory } from "../useHistoryStore";
 import {
   documentCommands,
@@ -269,7 +272,7 @@ describe("Phase 3.1: project-state entries", () => {
   beforeEach(reset);
 
   it("page actions undo and redo without touching unrelated document edits", () => {
-    const store = useProjectStore.getState();
+    const store = getFullEditionState();
     const pageId = store.addPage({ name: "About", slug: "/about" }, undefined, "Add page");
     assert.ok(useProjectStore.getState().pages[pageId]);
     const pageRoot = useProjectStore.getState().pages[pageId].rootElementId;

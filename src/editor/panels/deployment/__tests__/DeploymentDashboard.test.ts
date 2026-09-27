@@ -10,6 +10,8 @@ import { useProjectStore } from "../../../../core/store/useProjectStore";
 import { setDocument } from "../../../../core/store/documentState";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import { loadDocument } from "@/core/document/migrations";
+// Sub-Phase 41.1: detectRouteCollisions (used by validatePreflight) is After-track.
+import "../../../../after/store/pagesActions";
 
 describe("Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy (Panel 19)", () => {
   beforeEach(() => {

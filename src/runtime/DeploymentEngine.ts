@@ -20,7 +20,8 @@ import {
   DeploymentEnvironment,
   PipelineStepId,
 } from "../core/types/deployment";
-import { useProjectStore, ProjectStoreState } from "../core/store/useProjectStore";
+import { useProjectStore } from "../core/store/useProjectStore";
+import { getFullEditionState, type FullEditionProjectStoreState } from "../core/store/fullEditionTypes";
 import { getDocument } from "../core/store/useDocumentStore";
 import { DiagnosticBus } from "../core/engine/DiagnosticBus";
 import { errorMessage } from "@/core/errors";
@@ -109,7 +110,7 @@ class DeploymentEngineManager {
    * Checks for missing pages, route collisions, and broken database schemas.
    */
   public validatePreflight(
-    storeState: Pick<ProjectStoreState, "pages" | "databaseSchemas" | "detectRouteCollisions"> = useProjectStore.getState()
+    storeState: Pick<FullEditionProjectStoreState, "pages" | "databaseSchemas" | "detectRouteCollisions"> = getFullEditionState()
   ): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 

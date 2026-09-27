@@ -4,6 +4,23 @@ import { DiagnosticSuggester, AiAstPatch } from "../../../ai/copilot/DiagnosticS
 import { DiagnosticBus } from "../../engine/DiagnosticBus";
 import { DiagnosticEvent } from "../../types/diagnostics";
 import { useProjectStore } from "../../store/useProjectStore";
+// Needed only when this file's one full-edition-only test actually runs
+// (npm run test:unit:full-edition); harmless to register otherwise.
+import "../../../after/store/stateVariableActions";
+
+/**
+ * Sub-Phase 41.1: `applyPatch`'s `update_variable`/`add_node` actions are
+ * After-track (rejected unless `edition === "full"`, @/core/flags). `edition`
+ * is a module-level constant, cached for the life of the process on first
+ * import — by the time any test here runs, something in this file's own
+ * import graph (`useProjectStore.ts`, transitively) has already forced it to
+ * resolve, so flipping `process.env.NEXT_PUBLIC_EDITION` mid-file can't work.
+ * The one test that needs `edition === "full"` is skipped here and instead
+ * verified by `npm run test:unit:full-edition`, which sets the env var before
+ * the process starts at all. `DiagnosticSuggesterEditionGate.test.ts` covers
+ * the inverse (rejected outside the full edition) under the default `test:unit`.
+ */
+const IS_FULL_EDITION = process.env.NEXT_PUBLIC_EDITION === "full";
 
 describe("Sub-Phase 5.4: AI Co-Pilot DiagnosticSuggester & AST Patch Engine", () => {
   let suggester: DiagnosticSuggester;
@@ -113,7 +130,7 @@ describe("Sub-Phase 5.4: AI Co-Pilot DiagnosticSuggester & AST Patch Engine", ()
     assert.equal((emittedDiag as unknown as DiagnosticEvent).channel, "AI_SCHEMA_VALIDATION_ERR");
   });
 
-  it("applies approved patch to useProjectStore and emits [AI_COPILOT_INFO]", () => {
+  it("applies approved patch to useProjectStore and emits [AI_COPILOT_INFO]", { skip: !IS_FULL_EDITION && "only runs under `npm run test:unit:full-edition`" }, () => {
     let infoDiag: DiagnosticEvent | null = null;
     const unsub = DiagnosticBus.subscribe((e) => {
       if (e.channel === "AI_COPILOT_INFO") {

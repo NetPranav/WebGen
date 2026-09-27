@@ -21,9 +21,10 @@ import { DiagnosticEvent } from "@/core/types/diagnostics";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { BlueprintGraph } from "@/core/ast/ASTManager";
 import { ExecutionRun } from "@/core/types/trace";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { getFullEditionState } from "@/core/store/fullEditionTypes";
 import { documentCommands } from "@/core/store/useDocumentStore";
 import { toPropValue } from "@/core/document/migrations";
+import { edition } from "@/core/flags";
 
 // ----------------------------------------------------------------------------
 // Core Types & Contracts
@@ -494,6 +495,12 @@ export class DiagnosticSuggester {
       if (action.type === "update_variable" && !action.variableName) {
         errors.push("Action 'update_variable' must specify variableName.");
       }
+      // Blueprints and state variables are After-track features (Sub-Phase 41.1):
+      // the AI co-pilot can't propose or apply these two action types outside
+      // the full edition.
+      if (edition !== "full" && (action.type === "add_node" || action.type === "update_variable")) {
+        errors.push(`Action '${action.type}' is not available in this edition.`);
+      }
     }
 
     if (errors.length > 0) {
@@ -525,7 +532,9 @@ export class DiagnosticSuggester {
       return false;
     }
 
-    const store = useProjectStore.getState();
+    // `validatePatch` already rejected `update_variable`/`add_node` outside the
+    // full edition, so it's safe to treat the After-track actions as defined here.
+    const store = getFullEditionState();
 
     try {
       for (const action of patch.actions) {

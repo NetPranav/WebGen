@@ -7,6 +7,15 @@ import { multiEngineAnimationRuntime } from "../../runtime/MultiEngineAnimationR
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
 import { AnimationSample } from "../../types/animations";
 
+/**
+ * Sub-Phase 41.1: `mountDemoProject`'s showcase content includes a database
+ * schema, which is trimmed unless `edition === "full"` (@/core/flags) — a
+ * module-level constant, cached for the life of the process on first import.
+ * The showcase-mount assertion below needs the untrimmed content, so it's
+ * skipped here and instead verified by `npm run test:unit:full-edition`.
+ */
+const IS_FULL_EDITION = process.env.NEXT_PUBLIC_EDITION === "full";
+
 describe("ComponentAnimationHandoff: AI Creation to Full Animation & Export Loop", () => {
   it("clears to blank canvas, generates a pricing card, attaches motion, and compiles timelines", () => {
     // 1. Clear to pristine blank canvas
@@ -76,18 +85,25 @@ describe("ComponentAnimationHandoff: AI Creation to Full Animation & Export Loop
       }
     }
 
-    // 7. Stash & Mount verification: Mount Showcase Demo
-    useProjectStore.getState().mountDemoProject();
-    const showcaseState = useProjectStore.getState();
-    assert.ok(getDocument().layers["el_hero_heading"]);
-    assert.ok(getDocument().layers["el_buy_button"]);
-    assert.ok(showcaseState.databaseSchemas["Products"]);
-
-    // 8. Clear back to blank canvas
-    useProjectStore.getState().clearToBlankCanvas();
-    const clearedState = useProjectStore.getState();
-    const clearedRoot = getDocument().layers[clearedState.pages[clearedState.activePageId].rootElementId];
-    assert.equal(clearedRoot.children.length, 0);
-    assert.equal(Object.keys(clearedState.databaseSchemas).length, 0);
   });
+
+  it(
+    "mounts the showcase demo with its database schema, then clears back to blank canvas",
+    { skip: !IS_FULL_EDITION && "only runs under `npm run test:unit:full-edition`" },
+    () => {
+      // Mount Showcase Demo
+      useProjectStore.getState().mountDemoProject();
+      const showcaseState = useProjectStore.getState();
+      assert.ok(getDocument().layers["el_hero_heading"]);
+      assert.ok(getDocument().layers["el_buy_button"]);
+      assert.ok(showcaseState.databaseSchemas["Products"]);
+
+      // Clear back to blank canvas
+      useProjectStore.getState().clearToBlankCanvas();
+      const clearedState = useProjectStore.getState();
+      const clearedRoot = getDocument().layers[clearedState.pages[clearedState.activePageId].rootElementId];
+      assert.equal(clearedRoot.children.length, 0);
+      assert.equal(Object.keys(clearedState.databaseSchemas).length, 0);
+    }
+  );
 });

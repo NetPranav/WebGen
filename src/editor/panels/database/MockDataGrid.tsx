@@ -22,7 +22,7 @@ import {
   Database,
   ArrowUpDown,
 } from "lucide-react";
-import { useProjectStore } from "@/core/store/useProjectStore";
+import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { DatabaseField } from "@/core/types/database";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
@@ -40,7 +40,7 @@ export const MockDataGrid: React.FC<MockDataGridProps> = ({
     addDatabaseRecord,
     updateDatabaseRecord,
     deleteDatabaseRecord,
-  } = useProjectStore();
+  } = useFullEditionProjectStore();
 
   const collectionNames = Object.keys(databaseSchemas);
   const [selectedCollection, setSelectedCollection] = useState<string>(

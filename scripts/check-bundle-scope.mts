@@ -38,6 +38,8 @@ const NEXT_DIR = join(ROOT, ".next");
 interface GatedPanel {
   name: string;
   sourceFile: string;
+  /** Skip auto-derivation (the file's longest 20-80 char literal) and use this instead. */
+  marker?: string;
 }
 
 const GATED_PANELS: GatedPanel[] = [
@@ -47,6 +49,21 @@ const GATED_PANELS: GatedPanel[] = [
   { name: "DeploymentDashboard", sourceFile: "src/editor/panels/deployment/DeploymentDashboard.tsx" },
   { name: "PluginManager", sourceFile: "src/editor/panels/plugins/PluginManager.tsx" },
   { name: "VersionControlPanel", sourceFile: "src/editor/panels/versioning/VersionControlPanel.tsx" },
+  // Sub-Phase 41.1: the After-track *store action* modules, gated the same way
+  // (imported only via `import()` behind `edition === "full"` in
+  // afterTrackPanels.tsx) — see that file's header comment. Explicit markers:
+  // these are small, mostly-import files, so the auto-derived "longest 20-80
+  // char literal" heuristic doesn't always find one (e.g. databaseActions.ts's
+  // longest data literal, "Enterprise License", is 19 chars).
+  { name: "blueprintActions", sourceFile: "src/after/store/blueprintActions.ts", marker: "Admin privileges check" },
+  // Not "Enterprise License"/"Total value of items in checkout": these
+  // action files' demo seed data is duplicated (pre-dates the After-track
+  // split) in DemoProjectSnapshot.ts, which is core and legitimately in the
+  // Initial-edition bundle — those strings would false-positive. The event
+  // names below are unique to each file (verified by grepping all of `src/`).
+  { name: "databaseActions", sourceFile: "src/after/store/databaseActions.ts", marker: "database:unlatched" },
+  { name: "pagesActions", sourceFile: "src/after/store/pagesActions.ts", marker: "Cannot delete the last remaining page" },
+  { name: "stateVariableActions", sourceFile: "src/after/store/stateVariableActions.ts", marker: "state:changed" },
 ];
 
 const ROUTES = ["editor", join("editor", "detach", "[panelId]")];
@@ -96,7 +113,7 @@ function main() {
   console.log(`[check-bundle-scope] ${allReferenced.size} chunk(s) referenced by the /editor route tree.`);
 
   for (const panel of GATED_PANELS) {
-    const marker = markerFor(panel.sourceFile);
+    const marker = panel.marker ?? markerFor(panel.sourceFile);
     let hit: string | null = null;
     for (const chunk of allReferenced) {
       const chunkPath = join(NEXT_DIR, chunk);
