@@ -144,6 +144,14 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     },
   });
 
+  // Single source of truth for "a shape/text tool owns pointer gestures on
+  // the canvas right now" — used for routing in `handleMouseDown`, the
+  // sandbox's `pointerEvents` toggle, and the crosshair cursor. Was three
+  // hand-copied conditions before; drifted (the sandbox toggle didn't
+  // exclude play mode, silently freezing a running app if a shape tool was
+  // still selected when Play was pressed) until unified here.
+  const toolCapturesPointer = !isPlayMode && (isShapeToolId(activeTool) || activeTool === "text");
+
   const palette = THEME_PALETTES[environment?.theme?.palette] || THEME_PALETTES.clean_light;
 
   const device = DEVICE_CONFIGS[deviceMode] || DEVICE_CONFIGS.desktop;
@@ -366,17 +374,27 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Canvas Drag / Panning Engine
    * -------------------------------------------------------------------------- */
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Sub-Phase 43.2: a shape tool being active takes priority over panning
-    // (including "click anywhere blank to pan" triggers) — you can't draw a
-    // rectangle if a blank-canvas click always pans instead.
-    if (isShapeToolId(activeTool)) {
+    const isMiddleClick = e.button === 1;
+    // FloatingDock and ZoomControls are children of this same div (they float
+    // on top of the canvas, not outside it), so their own mousedown bubbles
+    // up here — without this check, clicking the Ellipse dock button while
+    // Rectangle was active created a stray default-sized rectangle, and any
+    // dock click while Text was active placed a text layer. Confirmed by
+    // testing exactly that click, not assumed.
+    const targetIsChrome = (e.target as HTMLElement).closest(".floating-dock-wrapper, .zoom-controls");
+    // Space-drag and middle-click must keep panning no matter which tool is
+    // active — a shape tool being selected must never trap you in "can only
+    // draw, can't pan to get somewhere else first" (this exact case wasn't
+    // covered by keyboard-only tool switching in this pass's browser tests,
+    // and the early `return` below used to skip the `canPan` check entirely
+    // whenever a shape/text tool was active).
+    const wantsPan = isMiddleClick || isSpacePressed;
+
+    if (toolCapturesPointer && !targetIsChrome && !wantsPan) {
       e.preventDefault();
-      handleShapeDrawPointerDown(e);
-      return;
-    }
-    if (activeTool === "text") {
-      e.preventDefault();
-      if (rootContainer?.id) {
+      if (isShapeToolId(activeTool)) {
+        handleShapeDrawPointerDown(e);
+      } else if (activeTool === "text" && rootContainer?.id) {
         const id = documentCommands.addLayer({ archetype: "text", parentId: rootContainer.id }, "Add Text");
         selectEntity(id, "element");
         setActiveTool("select");
@@ -386,7 +404,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
     if (!environment.viewport.pan.enabled) return;
 
-    const isMiddleClick = e.button === 1;
     const trigger = environment.viewport.pan.trigger;
     const isBlankTarget = e.target === containerRef.current || (e.target as HTMLElement).classList.contains("whiteboard-grid");
     const canPan =
@@ -469,7 +486,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     "--canvas-grid-pos-y": `${gridPosY}px`,
     "--canvas-dot-color": palette.gridDot,
     backgroundColor: palette.bg,
-    cursor: isShapeToolId(activeTool) || activeTool === "text" ? "crosshair" : undefined,
+    cursor: toolCapturesPointer && !isSpacePressed ? "crosshair" : undefined,
     ...style,
   } as React.CSSProperties;
 
@@ -534,13 +551,16 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
                 // top of the device frame silently did nothing; the same
                 // drag just outside it worked correctly). Disabling pointer
                 // events on the whole sandbox while a shape/text tool is
-                // active lets the drag reach `.whiteboard-stage` instead,
-                // so shapes can be drawn anywhere on the canvas, not only in
-                // the margin around the device frame. Select/Hand keep
-                // pointer-events on, since Select's click-to-pick-an-element
-                // (`onElementClick` below) needs real clicks inside the
-                // iframe to work at all.
-                style={{ pointerEvents: isShapeToolId(activeTool) || activeTool === "text" ? "none" : undefined }}
+                // active (and not in Play mode — see `toolCapturesPointer`;
+                // without that exclusion, pressing Play while a shape tool
+                // was still selected froze the running app under an
+                // unclickable overlay) lets the drag reach `.whiteboard-stage`
+                // instead, so shapes can be drawn anywhere on the canvas, not
+                // only in the margin around the device frame. Select/Hand
+                // keep pointer-events on, since Select's
+                // click-to-pick-an-element (`onElementClick` below) needs
+                // real clicks inside the iframe to work at all.
+                style={{ pointerEvents: toolCapturesPointer ? "none" : undefined }}
                 onElementClick={(elId) => {
                   selectEntity(elId, "element");
                 }}

@@ -24,10 +24,14 @@ At the user's request, 43.2's tool list was rethought from scratch — expanded 
 - `SandboxHost.tsx` had no rendering at all for the shape archetypes 7.6 shipped — a drawn shape would have created correct document data and displayed as nothing.
 - A genuine double-creation bug: every drawn shape was created twice. `useShapeDrawing.ts` called the real side effect (`documentCommands.addLayer`) from inside a `setState` updater function — React Strict Mode's dev-mode double-invoke of updaters caught it deterministically ("0→2" every time). Fixed by moving the side effect out of the updater into a plain read at mouseup time.
 - The sandbox `<iframe>` (a separate browsing context) silently swallowed every drag that started on top of the rendered device frame, with zero console errors — mouse events over an iframe never reach the parent page. Fixed by disabling the sandbox's `pointer-events` while a shape/text tool is active, so the drag reaches the canvas instead; Select/Hand leave it untouched, since Select's click-to-pick-an-element needs real clicks inside the iframe.
+- A second review pass found three more, all from `handleMouseDown`'s new shape/text routing returning early without considering anything else that `mousedown` could mean: `FloatingDock`/`ZoomControls` buttons are children of the same div, so clicking them while a shape/text tool was active created a stray shape/text layer; Space-drag and middle-click-drag no longer panned while a shape/text tool was active (silently regressing 43.3's "Space works everywhere" behavior); the sandbox's `pointer-events: none` toggle didn't exclude Play mode, which would have frozen a running app if a shape tool was still selected when Play was pressed (not verified live — this build has no reachable way to enter Play mode at all; correct by code reading only). All three fixed with one shared `toolCapturesPointer` predicate and a chrome-target check, and re-verified live.
 
 #### Not done
 - Direct-select, Pen, Pencil, the Polygon/Star/Arrow flyout, and all of Tier B (Motion Path, Gradient, Anchor Point, Eyedropper) remain specified but unbuilt — each needs UI (shape-handle-editing, bezier/freehand drawing, or flyout chrome) that doesn't exist yet.
 - Full 3-browser `CI=1` Playwright and both-edition production builds specifically re-checked against this commit — due before push.
+
+#### Observed, not caused by this work
+- Re-running the full local unit suite 4 times surfaced real, ~50% flakiness from two different, unrelated timing/perf-budget tests (`ProjectSession.test.ts`'s save-status race once, `WasmCableCanvas.test.ts`'s 120fps frame-budget assertion once) — neither file touched this session, both pass cleanly and consistently in isolation. Since CI runs the full suite too, this would affect CI the same way; flagged for whoever next hardens those two tests (a mocked clock, or a CI-only budget), not attempted here.
 
 ## [3.9.0] — 2026-09-27
 
