@@ -126,4 +126,32 @@ describe("Sub-Phase 43.1: Command Registry", () => {
     unregisterCanvas();
     unregisterTimeline();
   });
+
+  it("getCommand(id)?.run() executes even when `when` would fail, unlike runCommand", () => {
+    // This is the exact mechanism CommandPalette.tsx's handleExecute relies
+    // on: `onClose()` only schedules the palette's unmount, so its search
+    // input is still focused (textEditing still true) at the instant a
+    // clicked item's command would run. A command like edit.undo/edit.redo
+    // (`when: !textEditing`) would silently no-op through `runCommand` here —
+    // availability was already decided when the palette's list was built, so
+    // execution must bypass `when`, not re-check it.
+    let ran = false;
+    const unregister = defineCommand({
+      id: "test.palette_execute",
+      title: "Palette Execute",
+      when: (ctx) => !ctx.textEditing,
+      run: () => {
+        ran = true;
+      },
+    });
+
+    useContextKeysStore.setState({ textEditing: true });
+    assert.strictEqual(runCommand("test.palette_execute"), false);
+    assert.strictEqual(ran, false);
+
+    getCommand("test.palette_execute")?.run();
+    assert.strictEqual(ran, true);
+
+    unregister();
+  });
 });

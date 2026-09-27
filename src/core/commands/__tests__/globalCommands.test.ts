@@ -77,8 +77,31 @@ describe("Sub-Phase 43.1: Global Commands (shared by EditorShell and detached pa
     const fake = createFakeWindow();
     const uninstall = installGlobalCommands(fake.window);
 
-    assert.strictEqual(isCommandAvailable(getCommand("file.save")!, { blueprintFocus: false } as never), true);
-    assert.strictEqual(isCommandAvailable(getCommand("file.save")!, { blueprintFocus: true } as never), false);
+    assert.strictEqual(
+      isCommandAvailable(getCommand("file.save")!, { blueprintFocus: false, textEditing: false } as never),
+      true
+    );
+    assert.strictEqual(
+      isCommandAvailable(getCommand("file.save")!, { blueprintFocus: true, textEditing: false } as never),
+      false
+    );
+
+    uninstall();
+  });
+
+  it("file.save still fires when blueprint is focused AND a text field elsewhere has focus, so Ctrl+S never falls through to neither command", () => {
+    // Regression: blueprint.save requires `blueprintFocus && !textEditing`. A
+    // naive `file.save` gate of just `!blueprintFocus` leaves a gap where
+    // BOTH keys are true (e.g. editing a pin value with the pointer over the
+    // graph) and neither command matches, so the dispatcher never calls
+    // preventDefault and the browser's native Save Page dialog opens.
+    const fake = createFakeWindow();
+    const uninstall = installGlobalCommands(fake.window);
+
+    assert.strictEqual(
+      isCommandAvailable(getCommand("file.save")!, { blueprintFocus: true, textEditing: true } as never),
+      true
+    );
 
     uninstall();
   });

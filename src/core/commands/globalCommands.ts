@@ -53,7 +53,12 @@ export function installGlobalCommands(target: Window = window): () => void {
       // `blueprint.save` covers the project flush itself in that case, and
       // wins deterministically via this `when` rather than depending on
       // which of the two commands the registry happens to visit first.
-      when: (ctx) => !ctx.blueprintFocus,
+      // This is the exact logical negation of blueprint.save's own
+      // `blueprintFocus && !textEditing` — not just `!blueprintFocus` — so
+      // there's no gap where NEITHER command matches (blueprint hovered
+      // while a text field elsewhere has focus, e.g. editing a pin value)
+      // and Ctrl+S falls through to the browser's native Save Page dialog.
+      when: (ctx) => !ctx.blueprintFocus || ctx.textEditing,
       run: () => void projectSession.flush(),
     }),
   ];

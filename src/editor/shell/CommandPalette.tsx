@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { getAllCommands, isCommandAvailable, runCommand, formatKeybinding, type Command } from "@/core/commands";
+import { getAllCommands, getCommand, isCommandAvailable, formatKeybinding, type Command } from "@/core/commands";
 import {
   Terminal,
   X,
@@ -95,7 +95,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     if (onExecuteCommand) {
       onExecuteCommand(cmd);
     } else {
-      runCommand(cmd.id);
+      // Not `runCommand`: its `when` re-check would see the palette's own
+      // search input still focused (`onClose` only schedules the unmount;
+      // `textEditing` doesn't flip until the resulting `focusout` fires) and
+      // silently no-op every command gated on `!textEditing` — which is
+      // most of them, including undo/redo. Availability was already
+      // filtered by `isCommandAvailable` when `allCommands` was captured on
+      // open, so re-checking `when` here only ever works against the palette
+      // itself, never for it.
+      getCommand(cmd.id)?.run();
     }
   };
 
