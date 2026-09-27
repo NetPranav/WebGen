@@ -1,10 +1,10 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { PerformanceProfiler } from "../../../runtime/PerformanceProfiler";
-import { ExecutionTracer } from "../../../runtime/ExecutionTracer";
-import { DiagnosticBus } from "../../engine/DiagnosticBus";
-import { ExecutionRun, TraceStep } from "../../types/trace";
-import type { ProfilerReport } from "../../types/profiler";
+import { PerformanceProfiler } from "../PerformanceProfiler";
+import { ExecutionTracer } from "../ExecutionTracer";
+import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
+import { ExecutionRun, TraceStep } from "@/core/types/trace";
+import type { ProfilerReport } from "@/core/types/profiler";
 
 describe("Sub-Phase 5.6: Performance Profiler & Flame Graph", () => {
   let profiler: PerformanceProfiler;

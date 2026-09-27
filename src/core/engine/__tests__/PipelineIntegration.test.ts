@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { useProjectStore } from "../../store/useProjectStore";
-import { multiEngineAnimationRuntime } from "../../runtime/MultiEngineAnimationRuntime";
+import { multiEngineAnimationRuntime } from "../MultiEngineAnimationRuntime";
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
 import { AnimationSample } from "../../types/animations";
 import type { Layer } from "@/core/document/schema";

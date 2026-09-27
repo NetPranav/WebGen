@@ -1,12 +1,12 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { BreakpointManager } from "../../../runtime/BreakpointManager";
-import { HotReloadEngine } from "../../../runtime/HotReloadEngine";
-import { ExecutionTracer } from "../../../runtime/ExecutionTracer";
-import { DiagnosticBus } from "../../engine/DiagnosticBus";
-import { BlueprintGraph } from "../../ast/ASTManager";
-import { mockDatabase } from "../../../runtime/MockDatabase";
-import type { HotReloadPatchType } from "../../types/debugger";
+import { BreakpointManager } from "../BreakpointManager";
+import { HotReloadEngine } from "../HotReloadEngine";
+import { ExecutionTracer } from "../ExecutionTracer";
+import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
+import { BlueprintGraph } from "@/core/ast/ASTManager";
+import { mockDatabase } from "../MockDatabase";
+import type { HotReloadPatchType } from "@/core/types/debugger";
 
 describe("Sub-Phase 5.5: Hot Reload & Breakpoint Debugger", () => {
   let bpManager: BreakpointManager;

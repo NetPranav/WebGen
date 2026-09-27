@@ -1,9 +1,9 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { ExecutionTracer } from "../../../runtime/ExecutionTracer";
-import { MockDatabase } from "../../../runtime/MockDatabase";
-import { DiagnosticBus } from "../../engine/DiagnosticBus";
-import { BlueprintGraph } from "../../ast/ASTManager";
+import { ExecutionTracer } from "../ExecutionTracer";
+import { MockDatabase } from "../MockDatabase";
+import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
+import { BlueprintGraph } from "@/core/ast/ASTManager";
 
 describe("Sub-Phase 5.3: ExecutionTracer & Wire Pulse Telemetry", () => {
   let tracer: ExecutionTracer;

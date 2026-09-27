@@ -10,11 +10,11 @@
  * ============================================================================
  */
 
-import { getArchetype, type ArchetypeId, type FamilyId } from "../document/registry";
-import { hydrateClip, type ClipDraft } from "../document/factories";
-import type { ClipTemplate, Layer } from "../document/schema";
-import { ALL_PRESETS, getPresetById, RULE_6_1_BLOCKED_CATEGORIES } from "../motion/presets";
-import { createId } from "../ids";
+import { getArchetype, type ArchetypeId, type FamilyId } from "@/core/document/registry";
+import { hydrateClip, type ClipDraft } from "@/core/document/factories";
+import type { ClipTemplate, Layer } from "@/core/document/schema";
+import { ALL_PRESETS, getPresetById, RULE_6_1_BLOCKED_CATEGORIES } from "@/core/motion/presets";
+import { createId } from "@/core/ids";
 
 export interface MotionAiRequest {
   prompt: string;

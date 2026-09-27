@@ -31,7 +31,7 @@ import { useProjectStore } from "@/core/store/useProjectStore";
 import { GSAPAnimationEmitter } from "@/compiler/emitters/GSAPAnimationEmitter";
 
 import { AnimationLoweringCompiler } from "@/core/engine/AnimationLoweringCompiler";
-import { multiEngineAnimationRuntime } from "@/core/runtime/MultiEngineAnimationRuntime";
+import { multiEngineAnimationRuntime } from "@/core/engine/MultiEngineAnimationRuntime";
 import type { Layer } from "@/core/document/schema";
 import { useLayers } from "@/core/store/useDocumentStore";
 

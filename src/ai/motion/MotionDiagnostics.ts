@@ -10,9 +10,9 @@
  * ============================================================================
  */
 
-import type { PropValue } from "../document/registry";
-import { propReader, type PropertyPath } from "../document/properties";
-import type { ClipTemplate, Layer } from "../document/schema";
+import type { PropValue } from "@/core/document/registry";
+import { propReader, type PropertyPath } from "@/core/document/properties";
+import type { ClipTemplate, Layer } from "@/core/document/schema";
 
 /** What an auto-fix changes: props to merge into the layer, and the layer's new clip stack. */
 export interface MotionDiagnosticFix {

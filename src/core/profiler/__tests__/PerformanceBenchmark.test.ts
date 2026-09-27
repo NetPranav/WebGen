@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { PerformanceProfiler } from "../PerformanceProfiler";
-import { multiEngineAnimationRuntime } from "../../runtime/MultiEngineAnimationRuntime";
+import { AnimationBenchmarkProfiler } from "../AnimationBenchmarkProfiler";
+import { multiEngineAnimationRuntime } from "../../engine/MultiEngineAnimationRuntime";
 import { AnimationSample } from "../../types/animations";
 
 describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks", () => {
@@ -9,7 +9,7 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
   // 1. 60 FPS FRAME BUDGET BENCHMARK
   // ==========================================================================
   it("verifies 60 FPS execution frame budget (<= 16.67ms) under animation simulation", () => {
-    const result = PerformanceProfiler.profileFrameRate(
+    const result = AnimationBenchmarkProfiler.profileFrameRate(
       "Universal Transform Animation",
       (frame) => {
         // Simulate real-time matrix synthesis for 60 frames
@@ -25,7 +25,7 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
     );
 
     assert.equal(result.frameCount, 60);
-    assert.ok(result.averageFrameTimeMs <= PerformanceProfiler.TARGET_FRAME_BUDGET_MS,
+    assert.ok(result.averageFrameTimeMs <= AnimationBenchmarkProfiler.TARGET_FRAME_BUDGET_MS,
       `Average frame time ${result.averageFrameTimeMs}ms must be <= 16.67ms`
     );
     assert.equal(result.droppedFrames, 0);
@@ -45,10 +45,10 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
       saturate: 1.6,
     };
 
-    const result = PerformanceProfiler.profileImageFilterStack(filterConfig, 60);
+    const result = AnimationBenchmarkProfiler.profileImageFilterStack(filterConfig, 60);
 
     assert.equal(result.frameCount, 60);
-    assert.ok(result.averageFrameTimeMs <= PerformanceProfiler.TARGET_FRAME_BUDGET_MS,
+    assert.ok(result.averageFrameTimeMs <= AnimationBenchmarkProfiler.TARGET_FRAME_BUDGET_MS,
       `Image filter frame time ${result.averageFrameTimeMs}ms must be <= 16.67ms`
     );
     assert.ok(result.meets60FpsBudget);
@@ -59,10 +59,10 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
   // 3. BACKGROUND NOISE & MULTI-GRADIENT DRIFT BENCHMARK
   // ==========================================================================
   it("verifies Background noise and gradient drift maintain 60 FPS budget", () => {
-    const result = PerformanceProfiler.profileBackgroundNoiseLayer(60);
+    const result = AnimationBenchmarkProfiler.profileBackgroundNoiseLayer(60);
 
     assert.equal(result.frameCount, 60);
-    assert.ok(result.averageFrameTimeMs <= PerformanceProfiler.TARGET_FRAME_BUDGET_MS,
+    assert.ok(result.averageFrameTimeMs <= AnimationBenchmarkProfiler.TARGET_FRAME_BUDGET_MS,
       `Background frame time ${result.averageFrameTimeMs}ms must be <= 16.67ms`
     );
     assert.ok(result.meets60FpsBudget);
@@ -100,7 +100,7 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
       ],
     };
 
-    const memoryResult = PerformanceProfiler.profileMemoryLifecycle(() => {
+    const memoryResult = AnimationBenchmarkProfiler.profileMemoryLifecycle(() => {
       // Create and compile timeline
       let compiled: string | null = multiEngineAnimationRuntime.compileGsapTimeline(sample, {
         componentSelector: "#test-perf-el",
@@ -124,7 +124,7 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
   // 5. MOTION PERFORMANCE DIAGNOSTICS & HARDWARE ACCELERATION CHECKS
   // ==========================================================================
   it("flags layout-triggering properties and recommends GPU-composited alternatives", () => {
-    const recommendations = PerformanceProfiler.analyzeMotionPerformance({
+    const recommendations = AnimationBenchmarkProfiler.analyzeMotionPerformance({
       top: 100,
       width: 200,
       filter: "blur(10px)",
@@ -140,7 +140,7 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
   });
 
   it("passes cleanly when all properties are hardware-accelerated transforms", () => {
-    const recommendations = PerformanceProfiler.analyzeMotionPerformance({
+    const recommendations = AnimationBenchmarkProfiler.analyzeMotionPerformance({
       transform: "scale(1.1)",
       opacity: 0.8,
     });

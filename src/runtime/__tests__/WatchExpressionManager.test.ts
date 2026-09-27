@@ -1,8 +1,8 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { WatchExpressionManager } from "../../../runtime/WatchExpressionManager";
-import { DiagnosticBus } from "../../engine/DiagnosticBus";
-import { WatchEvaluationContext } from "../../types/watch";
+import { WatchExpressionManager } from "../WatchExpressionManager";
+import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
+import { WatchEvaluationContext } from "@/core/types/watch";
 
 describe("Sub-Phase 5.7: WatchExpressionManager & Live Variable Inspector", () => {
   let manager: WatchExpressionManager;

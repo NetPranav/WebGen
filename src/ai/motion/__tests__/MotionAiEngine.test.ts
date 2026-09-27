@@ -12,10 +12,10 @@ import {
   getPresetsForArchetype,
   instantiatePreset,
   filterPresets,
-} from "../../motion/presets";
+} from "@/core/motion/presets";
 import { motionDiagnostics } from "../MotionDiagnostics";
-import { hydrateClip, type ClipDraft } from "../../document/factories";
-import type { Layer } from "../../document/schema";
+import { hydrateClip, type ClipDraft } from "@/core/document/factories";
+import type { Layer } from "@/core/document/schema";
 
 /** A layer plus its animation stack, as the co-pilot sees it. */
 type TestElement = Layer & { animationStack: ClipDraft[] };

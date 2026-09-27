@@ -1,12 +1,12 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { DiagnosticSuggester, AiAstPatch } from "../../../ai/copilot/DiagnosticSuggester";
-import { DiagnosticBus } from "../../engine/DiagnosticBus";
-import { DiagnosticEvent } from "../../types/diagnostics";
-import { useProjectStore } from "../../store/useProjectStore";
+import { DiagnosticSuggester, AiAstPatch } from "../DiagnosticSuggester";
+import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
+import { DiagnosticEvent } from "@/core/types/diagnostics";
+import { useProjectStore } from "@/core/store/useProjectStore";
 // Needed only when this file's one full-edition-only test actually runs
 // (npm run test:unit:full-edition); harmless to register otherwise.
-import "../../../after/store/stateVariableActions";
+import "@/after/store/stateVariableActions";
 
 /**
  * Sub-Phase 41.1: `applyPatch`'s `update_variable`/`add_node` actions are

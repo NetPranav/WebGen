@@ -23,7 +23,7 @@ import {
   CATEGORY_PRIORITY_ORDER,
   ReducedMotionPolicy,
 } from "../types/element-grammar";
-import { ElementGrammarEngine } from "../engine/ElementGrammarEngine";
+import { ElementGrammarEngine } from "./ElementGrammarEngine";
 
 export interface TransformComponents {
   x: string;

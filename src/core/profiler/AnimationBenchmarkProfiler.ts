@@ -2,8 +2,11 @@
 
 /**
  * ============================================================================
- * LAZYLAYOUT PERFORMANCE PROFILER & 60 FPS BENCHMARK ENGINE
+ * LAZYLAYOUT ANIMATION BENCHMARK PROFILER (60 FPS budget & memory-leak checks)
  * ============================================================================
+ * Renamed from `PerformanceProfiler` (repo restructure) to disambiguate from
+ * the unrelated `src/runtime/PerformanceProfiler.ts` (Blueprint execution
+ * flame-graph profiling, Panel 20) — same generic name, different tool.
  * Architecture Ref: DOCS/Initial/ROADMAP.md §Sub-Phase 8.3 & PRD.md §3
  *
  * Guarantees:
@@ -15,7 +18,7 @@
  * ============================================================================
  */
 
-import { ImageFilterConfig } from "../runtime/MultiEngineAnimationRuntime";
+import { ImageFilterConfig } from "../engine/MultiEngineAnimationRuntime";
 
 export interface FrameProfileResult {
   targetLabel: string;
@@ -52,7 +55,7 @@ function forceGc(): void {
   host.gc?.();
 }
 
-export class PerformanceProfiler {
+export class AnimationBenchmarkProfiler {
   public static readonly TARGET_FRAME_BUDGET_MS = 1000 / 60; // 16.666... ms
 
   /**

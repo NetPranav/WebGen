@@ -33,7 +33,7 @@ import { CATEGORY_PRIORITY_ORDER, type AnimationCategory } from "../types/elemen
 import { parseEasing } from "../document/motion";
 import { sampleEasing } from "./easing";
 import { interpolateValue } from "./interpolators";
-import { synthesizeSingleTransformMatrix, type TransformComponents } from "../runtime/EngineAdapters";
+import { synthesizeSingleTransformMatrix, type TransformComponents } from "../engine/EngineAdapters";
 
 export interface EvaluateInputs {
   /** Which named state (if any) is active on each layer — e.g. `{ [buttonId]: "hover" }`. */

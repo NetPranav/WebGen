@@ -12,7 +12,7 @@
 
 import React from "react";
 import type { ClipTemplate } from "@/core/document/schema";
-import { MotionAiDiffSummary } from "@/core/ai/MotionAiEngine";
+import { MotionAiDiffSummary } from "@/ai/motion/MotionAiEngine";
 import { Check, X, Sparkles, Layers, Clock, Zap } from "lucide-react";
 
 export interface DiffPreviewProps {

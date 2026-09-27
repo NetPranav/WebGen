@@ -41,17 +41,25 @@ WebAPPBuilder/                     ← Root of the repo
 │   │   ├── types/                 ← TypeScript type definitions (31 files)
 │   │   ├── store/                 ← Zustand state stores (7 stores)
 │   │   ├── document/              ← Document schema, registry, factories
-│   │   ├── engine/                ← Validation, compilation, solvers (17 engines)
+│   │   ├── engine/                ← Validation, compilation, solvers, engine
+│   │   │                             adapters & multi-engine animation runtime
+│   │   │                             (absorbed core/runtime/ — restructure)
 │   │   ├── ast/                   ← Abstract Syntax Tree management
 │   │   ├── events/                ← Event bus, tear-off channels
 │   │   ├── storage/               ← IndexedDB persistence, sessions
 │   │   ├── nodescript/            ← Visual scripting language (lexer, parser)
-│   │   ├── wasm/                  ← WebAssembly modules (physics, splines)
-│   │   ├── runtime/               ← Multi-engine animation runtime
-│   │   ├── profiler/              ← Performance measurement
+│   │   ├── wasm/                  ← TypeScript physics/spline solver (name is a
+│   │   │                             holdover — WebAssembly was rejected, see
+│   │   │                             decisions/0001-wasm.md)
+│   │   ├── profiler/              ← AnimationBenchmarkProfiler (60 FPS budget
+│   │   │                             checks; renamed from PerformanceProfiler
+│   │   │                             to disambiguate from the unrelated
+│   │   │                             runtime/PerformanceProfiler.ts)
 │   │   ├── collab/                ← Real-time collaboration engine
 │   │   ├── hooks/                 ← Shared React hooks
-│   │   ├── ai/                    ← AI engine integration
+│   │   ├── after/store/           ← After-track store actions (blueprints,
+│   │   │                             databases, pages, redirects, state vars),
+│   │   │                             registered only behind edition === "full"
 │   │   ├── flags.ts               ← Build-time edition toggle
 │   │   ├── ids.ts                 ← Collision-resistant ID generator
 │   │   └── errors.ts              ← Error message utility
@@ -63,7 +71,7 @@ WebAPPBuilder/                     ← Root of the repo
 │   │   ├── menus/                 ← File/Edit/View/Window/Help menus
 │   │   ├── runtime/               ← SandboxHost (live preview iframe)
 │   │   ├── styles/                ← 16 CSS files (tokens, panels, etc.)
-│   │   └── (placeholder dirs)     ← blueprints, motion, viewport, dialogs, database
+│   │   └── (placeholder dirs)     ← blueprints, viewport, dialogs, database
 │   │
 │   ├── compiler/                  ← 🔧 COMPILER — AST → Code
 │   │   ├── emitters/              ← Code generators (React, GSAP, Vue, etc.)
@@ -83,11 +91,24 @@ WebAPPBuilder/                     ← Root of the repo
 │   │   ├── ExecutionTracer.ts     ← Debugging execution flow
 │   │   ├── GlobalSearchEngine.ts  ← Search across project
 │   │   ├── ShortcutRegistry.ts    ← Keyboard shortcut management
+│   │   ├── PerformanceProfiler.ts ← Blueprint execution flame-graph profiling
+│   │   │                             (Panel 20 — unrelated to
+│   │   │                             core/profiler/AnimationBenchmarkProfiler.ts,
+│   │   │                             same generic name, different tool)
 │   │   └── ...more engines
 │   │
-│   └── ai/                        ← 🤖 AI SUBSYSTEM (mostly placeholder)
+│   └── ai/                        ← 🤖 AI SUBSYSTEM (one namespace for
+│       │                             everything AI-related now — core/ai/
+│       │                             used to duplicate this name; its 2 files
+│       │                             moved into motion/ below, restructure)
 │       ├── agent/                  ← AI agent orchestration
 │       ├── codegen/                ← AI code generation
+│       ├── copilot/                ← DiagnosticSuggester — the "fix this
+│       │                             diagnostic" AST-patch co-pilot
+│       ├── motion/                 ← MotionAiEngine/MotionDiagnostics — the
+│       │                             natural-language motion-choreography
+│       │                             co-pilot (a *different* co-pilot from
+│       │                             copilot/; moved from core/ai/)
 │       ├── prompts/                ← Prompt templates
 │       └── ...more modules
 │
@@ -259,12 +280,12 @@ WebAPPBuilder/                     ← Root of the repo
 | 104 | `src/core/wasm/CablePhysics.ts` | ⬜ | Cable physics simulation |
 | 105 | `src/core/wasm/SpatialIndex.ts` | ⬜ | Spatial indexing for canvas |
 | 106 | `src/core/wasm/SimdBenchmark.ts` | ⬜ | SIMD performance testing |
-| 107 | `src/core/runtime/MultiEngineAnimationRuntime.ts` | ⬜ | Multi-engine animation runner |
-| 108 | `src/core/runtime/EngineAdapters.ts` | ⬜ | Engine adapter interfaces |
-| 109 | `src/core/profiler/PerformanceProfiler.ts` | ⬜ | Performance measurement |
+| 107 | `src/core/engine/MultiEngineAnimationRuntime.ts` | ⬜ | Multi-engine animation runner (moved from `core/runtime/`, restructure) |
+| 108 | `src/core/engine/EngineAdapters.ts` | ⬜ | Engine adapter interfaces (moved from `core/runtime/`, restructure) |
+| 109 | `src/core/profiler/AnimationBenchmarkProfiler.ts` | ⬜ | 60 FPS budget & memory-leak checks (renamed from `PerformanceProfiler.ts` — disambiguated from `runtime/PerformanceProfiler.ts`, a different tool) |
 | 110 | `src/core/collab/PresenceEngine.ts` | ⬜ | Multi-user presence |
-| 111 | `src/core/ai/MotionAiEngine.ts` | ⬜ | AI motion generation |
-| 112 | `src/core/ai/MotionDiagnostics.ts` | ⬜ | AI diagnostics |
+| 111 | `src/ai/motion/MotionAiEngine.ts` | ⬜ | AI motion generation (moved from `core/ai/`, restructure) |
+| 112 | `src/ai/motion/MotionDiagnostics.ts` | ⬜ | AI diagnostics (moved from `core/ai/`, restructure) |
 
 ### Layer 10: Editor Shell (App Chrome)
 | # | File | Status | Description |

@@ -1,8 +1,8 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { MockDatabase } from "../../../runtime/MockDatabase";
-import { CollectionSchema } from "../../types/database";
-import { DiagnosticBus } from "../../engine/DiagnosticBus";
+import { MockDatabase } from "../MockDatabase";
+import { CollectionSchema } from "@/core/types/database";
+import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 
 describe("Sub-Phase 5.2: In-Memory MockDatabase", () => {
   let db: MockDatabase;

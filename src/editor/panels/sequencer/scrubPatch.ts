@@ -7,7 +7,7 @@
  */
 
 import type { Track } from "@/core/document/schema";
-import { synthesizeSingleTransformMatrix, type TransformComponents } from "@/core/runtime/EngineAdapters";
+import { synthesizeSingleTransformMatrix, type TransformComponents } from "@/core/engine/EngineAdapters";
 
 type Interpolate = (track: Track, time: number) => unknown;
 

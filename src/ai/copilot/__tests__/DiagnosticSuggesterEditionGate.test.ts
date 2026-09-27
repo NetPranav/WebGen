@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { DiagnosticSuggester, AiAstPatch } from "../../../ai/copilot/DiagnosticSuggester";
+import { DiagnosticSuggester, AiAstPatch } from "../DiagnosticSuggester";
 
 /**
  * Sub-Phase 41.1: the AI co-pilot can't propose or apply blueprint/state-variable

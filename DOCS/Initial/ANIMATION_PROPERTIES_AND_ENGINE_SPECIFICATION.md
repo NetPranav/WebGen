@@ -1411,7 +1411,7 @@ Media types represent rich raster, vector, or WebGL rendering surfaces.
 
 ## 8. Engine Adapter Architecture & Runtime Implementation Specification
 
-To decouple the editor's visual authoring interface from any single animation library and ensure 100% pluggable runtime targets, LazyLayout implements a clean **Engine Adapter Architecture** located in [`src/core/runtime/EngineAdapters.ts`](../../src/core/runtime/EngineAdapters.ts).
+To decouple the editor's visual authoring interface from any single animation library and ensure 100% pluggable runtime targets, LazyLayout implements a clean **Engine Adapter Architecture** located in [`src/core/engine/EngineAdapters.ts`](../../src/core/engine/EngineAdapters.ts).
 
 ---
 
@@ -1856,7 +1856,7 @@ This actionable checklist serves as the authoritative verification audit for eng
 ### 13.8 Quality Gates & Automated Test Verification
 - [x] **Grammar Engine Suite**: `src/core/engine/__tests__/ElementGrammarEngine.test.ts` (100% pass).
 - [x] **Lowering Compiler Suite**: `src/core/engine/__tests__/AnimationLoweringCompiler.test.ts` (100% pass).
-- [x] **Runtime Engine Adapters Suite**: `src/core/runtime/__tests__/EngineAdapters.test.ts` (100% pass).
+- [x] **Runtime Engine Adapters Suite**: `src/core/engine/__tests__/EngineAdapters.test.ts` (100% pass).
 - [x] **Grammar UI Helpers Suite**: `src/core/engine/__tests__/grammarHelpers.test.ts` (100% pass).
 - [x] **Full Regression Test Suite**: 444 / 444 automated unit tests passing across 143 test suites.
 - [x] **Visual Browser Smoke Verification**: Zero runtime console errors; modal interactions, track additions, and outliner synchronization visually verified.

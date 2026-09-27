@@ -31,9 +31,9 @@ import {
   Cpu,
 } from "lucide-react";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
-import { motionAiEngine, MotionAiResponse } from "@/core/ai/MotionAiEngine";
+import { motionAiEngine, MotionAiResponse } from "@/ai/motion/MotionAiEngine";
 import { ALL_PRESETS, getPresetsForArchetype, instantiatePreset, MotionPreset } from "@/core/motion/presets";
-import { motionDiagnostics, MotionDiagnosticIssue } from "@/core/ai/MotionDiagnostics";
+import { motionDiagnostics, MotionDiagnosticIssue } from "@/ai/motion/MotionDiagnostics";
 import { DiffPreview } from "./DiffPreview";
 import { documentCommands, useLayer, useLayerClips } from "@/core/store/useDocumentStore";
 import { getArchetype } from "@/core/document/registry";

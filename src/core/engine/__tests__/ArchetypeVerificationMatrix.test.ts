@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { multiEngineAnimationRuntime } from "../../../core/runtime/MultiEngineAnimationRuntime";
+import { multiEngineAnimationRuntime } from "../MultiEngineAnimationRuntime";
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
 import { AnimationSample, AnimationTrackId } from "../../../core/types/animations";
 import type { ArchetypeId } from "../../document/registry";

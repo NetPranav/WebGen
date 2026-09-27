@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import {
   generateElementMarkup,
   buildSandboxDocument,
-} from "../../../editor/runtime/SandboxHost";
-import { PageDefinition, StateVariable } from "../../store/useProjectStore";
-import { DiagnosticBus } from "../../engine/DiagnosticBus";
+} from "../SandboxHost";
+import { PageDefinition, StateVariable } from "@/core/store/useProjectStore";
+import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import type { Layer } from "@/core/document/schema";
 
 describe("Sub-Phase 5.1: In-Memory Runtime Sandbox Host", () => {

@@ -127,10 +127,12 @@
 
 ---
 
-## `src/core/engine/` — Computation Engines (17 files)
+## `src/core/engine/` — Computation Engines (19 files)
 
 | File | Status | Description |
 |------|--------|-------------|
+| `src/core/engine/MultiEngineAnimationRuntime.ts` | ⬜ | Orchestrates multiple animation engines (GSAP, Motion, CSS) — moved from `core/runtime/`, restructure |
+| `src/core/engine/EngineAdapters.ts` | ⬜ | Adapter interfaces for each animation engine — moved from `core/runtime/`, restructure |
 | `src/core/engine/ElementGrammarEngine.ts` | ⬜ | Validates element nesting rules (which elements go inside which) |
 | `src/core/engine/PathMorphSolver.ts` | ⬜ | SVG path morphing — interpolates between two SVG paths |
 | `src/core/engine/SvgFilterGradientEngine.ts` | ⬜ | Manages SVG filters (blur, drop-shadow) and gradients |
@@ -223,20 +225,17 @@
 
 ---
 
-## `src/core/runtime/` — Core Animation Runtime
+## `src/core/profiler/` — Animation Performance Benchmarking
+
+> Repo restructure: `src/core/runtime/` (2 files) was absorbed into
+> `src/core/engine/` above — same folder depth, same purpose (animation
+> engine execution), and it eliminated a confusing `core/runtime/` vs.
+> top-level `src/runtime/` naming collision. See that section for
+> `MultiEngineAnimationRuntime.ts`/`EngineAdapters.ts`.
 
 | File | Status | Description |
 |------|--------|-------------|
-| `src/core/runtime/MultiEngineAnimationRuntime.ts` | ⬜ | Orchestrates multiple animation engines (GSAP, Motion, CSS) |
-| `src/core/runtime/EngineAdapters.ts` | ⬜ | Adapter interfaces for each animation engine |
-
----
-
-## `src/core/profiler/` — Performance Measurement
-
-| File | Status | Description |
-|------|--------|-------------|
-| `src/core/profiler/PerformanceProfiler.ts` | ⬜ | Measures and records performance metrics |
+| `src/core/profiler/AnimationBenchmarkProfiler.ts` | ⬜ | 60 FPS budget & memory-leak checks — renamed from `PerformanceProfiler.ts` to disambiguate from the unrelated `src/runtime/PerformanceProfiler.ts` (Blueprint execution flame-graph profiling, Panel 20 — same generic name, different tool) |
 
 ---
 
@@ -248,12 +247,12 @@
 
 ---
 
-## `src/core/ai/` — AI Engine Integration
-
-| File | Status | Description |
-|------|--------|-------------|
-| `src/core/ai/MotionAiEngine.ts` | ⬜ | AI-powered motion generation and suggestion |
-| `src/core/ai/MotionDiagnostics.ts` | ⬜ | AI diagnostic analysis of animations |
+> Repo restructure: `src/core/ai/` (2 files) moved to `src/ai/motion/` — see
+> the `src/ai/` section below. It duplicated the top-level `src/ai/`
+> namespace name for an unrelated reason (this is core document/motion-model
+> logic, not the component-generation/codegen AI subsystem), which is now
+> resolved by co-locating it under `src/ai/` as its own `motion/` subfolder,
+> matching that namespace's existing `agent/`/`codegen/`/`copilot/` convention.
 
 ---
 
@@ -568,12 +567,17 @@
 
 ---
 
-## `src/ai/` — AI Subsystem (14 files)
+## `src/ai/` — AI Subsystem (16 files; this table pre-dates several other
+`src/ai/` subfolders — agent/, codegen/, explain/, history/, prompts/ —
+that exist in the repo but were never added here; not part of this
+restructure's scope, flagged so it isn't mistaken for complete)
 
 | File | Status | Description |
 |------|--------|-------------|
 | `src/ai/component/ComponentGenerator.ts` | ⬜ | AI-powered component generation |
 | `src/ai/copilot/DiagnosticSuggester.ts` | ⬜ | AI diagnostic suggestion engine |
+| `src/ai/motion/MotionAiEngine.ts` | ⬜ | Natural-language motion-choreography co-pilot (a *different* co-pilot from `copilot/DiagnosticSuggester.ts`) — moved from `core/ai/`, restructure |
+| `src/ai/motion/MotionDiagnostics.ts` | ⬜ | AI diagnostic analysis of animations (GPU bottlenecks, heavy SVG morphs) — moved from `core/ai/`, restructure |
 | `src/ai/intent/IntentParser.ts` | ⬜ | Natural language → editor action parser |
 | `src/ai/intent/intent-types.ts` | ⬜ | Intent type definitions |
 | `src/ai/intent/index.ts` | ⬜ | Barrel export |

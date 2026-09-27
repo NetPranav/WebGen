@@ -39,7 +39,7 @@ import { InteractiveEmitter } from "@/compiler/emitters/react/InteractiveEmitter
 import { MediaEmitter } from "@/compiler/emitters/react/MediaEmitter";
 import { StructuralEmitter } from "@/compiler/emitters/react/StructuralEmitter";
 import { TextEmitter } from "@/compiler/emitters/react/TextEmitter";
-import { multiEngineAnimationRuntime } from "@/core/runtime/MultiEngineAnimationRuntime";
+import { multiEngineAnimationRuntime } from "@/core/engine/MultiEngineAnimationRuntime";
 import { ZipPacker } from "@/compiler/export/ZipPacker";
 import type { Layer } from "@/core/document/schema";
 import "@/editor/styles/code-inspector.css";
