@@ -38,8 +38,10 @@ import { useEnvironmentStore } from "@/core/store/useEnvironmentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
-import { useLayers } from "@/core/store/useDocumentStore";
+import { useLayers, documentCommands } from "@/core/store/useDocumentStore";
 import { useFocusScope, useCommand, getContextKeys, type ContextKeys } from "@/core/commands";
+import { useShapeDrawing } from "./tools/useShapeDrawing";
+import { isShapeToolId } from "./tools/shapeTools";
 
 interface WhiteboardCanvasProps {
   deviceMode?: "desktop" | "tablet" | "mobile";
@@ -126,6 +128,21 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const activePage = pages[activePageId] || Object.values(pages)[0];
   const rootContainer = activePage ? elements[activePage.rootElementId] : null;
   const childCount = rootContainer?.children?.length || 0;
+
+  // Sub-Phase 43.2: Frame/Rectangle/Ellipse/Line drag-to-create. New shapes
+  // are added as children of the active page's root — this canvas is
+  // flow-placed (see `tools/types.ts`), so that's the only sensible parent
+  // for a shape with no absolute canvas position to land at.
+  const { handlePointerDown: handleShapeDrawPointerDown, overlayStyle: shapeDrawOverlay } = useShapeDrawing({
+    activeTool,
+    zoom: zoomLevel,
+    containerRef,
+    parentId: rootContainer?.id ?? null,
+    onCreated: (layerId) => {
+      selectEntity(layerId, "element");
+      setActiveTool("select");
+    },
+  });
 
   const palette = THEME_PALETTES[environment?.theme?.palette] || THEME_PALETTES.clean_light;
 
@@ -238,14 +255,20 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Tool selection & zoom commands (Sub-Phase 43.1/43.3: focus-scoped)
    * -------------------------------------------------------------------------- */
   const canvasCommandWhen = useCallback((ctx: ContextKeys) => ctx.canvasFocus && !ctx.textEditing, []);
+  // Sub-Phase 43.2 (2026-09-27): replaces the old select/pan/pencil/text/wire/
+  // shapes/components/assets key set. Every one of those old bindings only
+  // ever set decorative tool-select state — none had any drawing behavior
+  // behind it (verified: this file had no pointer handling beyond pan/zoom
+  // before this pass) — so this is a pure addition of real functionality,
+  // not a regression of anything that worked. See the Phase 43.2 ROADMAP
+  // section for the full key-assignment reasoning.
   useCommand({ id: "canvas.tool.select", title: "Select Tool", category: "Canvas", keybinding: "V", when: canvasCommandWhen, run: () => setActiveTool("select") }, [canvasCommandWhen]);
-  useCommand({ id: "canvas.tool.pan", title: "Pan Tool (Hand)", category: "Canvas", keybinding: "H", when: canvasCommandWhen, run: () => setActiveTool("pan") }, [canvasCommandWhen]);
-  useCommand({ id: "canvas.tool.pencil", title: "Pencil Tool", category: "Canvas", keybinding: "P", when: canvasCommandWhen, run: () => setActiveTool("pencil") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.pan", title: "Hand Tool (Pan)", category: "Canvas", keybinding: "H", when: canvasCommandWhen, run: () => setActiveTool("pan") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.frame", title: "Frame Tool", category: "Canvas", keybinding: "F", when: canvasCommandWhen, run: () => setActiveTool("frame") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.rectangle", title: "Rectangle Tool", category: "Canvas", keybinding: "R", when: canvasCommandWhen, run: () => setActiveTool("rectangle") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.ellipse", title: "Ellipse Tool", category: "Canvas", keybinding: "O", when: canvasCommandWhen, run: () => setActiveTool("ellipse") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.line", title: "Line Tool", category: "Canvas", keybinding: "L", when: canvasCommandWhen, run: () => setActiveTool("line") }, [canvasCommandWhen]);
   useCommand({ id: "canvas.tool.text", title: "Text Tool", category: "Canvas", keybinding: "T", when: canvasCommandWhen, run: () => setActiveTool("text") }, [canvasCommandWhen]);
-  useCommand({ id: "canvas.tool.wire", title: "Wire Connector Tool", category: "Canvas", keybinding: "W", when: canvasCommandWhen, run: () => setActiveTool("wire") }, [canvasCommandWhen]);
-  useCommand({ id: "canvas.tool.shapes", title: "Shapes Tool", category: "Canvas", keybinding: "S", when: canvasCommandWhen, run: () => setActiveTool("shapes") }, [canvasCommandWhen]);
-  useCommand({ id: "canvas.tool.components", title: "Components Tool", category: "Canvas", keybinding: "C", when: canvasCommandWhen, run: () => setActiveTool("components") }, [canvasCommandWhen]);
-  useCommand({ id: "canvas.tool.assets", title: "Asset Library Tool", category: "Canvas", keybinding: "A", when: canvasCommandWhen, run: () => setActiveTool("assets") }, [canvasCommandWhen]);
   useCommand(
     {
       id: "canvas.zoomIn",
@@ -343,6 +366,24 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Canvas Drag / Panning Engine
    * -------------------------------------------------------------------------- */
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Sub-Phase 43.2: a shape tool being active takes priority over panning
+    // (including "click anywhere blank to pan" triggers) — you can't draw a
+    // rectangle if a blank-canvas click always pans instead.
+    if (isShapeToolId(activeTool)) {
+      e.preventDefault();
+      handleShapeDrawPointerDown(e);
+      return;
+    }
+    if (activeTool === "text") {
+      e.preventDefault();
+      if (rootContainer?.id) {
+        const id = documentCommands.addLayer({ archetype: "text", parentId: rootContainer.id }, "Add Text");
+        selectEntity(id, "element");
+        setActiveTool("select");
+      }
+      return;
+    }
+
     if (!environment.viewport.pan.enabled) return;
 
     const isMiddleClick = e.button === 1;
@@ -428,6 +469,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     "--canvas-grid-pos-y": `${gridPosY}px`,
     "--canvas-dot-color": palette.gridDot,
     backgroundColor: palette.bg,
+    cursor: isShapeToolId(activeTool) || activeTool === "text" ? "crosshair" : undefined,
     ...style,
   } as React.CSSProperties;
 
@@ -486,6 +528,19 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
                 deviceMode={deviceMode}
                 onStopPlay={() => handleTogglePlay(false)}
                 onOpenExecutionTrace={onOpenExecutionTrace}
+                // Sub-Phase 43.2: the sandbox is a real <iframe> — a separate
+                // browsing context, so mouse events over it never reach this
+                // component's handlers at all (confirmed: a drag starting on
+                // top of the device frame silently did nothing; the same
+                // drag just outside it worked correctly). Disabling pointer
+                // events on the whole sandbox while a shape/text tool is
+                // active lets the drag reach `.whiteboard-stage` instead,
+                // so shapes can be drawn anywhere on the canvas, not only in
+                // the margin around the device frame. Select/Hand keep
+                // pointer-events on, since Select's click-to-pick-an-element
+                // (`onElementClick` below) needs real clicks inside the
+                // iframe to work at all.
+                style={{ pointerEvents: isShapeToolId(activeTool) || activeTool === "text" ? "none" : undefined }}
                 onElementClick={(elId) => {
                   selectEntity(elId, "element");
                 }}
@@ -516,11 +571,24 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         {childCount > 0 && !isPlayMode && <CanvasOverlay selectedElement={selectedElement} />}
       </div>
 
+      {/* Sub-Phase 43.2: live dashed-rect preview while dragging a shape tool.
+          A sibling of .whiteboard-world, not a child — .whiteboard-world has
+          its own pan/zoom CSS transform, but useShapeDrawing measures drag
+          coordinates against the untransformed .whiteboard-stage container
+          (containerRef), same as FloatingDock/ZoomControls below. Nesting
+          this inside .whiteboard-world would double-apply the transform. */}
+      {shapeDrawOverlay && <div className="canvas-shape-draw-overlay" style={shapeDrawOverlay} />}
+
       {/* Floating Atlassian-Style Bottom Dock */}
       <FloatingDock
         activeTool={activeTool}
         onSelectTool={(tool) => setActiveTool(tool)}
-        onOpenQuickInsert={() => setActiveTool("components")}
+        // Quick Insert (search-and-place components/assets) has no real
+        // implementation yet — it only ever set decorative tool state before
+        // this phase too (the "components" tool did nothing on its own).
+        // Left unwired rather than pointed at a tool id that no longer
+        // exists; a real modal is future work, not a 43.2 regression.
+        onOpenQuickInsert={undefined}
       />
 
       {/* Floating Zoom Controls Widget (Bottom-Right) */}

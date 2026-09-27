@@ -82,6 +82,45 @@ describe("Sub-Phase 5.1: In-Memory Runtime Sandbox Host", () => {
     assert.ok(markup.includes("background-color: #206859"));
   });
 
+  it("renders Phase 7.6 parametric shapes and the Pen/Pencil svgPath, not the invisible default div (Sub-Phase 43.2)", () => {
+    const shapeLayer = (archetype: Layer["archetype"], properties: Layer["properties"]): Record<string, Layer> => ({
+      el_shape: { id: "el_shape", name: "Shape", archetype, parentId: null, properties, children: [] },
+    });
+
+    const rect = generateElementMarkup(
+      "el_shape",
+      shapeLayer("rectangle", { "frame.width": 200, "frame.height": 100, "svg.fill": "#ff0000" })
+    );
+    assert.ok(rect.includes('data-archetype="rectangle"'));
+    assert.ok(rect.includes("width: 200px"));
+    assert.ok(rect.includes("height: 100px"));
+    assert.ok(rect.includes("background-color: #ff0000"));
+    assert.ok(!rect.includes('<div id="el_shape" data-element-id="el_shape" style="box-sizing: border-box;">'), "must not fall through to the invisible default div");
+
+    const ellipse = generateElementMarkup("el_shape", shapeLayer("ellipse", { "frame.width": 80, "frame.height": 80 }));
+    assert.ok(ellipse.includes("border-radius: 50%"));
+
+    const line = generateElementMarkup("el_shape", shapeLayer("line", { "frame.width": 300 }));
+    assert.ok(line.includes("<svg"));
+    assert.ok(line.includes('x2="300"'));
+
+    const polygon = generateElementMarkup("el_shape", shapeLayer("polygon", { "frame.width": 100, "frame.height": 100, "shape.sides": 6 }));
+    assert.ok(polygon.includes("<polygon"));
+    // A regular hexagon has 6 vertices — 6 comma-separated coordinate pairs.
+    assert.strictEqual((polygon.match(/points="([^"]+)"/)?.[1] ?? "").trim().split(" ").length, 6);
+
+    const star = generateElementMarkup("el_shape", shapeLayer("star", { "frame.width": 100, "frame.height": 100, "shape.points": 5, "shape.innerRadius": 0.5 }));
+    assert.ok(star.includes("<polygon"));
+    // A 5-point star alternates outer/inner vertices: 10 total.
+    assert.strictEqual((star.match(/points="([^"]+)"/)?.[1] ?? "").trim().split(" ").length, 10);
+
+    const arrow = generateElementMarkup("el_shape", shapeLayer("arrow", { "frame.width": 160, "frame.height": 32 }));
+    assert.ok(arrow.includes("<path"));
+
+    const svgPath = generateElementMarkup("el_shape", shapeLayer("svgPath", { "svg.path": "M0 0 L50 50" }));
+    assert.ok(svgPath.includes('d="M0 0 L50 50"'));
+  });
+
   it("builds an isolated standalone sandbox HTML document with exception trapping", () => {
     const page: PageDefinition = {
       id: "page_main",

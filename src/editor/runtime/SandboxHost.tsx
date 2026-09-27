@@ -263,6 +263,155 @@ export function generateElementMarkup(
       `;
     }
 
+    // Phase 7.6 parametric shapes (rectangle/ellipse/line/polygon/star/arrow)
+    // and the Pen/Pencil tool's freehand `svgPath` (Sub-Phase 43.2 Tier A):
+    // these archetypes existed in the registry since 7.6 but had no rendering
+    // here at all — they fell through to `default` above as an invisible,
+    // zero-size `<div>`. Flow-placed (this renderer has no absolute-position
+    // canvas — see the Phase 43.2 ROADMAP note), sized from `frame.width`/
+    // `frame.height`, so a drawn shape is visible and correctly sized even
+    // though it lands wherever its parent's flex layout puts it, not at the
+    // exact drag position.
+    case "rectangle": {
+      const width = get("frame.width") ? `${get("frame.width")}px` : "160px";
+      const height = get("frame.height") ? `${get("frame.height")}px` : "120px";
+      const fill = get("svg.fill") || "#cbd5e1";
+      const stroke = get("svg.stroke") || "none";
+      const strokeWidth = get("svg.strokeWidth") ? `${get("svg.strokeWidth")}px` : "0px";
+      const radius = get("shape.cornerRadius") ? `${get("shape.cornerRadius")}px` : "0px";
+      return `
+        <div
+          id="${el.id}"
+          data-element-id="${el.id}"
+          data-archetype="rectangle"
+          style="
+            width: ${width};
+            height: ${height};
+            flex-shrink: 0;
+            background-color: ${fill};
+            border: ${strokeWidth} solid ${stroke};
+            border-radius: ${radius};
+            box-sizing: border-box;
+          "
+        ></div>
+      `;
+    }
+
+    case "ellipse": {
+      const width = get("frame.width") ? `${get("frame.width")}px` : "120px";
+      const height = get("frame.height") ? `${get("frame.height")}px` : "120px";
+      const fill = get("svg.fill") || "#cbd5e1";
+      const stroke = get("svg.stroke") || "none";
+      const strokeWidth = get("svg.strokeWidth") ? `${get("svg.strokeWidth")}px` : "0px";
+      return `
+        <div
+          id="${el.id}"
+          data-element-id="${el.id}"
+          data-archetype="ellipse"
+          style="
+            width: ${width};
+            height: ${height};
+            flex-shrink: 0;
+            background-color: ${fill};
+            border: ${strokeWidth} solid ${stroke};
+            border-radius: 50%;
+            box-sizing: border-box;
+          "
+        ></div>
+      `;
+    }
+
+    case "line": {
+      const width = Number(get("frame.width")) || 160;
+      const strokeWidth = Number(get("svg.strokeWidth")) || 2;
+      const height = Math.max(Number(get("frame.height")) || 2, strokeWidth);
+      const stroke = get("svg.stroke") || "#0f172a";
+      const linecap = get("svg.strokeLinecap") || "round";
+      return `
+        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="line" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
+          <line x1="0" y1="${height / 2}" x2="${width}" y2="${height / 2}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${linecap}" />
+        </svg>
+      `;
+    }
+
+    case "polygon": {
+      const width = Number(get("frame.width")) || 120;
+      const height = Number(get("frame.height")) || 120;
+      const sides = Math.max(3, Number(get("shape.sides")) || 6);
+      const fill = get("svg.fill") || "#cbd5e1";
+      const stroke = get("svg.stroke") || "none";
+      const strokeWidth = Number(get("svg.strokeWidth")) || 0;
+      const cx = width / 2;
+      const cy = height / 2;
+      const points = Array.from({ length: sides }, (_, i) => {
+        const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
+        return `${(cx + cx * Math.cos(angle)).toFixed(2)},${(cy + cy * Math.sin(angle)).toFixed(2)}`;
+      }).join(" ");
+      return `
+        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="polygon" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
+          <polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />
+        </svg>
+      `;
+    }
+
+    case "star": {
+      const width = Number(get("frame.width")) || 120;
+      const height = Number(get("frame.height")) || 120;
+      const points = Math.max(3, Number(get("shape.points")) || 5);
+      const innerRatioRaw = get("shape.innerRadius");
+      const innerRatio = typeof innerRatioRaw === "number" ? innerRatioRaw : 0.5;
+      const fill = get("svg.fill") || "#cbd5e1";
+      const stroke = get("svg.stroke") || "none";
+      const strokeWidth = Number(get("svg.strokeWidth")) || 0;
+      const cx = width / 2;
+      const cy = height / 2;
+      const vertices: string[] = [];
+      for (let i = 0; i < points * 2; i++) {
+        const angle = (Math.PI * i) / points - Math.PI / 2;
+        const rx = i % 2 === 0 ? cx : cx * innerRatio;
+        const ry = i % 2 === 0 ? cy : cy * innerRatio;
+        vertices.push(`${(cx + rx * Math.cos(angle)).toFixed(2)},${(cy + ry * Math.sin(angle)).toFixed(2)}`);
+      }
+      return `
+        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="star" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
+          <polygon points="${vertices.join(" ")}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />
+        </svg>
+      `;
+    }
+
+    case "arrow": {
+      const width = Number(get("frame.width")) || 160;
+      const height = Number(get("frame.height")) || 32;
+      const headLength = Math.min(Number(get("shape.headLength")) || 16, width);
+      const headWidth = Math.min(Number(get("shape.headWidth")) || 24, height);
+      const shaftWidth = Math.min(Number(get("shape.shaftWidth")) || 6, headWidth);
+      const fill = get("svg.fill") || "#cbd5e1";
+      const cy = height / 2;
+      const shaftTop = cy - shaftWidth / 2;
+      const shaftBottom = cy + shaftWidth / 2;
+      const shaftEnd = width - headLength;
+      const headTop = cy - headWidth / 2;
+      const headBottom = cy + headWidth / 2;
+      const path = `M0,${shaftTop} L${shaftEnd},${shaftTop} L${shaftEnd},${headTop} L${width},${cy} L${shaftEnd},${headBottom} L${shaftEnd},${shaftBottom} L0,${shaftBottom} Z`;
+      return `
+        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="arrow" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
+          <path d="${path}" fill="${fill}" />
+        </svg>
+      `;
+    }
+
+    case "svgPath": {
+      const d = get("svg.path") || "M0 0 L100 100";
+      const stroke = get("svg.stroke") || "#0f172a";
+      const strokeWidth = get("svg.strokeWidth") ? `${get("svg.strokeWidth")}` : "2";
+      const fill = get("svg.fill") || "none";
+      return `
+        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="svgPath" width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="none" style="display: block; overflow: visible;">
+          <path d="${d}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="${fill}" />
+        </svg>
+      `;
+    }
+
     default:
       return `
         <div id="${el.id}" data-element-id="${el.id}" style="box-sizing: border-box;">

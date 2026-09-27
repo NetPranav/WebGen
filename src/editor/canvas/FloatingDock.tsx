@@ -6,8 +6,8 @@
  * ============================================================================
  * UI Element: Atlassian Confluence-style Floating Bottom Dock Pill
  * Screen / Scope: Screen 01: Application Viewport & Screen 12: Whiteboard Canvas
- * Role: Provides quick access to creative and editing tools (Select, Pan, Pencil,
- *       Text, Wire, Shapes, Components, Assets).
+ * Role: Provides quick access to creative and editing tools (Select, Hand,
+ *       Frame, Rectangle, Ellipse, Line, Text).
  * Styling Source: `@/editor/styles/whiteboard.css` (`.floating-dock`)
  * ============================================================================
  */
@@ -16,24 +16,33 @@ import React from "react";
 import {
   MousePointer2,
   Hand,
-  Pencil,
-  Type,
-  Spline,
   Square,
-  LayoutGrid,
-  FolderClosed,
+  Circle,
+  Minus,
+  Frame as FrameIcon,
+  Type,
   Plus,
 } from "lucide-react";
 
+// Sub-Phase 43.2 (2026-09-27): replaces the old select/pan/pencil/text/wire/
+// shapes/components/assets set. `wire` retires (a Blueprint-graph concept,
+// never a canvas one); `shapes` retires in favor of explicit per-shape tools;
+// `components`/`assets` become Quick-Insert-only (the `Plus`/Tab button
+// below) rather than persistent modal tools. See the Phase 43.2 ROADMAP
+// section for the full reasoning behind every addition/retirement/key choice,
+// and for what's specified there but deliberately not in this union yet:
+// Direct-select, Pen, Pencil, and the Polygon/Star/Arrow flyout all need
+// either a shape-handle-editing UI or a bezier/freehand path-drawing UI that
+// doesn't exist yet — every tool actually listed here is fully functional,
+// not a placeholder button that looks clickable and does nothing.
 export type CanvasTool =
   | "select"
   | "pan"
-  | "pencil"
-  | "text"
-  | "wire"
-  | "shapes"
-  | "components"
-  | "assets";
+  | "frame"
+  | "rectangle"
+  | "ellipse"
+  | "line"
+  | "text";
 
 interface FloatingDockProps {
   activeTool: CanvasTool;
@@ -52,13 +61,12 @@ interface ToolDefinition {
 
 const TOOLS: ToolDefinition[] = [
   { id: "select", name: "Select Tool", icon: MousePointer2, shortcut: "V" },
-  { id: "pan", name: "Pan Canvas", icon: Hand, shortcut: "H" },
-  { id: "pencil", name: "Freehand Pencil", icon: Pencil, shortcut: "P" },
-  { id: "text", name: "Text Box", icon: Type, shortcut: "T" },
-  { id: "wire", name: "Wire Connector", icon: Spline, shortcut: "W" },
-  { id: "shapes", name: "Shapes", icon: Square, shortcut: "S" },
-  { id: "components", name: "Components", icon: LayoutGrid, shortcut: "C" },
-  { id: "assets", name: "Asset Library", icon: FolderClosed, shortcut: "A" },
+  { id: "pan", name: "Hand Tool (Pan)", icon: Hand, shortcut: "H" },
+  { id: "frame", name: "Frame Tool", icon: FrameIcon, shortcut: "F" },
+  { id: "rectangle", name: "Rectangle Tool", icon: Square, shortcut: "R" },
+  { id: "ellipse", name: "Ellipse Tool", icon: Circle, shortcut: "O" },
+  { id: "line", name: "Line Tool", icon: Minus, shortcut: "L" },
+  { id: "text", name: "Text Tool", icon: Type, shortcut: "T" },
 ];
 
 export const FloatingDock: React.FC<FloatingDockProps> = ({
