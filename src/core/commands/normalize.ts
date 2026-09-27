@@ -64,10 +64,16 @@ export function normalizeShortcut(input: KeyboardEvent | string): string {
   return result.join("+");
 }
 
-/** True when the event's target is a text input, textarea, or contentEditable element. */
+/**
+ * True when the event's target is a text input, textarea, dropdown, or
+ * contentEditable element. Includes `<select>`: `BlueprintCanvas.tsx`'s own
+ * pre-migration guard checked it (a dropdown focused over the graph
+ * shouldn't have "c"/Tab/Delete act on the graph), but `EditorShell.tsx`'s
+ * didn't — unifying on the stricter of the two rather than the laxer one.
+ */
 export function isTextEditingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
-  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
 }
 
 /** Renders a command's keybinding (possibly several) as one display string, e.g. "Ctrl+Z" or "Ctrl+Shift+Z / Ctrl+Y". */

@@ -9,7 +9,7 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [3.9.0] — 2026-09-28
+## [3.9.0] — 2026-09-27
 
 ### Phase 43 (Command Bus & Focus Model): Sub-Phases 43.1 + 43.3 landed, 43.2 deferred, not yet Verification-Gate-green
 
@@ -23,7 +23,8 @@ One command registry now backs every keyboard shortcut and the command palette, 
 - `BlueprintCanvas.tsx` had its own Ctrl+Z/Shift+Z/Y listener calling the same `historyCommands.undo()/redo()` the new global `edit.undo`/`edit.redo` commands call — left in place, it would have double-undone every Ctrl+Z while Blueprint was mounted. Removed, not duplicated.
 - `blueprint.save` (Ctrl+S, blueprint-focused) and the global `file.save` need to both fire (local compile+flash, and the project-wide flush), but the dispatcher runs only the first matching command, not every match. Made deterministic with `file.save`'s `when`, the exact logical negation of `blueprint.save`'s own gate (`!blueprintFocus || textEditing`, not just `!blueprintFocus` — a narrower gate left a case where blueprint is focused *and* a text field elsewhere has focus, e.g. editing a pin value, where neither command matched and Ctrl+S fell through to the browser's native Save Page dialog) rather than relying on registration-order luck.
 - `useFocusScope`'s unmount cleanup only removed its listeners; a removed element never fires its own `pointerleave`, so a panel unmounting while still hovered (a full-page swap, a detached tab closing) left its focus scope stuck on — no longer just cosmetic once `file.save` reads `blueprintFocus` globally. Fixed by clearing the scope on unmount too, with the same "only if still active" check `onLeave` already used.
-- `CommandPalette.tsx`'s `handleExecute` ran a clicked command via `runCommand`, which re-checks `when` — but `onClose()` only schedules the palette's unmount, so its search input is still focused (`textEditing` still `true`) the instant the command actually runs. This silently no-op'd `edit.undo`/`edit.redo` (the only two commands both palette-listed and gated on `!textEditing`) on every click or Enter — undo/redo from the command palette did nothing. Fixed by calling `getCommand(cmd.id)?.run()` instead, since availability was already decided when the palette's list was built.
+- `CommandPalette.tsx`'s `handleExecute` ran a clicked command via `runCommand`, which re-checks `when` — but `onClose()` only schedules the palette's unmount, so its search input is still focused (`textEditing` still `true`) the instant the command actually runs. This silently no-op'd `edit.undo`/`edit.redo` (the only two commands both palette-listed and gated on `!textEditing`) on every click or Enter — undo/redo from the command palette did nothing. Fixed by calling `getCommand(cmd.id)?.run()` instead, since availability was already decided when the palette's list was built. Proven live: delete a keyframe, Ctrl+Z, Ctrl+Shift+Z, then palette "undo" via Enter — each restores/re-deletes correctly, zero console errors.
+- `isTextEditingTarget()` checked `INPUT`/`TEXTAREA`/contentEditable but not `SELECT` — `BlueprintCanvas.tsx`'s pre-migration guard checked `SELECT` too; `EditorShell.tsx`'s (which the shared function was modeled on) never did. Unified on the stricter of the two.
 - `normalizeShortcut()` mapped a real spacebar keydown (`e.key === " "`) through the generic single-character branch, producing `" "` instead of `"Space"` — a command bound to `"Space"` would never have matched a real keypress. Caught by a unit test before it reached a real command.
 
 #### Not done (Verification Gate not met)
@@ -31,6 +32,8 @@ One command registry now backs every keyboard shortcut and the command palette, 
 - **Menu handlers** (`EditMenu.tsx` etc.) still call their underlying actions directly, not through `runCommand` — deliberately deferred, since `runCommand` enforces a command's `when` clause (correct for keyboard disambiguation) and a menu click has no competing interpretation to disambiguate; gating it identically would silently no-op a legitimate click during unrelated text editing.
 - No "every menu item/palette entry/shortcut resolves to a registered command" test exists yet (only shortcuts and the palette are covered). The Playwright checks were run manually against a local dev server, not committed as a spec.
 - **Found, still out of scope:** `/editor/detach/[panelId]/page.tsx` imports `BlueprintCanvas` directly instead of through `afterTrackPanels.tsx`'s lazy wrapper, so the After-track store actions never register there; Ctrl+S or Delete-with-a-selection throws `compileActiveBlueprintGraph is not a function` in that tab. Confirmed pre-existing (`git diff` on that file is empty this phase) — the migration only changed which listener calls the same already-broken path.
+
+## [3.8.0] — 2026-09-27
 
 ### Phase 41 (Store Decomposition & Transaction API): complete — Verification Gate green, merged directly to `main`
 

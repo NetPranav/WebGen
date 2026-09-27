@@ -45,9 +45,13 @@ describe("Sub-Phase 43.1: Shortcut Normalization", () => {
     assert.strictEqual(normalizeShortcut(spaceEvent), "Space");
   });
 
-  it("isTextEditingTarget recognizes inputs, textareas and contentEditable", () => {
+  it("isTextEditingTarget recognizes inputs, textareas, selects and contentEditable", () => {
     assert.strictEqual(isTextEditingTarget({ tagName: "INPUT", isContentEditable: false } as unknown as EventTarget), true);
     assert.strictEqual(isTextEditingTarget({ tagName: "TEXTAREA", isContentEditable: false } as unknown as EventTarget), true);
+    // BlueprintCanvas.tsx's pre-migration guard checked SELECT too (a dropdown
+    // focused over the graph shouldn't let "c"/Tab/Delete act on the graph);
+    // EditorShell.tsx's didn't. Unified on the stricter of the two.
+    assert.strictEqual(isTextEditingTarget({ tagName: "SELECT", isContentEditable: false } as unknown as EventTarget), true);
     assert.strictEqual(isTextEditingTarget({ tagName: "DIV", isContentEditable: true } as unknown as EventTarget), true);
     assert.strictEqual(isTextEditingTarget({ tagName: "DIV", isContentEditable: false } as unknown as EventTarget), false);
     assert.strictEqual(isTextEditingTarget(null), false);
