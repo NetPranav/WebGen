@@ -31,7 +31,8 @@ At the user's request, 43.2's tool list was rethought from scratch — expanded 
 - Full 3-browser `CI=1` Playwright and both-edition production builds specifically re-checked against this commit — due before push.
 
 #### Observed, not caused by this work
-- Re-running the full local unit suite 4 times surfaced real, ~50% flakiness from two different, unrelated timing/perf-budget tests (`ProjectSession.test.ts`'s save-status race once, `WasmCableCanvas.test.ts`'s 120fps frame-budget assertion once) — neither file touched this session, both pass cleanly and consistently in isolation. Since CI runs the full suite too, this would affect CI the same way; flagged for whoever next hardens those two tests (a mocked clock, or a CI-only budget), not attempted here.
+- Full local unit suite: 5 isolated runs (no dev server, no Playwright) on both `0330bdb` (pre-Tier-A, what's on `origin/main`) and the current commit came back 5/5 clean on each. Two earlier, non-isolated runs had failed — once `ProjectSession.test.ts`'s save-status race, once `WasmCableCanvas.test.ts`'s 120fps frame-budget assertion — both while a dev server and Playwright were also running concurrently for manual browser testing. Neither file was touched this session; this is load-dependent flakiness in genuine wall-clock timing/perf-budget tests, not a difference from what's already on `origin/main`. Flagged for whoever next hardens those two tests (a mocked clock, or a more generous budget), not attempted here.
+- `onCreated`'s `selectEntity` correctly selects a newly-drawn shape in the modern selection store, but the on-canvas selection outline (`CanvasOverlay.tsx`) only ever highlights the three hardcoded showcase-demo components (an older, separate `selectedElement` mechanism) — a drawn shape is selected but shows no visual highlight box. Cosmetic, pre-dates this phase's selection story, not fixed here.
 
 ## [3.9.0] — 2026-09-27
 
