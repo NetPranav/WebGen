@@ -36,7 +36,7 @@
 | 10 | 8 | Executable Motion Rules Engine | 7, 46 | ∥ 11 | ✅ |
 | 11 | 9 | Deterministic Evaluation Kernel | 7, 46 | ∥ 10 | ✅ |
 | 12 | 41 | Store Decomposition (the rest: 41.1, 41.3) | 2 | ∥ 10, 11 | ✅ |
-| 13 | 43 | Command Bus, Tool State Machine & Keymap | 41 | ∥ 10, 11 | ⏭ |
+| 13 | 43 | Command Bus, Tool State Machine & Keymap | 41 | ∥ 10, 11 | 🚧 43.1 + 43.3 |
 | 14 | 44 | Workspace Architecture & Layout Presets | 6, 43 | ∥ 10, 11 | 📋 |
 | 15 | 80.1 | Threat model (the first part of 80) | 3 | any time | 📋 |
 | 16 | 45 | Transport, Global Clock & Frame Scheduler | 9, 41 | ∥ 17 | 📋 |

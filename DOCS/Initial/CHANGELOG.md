@@ -9,7 +9,26 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [3.8.0] — 2026-09-28
+## [3.9.0] — 2026-09-27
+
+### Phase 43 (Command Bus & Focus Model): Sub-Phases 43.1 + 43.3 landed, 43.2 deferred, not yet Verification-Gate-green
+
+One command registry now backs every keyboard shortcut and the command palette, with VS Code-style `when` clauses reading context keys (which panel has pointer focus, whether a text field is being edited) for disambiguation — replacing 7 independent `window.addEventListener("keydown", ...)` listeners scattered across `EditorShell.tsx`, `WhiteboardCanvas.tsx`, `MotionSequencer.tsx` and `BlueprintCanvas.tsx`, none of which knew about each other.
+
+#### Added
+- **`src/core/commands/`**: `types.ts`, `contextKeys.ts` (Zustand store for `canvasFocus`/`timelineFocus`/`blueprintFocus`/`textEditing`/`selection.count`/`transport.playing`), `normalize.ts`, `registry.ts` (`defineCommand`/`runCommand`/`useCommand`), `dispatcher.ts` (`installCommandDispatcher`, first-match-wins), `globalCommands.ts` (`installGlobalCommands` — the `edit.undo`/`edit.redo`/`file.save` trio + the dispatcher, shared by `EditorShell.tsx` and `DetachedPanelShell.tsx` since a detached panel is a separate browser tab with no `EditorShell`), `useFocusScope.ts` (`useFocusScope`/`useOwnFocusScope`, pointer-hover-based, not click-based — Figma/After Effects convention). 18 unit tests.
+- **43.3 Focus Model:** `WhiteboardCanvas.tsx`, `MotionSequencer.tsx` and `BlueprintCanvas.tsx` each declare a focus scope on their root element. This closes a real, live bug: Space and Delete were bound independently in all three with no disambiguation, so a docked canvas and timeline mounted together could both react to the same keystroke.
+
+#### Fixed
+- `BlueprintCanvas.tsx` had its own Ctrl+Z/Shift+Z/Y listener calling the same `historyCommands.undo()/redo()` the new global `edit.undo`/`edit.redo` commands call — left in place, it would have double-undone every Ctrl+Z while Blueprint was mounted. Removed, not duplicated.
+- `blueprint.save` (Ctrl+S, blueprint-focused) and the global `file.save` need to both fire (local compile+flash, and the project-wide flush), but the dispatcher runs only the first matching command, not every match. Made deterministic with `file.save`'s `when: (ctx) => !ctx.blueprintFocus` rather than relying on registration-order luck.
+- `normalizeShortcut()` mapped a real spacebar keydown (`e.key === " "`) through the generic single-character branch, producing `" "` instead of `"Space"` — a command bound to `"Space"` would never have matched a real keypress. Caught by a unit test before it reached a real command.
+
+#### Not done (Verification Gate not met)
+- **43.2 (Tool State Machine)** not started — scoped out at the user's explicit choice: it's ~6 new Figma-style drawing tools built from scratch, not a refactor, a separate undertaking from 43.1/43.3.
+- **Menu handlers** (`EditMenu.tsx` etc.) still call their underlying actions directly, not through `runCommand` — deliberately deferred, since `runCommand` enforces a command's `when` clause (correct for keyboard disambiguation) and a menu click has no competing interpretation to disambiguate; gating it identically would silently no-op a legitimate click during unrelated text editing.
+- No "every menu item/palette entry/shortcut resolves to a registered command" test exists yet (only shortcuts and the palette are covered). The Playwright checks (Space pans the canvas and releases cleanly; Space over the timeline plays without panning the canvas) were run manually against a local dev server, not committed as a spec.
+- **Found, out of scope:** `/editor/detach/[panelId]/page.tsx` imports `BlueprintCanvas` directly instead of through `afterTrackPanels.tsx`'s lazy wrapper, so the After-track store actions never register there; Ctrl+S or Delete-with-a-selection throws `compileActiveBlueprintGraph is not a function` in that tab. Confirmed pre-existing (`git diff` on that file is empty this phase) — the migration only changed which listener calls the same already-broken path.
 
 ### Phase 41 (Store Decomposition & Transaction API): complete — Verification Gate green, merged directly to `main`
 

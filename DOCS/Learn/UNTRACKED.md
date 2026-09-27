@@ -69,7 +69,7 @@
 | `src/core/types/debugger.ts` | ⬜ | Debugger state — breakpoints, call stack, variables |
 | `src/core/types/routing.ts` | ⬜ | Page routing — route definitions, navigation flow |
 | `src/core/types/search.ts` | ⬜ | Search result types — matches, filters, ranking |
-| `src/core/types/shortcuts.ts` | ⬜ | Keyboard shortcut types — key combos, contexts, actions |
+| `src/core/types/shortcuts.ts` | ⬜ | **Deleted (Phase 43)** — superseded by `src/core/commands/types.ts` |
 | `src/core/types/trace.ts` | ⬜ | Execution trace types — call entries, timeline events |
 | `src/core/types/watch.ts` | ⬜ | Watch expression types — monitored variables, live values |
 | `src/core/types/versioning.ts` | ⬜ | Version control types — commits, branches, diffs |
@@ -244,6 +244,23 @@
 | File | Status | Description |
 |------|--------|-------------|
 | `src/core/collab/PresenceEngine.ts` | ⬜ | Multi-user presence — cursor sharing, live awareness |
+
+---
+
+## `src/core/commands/` — Command Bus (Phase 43; new, 8 files)
+
+| File | Status | Description |
+|------|--------|-------------|
+| `src/core/commands/types.ts` | ⬜ | `Command`/`ContextKeys`/`FocusScope` types — supersedes `core/types/shortcuts.ts` |
+| `src/core/commands/contextKeys.ts` | ⬜ | Zustand store for `canvasFocus`/`timelineFocus`/`blueprintFocus`/`textEditing`/`selection.count`/`transport.playing` |
+| `src/core/commands/normalize.ts` | ⬜ | Normalizes a `KeyboardEvent` or string into a canonical shortcut string (e.g. `"Ctrl+S"`, `"Space"`) |
+| `src/core/commands/registry.ts` | ⬜ | `defineCommand`/`getCommand`/`runCommand`/`useCommand` — the single map every command lives in |
+| `src/core/commands/dispatcher.ts` | ⬜ | `installCommandDispatcher` — one `keydown` listener resolving to the first matching command whose `when` passes |
+| `src/core/commands/globalCommands.ts` | ⬜ | `installGlobalCommands` — `edit.undo`/`edit.redo`/`file.save` + the dispatcher, shared by `EditorShell.tsx` and `DetachedPanelShell.tsx` (a detached panel is its own browser tab with no `EditorShell`) |
+| `src/core/commands/useFocusScope.ts` | ⬜ | `useFocusScope`/`useOwnFocusScope` — pointer-hover-based focus scoping (Figma/After Effects convention, not click-based) |
+| `src/core/commands/index.ts` | ⬜ | Barrel export |
+
+> Supersedes `src/runtime/ShortcutRegistry.ts` and `src/core/types/shortcuts.ts`, both deleted. Merges the old `ShortcutRegistry`, `CommandPalette.tsx` and the ~7 independent per-panel `keydown` listeners (`EditorShell`, `WhiteboardCanvas`, `MotionSequencer`, `BlueprintCanvas`) onto one registry with `when`-clause disambiguation.
 
 ---
 
@@ -549,7 +566,8 @@
 
 ---
 
-## `src/runtime/` — Runtime Services (11 files)
+## `src/runtime/` — Runtime Services (10 files; was 11 — `ShortcutRegistry.ts`
+deleted in Phase 43, superseded by `src/core/commands/`)
 
 | File | Status | Description |
 |------|--------|-------------|
@@ -559,7 +577,6 @@
 | `src/runtime/DeploymentEngine.ts` | ⬜ | Deployment orchestration to cloud providers |
 | `src/runtime/ExecutionTracer.ts` | ⬜ | Execution flow debugger and tracer |
 | `src/runtime/GlobalSearchEngine.ts` | ⬜ | Full-text search across project |
-| `src/runtime/ShortcutRegistry.ts` | ⬜ | Keyboard shortcut binding and dispatch |
 | `src/runtime/BreakpointManager.ts` | ⬜ | Debug breakpoint management |
 | `src/runtime/WatchExpressionManager.ts` | ⬜ | Live watch expression evaluation |
 | `src/runtime/PerformanceProfiler.ts` | ⬜ | Runtime performance profiling |

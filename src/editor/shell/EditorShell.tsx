@@ -54,7 +54,6 @@ import {
   VersionControlPanel,
 } from "./afterTrackPanels";
 import { CommandPalette } from "./CommandPalette";
-import { ShortcutRegistry } from "@/runtime/ShortcutRegistry";
 import { AiPromptBar } from "@/editor/panels/copilot/AiPromptBar";
 import { useTearOff, TearOffDragSource } from "@/core/events/useTearOff";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
@@ -64,6 +63,7 @@ import { useHistoryStore } from "@/core/store/useHistoryStore";
 import { ProjectDatabase, generateProjectId, createDefaultBlankSnapshot } from "@/core/storage/ProjectDatabase";
 import { projectSession, useSaveStatus, type PendingRecovery } from "@/core/storage/ProjectSession";
 import { historyCommands, installGestureCoalescing } from "@/core/store/useDocumentStore";
+import { defineCommand, installGlobalCommands } from "@/core/commands";
 import { LazyFileError, isLazyFileName, lazyFileName, parseLazyFile, serializeLazyFile } from "@/core/storage/lazyFile";
 import { RecoveryPrompt, SaveErrorBanner, FileDropOverlay } from "./PersistenceUi";
 import {
@@ -414,35 +414,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   // A pointer press (drag, scrub, slider) is one undo step.
   useEffect(() => installGestureCoalescing(window), []);
 
-  // Undo / redo: Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y, and the command registry's events.
-  // Text fields keep their own native undo.
-  useEffect(() => {
-    const isTextField = (target: EventTarget | null) => {
-      const el = target as HTMLElement | null;
-      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.altKey || isTextField(e.target)) return;
-      const key = e.key.toLowerCase();
-      if (key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        historyCommands.undo();
-      } else if ((key === "z" && e.shiftKey) || (key === "y" && e.ctrlKey && !e.metaKey)) {
-        e.preventDefault();
-        historyCommands.redo();
-      }
-    };
-    const onUndo = () => historyCommands.undo();
-    const onRedo = () => historyCommands.redo();
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("antigravity:undo", onUndo);
-    window.addEventListener("antigravity:redo", onRedo);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("antigravity:undo", onUndo);
-      window.removeEventListener("antigravity:redo", onRedo);
-    };
-  }, []);
+  // Sub-Phase 43.1: undo/redo are now commands (registered below, with the
+  // rest of the editor's global commands) instead of their own listener.
 
   /** Exports the open project as a `.lazy.json` file download. */
   const handleExportProjectFile = useCallback(async () => {
@@ -526,17 +499,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const handleSaveProject = useCallback(() => {
     void projectSession.flush();
   }, []);
-
-  useEffect(() => {
-    const handleGlobalSaveShortcut = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S")) {
-        e.preventDefault();
-        handleSaveProject();
-      }
-    };
-    window.addEventListener("keydown", handleGlobalSaveShortcut);
-    return () => window.removeEventListener("keydown", handleGlobalSaveShortcut);
-  }, [handleSaveProject]);
+  // Sub-Phase 43.1: Ctrl/Cmd+S is now the "file.save" command (registered below).
 
   /* --------------------------------------------------------------------------
    * Tear-Off & Full-Page Dock State
@@ -665,88 +628,123 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     }
   }, []);
 
+  /**
+   * Sub-Phase 43.1: the editor's global commands — one registration point
+   * for what used to be 3 separate hardcoded keydown chains (this one, plus
+   * undo/redo and save above) and `ShortcutRegistry.ts`'s dead built-in list
+   * (its `handleKeyEvent` was never called; its only real effect was
+   * supplying `CommandPalette.tsx`'s data and, on a palette click,
+   * dispatching a `window` CustomEvent this component listened for — that
+   * indirection is gone now that the palette calls `runCommand` directly).
+   * `defineCommand` doesn't check `textEditing` for these (undo/redo do,
+   * just below) — that matches this chain's pre-existing behavior, not a
+   * new gate; see the Phase 43 progress log.
+   */
+  // `edit.undo`/`edit.redo`/`file.save` + the dispatcher are installed by
+  // `installGlobalCommands`, shared with `DetachedPanelShell` (a detached
+  // panel is a separate browser tab with no `EditorShell`, so it needs its
+  // own copy of these three — see globalCommands.ts). Keeping that trio out
+  // of this effect also means this effect must never call
+  // `installCommandDispatcher` itself, or the main window would get two
+  // dispatchers and every shortcut would double-fire.
+  useEffect(() => installGlobalCommands(window), []);
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Command Palette: Ctrl+P or Ctrl+K (without Shift)
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key.toLowerCase() === "p" || e.key.toLowerCase() === "k")) {
-        e.preventDefault();
-        setIsCommandPaletteOpen((prev) => !prev);
-        return;
-      }
-
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "i") {
-        e.preventDefault();
-        toggleAiCoPilot();
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "g") {
-        e.preventDefault();
-        handleDockFullPage("code", "Live Code Inspector");
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "p") {
-        e.preventDefault();
-        handleDockFullPage("pages-manager", "Pages & Routing Manager");
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        handleDockFullPage("deploy", "Deployment & Cloud Studio");
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        setIsGlobalSearchOpen((prev) => !prev);
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "x") {
-        e.preventDefault();
-        handleDockFullPage("plugins", "Plugin Manager");
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "h") {
-        e.preventDefault();
-        handleDockFullPage("history", "Undo History");
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "v") {
-        e.preventDefault();
-        handleDockFullPage("versioning", "Version Control & Snapshots");
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "r") {
-        e.preventDefault();
-        handleDockFullPage("dependencies", "Reference Viewer & Dependency Graph");
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "m") {
-        e.preventDefault();
-        setBottomCollapsed(false);
-        setBottomActiveTab("sequencer");
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setBottomCollapsed(false);
-        setBottomActiveTab("curves");
-      }
-    };
-
-    const handleOpenCommandPalette = () => setIsCommandPaletteOpen(true);
-    const handleOpenGlobalSearch = () => setIsGlobalSearchOpen(true);
-    const handleOpenDeployment = () => handleDockFullPage("deploy", "Deployment & Cloud Studio");
-    const handleOpenPagesManager = () => handleDockFullPage("pages-manager", "Pages & Routing Manager");
-    const handleOpenCodeInspector = () => handleDockFullPage("code", "Live Code Inspector");
-    const handleOpenCopilot = () => toggleAiCoPilot();
-    const handleOpenPlugins = () => handleDockFullPage("plugins", "Plugin Manager");
-    const handleOpenHistory = () => handleDockFullPage("history", "Undo History");
-    const handleOpenVersioning = () => handleDockFullPage("versioning", "Version Control & Snapshots");
-    const handleOpenDependencies = () => handleDockFullPage("dependencies", "Reference Viewer & Dependency Graph");
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("antigravity:open_command_palette", handleOpenCommandPalette);
-    window.addEventListener("antigravity:open_global_search", handleOpenGlobalSearch);
-    window.addEventListener("antigravity:open_deployment", handleOpenDeployment);
-    window.addEventListener("antigravity:open_pages_manager", handleOpenPagesManager);
-    window.addEventListener("antigravity:open_code_inspector", handleOpenCodeInspector);
-    window.addEventListener("antigravity:open_copilot", handleOpenCopilot);
-    window.addEventListener("antigravity:open_plugins", handleOpenPlugins);
-    window.addEventListener("antigravity:open_history", handleOpenHistory);
-    window.addEventListener("antigravity:open_versioning", handleOpenVersioning);
-    window.addEventListener("antigravity:open_dependencies", handleOpenDependencies);
+    const unregisters = [
+      defineCommand({
+        id: "view.commandPalette",
+        title: "Command Palette...",
+        category: "View",
+        keybinding: ["Ctrl+P", "Ctrl+K"],
+        run: () => setIsCommandPaletteOpen((prev) => !prev),
+      }),
+      defineCommand({
+        id: "ai.copilot",
+        title: "Toggle LayoutAI Copilot",
+        category: "AI",
+        keybinding: "Ctrl+Shift+I",
+        run: () => toggleAiCoPilot(),
+      }),
+      defineCommand({
+        id: "view.codeInspector",
+        title: "Live Code Inspector",
+        category: "View",
+        keybinding: "Ctrl+Shift+G",
+        run: () => handleDockFullPage("code", "Live Code Inspector"),
+      }),
+      defineCommand({
+        id: "nav.pagesManager",
+        title: "Pages & Routing Manager",
+        category: "Navigation",
+        keybinding: "Ctrl+Shift+P",
+        run: () => handleDockFullPage("pages-manager", "Pages & Routing Manager"),
+      }),
+      defineCommand({
+        id: "deploy.dashboard",
+        title: "Deployment & Cloud Studio",
+        category: "Deployment",
+        keybinding: "Ctrl+Shift+D",
+        run: () => handleDockFullPage("deploy", "Deployment & Cloud Studio"),
+      }),
+      defineCommand({
+        id: "nav.globalSearch",
+        title: "Global Search (Find in Blueprints)",
+        category: "Navigation",
+        keybinding: "Ctrl+Shift+F",
+        run: () => setIsGlobalSearchOpen((prev) => !prev),
+      }),
+      defineCommand({
+        id: "nav.plugins",
+        title: "Plugin Manager",
+        category: "Navigation",
+        keybinding: "Ctrl+Shift+X",
+        run: () => handleDockFullPage("plugins", "Plugin Manager"),
+      }),
+      defineCommand({
+        id: "nav.history",
+        title: "Undo History & Transaction Timeline",
+        category: "Navigation",
+        keybinding: "Ctrl+Shift+H",
+        run: () => handleDockFullPage("history", "Undo History"),
+      }),
+      defineCommand({
+        id: "nav.versionControl",
+        title: "Version Control & Snapshots",
+        category: "Navigation",
+        keybinding: "Ctrl+Shift+V",
+        run: () => handleDockFullPage("versioning", "Version Control & Snapshots"),
+      }),
+      defineCommand({
+        id: "nav.dependencies",
+        title: "Reference Viewer & Dependency Graph",
+        category: "Navigation",
+        keybinding: "Ctrl+Shift+R",
+        run: () => handleDockFullPage("dependencies", "Reference Viewer & Dependency Graph"),
+      }),
+      defineCommand({
+        id: "view.sequencer",
+        title: "Open Sequencer",
+        category: "View",
+        keybinding: "Ctrl+Shift+M",
+        run: () => {
+          setBottomCollapsed(false);
+          setBottomActiveTab("sequencer");
+        },
+      }),
+      defineCommand({
+        id: "view.curves",
+        title: "Open Curve Editor",
+        category: "View",
+        keybinding: "Ctrl+Shift+K",
+        run: () => {
+          setBottomCollapsed(false);
+          setBottomActiveTab("curves");
+        },
+      }),
+    ];
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("antigravity:open_command_palette", handleOpenCommandPalette);
-      window.removeEventListener("antigravity:open_global_search", handleOpenGlobalSearch);
-      window.removeEventListener("antigravity:open_deployment", handleOpenDeployment);
-      window.removeEventListener("antigravity:open_pages_manager", handleOpenPagesManager);
-      window.removeEventListener("antigravity:open_code_inspector", handleOpenCodeInspector);
-      window.removeEventListener("antigravity:open_copilot", handleOpenCopilot);
-      window.removeEventListener("antigravity:open_plugins", handleOpenPlugins);
-      window.removeEventListener("antigravity:open_history", handleOpenHistory);
-      window.removeEventListener("antigravity:open_versioning", handleOpenVersioning);
-      window.removeEventListener("antigravity:open_dependencies", handleOpenDependencies);
+      for (const unregister of unregisters) unregister();
     };
   }, [toggleAiCoPilot, handleDockFullPage]);
 

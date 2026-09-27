@@ -30,7 +30,7 @@ import { interpolateTrackValue, scrubStylesForTracks } from "./scrubPatch";
 
 export { interpolateTrackValue };
 import { createId } from "@/core/ids";
-import { useLatestRef } from "@/core/hooks/useLatestRef";
+import { useOwnFocusScope, useCommand, type ContextKeys } from "@/core/commands";
 import type { Layer } from "@/core/document/schema";
 
 /**
@@ -443,48 +443,55 @@ export const MotionSequencer: React.FC = () => {
     setActiveTrackId(newTrack.id!);
   };
 
-  // Keyboard Shortcuts (Space: Play/Pause, Delete: Delete KF, Ctrl+D: Duplicate KF).
-  // Subscribed once; reads the latest selection and handlers through a ref.
-  const shortcutStateRef = useLatestRef({ selectedKeyframeInfo, handleDeleteKeyframe, handleDuplicateKeyframe });
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const { selectedKeyframeInfo, handleDeleteKeyframe, handleDuplicateKeyframe } = shortcutStateRef.current;
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
+  // Sub-Phase 43.1/43.3: Space/Home/Delete/Ctrl+D are now timeline-focus-scoped
+  // commands instead of their own `window` listener — this is what stops
+  // Space also panning the canvas (or Delete also affecting a layer) when
+  // both panels are docked at once. See the Phase 43 progress log.
+  const timelineFocusRef = useOwnFocusScope<HTMLDivElement>("timeline");
+  const timelineCommandWhen = useCallback((ctx: ContextKeys) => ctx.timelineFocus && !ctx.textEditing, []);
 
-      if (e.code === "Space") {
-        e.preventDefault();
-        setIsPlaying((p) => !p);
-      } else if (e.code === "Home") {
-        e.preventDefault();
-        setCurrentTime(0);
-      } else if (e.code === "Delete" || e.code === "Backspace") {
-        if (selectedKeyframeInfo) {
-          e.preventDefault();
-          handleDeleteKeyframe(
-            selectedKeyframeInfo.track.id || selectedKeyframeInfo.track.property,
-            selectedKeyframeInfo.keyframe.id || `kf_${selectedKeyframeInfo.keyframe.time}`
-          );
-        }
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
-        if (selectedKeyframeInfo) {
-          e.preventDefault();
-          handleDuplicateKeyframe(
-            selectedKeyframeInfo.track.id || selectedKeyframeInfo.track.property,
-            selectedKeyframeInfo.keyframe.id || `kf_${selectedKeyframeInfo.keyframe.time}`
-          );
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [shortcutStateRef]);
+  useCommand(
+    { id: "timeline.togglePlay", title: "Play/Pause", category: "Timeline", keybinding: "Space", when: timelineCommandWhen, run: () => setIsPlaying((p) => !p) },
+    [timelineCommandWhen]
+  );
+  useCommand(
+    { id: "timeline.seekStart", title: "Seek to Start", category: "Timeline", keybinding: "Home", when: timelineCommandWhen, run: () => setCurrentTime(0) },
+    [timelineCommandWhen]
+  );
+  useCommand(
+    {
+      id: "timeline.deleteKeyframe",
+      title: "Delete Selected Keyframe",
+      category: "Timeline",
+      keybinding: ["Delete", "Backspace"],
+      when: (ctx) => timelineCommandWhen(ctx) && !!selectedKeyframeInfo,
+      run: () => {
+        if (!selectedKeyframeInfo) return;
+        handleDeleteKeyframe(
+          selectedKeyframeInfo.track.id || selectedKeyframeInfo.track.property,
+          selectedKeyframeInfo.keyframe.id || `kf_${selectedKeyframeInfo.keyframe.time}`
+        );
+      },
+    },
+    [timelineCommandWhen, selectedKeyframeInfo, handleDeleteKeyframe]
+  );
+  useCommand(
+    {
+      id: "timeline.duplicateKeyframe",
+      title: "Duplicate Selected Keyframe",
+      category: "Timeline",
+      keybinding: "Ctrl+D",
+      when: (ctx) => timelineCommandWhen(ctx) && !!selectedKeyframeInfo,
+      run: () => {
+        if (!selectedKeyframeInfo) return;
+        handleDuplicateKeyframe(
+          selectedKeyframeInfo.track.id || selectedKeyframeInfo.track.property,
+          selectedKeyframeInfo.keyframe.id || `kf_${selectedKeyframeInfo.keyframe.time}`
+        );
+      },
+    },
+    [timelineCommandWhen, selectedKeyframeInfo, handleDuplicateKeyframe]
+  );
 
   // ScrollTrigger & Stagger update handlers
   const handleUpdateScrollTrigger = (stConfig: ScrollTriggerConfig) => {
@@ -520,7 +527,7 @@ export const MotionSequencer: React.FC = () => {
   }, [totalDuration]);
 
   return (
-    <div className="motion-sequencer-shell" role="region" aria-label="Motion Sequencer Timeline">
+    <div ref={timelineFocusRef} className="motion-sequencer-shell" role="region" aria-label="Motion Sequencer Timeline">
       {/* Top Playhead Controls */}
       <PlayheadControls
         isPlaying={isPlaying}

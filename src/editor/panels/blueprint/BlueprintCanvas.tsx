@@ -44,6 +44,8 @@ import {
 import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { useHistoryStore } from "@/core/store/useHistoryStore";
 import { historyCommands } from "@/core/store/useDocumentStore";
+import { projectSession } from "@/core/storage/ProjectSession";
+import { useFocusScope, useCommand, type ContextKeys } from "@/core/commands";
 import {
   getNodeDefinition,
   getPinColor,
@@ -227,6 +229,9 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   // Contextual Node Palette Modal
   const [palette, setPalette] = useState<PaletteModalState>({ isOpen: false, x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
+  // Sub-Phase 43.3: focused for shortcuts while the pointer is over the graph.
+  useFocusScope("blueprint", canvasRef);
+  const blueprintCommandWhen = useCallback((ctx: ContextKeys) => ctx.blueprintFocus && !ctx.textEditing, []);
 
   // Invariant refs for wheel/trackpad pan & zoom listener without listener churn
   const panRef = useLatestRef(pan);
@@ -519,49 +524,64 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   );
 
   // --------------------------------------------------------------------------
-  // Keyboard Shortcuts (Tab = Palette, C = Comment, Delete/Backspace = Remove, Esc = Cancel)
+  // Keyboard Shortcuts (Sub-Phase 43.1/43.3: blueprint-focus-scoped commands)
   // --------------------------------------------------------------------------
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if user is typing in an input
-      if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA" ||
-        document.activeElement?.tagName === "SELECT"
-      ) {
-        return;
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) {
-          handleRedo();
-        } else {
-          handleUndo();
-        }
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") {
-        e.preventDefault();
-        handleRedo();
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
+  // Ctrl+Z/Shift+Z/Y are NOT registered here — `handleUndo`/`handleRedo`
+  // above just call `historyCommands.undo/redo()`, the exact same call the
+  // global "edit.undo"/"edit.redo" commands make (EditorShell.tsx). Keeping
+  // a second listener for the identical action would double-fire it (undo
+  // two steps per Ctrl+Z) whenever this panel is mounted — a real bug this
+  // migration fixes, not just a cleanup. See the Phase 43 progress log.
+  useCommand(
+    {
+      id: "blueprint.save",
+      title: "Compile & Save Blueprint Graph",
+      category: "Blueprints",
+      keybinding: "Ctrl+S",
+      when: blueprintCommandWhen,
+      // `file.save` (globalCommands.ts) yields to this command while
+      // blueprint is focused, so this covers the whole-project flush too —
+      // otherwise Ctrl+S here would only compile/flash and never persist.
+      run: () => {
         handleSaveGraph();
-      } else if (e.key === "Tab") {
-        e.preventDefault();
-        if (canvasRef.current) {
-          const rect = canvasRef.current.getBoundingClientRect();
-          // Open palette centered in viewport on Tab key
-          const centerX = (rect.width / 2 - pan.x) / zoom;
-          const centerY = (rect.height / 2 - 140 - pan.y) / zoom;
-          setPalette((prev) => ({
-            isOpen: !prev.isOpen,
-            x: Math.round(centerX),
-            y: Math.round(centerY),
-          }));
-        }
-      } else if (e.key.toLowerCase() === "c" && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        handleAddCommentBox();
-      } else if (e.key === "Escape") {
+        void projectSession.flush();
+      },
+    },
+    [blueprintCommandWhen, handleSaveGraph]
+  );
+  useCommand(
+    {
+      id: "blueprint.openPalette",
+      title: "Open Node Palette",
+      category: "Blueprints",
+      keybinding: "Tab",
+      when: blueprintCommandWhen,
+      run: () => {
+        if (!canvasRef.current) return;
+        const rect = canvasRef.current.getBoundingClientRect();
+        const centerX = (rect.width / 2 - pan.x) / zoom;
+        const centerY = (rect.height / 2 - 140 - pan.y) / zoom;
+        setPalette((prev) => ({
+          isOpen: !prev.isOpen,
+          x: Math.round(centerX),
+          y: Math.round(centerY),
+        }));
+      },
+    },
+    [blueprintCommandWhen, pan, zoom]
+  );
+  useCommand(
+    { id: "blueprint.addComment", title: "Add Comment Box", category: "Blueprints", keybinding: "C", when: blueprintCommandWhen, run: () => handleAddCommentBox() },
+    [blueprintCommandWhen, handleAddCommentBox]
+  );
+  useCommand(
+    {
+      id: "blueprint.cancel",
+      title: "Cancel / Clear Selection",
+      category: "Blueprints",
+      keybinding: "Escape",
+      when: blueprintCommandWhen,
+      run: () => {
         setPalette({ isOpen: false, x: 0, y: 0 });
         setDraggingWire(null);
         setActiveClickPin(null);
@@ -575,7 +595,18 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
         setIsSelecting(false);
         setSelectionStart(null);
         setSelectionBox(null);
-      } else if (e.key === "Delete" || e.key === "Backspace") {
+      },
+    },
+    [blueprintCommandWhen]
+  );
+  useCommand(
+    {
+      id: "blueprint.deleteSelection",
+      title: "Delete Selected Nodes/Wires/Comments",
+      category: "Blueprints",
+      keybinding: ["Delete", "Backspace"],
+      when: blueprintCommandWhen,
+      run: () => {
         const nodesToDelete = new Set(selectedNodeIds);
         if (selectedNodeId) nodesToDelete.add(selectedNodeId);
 
@@ -613,29 +644,22 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
           setSelectedCommentId(null);
           handleCompile();
         }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    selectedNodeId,
-    selectedWireId,
-    selectedCommentId,
-    selectedNodeIds,
-    selectedWireIds,
-    selectedCommentIds,
-    activeGraph,
-    pan,
-    zoom,
-    removeBlueprintNode,
-    disconnectBlueprintWire,
-    handleUndo,
-    handleRedo,
-    handleSaveGraph,
-    handleAddCommentBox,
-    handleCompile,
-  ]);
+      },
+    },
+    [
+      blueprintCommandWhen,
+      selectedNodeId,
+      selectedWireId,
+      selectedCommentId,
+      selectedNodeIds,
+      selectedWireIds,
+      selectedCommentIds,
+      activeGraph,
+      removeBlueprintNode,
+      disconnectBlueprintWire,
+      handleCompile,
+    ]
+  );
 
   // --------------------------------------------------------------------------
   // Trackpad Two-Finger Pan & Pinch-to-Zoom (Native Non-Passive Wheel Listener)

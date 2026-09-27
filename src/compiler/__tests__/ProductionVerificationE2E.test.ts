@@ -19,7 +19,7 @@ import { GSAPTimelineCompiler } from "../../core/engine/GSAPTimelineCompiler";
 // Runtime Systems
 import { PluginManagerEngine } from "../../runtime/PluginManagerEngine";
 import { GlobalSearchEngine } from "../../runtime/GlobalSearchEngine";
-import { ShortcutRegistry } from "../../runtime/ShortcutRegistry";
+import { defineCommand, getCommand, runCommand } from "../../core/commands";
 import { DeploymentEngine } from "../../runtime/DeploymentEngine";
 
 // Compiler Emitters & Exporters
@@ -439,22 +439,23 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
   // Stage 9: Keyboard Shortcuts & Studio Commands
   it("Stage 9: dispatches and executes registered studio keyboard commands", () => {
     let triggeredPalette = false;
-    const testCommand = {
+    const unregister = defineCommand({
       id: "test.verify.cmd",
       title: "Verify E2E Command",
-      category: "Navigation" as const,
-      defaultShortcut: "Ctrl+Alt+V",
-      action: () => {
+      category: "Navigation",
+      keybinding: "Ctrl+Alt+V",
+      run: () => {
         triggeredPalette = true;
       },
-    };
+    });
 
-    const regResult = ShortcutRegistry.registerCommand(testCommand);
-    assert.strictEqual(regResult.success, true);
+    assert.ok(getCommand("test.verify.cmd"));
 
     // Execute registered command
-    ShortcutRegistry.executeCommand("test.verify.cmd");
+    runCommand("test.verify.cmd");
     assert.strictEqual(triggeredPalette, true);
+
+    unregister();
   });
 
   // Stage 10: Full AST Multi-Domain Compilation Emitters

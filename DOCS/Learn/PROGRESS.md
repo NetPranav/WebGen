@@ -56,6 +56,12 @@ WebAPPBuilder/                     ← Root of the repo
 │   │   │                             to disambiguate from the unrelated
 │   │   │                             runtime/PerformanceProfiler.ts)
 │   │   ├── collab/                ← Real-time collaboration engine
+│   │   ├── commands/               ← Command bus (Phase 43): one registry every
+│   │   │                             shortcut, menu item and palette entry
+│   │   │                             resolves through, with VS Code-style `when`
+│   │   │                             clauses and a one-focused-region model
+│   │   │                             (absorbed runtime/ShortcutRegistry.ts and
+│   │   │                             core/types/shortcuts.ts, both deleted)
 │   │   ├── hooks/                 ← Shared React hooks
 │   │   ├── after/store/           ← After-track store actions (blueprints,
 │   │   │                             databases, pages, redirects, state vars),
@@ -90,7 +96,6 @@ WebAPPBuilder/                     ← Root of the repo
 │   │   ├── DeploymentEngine.ts    ← Deploy to hosting providers
 │   │   ├── ExecutionTracer.ts     ← Debugging execution flow
 │   │   ├── GlobalSearchEngine.ts  ← Search across project
-│   │   ├── ShortcutRegistry.ts    ← Keyboard shortcut management
 │   │   ├── PerformanceProfiler.ts ← Blueprint execution flame-graph profiling
 │   │   │                             (Panel 20 — unrelated to
 │   │   │                             core/profiler/AnimationBenchmarkProfiler.ts,
@@ -181,7 +186,7 @@ WebAPPBuilder/                     ← Root of the repo
 | 29 | `src/core/types/debugger.ts` | ⬜ | Debugger state types |
 | 30 | `src/core/types/routing.ts` | ⬜ | Page routing types |
 | 31 | `src/core/types/search.ts` | ⬜ | Search result types |
-| 32 | `src/core/types/shortcuts.ts` | ⬜ | Keyboard shortcut types |
+| 32 | `src/core/types/shortcuts.ts` | ⬜ | **Deleted (Phase 43)** — its role is now `src/core/commands/types.ts` (row 170) |
 | 33 | `src/core/types/trace.ts` | ⬜ | Execution trace types |
 | 34 | `src/core/types/watch.ts` | ⬜ | Watch expression types |
 | 35 | `src/core/types/versioning.ts` | ⬜ | Version control types |
@@ -366,7 +371,7 @@ WebAPPBuilder/                     ← Root of the repo
 | 167 | `src/runtime/DeploymentEngine.ts` | ⬜ | Deployment orchestration |
 | 168 | `src/runtime/ExecutionTracer.ts` | ⬜ | Execution debugging |
 | 169 | `src/runtime/GlobalSearchEngine.ts` | ⬜ | Full-text search |
-| 170 | `src/runtime/ShortcutRegistry.ts` | ⬜ | Keyboard shortcuts |
+| 170 | `src/core/commands/*` | ⬜ | **Replaces this file and `core/types/shortcuts.ts` (both deleted, Phase 43).** One command registry for every shortcut, menu item and palette entry: `types.ts`, `contextKeys.ts`, `normalize.ts`, `registry.ts`, `dispatcher.ts`, `globalCommands.ts`, `useFocusScope.ts`, `index.ts` |
 | 171 | `src/runtime/BreakpointManager.ts` | ⬜ | Debug breakpoints |
 | 172 | `src/runtime/WatchExpressionManager.ts` | ⬜ | Watch expressions |
 | 173 | `src/runtime/PerformanceProfiler.ts` | ⬜ | Runtime profiling |

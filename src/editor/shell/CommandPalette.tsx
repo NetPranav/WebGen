@@ -10,36 +10,18 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { ShortcutCommand, CommandCategory } from "@/core/types/shortcuts";
-import { ShortcutRegistry } from "@/runtime/ShortcutRegistry";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { getAllCommands, isCommandAvailable, runCommand, formatKeybinding, type Command } from "@/core/commands";
 import {
   Terminal,
-  Search,
   X,
-  ArrowRight,
-  Clock,
-  Sparkles,
-  Command as CommandIcon,
-  Check,
 } from "lucide-react";
 
 export interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
-  onExecuteCommand?: (command: ShortcutCommand) => void;
+  onExecuteCommand?: (command: Command) => void;
 }
-
-const CATEGORIES: { id: CommandCategory | "All"; label: string }[] = [
-  { id: "All", label: "All" },
-  { id: "File", label: "File" },
-  { id: "Edit", label: "Edit" },
-  { id: "View", label: "View" },
-  { id: "Navigation", label: "Navigation" },
-  { id: "Blueprints", label: "Blueprints" },
-  { id: "Deployment", label: "Deployment" },
-  { id: "AI", label: "AI" },
-];
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
@@ -47,15 +29,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onExecuteCommand,
 }) => {
   const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<CommandCategory | "All">("All");
+  const [activeCategory, setActiveCategory] = useState<string | "All">("All");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Reset search when opened
-  // The registry is mutable; snapshot its commands each time the palette opens.
-  const [allCommands, setAllCommands] = useState(() => ShortcutRegistry.getAllCommands());
+  // The registry is mutable (panels register/unregister their own commands
+  // as they mount); snapshot it, and which of those currently apply given
+  // live focus/context, each time the palette opens.
+  const [allCommands, setAllCommands] = useState<Command[]>([]);
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
@@ -63,9 +46,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       setQuery("");
       setActiveCategory("All");
       setSelectedIndex(0);
-      setAllCommands(ShortcutRegistry.getAllCommands());
+      setAllCommands(getAllCommands().filter((cmd) => isCommandAvailable(cmd)));
     }
   }
+
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    for (const cmd of allCommands) if (cmd.category) seen.add(cmd.category);
+    return ["All", ...Array.from(seen).sort()];
+  }, [allCommands]);
 
   // Focus input when opened
   useEffect(() => {
@@ -73,8 +62,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
-
-
 
   // Filter commands based on query and category
   const filteredCommands = useMemo(() => {
@@ -91,8 +78,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       // Fuzzy / Substring matches on title, description, category, and shortcut
       const title = cmd.title.toLowerCase();
       const desc = (cmd.description || "").toLowerCase();
-      const cat = cmd.category.toLowerCase();
-      const shortcut = (cmd.currentShortcut || cmd.defaultShortcut || "").toLowerCase();
+      const cat = (cmd.category || "").toLowerCase();
+      const shortcut = (formatKeybinding(cmd.keybinding) || "").toLowerCase();
 
       return (
         title.includes(trimmed) ||
@@ -103,12 +90,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     });
   }, [allCommands, query, activeCategory]);
 
-  const handleExecute = (cmd: ShortcutCommand) => {
+  const handleExecute = (cmd: Command) => {
     onClose();
     if (onExecuteCommand) {
       onExecuteCommand(cmd);
     } else {
-      ShortcutRegistry.executeCommand(cmd.id);
+      runCommand(cmd.id);
     }
   };
 
@@ -246,12 +233,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             overflowX: "auto",
           }}
         >
-          {CATEGORIES.map((cat) => {
-            const isActive = activeCategory === cat.id;
+          {categories.map((cat) => {
+            const isActive = activeCategory === cat;
             return (
               <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
                 style={{
                   padding: "3px 9px",
                   background: isActive ? "#6366F1" : "#1E202B",
@@ -264,7 +251,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {cat.label}
+                {cat}
               </button>
             );
           })}
@@ -286,7 +273,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {filteredCommands.length > 0 ? (
             filteredCommands.map((cmd, index) => {
               const isSelected = selectedIndex === index;
-              const shortcut = cmd.currentShortcut || cmd.defaultShortcut;
+              const shortcut = formatKeybinding(cmd.keybinding);
 
               return (
                 <div

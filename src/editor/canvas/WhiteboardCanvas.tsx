@@ -39,6 +39,7 @@ import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import { useLayers } from "@/core/store/useDocumentStore";
+import { useFocusScope, useCommand, getContextKeys, type ContextKeys } from "@/core/commands";
 
 interface WhiteboardCanvasProps {
   deviceMode?: "desktop" | "tablet" | "mobile";
@@ -78,6 +79,10 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   onSelectElement,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // Sub-Phase 43.3: the canvas is focused for shortcuts while the pointer is
+  // over it — this is what lets Space pan the canvas without also affecting
+  // the timeline when both are docked at once (see the Phase 43 progress log).
+  useFocusScope("canvas", containerRef);
 
   /* --------------------------------------------------------------------------
    * Play Mode State (Sandbox Host)
@@ -193,11 +198,18 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   }
 
   /* --------------------------------------------------------------------------
-   * Spacebar & Keyboard Hotkeys
+   * Spacebar hold-to-pan (Sub-Phase 43.3: focus-scoped)
    * -------------------------------------------------------------------------- */
+  // Space is a "hold" gesture (press = pan on, release = pan off), which
+  // doesn't fit the command bus's one-shot `run()` model — Sub-Phase 43.2
+  // (a generalized spring-loaded-tool mechanism) is explicitly deferred, see
+  // the Phase 43 progress log. This keeps that structure but gates *pressing*
+  // Space on canvas focus, fixing the real bug where it also affected
+  // whichever other panel (e.g. the timeline) was simultaneously mounted.
+  // Releasing is never focus-gated, so a still-held Space can't get stuck on
+  // if the pointer leaves the canvas mid-hold.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Avoid hotkeys when typing in input or editable elements
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -205,51 +217,56 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       ) {
         return;
       }
-
-      if (e.code === "Space" && !e.repeat) {
+      if (e.code === "Space" && !e.repeat && getContextKeys().canvasFocus) {
         e.preventDefault();
         setIsSpacePressed(true);
       }
-
-      // Tool selection shortcuts
-      if (e.key === "v" || e.key === "V") setActiveTool("select");
-      if (e.key === "h" || e.key === "H") setActiveTool("pan");
-      if (e.key === "p" || e.key === "P") setActiveTool("pencil");
-      if (e.key === "t" || e.key === "T") setActiveTool("text");
-      if (e.key === "w" || e.key === "W") setActiveTool("wire");
-      if (e.key === "s" || e.key === "S") setActiveTool("shapes");
-      if (e.key === "c" || e.key === "C") setActiveTool("components");
-      if (e.key === "a" || e.key === "A") setActiveTool("assets");
-
-      // Zoom shortcuts
-      if ((e.ctrlKey || e.metaKey) && (e.key === "=" || e.key === "+")) {
-        e.preventDefault();
-        onZoomChange(Math.min(zoomLevel + 10, 400));
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "-") {
-        e.preventDefault();
-        onZoomChange(Math.max(zoomLevel - 10, 10));
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "0") {
-        e.preventDefault();
-        bringBackToCenter();
-      }
     };
-
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
-        setIsSpacePressed(false);
-      }
+      if (e.code === "Space") setIsSpacePressed(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [zoomLevel, onZoomChange, bringBackToCenter]);
+  }, []);
+
+  /* --------------------------------------------------------------------------
+   * Tool selection & zoom commands (Sub-Phase 43.1/43.3: focus-scoped)
+   * -------------------------------------------------------------------------- */
+  const canvasCommandWhen = useCallback((ctx: ContextKeys) => ctx.canvasFocus && !ctx.textEditing, []);
+  useCommand({ id: "canvas.tool.select", title: "Select Tool", category: "Canvas", keybinding: "V", when: canvasCommandWhen, run: () => setActiveTool("select") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.pan", title: "Pan Tool (Hand)", category: "Canvas", keybinding: "H", when: canvasCommandWhen, run: () => setActiveTool("pan") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.pencil", title: "Pencil Tool", category: "Canvas", keybinding: "P", when: canvasCommandWhen, run: () => setActiveTool("pencil") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.text", title: "Text Tool", category: "Canvas", keybinding: "T", when: canvasCommandWhen, run: () => setActiveTool("text") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.wire", title: "Wire Connector Tool", category: "Canvas", keybinding: "W", when: canvasCommandWhen, run: () => setActiveTool("wire") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.shapes", title: "Shapes Tool", category: "Canvas", keybinding: "S", when: canvasCommandWhen, run: () => setActiveTool("shapes") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.components", title: "Components Tool", category: "Canvas", keybinding: "C", when: canvasCommandWhen, run: () => setActiveTool("components") }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.tool.assets", title: "Asset Library Tool", category: "Canvas", keybinding: "A", when: canvasCommandWhen, run: () => setActiveTool("assets") }, [canvasCommandWhen]);
+  useCommand(
+    {
+      id: "canvas.zoomIn",
+      title: "Zoom In",
+      category: "Canvas",
+      // Both forms bind: some browsers/keyboard layouts report the "="/"+"
+      // key's shift state differently, and the old handler accepted either.
+      keybinding: ["Ctrl+=", "Ctrl+Shift++"],
+      when: canvasCommandWhen,
+      run: () => onZoomChange(Math.min(zoomLevel + 10, 400)),
+    },
+    [canvasCommandWhen, zoomLevel, onZoomChange]
+  );
+  useCommand(
+    { id: "canvas.zoomOut", title: "Zoom Out", category: "Canvas", keybinding: "Ctrl+-", when: canvasCommandWhen, run: () => onZoomChange(Math.max(zoomLevel - 10, 10)) },
+    [canvasCommandWhen, zoomLevel, onZoomChange]
+  );
+  useCommand(
+    { id: "canvas.zoomReset", title: "Reset Zoom & Recenter", category: "Canvas", keybinding: "Ctrl+0", when: canvasCommandWhen, run: () => bringBackToCenter() },
+    [canvasCommandWhen, bringBackToCenter]
+  );
 
   /* --------------------------------------------------------------------------
    * Native Non-Passive Wheel Listener: Viewport-Isolated Zoom & Pan

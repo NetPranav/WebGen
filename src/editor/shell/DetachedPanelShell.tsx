@@ -20,6 +20,7 @@
 import React, { useEffect } from "react";
 import { ArrowLeft, Cpu, Film, Terminal, FileCode2, Box, ImageIcon } from "lucide-react";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
+import { installGlobalCommands } from "@/core/commands";
 import "@/editor/styles/detached.css";
 
 interface DetachedPanelShellProps {
@@ -43,6 +44,12 @@ export const DetachedPanelShell: React.FC<DetachedPanelShellProps> = ({
   children,
 }) => {
   const { sendReattach } = useTearOffChannel();
+
+  // Sub-Phase 43.1: a detached panel is a separate browser tab with its own
+  // module registry and no `EditorShell`, so without this it would have no
+  // command dispatcher at all — every migrated shortcut (including undo/
+  // redo/save) would be silently dead here. See globalCommands.ts.
+  useEffect(() => installGlobalCommands(window), []);
 
   // Send REATTACH when the tab is closed via browser X
   useEffect(() => {
