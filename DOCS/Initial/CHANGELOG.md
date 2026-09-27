@@ -9,6 +9,28 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.8.0] — 2026-09-28
+
+### Phase 41 (Store Decomposition & Transaction API): complete — Verification Gate green, merged directly to `main`
+
+`useProjectStore.ts` goes from 1,554 to 395 lines and no longer holds the document (AUD-34). 41.2 (transactions) had already shipped with Phase 3; this phase closes 41.1 (the store split) and 41.3 (fine-grained subscriptions).
+
+#### Added
+- **`src/core/store/documentState.ts`**, **`useEnvironmentStore.ts`**, **`projectTypes.ts`**, **`afterTrackActionSignatures.ts`**, **`fullEditionTypes.ts`**: the document and World Environment leave `useProjectStore` for their own stores; the After-track domains' (blueprints, databases, multi-page CRUD, redirects, state variables) *action* implementations move to new `src/after/store/{blueprintActions,databaseActions,pagesActions,stateVariableActions}.ts`, registered onto the live store only behind `edition === "full"` — fields stay on the core store (several are read from Initial-edition-reachable code: the AI co-pilot, global search, the property-binding UI), only their mutation actions are After-track.
+- **`useClip(id)`/`useComposition(id)`** per-entity selectors on `useDocumentStore.ts` (41.3); the dead `EventBus.emit("document:changed")` (zero consumers) removed.
+- **`npm run test:unit:full-edition`** (wired into CI): the first time `edition` gates real logic rather than just bundle inclusion, so a small number of tests needed `node:test`'s `{ skip }` option to exercise both editions correctly.
+- **Tests:** 3 new for fine-grained subscriptions (`documentStore.test.ts`) plus new edition-gate suites (`DiagnosticSuggesterEditionGate.test.ts`, `DemoProjectSnapshotEditionGate.test.ts`); all pre-existing store tests updated for the split.
+
+#### Fixed
+- `DiagnosticSuggester.ts` (AI co-pilot) now rejects `update_variable`/`add_node` patch actions outside the full edition; `GlobalSearchEngine.ts`'s one blueprint-navigation call is defensively optional-chained.
+- `DemoProjectSnapshot.ts`'s "Mount Showcase Demo"/"Blank Canvas" buttons (core, both editions) pre-dated the After-track split and hard-coded a full blueprint graph, database schema and state variables — without a fix, mounting the demo in the Initial edition would have handed it working After-track data through the back door. Trimmed to empty defaults outside the full edition.
+
+#### Not done
+- Project meta (`projectId`/`projectName`/`scope`/`rootArchetype`) has no dedicated store — small, accepted gap; not required by the Verification Gate's literal text.
+
+### Repo structure cleanup (2026-09-27, same window, not itself a ROADMAP phase)
+Three folders shared generic names with unrelated content: `src/core/ai/` (motion-choreography AI) duplicated the `src/ai/` namespace and moved into it as `src/ai/motion/`; `src/core/runtime/` (animation-engine adapters) duplicated the unrelated top-level `src/runtime/` (editor dev-tool services) and was absorbed into the thematically correct `src/core/engine/`; a third collision found along the way — two unrelated `PerformanceProfiler` classes — was resolved by renaming the less-connected one to `AnimationBenchmarkProfiler`. 8 misplaced test files (testing `src/runtime/`/`src/editor/runtime/` source while sitting in `src/core/runtime/__tests__/`) were re-colocated with their real source. `DOCS/Learn/PROGRESS.md` and `DOCS/Learn/UNTRACKED.md` (the file-by-file repo tracker) updated to match. No logic changes; verified by a clean project-wide typecheck plus targeted test runs on every touched file.
+
 ## [3.7.0] — 2026-09-26
 
 ### Phase 9 (Deterministic Evaluation Kernel): complete — Verification Gate green, merged directly to `main`
