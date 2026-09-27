@@ -232,6 +232,19 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   // Sub-Phase 43.3: focused for shortcuts while the pointer is over the graph.
   useFocusScope("blueprint", canvasRef);
   const blueprintCommandWhen = useCallback((ctx: ContextKeys) => ctx.blueprintFocus && !ctx.textEditing, []);
+  // The old raw handler's guard also skipped a focused <select> — but for
+  // EVERY shortcut, including its own Ctrl+S, and `isTextEditingTarget` (used
+  // by the global edit.undo/edit.redo) deliberately does NOT treat SELECT as
+  // text-editing (a native select keeps focus after a choice, and undo/redo
+  // must keep working right after — see normalize.ts). `blueprint.save` keeps
+  // using `blueprintCommandWhen` as-is (matching `file.save`'s complementary
+  // `when`, so exactly one of the two always fires on Ctrl+S); this stricter
+  // variant is for the shortcuts a dropdown's own keyboard handling could
+  // otherwise conflict with (Tab moving focus, Delete/Backspace, "c").
+  const blueprintCommandWhenNoDropdown = useCallback(
+    (ctx: ContextKeys) => blueprintCommandWhen(ctx) && document.activeElement?.tagName !== "SELECT",
+    [blueprintCommandWhen]
+  );
 
   // Invariant refs for wheel/trackpad pan & zoom listener without listener churn
   const panRef = useLatestRef(pan);
@@ -555,7 +568,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
       title: "Open Node Palette",
       category: "Blueprints",
       keybinding: "Tab",
-      when: blueprintCommandWhen,
+      when: blueprintCommandWhenNoDropdown,
       run: () => {
         if (!canvasRef.current) return;
         const rect = canvasRef.current.getBoundingClientRect();
@@ -568,11 +581,11 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
         }));
       },
     },
-    [blueprintCommandWhen, pan, zoom]
+    [blueprintCommandWhenNoDropdown, pan, zoom]
   );
   useCommand(
-    { id: "blueprint.addComment", title: "Add Comment Box", category: "Blueprints", keybinding: "C", when: blueprintCommandWhen, run: () => handleAddCommentBox() },
-    [blueprintCommandWhen, handleAddCommentBox]
+    { id: "blueprint.addComment", title: "Add Comment Box", category: "Blueprints", keybinding: "C", when: blueprintCommandWhenNoDropdown, run: () => handleAddCommentBox() },
+    [blueprintCommandWhenNoDropdown, handleAddCommentBox]
   );
   useCommand(
     {
@@ -580,7 +593,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
       title: "Cancel / Clear Selection",
       category: "Blueprints",
       keybinding: "Escape",
-      when: blueprintCommandWhen,
+      when: blueprintCommandWhenNoDropdown,
       run: () => {
         setPalette({ isOpen: false, x: 0, y: 0 });
         setDraggingWire(null);
@@ -597,7 +610,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
         setSelectionBox(null);
       },
     },
-    [blueprintCommandWhen]
+    [blueprintCommandWhenNoDropdown]
   );
   useCommand(
     {
@@ -605,7 +618,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
       title: "Delete Selected Nodes/Wires/Comments",
       category: "Blueprints",
       keybinding: ["Delete", "Backspace"],
-      when: blueprintCommandWhen,
+      when: blueprintCommandWhenNoDropdown,
       run: () => {
         const nodesToDelete = new Set(selectedNodeIds);
         if (selectedNodeId) nodesToDelete.add(selectedNodeId);
@@ -647,7 +660,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
       },
     },
     [
-      blueprintCommandWhen,
+      blueprintCommandWhenNoDropdown,
       selectedNodeId,
       selectedWireId,
       selectedCommentId,

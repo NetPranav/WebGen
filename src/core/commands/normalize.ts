@@ -65,15 +65,19 @@ export function normalizeShortcut(input: KeyboardEvent | string): string {
 }
 
 /**
- * True when the event's target is a text input, textarea, dropdown, or
- * contentEditable element. Includes `<select>`: `BlueprintCanvas.tsx`'s own
- * pre-migration guard checked it (a dropdown focused over the graph
- * shouldn't have "c"/Tab/Delete act on the graph), but `EditorShell.tsx`'s
- * didn't — unifying on the stricter of the two rather than the laxer one.
+ * True when the event's target is a text input, textarea, or contentEditable
+ * element. Deliberately excludes `<select>`: `edit.undo`/`edit.redo` (global,
+ * gate on `!textEditing`) need this to stay permissive, since a native
+ * select keeps focus after a choice and undo/redo must keep working right
+ * after — including SELECT here once made Ctrl+Z silently no-op after using
+ * any dropdown anywhere in the app. `BlueprintCanvas.tsx`'s own pre-migration
+ * guard did check SELECT (for its Tab/"c"/Delete shortcuts specifically, not
+ * for undo/redo) — that narrower need is handled in `blueprintCommandWhen`
+ * itself, not here.
  */
 export function isTextEditingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
-  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 }
 
 /** Renders a command's keybinding (possibly several) as one display string, e.g. "Ctrl+Z" or "Ctrl+Shift+Z / Ctrl+Y". */
