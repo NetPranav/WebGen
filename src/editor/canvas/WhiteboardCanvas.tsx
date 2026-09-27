@@ -129,6 +129,20 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const rootContainer = activePage ? elements[activePage.rootElementId] : null;
   const childCount = rootContainer?.children?.length || 0;
 
+  // Sub-Phase 43.2 follow-up fix: a drawn shape used to appear correctly on
+  // the canvas but the Details panel fell back to World Environment instead
+  // of showing its properties. Two compounding bugs: `onCreated` only called
+  // `selectEntity` (`useSelectionStore`), which `DetailsInspector.tsx` never
+  // reads — it reads `selectedElementId`, prop-drilled from *this*
+  // component's own `onSelectElement` callback (the same one
+  // `handleSelectComponent` below already uses correctly). And even after
+  // fixing that, the stage's own `onClick` (a few lines down) fires right
+  // after the mouseup that finishes a drag — same target, so the browser
+  // still synthesizes a click — and immediately cleared the selection back
+  // to nothing. `justDrewShapeRef` tells that `onClick` to skip clearing
+  // exactly once, right after a shape/text creation.
+  const justDrewShapeRef = useRef(false);
+
   // Sub-Phase 43.2: Frame/Rectangle/Ellipse/Line drag-to-create. New shapes
   // are added as children of the active page's root — this canvas is
   // flow-placed (see `tools/types.ts`), so that's the only sensible parent
@@ -138,8 +152,10 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     zoom: zoomLevel,
     containerRef,
     parentId: rootContainer?.id ?? null,
-    onCreated: (layerId) => {
+    onCreated: (layerId, label) => {
+      justDrewShapeRef.current = true;
       selectEntity(layerId, "element");
+      onSelectElement?.({ id: layerId, name: label });
       setActiveTool("select");
     },
   });
@@ -396,7 +412,9 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         handleShapeDrawPointerDown(e);
       } else if (activeTool === "text" && rootContainer?.id) {
         const id = documentCommands.addLayer({ archetype: "text", parentId: rootContainer.id }, "Add Text");
+        justDrewShapeRef.current = true;
         selectEntity(id, "element");
+        onSelectElement?.({ id, name: "Text" });
         setActiveTool("select");
       }
       return;
@@ -499,6 +517,14 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       style={canvasStyle}
       onMouseDown={handleMouseDown}
       onClick={() => {
+        // The browser still synthesizes a click after the mousedown+mouseup
+        // that just finished drawing a shape/placing text (same target, no
+        // native drag happened) — skip clearing the selection `onCreated`
+        // above just set, exactly once.
+        if (justDrewShapeRef.current) {
+          justDrewShapeRef.current = false;
+          return;
+        }
         setSelectedElement(null);
         onSelectElement?.(null);
       }}

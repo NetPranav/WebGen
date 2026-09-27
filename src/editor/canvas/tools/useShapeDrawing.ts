@@ -20,7 +20,7 @@ interface UseShapeDrawingOptions {
   containerRef: RefObject<HTMLElement | null>;
   /** Where a newly-created shape is added as a child — typically the active page's root. `null` disables drawing (e.g. no page loaded yet). */
   parentId: string | null;
-  onCreated?: (layerId: string) => void;
+  onCreated?: (layerId: string, label: string) => void;
 }
 
 /**
@@ -87,7 +87,7 @@ export function useShapeDrawing({ activeTool, zoom, containerRef, parentId, onCr
           { archetype: toolDef.archetype, parentId, ...(properties ? { properties } : {}) },
           `Draw ${toolDef.label}`
         );
-        onCreated?.(id);
+        onCreated?.(id, toolDef.label);
       }
     };
 
