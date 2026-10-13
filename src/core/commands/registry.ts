@@ -54,6 +54,20 @@ export function runCommand(id: string): boolean {
 }
 
 /**
+ * Runs a command by id for a deliberate pointer action (menu item, toolbar
+ * button, palette row), skipping the `when` clause. `when` exists to
+ * disambiguate a *keystroke*; a click has no competing keyboard meaning, and
+ * gating it would silently no-op e.g. Edit > Undo while a text field elsewhere
+ * has focus. Returns whether the command exists.
+ */
+export function invokeCommand(id: string): boolean {
+  const command = commands.get(id);
+  if (!command) return false;
+  void command.run();
+  return true;
+}
+
+/**
  * Registers a command for the lifetime of the calling component, with a
  * fresh closure whenever `deps` changes (same semantics as `useEffect`).
  */
