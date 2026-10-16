@@ -4,7 +4,7 @@
  * ============================================================================
  * Defines the master schema for the canvas viewport, element interaction physics,
  * design system inheritance, motion spring presets, and DevTools inspection.
- * Architecture Ref: DOCS/action working.md & implementation_plan.md
+ * Architecture Ref: DOCS/INITIAL/action working.md & implementation_plan.md
  * ============================================================================
  */
 

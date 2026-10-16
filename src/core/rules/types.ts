@@ -6,7 +6,7 @@
  * ============================================================================
  * ROADMAP Phase 8. Data-driven contracts consumed by every rule family
  * (compatibility, conflicts, performance, accessibility, routing). See
- * `DOCS/Initial/decisions/0005-phase8-rule-table-and-reconciliation.md` for
+ * `DOCS/INITIAL/decisions/0005-phase8-rule-table-and-reconciliation.md` for
  * the source reconciliation (Sub-Phase 8.5) this module implements.
  * ============================================================================
  */

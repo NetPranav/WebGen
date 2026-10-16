@@ -7,7 +7,7 @@
  * Renamed from `PerformanceProfiler` (repo restructure) to disambiguate from
  * the unrelated `src/runtime/PerformanceProfiler.ts` (Blueprint execution
  * flame-graph profiling, Panel 20) — same generic name, different tool.
- * Architecture Ref: DOCS/Initial/ROADMAP.md §Sub-Phase 8.3 & PRD.md §3
+ * Architecture Ref: DOCS/INITIAL/ROADMAP.md §Sub-Phase 8.3 & PRD.md §3
  *
  * Guarantees:
  * - 60+ FPS animation budget verification (<= 16.67ms frame tick budget)

@@ -8,7 +8,7 @@
  * the workers run the real, genuinely multithreaded `SplineSolver` — as
  * TypeScript, same as everywhere else. ROADMAP Sub-Phase 5.3 (AUD-12)
  * benchmarked the C++ kernel and decided **No-Go**; see
- * `DOCS/Initial/decisions/0001-wasm.md`. Nothing here loads a compiled Wasm
+ * `DOCS/INITIAL/decisions/0001-wasm.md`. Nothing here loads a compiled Wasm
  * module, and nothing ever will unless that decision is revisited.
  *
  * Capabilities:

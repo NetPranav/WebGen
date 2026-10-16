@@ -7,8 +7,8 @@
  * Formal TypeScript contracts defining the 32 canvas Element Types,
  * 10 Animation Categories, state transition graphs, and binding models.
  * Direct implementation of:
- * - DOCS/Initial/lazylayout_element_grammer.md (Sections 2, 3, 4, 5, 9, 11)
- * - DOCS/Initial/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md
+ * - DOCS/INITIAL/lazylayout_element_grammer.md (Sections 2, 3, 4, 5, 9, 11)
+ * - DOCS/INITIAL/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md
  * ============================================================================
  */
 

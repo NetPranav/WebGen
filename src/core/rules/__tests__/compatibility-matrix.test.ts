@@ -2,7 +2,7 @@
  * Phase 8 Verification Gate (partial): grammar §9's full compatibility
  * matrix — all 32 Element Types × all 10 Animation Categories, 320 cells —
  * converted into a table-driven test, transcribed directly from
- * `DOCS/Initial/lazylayout_element_grammer.md` §9. Every cell is asserted;
+ * `DOCS/INITIAL/lazylayout_element_grammer.md` §9. Every cell is asserted;
  * none are inferred or skipped.
  *
  * Rows use single-letter codes rather than the doc's ✅❌⚠️🔒 glyphs: ⚠️ is

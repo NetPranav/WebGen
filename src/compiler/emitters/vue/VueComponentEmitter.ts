@@ -6,7 +6,7 @@
  * ============================================================================
  * Compiles visual AST element models and property tracks into clean, idiomatic
  * Vue 3 Single File Components (<template>, <script setup>, <style scoped>).
- * Architecture Ref: DOCS/Initial/ROADMAP.md §Sub-Phase 8.2 & PRD.md §3
+ * Architecture Ref: DOCS/INITIAL/ROADMAP.md §Sub-Phase 8.2 & PRD.md §3
  * ============================================================================
  */
 

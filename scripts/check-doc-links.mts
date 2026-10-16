@@ -28,7 +28,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 
 const ROOT = process.cwd();
-const DOCS_INITIAL = join(ROOT, "DOCS", "Initial");
+const DOCS_INITIAL = join(ROOT, "DOCS", "INITIAL");
 
 function listMarkdownFiles(dir: string): string[] {
   const out: string[] = [];
@@ -89,7 +89,7 @@ for (const file of files) {
   }
 }
 
-console.log(`[check-doc-links] ${checked} link(s) checked across ${files.length} file(s) under DOCS/Initial/.`);
+console.log(`[check-doc-links] ${checked} link(s) checked across ${files.length} file(s) under DOCS/INITIAL/.`);
 if (broken > 0) {
   console.error(`[check-doc-links] ${broken} broken link(s).`);
   process.exit(1);

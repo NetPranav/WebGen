@@ -58,7 +58,7 @@ describe("property registry (Phase 42.1)", () => {
   });
 
   it("covers every CONVENTIONS §4 animation path", () => {
-    const doc = readFileSync(join(process.cwd(), "DOCS/Initial/CONVENTIONS.md"), "utf8");
+    const doc = readFileSync(join(process.cwd(), "DOCS/INITIAL/CONVENTIONS.md"), "utf8");
     const section = doc.slice(doc.indexOf("## 4. Standard Animation Property Paths"), doc.indexOf("## 5."));
     const paths = [...section.matchAll(/^([a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+)\s+#/gm)].map((m) => m[1]);
     assert.ok(paths.length >= 40, `expected the §4 catalogue, found ${paths.length} paths`);

@@ -10,8 +10,8 @@
  * ROADMAP Sub-Phase 5.3 (AUD-12) decided **No-Go**: benchmarked (real
  * Chromium, not simulated) at ~0.7x TS speed per-call and ~1.9x average
  * (never reliably ≥ 2x) even batched into one JS<->Wasm boundary crossing —
- * see `DOCS/Initial/decisions/0001-wasm.md` for the numbers and the C++
- * source, archived at `DOCS/Initial/decisions/0001-wasm-archive/`. There is
+ * see `DOCS/INITIAL/decisions/0001-wasm.md` for the numbers and the C++
+ * source, archived at `DOCS/INITIAL/decisions/0001-wasm-archive/`. There is
  * no build step anymore; nothing will ever register
  * `globalThis.createEngineWasmModule`, so `backend` stays `"typescript"`
  * always, and `.init()` is never called anywhere in the app. This bridge is

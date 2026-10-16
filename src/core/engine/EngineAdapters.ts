@@ -6,8 +6,8 @@
  * ============================================================================
  * Implements the Two-Tier Architecture and Single Transform Authority (STA)
  * runtime protocol as specified in:
- * - DOCS/Initial/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md (§2, §8, §10)
- * - DOCS/Initial/lazylayout_element_grammer.md (§6.2, §8)
+ * - DOCS/INITIAL/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md (§2, §8, §10)
+ * - DOCS/INITIAL/lazylayout_element_grammer.md (§6.2, §8)
  *
  * Tiers:
  * 1. CssCompositorAdapter: 100% Zero-Dependency Web (Pure CSS / WAAPI, Target A)

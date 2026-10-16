@@ -4,8 +4,8 @@
  * ============================================================================
  * This is the real, only implementation, permanently: ROADMAP Sub-Phase 5.3
  * (AUD-12) benchmarked the C++ port of this file against Wasm and decided
- * **No-Go** (never reliably ≥ 2x faster; see `DOCS/Initial/decisions/0001-wasm.md`).
- * The C++ source is archived at `DOCS/Initial/decisions/0001-wasm-archive/`,
+ * **No-Go** (never reliably ≥ 2x faster; see `DOCS/INITIAL/decisions/0001-wasm.md`).
+ * The C++ source is archived at `DOCS/INITIAL/decisions/0001-wasm-archive/`,
  * not built by anything.
  *
  * Features:

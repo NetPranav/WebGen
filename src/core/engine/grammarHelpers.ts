@@ -7,8 +7,8 @@
  * Bridges UI outliner nodes, animation tracks, and property paths to the
  * authoritative ElementGrammarEngine contracts.
  * Matches:
- * - DOCS/Initial/lazylayout_element_grammer.md (§3, §6, §8)
- * - DOCS/Initial/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md (§2, §9)
+ * - DOCS/INITIAL/lazylayout_element_grammer.md (§3, §6, §8)
+ * - DOCS/INITIAL/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md (§2, §9)
  * ============================================================================
  */
 

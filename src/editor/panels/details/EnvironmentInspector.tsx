@@ -6,8 +6,8 @@
  * ============================================================================
  * UI Panel for configuring the canvas viewport, element interaction physics,
  * design system inheritance, motion spring presets, and DevTools inspection.
- * Follows DOCS/After/UI.md §2.1 (Luminous White Panel + #206859 Pine Green Accent)
- * Architecture Ref: DOCS/action working.md & implementation_plan.md
+ * Follows DOCS/INITIAL/UI.md §2.1 (Luminous White Panel + #206859 Pine Green Accent)
+ * Architecture Ref: DOCS/INITIAL/action working.md & implementation_plan.md
  * ============================================================================
  */
 

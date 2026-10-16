@@ -690,42 +690,42 @@ restructure's scope, flagged so it isn't mistaken for complete)
 
 ## `DOCS/` — Documentation Files
 
-### `DOCS/Initial/` — Current Phase Documentation
+### `DOCS/INITIAL/` — Current Phase Documentation
 | File | Status | Description |
 |------|--------|-------------|
-| `DOCS/Initial/ROADMAP.md` | ⬜ | Active roadmap — what's built and what's next |
-| `DOCS/Initial/PRD.md` | ⬜ | Product Requirements Document |
-| `DOCS/Initial/AUDIT.md` | ⬜ | Known gaps and technical debt audit |
-| `DOCS/Initial/CHANGELOG.md` | ⬜ | Change log of completed work |
-| `DOCS/Initial/CONVENTIONS.md` | ⬜ | Coding conventions and style guide |
-| `DOCS/Initial/FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` | ⬜ | Folder structure reference |
-| `DOCS/Initial/PANELS.md` | ⬜ | Panel specifications |
-| `DOCS/Initial/SCHEMA_REFERENCE.md` | ⬜ | Document schema reference |
-| `DOCS/Initial/UI.md` | ⬜ | UI design specification |
-| `DOCS/Initial/LICENSES.md` | ⬜ | License registry for dependencies |
-| `DOCS/Initial/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` | ⬜ | Animation engine spec (143KB!) |
-| `DOCS/Initial/INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md` | ⬜ | Interactive effects engine spec |
-| `DOCS/Initial/lazylayout_element_grammer.md` | ⬜ | Element grammar reference (135KB!) |
-| `DOCS/Initial/audit/tsc-baseline.txt` | ⬜ | TypeScript error baseline snapshot |
-| `DOCS/Initial/decisions/0001-wasm.md` | ⬜ | ADR: WASM evaluation decision |
-| `DOCS/Initial/decisions/0003-geometry-vs-transform.md` | ⬜ | ADR: Geometry vs Transform approach |
+| `DOCS/INITIAL/ROADMAP.md` | ⬜ | Active roadmap — what's built and what's next |
+| `DOCS/INITIAL/PRD.md` | ⬜ | Product Requirements Document |
+| `DOCS/INITIAL/AUDIT.md` | ⬜ | Known gaps and technical debt audit |
+| `DOCS/INITIAL/CHANGELOG.md` | ⬜ | Change log of completed work |
+| `DOCS/INITIAL/CONVENTIONS.md` | ⬜ | Coding conventions and style guide |
+| `DOCS/INITIAL/FOLDER_STRUCTURE_AND_DATA_HIERARCHY.md` | ⬜ | Folder structure reference |
+| `DOCS/INITIAL/PANELS.md` | ⬜ | Panel specifications |
+| `DOCS/INITIAL/SCHEMA_REFERENCE.md` | ⬜ | Document schema reference |
+| `DOCS/INITIAL/UI.md` | ⬜ | UI design specification |
+| `DOCS/INITIAL/LICENSES.md` | ⬜ | License registry for dependencies |
+| `DOCS/INITIAL/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md` | ⬜ | Animation engine spec (143KB!) |
+| `DOCS/INITIAL/INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md` | ⬜ | Interactive effects engine spec |
+| `DOCS/INITIAL/lazylayout_element_grammer.md` | ⬜ | Element grammar reference (135KB!) |
+| `DOCS/INITIAL/audit/tsc-baseline.txt` | ⬜ | TypeScript error baseline snapshot |
+| `DOCS/INITIAL/decisions/0001-wasm.md` | ⬜ | ADR: WASM evaluation decision |
+| `DOCS/INITIAL/decisions/0003-geometry-vs-transform.md` | ⬜ | ADR: Geometry vs Transform approach |
 
-### `DOCS/Initial/decisions/0001-wasm-archive/` — WASM Archive (C++ source)
+### `DOCS/INITIAL/decisions/0001-wasm-archive/` — WASM Archive (C++ source)
 | File | Status | Description |
 |------|--------|-------------|
-| `DOCS/Initial/decisions/0001-wasm-archive/CMakeLists.txt` | ⬜ | CMake build config for WASM modules |
-| `DOCS/Initial/decisions/0001-wasm-archive/Makefile` | ⬜ | Make build script |
-| `DOCS/Initial/decisions/0001-wasm-archive/include/SplineSolver.hpp` | ⬜ | C++ spline solver header |
-| `DOCS/Initial/decisions/0001-wasm-archive/include/CablePhysics.hpp` | ⬜ | C++ cable physics header |
-| `DOCS/Initial/decisions/0001-wasm-archive/include/SpatialIndex.hpp` | ⬜ | C++ spatial index header |
-| `DOCS/Initial/decisions/0001-wasm-archive/src/SplineSolver.cpp` | ⬜ | C++ spline solver implementation |
-| `DOCS/Initial/decisions/0001-wasm-archive/src/CablePhysics.cpp` | ⬜ | C++ cable physics implementation |
-| `DOCS/Initial/decisions/0001-wasm-archive/src/SpatialIndex.cpp` | ⬜ | C++ spatial index implementation |
-| `DOCS/Initial/decisions/0001-wasm-archive/src/WasmBindings.cpp` | ⬜ | C++ → WASM binding layer |
-| `DOCS/Initial/decisions/0001-wasm-archive/tests/SplineSolver.test.cpp` | ⬜ | Spline solver C++ tests |
-| `DOCS/Initial/decisions/0001-wasm-archive/tests/CablePhysics.test.cpp` | ⬜ | Cable physics C++ tests |
-| `DOCS/Initial/decisions/0001-wasm-archive/benchmark/bench.html` | ⬜ | WASM benchmark HTML page |
-| `DOCS/Initial/decisions/0001-wasm-archive/benchmark/run-bench.mts` | ⬜ | WASM benchmark runner script |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/CMakeLists.txt` | ⬜ | CMake build config for WASM modules |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/Makefile` | ⬜ | Make build script |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/include/SplineSolver.hpp` | ⬜ | C++ spline solver header |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/include/CablePhysics.hpp` | ⬜ | C++ cable physics header |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/include/SpatialIndex.hpp` | ⬜ | C++ spatial index header |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/src/SplineSolver.cpp` | ⬜ | C++ spline solver implementation |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/src/CablePhysics.cpp` | ⬜ | C++ cable physics implementation |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/src/SpatialIndex.cpp` | ⬜ | C++ spatial index implementation |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/src/WasmBindings.cpp` | ⬜ | C++ → WASM binding layer |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/tests/SplineSolver.test.cpp` | ⬜ | Spline solver C++ tests |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/tests/CablePhysics.test.cpp` | ⬜ | Cable physics C++ tests |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/benchmark/bench.html` | ⬜ | WASM benchmark HTML page |
+| `DOCS/INITIAL/decisions/0001-wasm-archive/benchmark/run-bench.mts` | ⬜ | WASM benchmark runner script |
 
 ### `DOCS/After/` — Future Vision Documentation
 | File | Status | Description |
@@ -749,7 +749,7 @@ restructure's scope, flagged so it isn't mistaken for complete)
 ### `DOCS/` — Misc
 | File | Status | Description |
 |------|--------|-------------|
-| `DOCS/action working.md` | ⬜ | Action system working notes |
+| `DOCS/INITIAL/action working.md` | ⬜ | Action system working notes |
 
 ---
 
