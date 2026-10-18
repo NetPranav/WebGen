@@ -1,0 +1,39 @@
+# Two-lane ownership: see DOCS/TEAM/COLLABORATION.md §3.
+# Owners are asked to review automatically; a review isn't required to merge.
+# The last matching pattern wins, so contract files come last.
+
+# Lane A: Stage 1, the viewport (Phases 13–52)
+/src/editor/canvas/                    @NetPranav
+/src/editor/viewport/                  @NetPranav
+/src/editor/runtime/                   @NetPranav
+/src/editor/shell/                     @NetPranav
+/src/editor/panels/details/            @NetPranav
+/src/editor/panels/outliner/           @NetPranav
+/src/editor/panels/content-browser/    @NetPranav
+/src/compiler/export/                  @NetPranav
+
+# Lane B: Stage 2, the animation engine (Phases 53–102)
+/src/core/kernel/                      @OVERxPOWERED
+/src/core/motion/                      @OVERxPOWERED
+/src/core/transport/                   @OVERxPOWERED
+/src/core/engine/                      @OVERxPOWERED
+/src/editor/panels/sequencer/          @OVERxPOWERED
+/src/editor/panels/curves/             @OVERxPOWERED
+/src/editor/timeline/                  @OVERxPOWERED
+/src/compiler/motion-to-gsap/          @OVERxPOWERED
+/src/compiler/emitters/                @OVERxPOWERED
+
+# Contract files: both lanes
+/src/core/document/                    @NetPranav @OVERxPOWERED
+/src/core/commands/                    @NetPranav @OVERxPOWERED
+/src/core/store/                       @NetPranav @OVERxPOWERED
+/src/core/rules/                       @NetPranav @OVERxPOWERED
+/src/editor/shell/EditorShell.tsx      @NetPranav @OVERxPOWERED
+/package.json                          @NetPranav @OVERxPOWERED
+/package-lock.json                     @NetPranav @OVERxPOWERED
+/tsconfig.json                         @NetPranav @OVERxPOWERED
+/eslint.config.mjs                     @NetPranav @OVERxPOWERED
+/next.config.ts                        @NetPranav @OVERxPOWERED
+/.github/                              @NetPranav @OVERxPOWERED
+/scripts/                              @NetPranav @OVERxPOWERED
+/DOCS/TEAM/                            @NetPranav @OVERxPOWERED

@@ -72,3 +72,6 @@ tests/export-harness/report/
 /playwright-report/
 /test-results/
 /blob-report/
+
+# per-person Claude instructions (lane), see DOCS/TEAM/ONBOARDING-LANE-B.md
+CLAUDE.local.md
