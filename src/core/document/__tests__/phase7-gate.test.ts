@@ -11,7 +11,7 @@
  * holding a free-form object, every entity strict-typed (unknown keys fail),
  * every binding round-trips through its text form, and every document
  * survives JSON and a reload unchanged. The review checklist is
- * DOCS/Initial/audit/phase7-gate-checklist.md.
+ * DOCS/INITIAL/audit/phase7-gate-checklist.md.
  */
 
 import { describe, it } from "node:test";

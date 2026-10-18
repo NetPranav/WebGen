@@ -12,7 +12,7 @@ import type { PropValue } from "../../../core/document/registry";
  * ============================================================================
  * SUB-PHASE 8.4: 10-ARCHETYPE × 5-DIMENSION VERIFICATION MATRIX (50 CELLS)
  * ============================================================================
- * Reference: DOCS/Initial/ROADMAP.md §Sub-Phase 8.4 & PRD.md §3
+ * Reference: DOCS/INITIAL/ROADMAP.md §Sub-Phase 8.4 & PRD.md §3
  *
  * Matrix Dimensions:
  * 1. Schema Valid: Valid AST element representation and schema compliance

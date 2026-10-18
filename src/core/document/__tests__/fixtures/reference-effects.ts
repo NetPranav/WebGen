@@ -7,7 +7,7 @@
  * amendment, and the reference build of the v3.2 amendment (engine spec §12.7)
  * in both of the forms the spec gives: the effector form and the Blueprint /
  * physics form. The review checklist that maps each one to its primitives is
- * DOCS/Initial/audit/phase7-gate-checklist.md.
+ * DOCS/INITIAL/audit/phase7-gate-checklist.md.
  */
 
 import type { MotionDocument } from "../../schema";

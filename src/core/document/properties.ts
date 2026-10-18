@@ -10,7 +10,7 @@
  * Canonical names follow CONVENTIONS §4 (the animatable-path catalogue the
  * runtime and presets already speak). Paths CONVENTIONS doesn't cover
  * (layout, content, interaction, 3D, geometry) extend the same grouping.
- * Decision record: DOCS/Initial/decisions/0003-geometry-vs-transform.md.
+ * Decision record: DOCS/INITIAL/decisions/0003-geometry-vs-transform.md.
  *
  * Legacy names — the flat v2 prop keys (`backgroundColor`, `borderRadius`)
  * and the preset track dialect (`transform.translateY`) — resolve through

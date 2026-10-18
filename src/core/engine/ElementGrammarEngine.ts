@@ -7,8 +7,8 @@
  * Implements the runtime grammar validator and the "+" (Continue Hierarchy)
  * decision algorithm.
  * Direct implementation of:
- * - DOCS/Initial/lazylayout_element_grammer.md (Sections 6, 7, 8, 9)
- * - DOCS/Initial/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md (§8, §9)
+ * - DOCS/INITIAL/lazylayout_element_grammer.md (Sections 6, 7, 8, 9)
+ * - DOCS/INITIAL/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md (§8, §9)
  * ============================================================================
  */
 

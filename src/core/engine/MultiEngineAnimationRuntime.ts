@@ -5,7 +5,7 @@
  * LAZYLAYOUT MULTI-ENGINE ANIMATION RUNTIME & EXECUTOR
  * ============================================================================
  * Architecture Ref: ROADMAP.md §Phase 5 (Sub-Phases 5.1–5.6)
- * Companion Spec: DOCS/Initial/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md
+ * Companion Spec: DOCS/INITIAL/ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md
  * Standards: CONVENTIONS.md §4 Standard Animation Property Paths
  *
  * Implements:

@@ -14,7 +14,7 @@
  * machine Phase 11, the behaviour runtime Phase 12. Units are seconds, px and
  * degrees (SCHEMA_REFERENCE §4). New entities use strict objects, so an
  * unknown key is a validation error rather than a silently kept escape hatch.
- * Decision record: DOCS/Initial/decisions/0004-motion-primitives.md.
+ * Decision record: DOCS/INITIAL/decisions/0004-motion-primitives.md.
  * ============================================================================
  */
 

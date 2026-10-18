@@ -2,7 +2,7 @@
  * Build-time edition flag.
  *
  * `"initial"` is the Initial Phase product: the motion/animation editor only.
- * `"full"` is the full-vision product (DOCS/After) with the Blueprint / logic,
+ * `"full"` is the full-vision product (DOCS/FUTURE) with the Blueprint / logic,
  * deployment, plugin, pages, versioning and database-studio tracks wired in.
  *
  * Read via `process.env.NEXT_PUBLIC_EDITION` so Next.js's webpack config can

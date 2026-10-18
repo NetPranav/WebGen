@@ -47,7 +47,7 @@ jobs:
       - name: Bundle scope (edition=initial excludes After-track panels)
         run: npm run check:bundle-scope
 
-      - name: Doc links (DOCS/Initial)
+      - name: Doc links (DOCS/INITIAL)
         run: npm run check:doc-links
 
       - name: No ad-hoc compatibility logic in the editor (Phase 8.4)

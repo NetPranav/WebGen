@@ -6,7 +6,7 @@
  * ============================================================================
  * Coordinates code emission across Next.js 15, React 19 Vite, Vue 3,
  * and Vanilla HTML/CSS/JS with zero engine lock-in.
- * Architecture Ref: DOCS/Initial/ROADMAP.md §Sub-Phase 8.2 & PRD.md §3
+ * Architecture Ref: DOCS/INITIAL/ROADMAP.md §Sub-Phase 8.2 & PRD.md §3
  * ============================================================================
  */
 

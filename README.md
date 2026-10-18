@@ -42,10 +42,9 @@ Open [http://localhost:3000](http://localhost:3000) to see the launcher, and
 ## Documentation
 
 The living docs for the Initial Phase — PRD, roadmap, audit, conventions, panel reference,
-schema reference, licensing register, and folder structure — live under `DOCS/Initial/`
-(same directory as `docs/initial/` on this case-insensitive filesystem). Start with
-`DOCS/Initial/ROADMAP.md` for what's built and what's next, and `DOCS/Initial/AUDIT.md` for
+schema reference, licensing register, and folder structure — live under `DOCS/INITIAL/`.
+Start with `DOCS/INITIAL/ROADMAP.md` for what's built and what's next, and `DOCS/INITIAL/AUDIT.md` for
 known gaps.
 
-`DOCS/After/` holds the full-vision track. It is not the active roadmap — see the banner on
-each file there.
+`DOCS/FUTURE/` holds the full-vision track (Release 3: visual Blueprints, project import, deep inspection).
+It is not the active roadmap — see the banner on each file there.

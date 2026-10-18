@@ -13,7 +13,7 @@
  * where a clean mapping exists, and an explicit, checked list of the cells
  * where one does not yet exist in the schema (`PHASE8_SCHEMA_GAPS`).
  *
- * See `DOCS/Initial/decisions/0005-phase8-rule-table-and-reconciliation.md`.
+ * See `DOCS/INITIAL/decisions/0005-phase8-rule-table-and-reconciliation.md`.
  * ============================================================================
  */
 

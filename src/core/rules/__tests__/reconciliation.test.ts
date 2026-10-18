@@ -2,7 +2,7 @@
  * Sub-Phase 8.5 (Source Reconciliation): asserts the 5 named contradictions
  * between the grammar and the engine spec's §7 per-type tables (AUD-52) are
  * resolved in the grammar's favour, per
- * `DOCS/Initial/decisions/0005-phase8-rule-table-and-reconciliation.md`.
+ * `DOCS/INITIAL/decisions/0005-phase8-rule-table-and-reconciliation.md`.
  */
 
 import { describe, it } from "node:test";

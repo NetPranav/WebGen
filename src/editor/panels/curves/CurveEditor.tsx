@@ -9,7 +9,7 @@
  * Role: Visual easing curve workstation powered by `SplineSolver.ts`, pure
  *       TypeScript, permanently — ROADMAP Sub-Phase 5.3 benchmarked the
  *       archived C++/Wasm port and decided No-Go (AUD-12,
- *       DOCS/Initial/decisions/0001-wasm.md).
+ *       DOCS/INITIAL/decisions/0001-wasm.md).
  * Styling Source: `@/editor/styles/sequencer.css`
  * Matches: ROADMAP.md Sub-Phase 4.2 & PANELS.md (Panel 06)
  * ============================================================================
