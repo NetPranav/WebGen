@@ -3,6 +3,7 @@
 **Version:** 1.0 (Comprehensive Reference)  
 **Companion Document:** [`DOCS/INITIAL/lazylayout_element_grammer.md`](./lazylayout_element_grammer.md)  
 **Scope:** Exhaustive catalog of GSAP 3.x, Framer Motion (Motion for React), and Native CSS animatable properties, browser rendering pipeline costs, engine conflict rules, and the definitive best-in-class engine arbitration matrix for 120 FPS buttery-smooth performance.  
+**Phase numbers:** roadmap phases cited here are v3 numbers; translate them with `ROADMAP.md` §7 (Crosswalk).  
 **Audience:** Engine and editor architects building the Visual Web Application Engine, Motion Sequencer, Content Browser, and Runtime Exporter.
 
 ---

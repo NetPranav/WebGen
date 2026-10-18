@@ -9,6 +9,7 @@
   - draggable bodies (§8.6.6);
   - rules that set up their own colliders and fields (§8.6.7).
 **Date:** 2026-09-26
+**Phase numbers:** this spec cites v3 roadmap phases (for example "Phase 61"). Translate them with `ROADMAP.md` §7 (Crosswalk); `ROADMAP.md` v4 runs phases in number order.
 **File Location:** `DOCS/INITIAL/INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md`
 **Status:** Design specification. Since ROADMAP Phase 7 the document model can *express* everything here (types and validation in `src/core/document/`), but **no runtime in this document runs in the code yet** (see `AUDIT.md` AUD-45 … AUD-49 and AUD-56). Each section names the roadmap phase that builds it.
 **Owner phases:** `ROADMAP.md` v3.1:

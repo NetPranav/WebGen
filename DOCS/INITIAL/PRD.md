@@ -4,7 +4,7 @@
 **Internal Codename:** "Figma for Motion, built with AI"
 **Document Version:** 2.4.0
 **Phase:** Initial Phase = Release 1 (Motion & Interactive Effects Studio). Releases 2 (Sites) and 3 (Apps) are planned in `ROADMAP.md` §8.
-**Status:** Approved direction. Implementation restarts from `ROADMAP.md` v2.0.0 Phase 1.
+**Status:** Approved direction. Implementation follows `ROADMAP.md` v4.0.0 (sequential phases). Phase numbers cited in this PRD are v3 numbers; translate them with `ROADMAP.md` §7 (Crosswalk).
 **v2.1 (2026-09-26):** After a production-readiness review (`ROADMAP.md` §4.2), v2.1 adds:
 - the Reactive Effects Engine: interactive backgrounds, cursors, particles and shaders that react to pointer, scroll, touch and sound (§5.4);
 - Interaction Blueprints (Unreal-style visual logic);
