@@ -6,7 +6,7 @@ Two people now work on the roadmap at the same time, each with their own Claude:
 - `DOCS/TEAM/COLLABORATION.md`: lanes, the ten places where Lane B waits on Lane A (with interfaces merged first so it isn't blocked), no folder limits, the shared hot spots, daily merges, and rules for Claude. `CLAUDE.md` imports it, so both assistants load it.
 - `DOCS/TEAM/CLAIMS.md` for schema versions, decision-record numbers, and new AUDIT IDs; `DOCS/TEAM/ONBOARDING-LANE-B.md` for the second developer.
 - Changelog fragments in `DOCS/INITIAL/changelog.d/`, folded by `npm run changelog:fold -- <version>`, so parallel PRs no longer conflict at the top of `CHANGELOG.md`.
-- A pull request template; `CLAUDE.local.md` (per-person lane) is git-ignored.
+- A pull request template; each person's CLAUDE.local.md (their lane) is git-ignored.
 
 #### Changed
 - `main` changes only through pull requests with green CI, for both people (this replaces direct merges to `main`). Each person merges every day and fixes problems forward.
