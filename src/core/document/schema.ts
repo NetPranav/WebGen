@@ -59,8 +59,12 @@ import { checkReferences } from "./references";
  * v5 (Phase 46): compositions — the After Effects time model. A `main`
  * composition plus interaction compositions for triggered clips, layer time
  * bars, nesting with stretch and time remap, markers (compositions.ts).
+ *
+ * v6 (Phase 53): the animation grammar's gaps closed. Clip types `exit`,
+ * `focus`, `stagger` and `layout`; triggers `unmount` and `layoutChange`.
+ * Purely additive: a v5 document is a valid v6 document.
  */
-export const SCHEMA_VERSION = 5 as const;
+export const SCHEMA_VERSION = 6 as const;
 
 // ---------------------------------------------------------------------------
 // Primitives

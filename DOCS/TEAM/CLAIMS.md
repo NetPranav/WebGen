@@ -8,7 +8,7 @@ Current schema: **v5** (on `main`).
 
 | Version | Lane | Phase | What changes | PR |
 |---|---|---|---|---|
-| | | | | |
+| v6 | B | 53 | Animation grammar gaps: `exit`/`focus`/`stagger`/`layout` clip types; `unmount`/`layoutChange` triggers. Additive, no data rewritten. | |
 
 ## Decision records (`DOCS/INITIAL/decisions/`)
 

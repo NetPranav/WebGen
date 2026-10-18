@@ -6,8 +6,9 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { CLIP_TYPE_TO_CATEGORY, PHASE8_SCHEMA_GAPS, convertClipsToGrammarBindings } from "../clip-adapter";
-import { CLIP_TYPES } from "../../document/motion";
+import { CLIP_TYPE_TO_CATEGORY, PHASE8_SCHEMA_GAPS, TRIGGER_TO_TRIGGER_TYPE, convertClipsToGrammarBindings } from "../clip-adapter";
+import { CLIP_TYPES, TRIGGERS } from "../../document/motion";
+import { CATEGORY_PRIORITY_ORDER } from "../../types/element-grammar";
 import type { Clip } from "../../document/schema";
 
 describe("Sub-Phase 8.1: Clip ↔ AnimationCategory adapter", () => {
@@ -17,11 +18,19 @@ describe("Sub-Phase 8.1: Clip ↔ AnimationCategory adapter", () => {
     }
   });
 
-  it("documents every category/trigger the current schema cannot express independently", () => {
-    const documented = PHASE8_SCHEMA_GAPS.map((g) => g.category);
-    for (const gap of ["Exit", "Focus", "Stagger", "LayoutTransition"]) {
-      assert.ok(documented.includes(gap as never), `expected a documented schema gap for "${gap}"`);
-    }
+  it("has no schema gaps left (Phase 53, AUD-59)", () => {
+    assert.deepEqual(PHASE8_SCHEMA_GAPS, []);
+  });
+
+  it("every grammar category has a ClipType (Reactive is signal-driven, not a clip)", () => {
+    const covered = new Set(Object.values(CLIP_TYPE_TO_CATEGORY));
+    for (const category of CATEGORY_PRIORITY_ORDER.filter((c) => c !== "Reactive")) assert.ok(covered.has(category), `no ClipType for "${category}"`);
+  });
+
+  it("maps every Trigger to its own TriggerType (lossless)", () => {
+    for (const trigger of TRIGGERS) assert.ok(TRIGGER_TO_TRIGGER_TYPE[trigger], `Trigger "${trigger}" is unmapped`);
+    const mapped = TRIGGERS.map((t) => TRIGGER_TO_TRIGGER_TYPE[t]);
+    assert.equal(new Set(mapped).size, TRIGGERS.length, "two triggers share a TriggerType");
   });
 
   it("converts clips into grammar bindings with the right category/properties", () => {

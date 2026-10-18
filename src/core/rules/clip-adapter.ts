@@ -30,14 +30,16 @@ export const CLIP_TYPE_TO_CATEGORY: Record<ClipType, AnimationCategory> = {
   // A morph is a state-driven shape/property change; StateTransition is the
   // closest existing category (no dedicated ClipType exists for it).
   morph: "StateTransition",
+  exit: "Exit",
+  focus: "Focus",
+  stagger: "Stagger",
+  layout: "LayoutTransition",
 };
 
 /**
- * Best-effort `Trigger` → `TriggerType` mapping, used only to feed the legacy
- * conflict detector (`ElementGrammarEngine.conflictsWithExisting`, grammar
- * §6.1: same trigger + shared property = hard conflict). `pointerMove`,
- * `drag` and `time` have no lossless equivalent in the 13-value legacy union
- * — see `PHASE8_SCHEMA_GAPS`.
+ * `Trigger` → `TriggerType` mapping, used to feed the legacy conflict detector
+ * (`ElementGrammarEngine.conflictsWithExisting`, grammar §6.1: same trigger +
+ * shared property = hard conflict). Lossless since v6: one `TriggerType` per `Trigger`.
  */
 export const TRIGGER_TO_TRIGGER_TYPE: Record<Trigger, TriggerType> = {
   mount: "OnLoad",
@@ -46,10 +48,12 @@ export const TRIGGER_TO_TRIGGER_TYPE: Record<Trigger, TriggerType> = {
   focus: "OnFocus",
   inView: "OnScrollEnter",
   scrollProgress: "OnScrollScrub",
-  pointerMove: "Ambient",
-  drag: "OnPress",
-  time: "Ambient",
+  pointerMove: "OnPointerMove",
+  drag: "OnDrag",
+  time: "OnTime",
   custom: "OnChildEvent",
+  unmount: "OnUnmount",
+  layoutChange: "OnLayoutChange",
 };
 
 export interface SchemaGap {
@@ -58,35 +62,12 @@ export interface SchemaGap {
 }
 
 /**
- * Grammar categories and trigger nuances Phase 7's MDM v4 schema cannot yet
- * express independently. `rules.canAdd`/`rules.validate` can only evaluate
- * what the schema can represent; this list is the audit trail for the rest,
- * tracked as a follow-up under AUD-52 rather than silently dropped.
+ * Grammar categories and trigger nuances the schema cannot express
+ * independently. Empty since MDM v6 (Phase 53, AUD-59): every `AnimationCategory` has a
+ * `ClipType` and every `Trigger` has its own `TriggerType`. It stays as the audit trail; add
+ * a gap here rather than dropping one silently.
  */
-export const PHASE8_SCHEMA_GAPS: SchemaGap[] = [
-  {
-    category: "Exit",
-    note:
-      "No ClipType or Trigger distinguishes an element leaving from entering; `entrance`-type clips only express Entrance today.",
-  },
-  {
-    category: "Focus",
-    note:
-      "`focus` exists as a Trigger but not as its own ClipType — a Focus effect must be authored as another clip type (typically `hover`) triggered by `focus`.",
-  },
-  {
-    category: "Stagger",
-    note: "Stagger is a modifier on `Clip.stagger`/`Sequence.stagger`, not its own ClipType, so it cannot appear as a `canAdd` candidate the way grammar's Stagger category does.",
-  },
-  {
-    category: "LayoutTransition",
-    note: "No ClipType or dedicated FLIP/layout-transition primitive exists yet in the MDM v4 schema.",
-  },
-  {
-    category: "trigger-vocabulary",
-    note: "`pointerMove`, `drag` and `time` triggers have no lossless equivalent in the legacy 13-value TriggerType union; TRIGGER_TO_TRIGGER_TYPE approximates them for conflict-checking only.",
-  },
-];
+export const PHASE8_SCHEMA_GAPS: SchemaGap[] = [];
 
 /**
  * Converts a layer's real `Clip`s into the legacy `AnimationBinding[]` shape
