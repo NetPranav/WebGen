@@ -229,8 +229,8 @@ One row per phase, in execution order. Update the Status column together with th
 
 | # | Phase | Needs | Was (v3) | Stage | Status |
 |---|---|---|---|---|---|
-| 53 | Animation grammar: close the schema gaps | 10, 11 | — (AUD-59, found by v3 8) | 2 | 🚧 |
-| 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | 📋 |
+| 53 | Animation grammar: close the schema gaps | 10, 11 | — (AUD-59, found by v3 8) | 2 | ✅ |
+| 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | 🚧 |
 | 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | 📋 |
 | 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | 📋 |
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | 📋 |
@@ -817,7 +817,7 @@ The document and World Environment have their own stores, After-track actions mo
 > Order inside the stage: grammar completeness (53) → time (54–56) → the live preview runtime (57–60) → the After Effects timeline (61–68) → motion on the canvas (69–71) → compositing (72–75) → expressions (76–77) → states (78–80) → scroll (81–82) → text (83–84) → SVG (85–86) → the Motion engine (87) → responsive and page motion (88–89) → Playground, library and accessibility (90–93) → export and output (94–101) → the gate (102).
 
 ### Phase 53 · Animation grammar: close the schema gaps
-**Needs:** 10, 11 · **Was:** — (AUD-59, found by v3 8) · **Closes:** AUD-59 · **Status:** 🚧
+**Needs:** 10, 11 · **Was:** — (AUD-59, found by v3 8) · **Closes:** AUD-59 · **Status:** ✅
 **Goal:** Every animation category in the grammar has a lossless form in the document before any UI is built on it (Law 1).
 - [x] A schema version bump with migration (v6, `migrations/v5-to-v6.ts`): **Exit** (a leave trigger distinct from entering), **Focus** as a clip category, **Stagger** as a first-class category over the existing modifier, **LayoutTransition** (FLIP-style layout changes); lossless `pointerMove`, `drag` and `time` triggers.
 - [x] `clip-adapter.ts` maps all 10 grammar categories with no named gaps; `PHASE8_SCHEMA_GAPS` becomes empty.
@@ -827,9 +827,9 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** the rule table, kernel and migration tests pass with no schema gaps listed.
 
 ### Phase 54 · Transport & one clock
-**Needs:** 11, 12 · **Was:** v3 45.1 · **Closes:** AUD-30 · **Status:** 📋
-- [ ] `src/core/time/transport.ts`: time, playing, rate, loop (off / loop / ping-pong), work area, fps, composition. Commands: play, pause, seek, step frame, shuttle (J/K/L), set work area.
-- [ ] An observable store outside React. Text reads it through `useTransportTime({ maxHz: 10 })`.
+**Needs:** 11, 12 · **Was:** v3 45.1 · **Closes:** AUD-30 · **Status:** 🚧
+- [x] `src/core/time/transport.ts`: time, playing, rate, loop (off / loop / ping-pong), work area, fps, composition. Commands: play, pause, seek, step frame, shuttle (J/K/L), set work area.
+- [x] An observable store outside React. Text reads it through `useTransportTime({ maxHz: 10 })`.
 
 **You'll see:** a transport bar (play, pause, timecode, loop) that controls the whole studio.
 **Done when:** frame stepping lands on exact frame times at 24, 30 and 60 fps (golden tests).

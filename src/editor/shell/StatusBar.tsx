@@ -16,6 +16,7 @@
  */
 
 import React from "react";
+import { TransportBar } from "./TransportBar";
 import {
   Activity,
   Cpu,
@@ -147,6 +148,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </button>
         )}
       </div>
+
+      {/* Centre: the transport (play, step, timecode, loop) */}
+      <TransportBar />
 
       {/* Right section: environment read-outs */}
       <div className="statusbar__right">
