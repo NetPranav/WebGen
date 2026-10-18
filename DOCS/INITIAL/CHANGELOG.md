@@ -9,6 +9,27 @@
 All notable changes to the Initial Phase specifications will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.0] — 2026-10-18
+
+### ROADMAP v4: one sequential plan of 202 phases
+
+The roadmap is rewritten so that **the phase number is the execution order**. v3's 91 phases needed a separate `order.md` to be run, and that file recorded five places where v3's own stage table contradicted the phase dependencies.
+
+#### Changed
+- `ROADMAP.md` is now v4.0.0: 202 phases in 10 stages. Stage 0 holds the 12 completed phases (v3 1–9, 41, 42, 46). Then: **1** Figma / Wix-style viewport (13–52), **2** animation grammar (53–102), **3** interactive and complex animation (103–147), **4** 3D on three.js (148–167), **5** AI and agents (168–176), **6** easy for everyone (177–183), **7** production and public beta (184–191), **8** sites and platform (192–201), **9** apps re-baseline (202).
+- Every phase lists what it needs (always lower numbers), the v3 phase it came from, a checklist, what changes for the user ("You'll see") and its gate. Every stage ends with a gate journey a user can run in the website.
+- New laws: 18 Sequential, 19 Visible Progress, 20 Agent Parity (every action is a typed command, and the MCP server exposes every command).
+- v3 phases were split into smaller phases where they mixed visible and invisible work; legacy code is now deleted by the phase that replaces it.
+
+#### Added
+- Work v3 never planned: basic editing operations (copy/paste, group, align/distribute, z-order), inline text editing, image cropping, static export at the end of Stage 1, a local MCP server (Phase 50) growing to full agent parity (176) and a remote endpoint (194), keyboard signals and keyboard interactivity (104, 112), a 20-phase 3D stage, Figma and After Effects keymaps (177), Figma import (178) and After Effects import via Lottie (179).
+- A status audit (§1): what is done, what the website shows today, what is built but not yet used, and the unmerged work on branch `phase-43-command-bus-finish`.
+- `scripts/check-roadmap-order.mts` (`npm run check:roadmap-order`): fails if a phase needs a later one, if numbers have gaps, or if the index and the entries disagree on status. Phase 13 wires it into CI.
+- §7 crosswalk from every v3 phase to its v4 phase(s); notes in `PRD.md`, `AUDIT.md` and the three specs that their phase numbers are v3 numbers.
+
+#### Moved
+- The v3.3 roadmap is kept unchanged as `ROADMAP_v3_ARCHIVE.md`. `order.md` is retired (a short pointer remains).
+
 ## [3.9.0] — 2026-09-27
 
 ### Phase 43 (Command Bus & Focus Model): Sub-Phases 43.1 + 43.3 landed, 43.2 deferred, not yet Verification-Gate-green

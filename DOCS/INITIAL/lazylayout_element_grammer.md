@@ -1,6 +1,6 @@
 # LazyLayout Element & Animation Grammar Specification
 
-**Version:** 0.3 (Draft).
+**Version:** 0.3 (Draft). Roadmap phases cited in this grammar are v3 numbers; translate them with `ROADMAP.md` §7 (Crosswalk).
 - v0.2 (2026-09-26, with ROADMAP v3.0) adds §13: the Reactive category, effect-surface element types (3.F), conflict rules 6.9–6.16, and the Interaction rule grammar.
 - v0.3 (2026-09-26, with ROADMAP v3.1) adds §14, kinetic composition:
   - helper layers, pins and follow;

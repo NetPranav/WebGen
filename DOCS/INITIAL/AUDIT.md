@@ -5,7 +5,7 @@
 **Audit Date:** 2026-09-24
 **Audited Branch / Commit:** `blueprint-language` @ `acec382`
 **File Location:** `DOCS/INITIAL/AUDIT.md`
-**Consumed By:** `DOCS/INITIAL/ROADMAP.md` v3.3.0. Every fix phase cites the audit IDs (`AUD-xx`) it closes. Section J (AUD-44 … AUD-55) was added on 2026-09-26 by the production-readiness review behind ROADMAP v3.0 (§4.2 there). AUD-56 was added the same day with ROADMAP v3.1, AUD-57 with v3.2, and AUD-58 with v3.3. AUD-59 was added by Phase 8's own work (2026-09-26), not a roadmap version bump.
+**Consumed By:** `DOCS/INITIAL/ROADMAP.md` v4.0.0 (from 2026-10-18; v3.3.0 before that). The "Fix Phase" column and §4–§5 use **v3 phase numbers**; translate them with `ROADMAP.md` §7 (Crosswalk). Every fix phase cites the audit IDs (`AUD-xx`) it closes. Section J (AUD-44 … AUD-55) was added on 2026-09-26 by the production-readiness review behind ROADMAP v3.0 (§4.2 there). AUD-56 was added the same day with ROADMAP v3.1, AUD-57 with v3.2, and AUD-58 with v3.3. AUD-59 was added by Phase 8's own work (2026-09-26), not a roadmap version bump.
 
 ---
 
