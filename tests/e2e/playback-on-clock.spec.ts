@@ -28,7 +28,7 @@ test("Phase 56: the Sequencer's play button drives the transport bar, and they a
   const sequencer = page.getByRole("region", { name: "Motion Sequencer Timeline" });
 
   await seekRuler(page, 0.5);
-  expect(await sequencerTime(page)).toBeCloseTo(0.5, 2);
+  await expect.poll(() => sequencerTime(page)).toBeCloseTo(0.5, 2); // painted on the next frame
   await expect.poll(() => barTime(page)).toBeCloseTo(0.5, 1);
 
   await sequencer.getByRole("button", { name: "Play", exact: true }).click();
@@ -37,6 +37,7 @@ test("Phase 56: the Sequencer's play button drives the transport bar, and they a
   await sequencer.getByRole("button", { name: "Pause", exact: true }).click();
   await page.waitForTimeout(250); // the 10 Hz readouts catch up to the paused head
 
+  await expect.poll(async () => Math.abs((await barTime(page)) - (await sequencerTime(page)))).toBeLessThanOrEqual(1 / FPS + 1e-9);
   const fromSequencer = await sequencerTime(page);
   expect(fromSequencer, "the head moved while playing").toBeGreaterThan(0.9);
   expect(Math.abs((await barTime(page)) - fromSequencer), "timeline and transport bar differ by under a frame").toBeLessThanOrEqual(1 / FPS + 1e-9);
