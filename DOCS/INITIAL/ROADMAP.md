@@ -231,8 +231,8 @@ One row per phase, in execution order. Update the Status column together with th
 |---|---|---|---|---|---|
 | 53 | Animation grammar: close the schema gaps | 10, 11 | — (AUD-59, found by v3 8) | 2 | ✅ |
 | 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | ✅ |
-| 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | 🚧 |
-| 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | 📋 |
+| 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | ✅ |
+| 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | 🚧 |
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | 📋 |
 | 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | 📋 |
 | 59 | Scrub vs play | 58 | v3 10.2 | 2 | 📋 |
@@ -835,7 +835,7 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** frame stepping lands on exact frame times at 24, 30 and 60 fps (golden tests).
 
 ### Phase 55 · Frame scheduler
-**Needs:** 54 · **Was:** v3 45.2, 45.3 · **Closes:** AUD-41 · **Status:** 🚧
+**Needs:** 54 · **Was:** v3 45.2, 45.3 · **Closes:** AUD-41 · **Status:** ✅
 - [x] One `requestAnimationFrame` loop with ordered phases: input → evaluate → apply → render → overlay → stats (`src/core/time/scheduler.ts`). Panels register tasks in a phase. The transport advances in `evaluate`. *(The overlay moves onto it when Phase 23 builds it.)*
 - [x] A lint rule bans `requestAnimationFrame` outside `src/core/time/**` (short allowlist in `eslint.config.mjs`; `MotionSequencer.tsx` leaves it in Phase 56).
 - [x] Deterministic mode (`setDeterministic` + `step(dt)`): the Phase 4 test clock plugs in, and the render queue (100) drives it one frame at a time.
@@ -844,8 +844,8 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** `deterministic-clock.spec.ts` case 3 (the AUD-41 falsifier) flips to deterministic; the lint rule passes.
 
 ### Phase 56 · Move playback onto the clock; retire the old Sequencer clock
-**Needs:** 55 · **Was:** v3 45.4 · **Closes:** AUD-38 · **Status:** 📋
-- [ ] The Sequencer, playhead controls and canvas play button use the transport. Delete `MotionSequencer`'s local `currentTime`, its rAF loop, `interpolateTrackValue` and the `SANDBOX_HOT_PATCH` broadcast.
+**Needs:** 55 · **Was:** v3 45.4 · **Closes:** AUD-38 · **Status:** 🚧
+- [x] The Sequencer and its playhead controls use the transport (the toolbar's Play is the live-app preview, a different thing, and is untouched). Deleted `MotionSequencer`'s local `currentTime`, its rAF loop, `interpolateTrackValue` (and `scrubPatch.ts`) and the `SANDBOX_HOT_PATCH` broadcast. Until Phase 57 puts the kernel on the stage, scrubbing and playing move the playhead but do not animate the stage.
 
 **You'll see:** the timeline playhead and the canvas always show the same time.
 **Done when:** during playback the timeline panel makes ≤ 10 React commits per second; canvas and timeline agree within 1 frame (Playwright).

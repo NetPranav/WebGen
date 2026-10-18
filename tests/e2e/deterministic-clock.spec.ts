@@ -64,9 +64,13 @@ test("2. seekRuler reaches an exact playhead time, repeatably", async ({ page })
 
   for (const seconds of [0, 0.5, 1] as const) {
     await seekRuler(page, seconds);
-    const title = await page.locator(".sequencer-playhead-head").getAttribute("title");
-    const readback = parseFloat(title?.match(/Playhead:\s*([\d.]+)s/)?.[1] ?? "NaN");
-    expect(readback, `seek to ${seconds}s`).toBeCloseTo(seconds, 2);
+    // The needle is painted by a scheduler task on the next frame, so the readback is polled, not read at once.
+    await expect
+      .poll(async () => {
+        const title = await page.locator(".sequencer-playhead-head").getAttribute("title");
+        return parseFloat(title?.match(/Playhead:\s*([\d.]+)s/)?.[1] ?? "NaN");
+      }, { message: `seek to ${seconds}s` })
+      .toBeCloseTo(seconds, 2);
   }
 });
 

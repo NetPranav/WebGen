@@ -13,7 +13,8 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useLayoutEffect, useMemo, useCallback, useRef } from "react";
+import { useStore } from "zustand";
 import "@/editor/styles/sequencer.css";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { documentCommands, useLayerClips, useLayers } from "@/core/store/useDocumentStore";
@@ -26,9 +27,9 @@ import { ScrollTriggerBar } from "./ScrollTriggerBar";
 import { StaggerManager } from "./StaggerManager";
 import { CurveEditor } from "@/editor/panels/curves/CurveEditor";
 import { Plus, ChevronDown, Trash2, Copy, Sliders, ChevronsLeftRight } from "lucide-react";
-import { interpolateTrackValue, scrubStylesForTracks } from "./scrubPatch";
+import { frameScheduler } from "@/core/time/scheduler";
+import { getTransport, transport, transportStore } from "@/core/time/transport";
 
-export { interpolateTrackValue };
 import { createId } from "@/core/ids";
 import { useOwnFocusScope, useCommand, type ContextKeys } from "@/core/commands";
 import type { Layer } from "@/core/document/schema";
@@ -189,11 +190,12 @@ export const MotionSequencer: React.FC = () => {
     ];
   }, [currentTracks]);
 
-  // Sequencer Playback State
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0.0);
-  const [playbackRate, setPlaybackRate] = useState(1.0);
-  const [isLooping, setIsLooping] = useState(true);
+  // Playback state lives in the one transport (Phase 56). The time is never React state here: the
+  // playhead is painted by a scheduler task (below), so playing re-renders this panel only when
+  // the play state, loop mode or rate changes.
+  const isPlaying = useStore(transportStore, (t) => t.playing);
+  const playbackRate = useStore(transportStore, (t) => t.rate);
+  const isLooping = useStore(transportStore, (t) => t.loop !== "off");
   const [activeTrackId, setActiveTrackId] = useState<string>(tracks[0]?.id || "tr_opacity");
   const [selectedKeyframeId, setSelectedKeyframeId] = useState<string | null>(null);
   const [isStaggerOpen, setIsStaggerOpen] = useState(false);
@@ -206,57 +208,22 @@ export const MotionSequencer: React.FC = () => {
   // Find currently selected keyframe object & track
   const selectedKeyframeInfo = findKeyframe(tracks, selectedKeyframeId);
 
-  // Live Stage DOM Hot-Patch: dispatch interpolated values on playhead update
-  useEffect(() => {
-    if (!activeElement || typeof window === "undefined") return;
-
-    const stylesToApply = scrubStylesForTracks(tracks, currentTime, interpolateTrackValue);
-
-    // Post to all runtime iframes
-    const iframes = document.querySelectorAll("iframe");
-    iframes.forEach((ifr) => {
-      try {
-        ifr.contentWindow?.postMessage(
-          {
-            type: "SANDBOX_HOT_PATCH",
-            payload: {
-              action: "update_property",
-              elementId: activeElement.id,
-              properties: {
-                style: stylesToApply,
-              },
-            },
-          },
-          "*"
-        );
-      } catch (e) {}
-    });
-  }, [currentTime, tracks, activeElement]);
-
-  // Playhead animation loop at 120 FPS
-  useEffect(() => {
-    let animFrame: number;
-    let lastTimestamp = performance.now();
-
-    const loop = (now: number) => {
-      const delta = ((now - lastTimestamp) / 1000) * playbackRate;
-      lastTimestamp = now;
-
-      if (isPlaying) {
-        setCurrentTime((prev) => {
-          const next = prev + delta;
-          if (next >= totalDuration) {
-            return isLooping ? 0 : totalDuration;
-          }
-          return next;
-        });
-      }
-      animFrame = requestAnimationFrame(loop);
+  // The playhead needle and its readout follow the transport. A `render`-phase task writes the DOM directly,
+  // so the panel does not re-render per frame (Phase 56 gate: at most 10 commits per second while playing).
+  const playheadLineRef = useRef<HTMLDivElement>(null);
+  const playheadHeadRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    let painted = Number.NaN;
+    const paint = () => {
+      const time = getTransport().time;
+      if (time === painted) return;
+      painted = time;
+      if (playheadLineRef.current) playheadLineRef.current.style.transform = `translateX(${Math.min(time, totalDuration) * pixelsPerSecond}px)`;
+      if (playheadHeadRef.current) playheadHeadRef.current.title = `Playhead: ${time.toFixed(3)}s`;
     };
-
-    animFrame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animFrame);
-  }, [isPlaying, isLooping, totalDuration, playbackRate]);
+    paint();
+    return frameScheduler.register("render", paint);
+  }, [totalDuration, pixelsPerSecond]);
 
   // Helper to commit tracks back to store
   const commitTracks = useCallback(
@@ -284,17 +251,12 @@ export const MotionSequencer: React.FC = () => {
     [activeElement, currentAnimation, totalDuration]
   );
 
-  // Playhead actions
-  const handleTogglePlay = () => setIsPlaying((p) => !p);
-  const handleStopReset = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-  };
-  const handleToggleLoop = () => setIsLooping((l) => !l);
-  const handleReverse = () => {
-    setCurrentTime((prev) => Math.max(0, prev - 0.1));
-  };
-  const handleRateChange = (rate: number) => setPlaybackRate(rate);
+  // Playhead actions: all of them act on the transport
+  const handleTogglePlay = () => transport.togglePlay();
+  const handleStopReset = () => transport.stop();
+  const handleToggleLoop = () => transport.setLoop(getTransport().loop === "off" ? "loop" : "off");
+  const handleReverse = () => transport.seek(getTransport().time - 0.1);
+  const handleRateChange = (rate: number) => transport.setRate(rate);
 
   // Keyframe actions
   const handleSelectKeyframe = (kfId: string, trackId: string) => {
@@ -341,7 +303,7 @@ export const MotionSequencer: React.FC = () => {
 
     const newKf: Keyframe = {
       id: createId("kf"),
-      time: Math.round(currentTime * 120) / 120,
+      time: Math.round(getTransport().time * 120) / 120,
       value: "default",
       ease: currentAnimation?.easing || "power2.out",
     };
@@ -378,7 +340,7 @@ export const MotionSequencer: React.FC = () => {
 
     const newKf: Keyframe = {
       id: createId("kf"),
-      time: Math.min(totalDuration, Math.round((currentTime || sourceKf.time + 0.1) * 120) / 120),
+      time: Math.min(totalDuration, Math.round((getTransport().time || sourceKf.time + 0.1) * 120) / 120),
       value: sourceKf.value,
       ease: sourceKf.ease,
     };
@@ -443,6 +405,7 @@ export const MotionSequencer: React.FC = () => {
     setActiveTrackId(newTrack.id!);
   };
 
+  // Space and Home are `transport.*` commands now (Phase 56); Delete and Ctrl+D stay here.
   // Sub-Phase 43.1/43.3: Space/Home/Delete/Ctrl+D are now timeline-focus-scoped
   // commands instead of their own `window` listener — this is what stops
   // Space also panning the canvas (or Delete also affecting a layer) when
@@ -450,14 +413,6 @@ export const MotionSequencer: React.FC = () => {
   const timelineFocusRef = useOwnFocusScope<HTMLDivElement>("timeline");
   const timelineCommandWhen = useCallback((ctx: ContextKeys) => ctx.timelineFocus && !ctx.textEditing, []);
 
-  useCommand(
-    { id: "timeline.togglePlay", title: "Play/Pause", category: "Timeline", keybinding: "Space", when: timelineCommandWhen, run: () => setIsPlaying((p) => !p) },
-    [timelineCommandWhen]
-  );
-  useCommand(
-    { id: "timeline.seekStart", title: "Seek to Start", category: "Timeline", keybinding: "Home", when: timelineCommandWhen, run: () => setCurrentTime(0) },
-    [timelineCommandWhen]
-  );
   useCommand(
     {
       id: "timeline.deleteKeyframe",
@@ -500,7 +455,7 @@ export const MotionSequencer: React.FC = () => {
   };
 
   const handleSimulateScroll = (progress: number) => {
-    setCurrentTime(progress * totalDuration);
+    transport.seek(progress * totalDuration);
   };
 
   const handleUpdateRepeat = (repeatVal: number) => {
@@ -516,7 +471,6 @@ export const MotionSequencer: React.FC = () => {
   const validProperties = getValidPropertiesForArchetype(archetype, family);
   const unusedProperties = validProperties.filter((p) => !tracks.some((t) => t.property === p));
 
-  const playheadPixel = currentTime * pixelsPerSecond;
 
   const rulerTicks = useMemo(() => {
     const ticks: number[] = [];
@@ -533,7 +487,6 @@ export const MotionSequencer: React.FC = () => {
         isPlaying={isPlaying}
         isLooping={isLooping}
         playbackRate={playbackRate}
-        currentTime={currentTime}
         totalDuration={totalDuration}
         viewMode={timelineViewMode}
         onToggleViewMode={setTimelineViewMode}
@@ -804,7 +757,7 @@ export const MotionSequencer: React.FC = () => {
               const rect = e.currentTarget.getBoundingClientRect();
               const clickX = e.clientX - rect.left;
               const newTime = Math.max(0, Math.min(clickX / pixelsPerSecond, totalDuration));
-              setCurrentTime(newTime);
+              transport.seek(newTime);
             }}
           >
             {rulerTicks.map((sec) => (
@@ -834,22 +787,22 @@ export const MotionSequencer: React.FC = () => {
                 selectedKeyframeId={selectedKeyframeId}
                 onSelectKeyframe={handleSelectKeyframe}
                 onUpdateKeyframeTime={handleUpdateKeyframeTime}
-                onLaneClick={(time) => setCurrentTime(time)}
+                onLaneClick={(time) => transport.seek(time)}
               />
             ))}
 
             {/* Playhead Vertical Needle */}
             <div
+              ref={playheadLineRef}
               className="sequencer-playhead-line"
-              style={{ transform: `translateX(${playheadPixel}px)` }}
             >
               <div
+                ref={playheadHeadRef}
                 className="sequencer-playhead-head"
-                title={`Playhead: ${currentTime.toFixed(3)}s`}
                 onMouseDown={(e) => {
                   e.stopPropagation();
                   const startClientX = e.clientX;
-                  const initialTime = currentTime;
+                  const initialTime = getTransport().time;
 
                   const handleMouseMove = (moveEvent: MouseEvent) => {
                     const deltaX = moveEvent.clientX - startClientX;
@@ -857,7 +810,7 @@ export const MotionSequencer: React.FC = () => {
                       0,
                       Math.min(initialTime + deltaX / pixelsPerSecond, totalDuration)
                     );
-                    setCurrentTime(newTime);
+                    transport.seek(newTime);
                   };
 
                   const handleMouseUp = () => {

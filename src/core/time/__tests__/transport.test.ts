@@ -227,7 +227,7 @@ describe("Phase 54: commands", () => {
   it("registers the transport commands, mirrors `playing` into the context key, and unregisters", () => {
     useContextKeysStore.setState({ canvasFocus: false, timelineFocus: true, textEditing: false, "transport.playing": false });
     const uninstall = installTransportCommands();
-    for (const id of ["transport.togglePlay", "transport.stepForward", "transport.shuttleForward", "transport.shuttleStop", "transport.shuttleReverse"]) {
+    for (const id of ["transport.togglePlay", "transport.seekStart", "transport.stepForward", "transport.shuttleForward", "transport.shuttleStop", "transport.shuttleReverse"]) {
       assert.ok(getCommand(id), id);
     }
     assert.equal(runCommand("transport.togglePlay"), true);

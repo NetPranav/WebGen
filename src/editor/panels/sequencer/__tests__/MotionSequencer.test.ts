@@ -22,7 +22,7 @@ import { getPropertyFamilyBadge } from "../TrackHeader";
 import type { Track } from "@/core/document/schema";
 
 describe("Phase 4.1: Motion Sequencer Timeline & Property Tracks", async () => {
-  const { getValidPropertiesForArchetype, interpolateTrackValue } = await import("../MotionSequencer");
+  const { getValidPropertiesForArchetype } = await import("../MotionSequencer");
 
   describe("Family-Specific Property Path Gating (CONVENTIONS.md §4)", () => {
     it("should return universal property paths for any archetype", () => {
@@ -89,39 +89,6 @@ describe("Phase 4.1: Motion Sequencer Timeline & Property Tracks", async () => {
     it("should format fractional seconds with millisecond precision", () => {
       assert.strictEqual(formatTimecode(1.25), "00:01.250");
       assert.strictEqual(formatTimecode(65.5), "01:05.500");
-    });
-  });
-
-  describe("Track Value Interpolation at 120 FPS", () => {
-    const sampleTrack: Track = {
-      id: "tr_trans_y",
-      property: "transform.y",
-      keyframes: [
-        { id: "kf_1", time: 0.0, value: "40px" },
-        { id: "kf_2", time: 1.0, value: "0px" },
-        { id: "kf_3", time: 2.0, value: "-20px" },
-      ],
-    };
-
-    it("should return start value before initial keyframe", () => {
-      const val = interpolateTrackValue(sampleTrack, -0.5);
-      assert.strictEqual(val, "40px");
-    });
-
-    it("should return end value after final keyframe", () => {
-      const val = interpolateTrackValue(sampleTrack, 2.5);
-      assert.strictEqual(val, "-20px");
-    });
-
-    it("should interpolate linearly between keyframes with units preserved", () => {
-      const mid = interpolateTrackValue(sampleTrack, 0.5);
-      assert.strictEqual(mid, "20.00px");
-
-      const quarter = interpolateTrackValue(sampleTrack, 0.25);
-      assert.strictEqual(quarter, "30.00px");
-
-      const threeQuarter = interpolateTrackValue(sampleTrack, 1.5);
-      assert.strictEqual(threeQuarter, "-10.00px");
     });
   });
 

@@ -29,7 +29,7 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-  // The short allowlist: pointer-drag batching and a canvas loop that are not on the timeline's clock. MotionSequencer leaves it in Phase 56.
+  // The short allowlist: pointer-drag batching and a canvas loop that are not on the timeline's clock. The Sequencer left it in Phase 56.
   {
     files: [
       "src/editor/shell/DockSplitter.tsx",
@@ -37,7 +37,6 @@ const eslintConfig = defineConfig([
       "src/core/events/useTearOff.ts",
       "src/editor/canvas/WasmCableCanvas.tsx",
       "src/editor/panels/details/controls/KeyframeTimeline.tsx",
-      "src/editor/panels/sequencer/MotionSequencer.tsx",
     ],
     rules: { "no-restricted-globals": "off", "no-restricted-properties": "off" },
   },
