@@ -1,6 +1,6 @@
-# Claims: shared numbers and contract changes
+# Claims: shared numbers
 
-Claim a number here **before** you use it, in the same PR or an earlier one. Whoever gets merged to `main` first wins; the other person takes the next number. See `COLLABORATION.md` §4 and §6.
+Claim a number here **before** you use it, in the same PR or an earlier one. Whoever gets merged to `main` first wins; the other person takes the next number. See `COLLABORATION.md` §4 and §6. This is the only thing to reserve; there are no folder limits.
 
 ## MDM schema versions & migrations
 
@@ -25,11 +25,3 @@ Highest existing: check `DOCS/INITIAL/AUDIT.md` before claiming.
 | ID | Lane | Finding | PR |
 |---|---|---|---|
 | | | | |
-
-## Contract changes in flight
-
-List a contract PR here while it's open; delete the row once it's merged.
-
-| Contract file(s) | Lane | Why | PR | Merged? |
-|---|---|---|---|---|
-| | | | | |

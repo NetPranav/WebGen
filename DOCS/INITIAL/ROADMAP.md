@@ -18,7 +18,7 @@
 4. **Every phase from 13 on says what changes on screen** ("You'll see"). If a phase can't name something a user sees or does, it is infrastructure, and at most two of those may run in a row (Law 19).
 5. **Status:** ✅ gate passed in CI · 🚧 in progress · 📋 not started. Mark a phase ✅ in the index (§5) and in its own entry when its gate passes, and add a dated line to `CHANGELOG.md`.
 6. **"Was" names the v3 phase(s)** the work came from, so audit IDs, decision records, commit messages and `TODO(P7)`-style comments stay traceable. The full crosswalk is §7.
-7. **Working with several people:** someone may start a later phase early only if every phase in its "Needs" line is ✅. The number order stays the default. Since 2026-10-18 two people work in parallel lanes, **Lane A** (Phases 13–52) and **Lane B** (Phases 53–102); the lanes, the points where B waits on A, file ownership and contract-file rules are in `DOCS/TEAM/COLLABORATION.md`.
+7. **Working with several people:** someone may start a later phase early only if every phase in its "Needs" line is ✅. The number order stays the default. Since 2026-10-18 two people work in parallel lanes, **Lane A** (Phases 13–52) and **Lane B** (Phases 53–102); the lanes, the points where B waits on A, and the daily-merge workflow are in `DOCS/TEAM/COLLABORATION.md`.
 
 ---
 

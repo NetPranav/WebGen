@@ -39,50 +39,39 @@ Taken from the "Needs" lines in ROADMAP §5. Lane B can do 53–56 straight away
 | 94 Motion export architecture | 49 | Static export v1 |
 | 99 Video & audio layers | 36 | Asset store |
 
-**Contract-first, so Lane B isn't stuck:** when Lane A starts a phase in this table (19 and 15 first), Lane A opens a small **contract PR** with only the types and interfaces, plus a stub that throws "not implemented", and merges it fast. Lane B may then write code and tests against that interface. Lane B's phase is still not ✅ until the real Lane A phase is ✅ (Definition of Done).
+**Interfaces first, so Lane B isn't stuck:** when Lane A starts a phase in this table (19 and 15 first), Lane A merges the types and interfaces first, with a stub that throws "not implemented". Lane B may then write code and tests against that interface. Lane B's phase is still not ✅ until the real Lane A phase is ✅ (Definition of Done).
 
-If Lane B is blocked anyway, pull work forward **inside Lane B** whose Needs are already met. Don't work on Lane A's phases.
+If Lane B is blocked anyway, pull work forward inside Lane B whose Needs are already met, or agree with Lane A to build the missing piece yourself.
 
-## 3. Who owns which files
+## 3. No folder limits
 
-`.github/CODEOWNERS` enforces this on pull requests. Owning a file means the other person's review is requested when you touch it. It doesn't stop you, but it does warn you.
+Both people may change **any file** in the repo. The lanes split the *phases*, not the folders. If your phase needs a change in code the other person usually works on, make it.
 
-**Lane A owns:** `src/editor/canvas/`, `src/editor/viewport/`, `src/editor/runtime/` (the stage host), `src/editor/shell/` (except the contract file below), `src/editor/panels/details/`, `src/editor/panels/outliner/`, `src/editor/panels/content-browser/`, `src/compiler/export/` (static export).
-
-**Lane B owns:** `src/core/kernel/`, `src/core/motion/`, `src/core/transport/` (new, Phase 54), `src/core/engine/`, `src/editor/panels/sequencer/`, `src/editor/panels/curves/`, `src/editor/timeline/` (new), and the motion parts of `src/compiler/` (`motion-to-gsap/`, emitters).
-
-**Contract files belong to both of you.** Change them only in their own small PR (§4):
+To keep that cheap, a few files are **shared hot spots**. Changing them is fine; just say so in your PR and in your message to the other person (§9):
 - `src/core/document/`: the MDM schema, `migrations/`, property paths
 - `src/core/commands/`: the command registry and its types
 - `src/core/store/`: every store
 - `src/core/rules/`: the rule table
 - `src/editor/shell/EditorShell.tsx`
-- `package.json`, `package-lock.json`, `tsconfig.json`, `eslint.config.mjs`, `next.config.ts`
-- `.github/`, `scripts/`
+- `package.json`, `package-lock.json`, `tsconfig.json`, `eslint.config.mjs`, `next.config.ts`, `.github/`, `scripts/`
 - ROADMAP §0–§4 (rules, laws, Definition of Done), and this file
 
-New folders: put them under your lane's area. If something is truly shared, propose it as a contract.
+## 4. Shared hot spots
 
-## 4. Changing a contract file
+1. **Prefer adding to renaming.** If you rename or delete something the other lane uses, also update their callers in the same PR so `main` still builds.
+2. **Schema rule:** before bumping the MDM schema version or adding a migration, claim the next number in `DOCS/TEAM/CLAIMS.md`. Two people creating "v6" on the same day is the one conflict that's painful to undo.
+3. Mention any hot-spot change in the PR description, so the daily merge (§5) knows to look at it.
 
-1. **Claim it** in `DOCS/TEAM/CLAIMS.md` (in the same PR is fine).
-2. Open a PR with **only** the contract change, labelled `contract`. Keep it small, additive if possible, and with tests.
-3. Message the other person. Merge as soon as CI is green and they've seen it. A contract PR shouldn't sit open overnight.
-4. Rebase your phase branch on the new `main`, then carry on.
+## 5. Day-to-day git: merge every day
 
-**Schema rule:** never bump the MDM schema version or add a migration without claiming the next number in `CLAIMS.md` first. Two people creating "v6" at the same time is the worst conflict this repo can have.
-
-**Never** rename or delete something in a contract file that the other lane uses without agreeing first. Add the new thing, move your own callers, and delete the old thing in a later PR.
-
-## 5. Day-to-day git
-
-- **`main` only changes through pull requests with green CI.** That applies to both people, admins included, and to direct pushes made on someone's behalf. No force-pushes to `main`.
-- One branch per phase, named as in §1. Small PRs: a phase may land as several PRs (e.g. `a/phase-18-stage-host-1`, `-2`).
-- **Rebase on `main` at the start of every session** and right before opening a PR:
+- **`main` only changes through pull requests with green CI.** That applies to both people, admins included. No force-pushes to `main`.
+- One branch per phase, named as in §1. A phase may land as several PRs (e.g. `a/phase-18-stage-host-1`, `-2`).
+- **Merge into `main` every day.** At the end of each working day, each person opens or updates a PR with whatever is done and green, and merges it. Smaller, daily merges mean conflicts stay small. Unfinished work can merge if it's hidden or harmless; the phase just stays 🚧.
+- **Start every session from the latest `main`:**
   `git fetch origin && git rebase origin/main`
-- Merging into `main`: use **squash merge** for phase PRs (one clean commit per PR), and keep the PR title in conventional-commit form: `feat(canvas): Phase 25 creation tools`.
+- If something goes wrong after a merge (a conflict, a broken feature, the other person's work changed under you), **fix it forward** in the next PR. Talk it through with the other person if the fix touches their phase.
+- Merge style: **squash merge**, with a conventional-commit PR title: `feat(canvas): Phase 25 creation tools`.
 - Never rewrite a branch the other person has pulled.
-- If a rebase conflicts in the other lane's files, **stop and ask**. Don't resolve their code by guessing.
 
 ## 6. Docs without conflicts
 
@@ -91,7 +80,7 @@ The three most-edited files (ROADMAP, CHANGELOG, AUDIT) used to conflict on ever
 | File | Rule |
 |---|---|
 | `CHANGELOG.md` | **Don't edit it in a phase PR.** Add a new file to `DOCS/INITIAL/changelog.d/` instead (see its README). Fragments are folded into `CHANGELOG.md` by `npm run changelog:fold` in a separate PR. |
-| `ROADMAP.md` | Edit **only your own lane's** index rows and phase entries. Status changes go in the same PR as the phase. §0–§4 are contract (§3). |
+| `ROADMAP.md` | Update the index rows and entries for the phase you're working on, in the same PR as the phase. Changes to §0–§4 are a shared hot spot (§3). |
 | `AUDIT.md` | Edit only the AUD rows your phase closes. To add a **new** AUD ID, claim the number in `CLAIMS.md`. |
 | `decisions/` | Claim the next record number in `CLAIMS.md` first (the next free number is 0008). |
 
@@ -99,26 +88,25 @@ The three most-edited files (ROADMAP, CHANGELOG, AUDIT) used to conflict on ever
 
 The PR template (`.github/pull_request_template.md`) asks for this. In short:
 - Lane, phase and branch name are right, and every "Needs" phase is ✅ on `main`.
-- Contract files touched? Then this is a contract PR (§4), or it links one.
+- Shared hot spots touched (§3)? Say which, in the description.
 - `npm test`, `npm run lint`, `npm run build` and the Playwright suite pass. CI checks this again.
 - There's a changelog fragment, the roadmap rows for your phase are updated, and AUDIT rows are updated if the phase closes any.
 - The phase's "You'll see" line is true in the running editor.
 
 ## 8. Rules for Claude specifically
 
-1. Know your lane (§1). Work only on phases in your lane, in order.
-2. Before starting a phase: `git fetch origin`, check that every phase in its "Needs" line is ✅ on `origin/main`, and check `CLAIMS.md`.
-3. Before editing a file outside your lane or a contract file (§3): **stop and tell the person.** Propose a contract PR instead.
+1. Know your lane (§1). Work on phases in your lane, in order. You may edit any file a phase needs (§3).
+2. Before starting a phase: `git fetch origin`, rebase on `origin/main`, check that every phase in its "Needs" line is ✅ on `origin/main`, and check `CLAIMS.md`.
+3. If you change a shared hot spot (§3), say so in the PR description and in your end-of-session summary.
 4. Never push to `main` or merge a PR unless the person asks. Never use `--force` on a shared branch. Never pass `--admin` to bypass branch protection.
 5. Never edit `CHANGELOG.md` directly; write a fragment. Never mark a phase ✅ before its gate passes in CI.
 6. Don't add `Co-Authored-By: Claude` trailers to commits or PRs in this repo.
-7. When you finish a session, say what's left: the branch, what's done, what's next, and any contract change the other lane should know about.
+7. At the end of a session, remind the person about the daily merge (§5) and summarise: the branch, what's done, what's next, and any hot-spot change the other lane should know about.
 
 ## 9. Talking to each other
 
 Git can't catch everything, so message the other person when:
-- you open a contract PR (§4);
+- you change a shared hot spot (§3), especially the schema or the command registry;
 - you finish a phase that's in the §2 table;
-- you're about to start something that changes how the editor is laid out or how commands work.
+- a daily merge broke something and you're fixing it forward.
 
-A short message saves an afternoon of merge conflicts.

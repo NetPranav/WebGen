@@ -13,9 +13,9 @@
 ## Checklist
 - [ ] Branch is `a/` or `b/phase-NN-…` and rebased on the latest `main`
 - [ ] Every phase in "Needs" is ✅ on `main`
-- [ ] Contract files (COLLABORATION §3): none touched, **or** this is a `contract` PR, **or** it links one: #…
+- [ ] Shared hot spots touched (COLLABORATION §3): none, **or** listed here: …
 - [ ] Schema version / decision record / new AUD ID claimed in `DOCS/TEAM/CLAIMS.md` (if any)
 - [ ] `npm test`, `npm run lint`, `npm run build` and `npm run test:e2e` pass locally
 - [ ] Changelog fragment added in `DOCS/INITIAL/changelog.d/` (`CHANGELOG.md` not edited)
-- [ ] Only my lane's ROADMAP rows and entries changed; AUDIT rows updated if this closes any
+- [ ] ROADMAP rows and entries for this phase updated; AUDIT rows updated if this closes any
 - [ ] Phase marked ✅ only if its gate passes in CI
