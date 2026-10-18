@@ -229,7 +229,7 @@ One row per phase, in execution order. Update the Status column together with th
 
 | # | Phase | Needs | Was (v3) | Stage | Status |
 |---|---|---|---|---|---|
-| 53 | Animation grammar: close the schema gaps | 10, 11 | — (AUD-59, found by v3 8) | 2 | 📋 |
+| 53 | Animation grammar: close the schema gaps | 10, 11 | — (AUD-59, found by v3 8) | 2 | ✅ |
 | 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | 🚧 |
 | 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | 📋 |
 | 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | 📋 |
@@ -817,11 +817,11 @@ The document and World Environment have their own stores, After-track actions mo
 > Order inside the stage: grammar completeness (53) → time (54–56) → the live preview runtime (57–60) → the After Effects timeline (61–68) → motion on the canvas (69–71) → compositing (72–75) → expressions (76–77) → states (78–80) → scroll (81–82) → text (83–84) → SVG (85–86) → the Motion engine (87) → responsive and page motion (88–89) → Playground, library and accessibility (90–93) → export and output (94–101) → the gate (102).
 
 ### Phase 53 · Animation grammar: close the schema gaps
-**Needs:** 10, 11 · **Was:** — (AUD-59, found by v3 8) · **Closes:** AUD-59 · **Status:** 📋
+**Needs:** 10, 11 · **Was:** — (AUD-59, found by v3 8) · **Closes:** AUD-59 · **Status:** ✅
 **Goal:** Every animation category in the grammar has a lossless form in the document before any UI is built on it (Law 1).
-- [ ] A schema version bump with migration: **Exit** (a leave trigger distinct from entering), **Focus** as a clip category, **Stagger** as a first-class category over the existing modifier, **LayoutTransition** (FLIP-style layout changes); lossless `pointerMove`, `drag` and `time` triggers.
-- [ ] `clip-adapter.ts` maps all 10 grammar categories with no named gaps; `PHASE8_SCHEMA_GAPS` becomes empty.
-- [ ] The kernel evaluates Exit and LayoutTransition clips (golden tests).
+- [x] A schema version bump with migration (v6, `migrations/v5-to-v6.ts`): **Exit** (a leave trigger distinct from entering), **Focus** as a clip category, **Stagger** as a first-class category over the existing modifier, **LayoutTransition** (FLIP-style layout changes); lossless `pointerMove`, `drag` and `time` triggers.
+- [x] `clip-adapter.ts` maps all 10 grammar categories with no named gaps; `PHASE8_SCHEMA_GAPS` becomes empty.
+- [x] The kernel evaluates Exit and LayoutTransition clips (golden tests).
 
 **You'll see:** nothing new yet; the animation menus offer Exit, Focus and Layout categories once the timeline lands (61).
 **Done when:** the rule table, kernel and migration tests pass with no schema gaps listed.

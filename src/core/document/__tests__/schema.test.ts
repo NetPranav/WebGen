@@ -192,6 +192,7 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
           type: clip.type,
           trigger: clip.trigger,
           duration: clip.duration,
+          ...(clip.type === "stagger" ? { stagger: { each: 0.1, from: "start" as const } } : {}),
           easing: "linear",
           enabled: true,
           ...(clip.repeat !== undefined ? { repeat: clip.repeat } : {}),
@@ -213,7 +214,7 @@ const documentArb: fc.Arbitrary<MotionDocument> = fc
     return doc;
   });
 
-describe("MDM v5 schema: property-based round trip", () => {
+describe("MDM v6 schema: property-based round trip", () => {
   it("500 random documents survive validate → serialise → parse → validate unchanged", () => {
     fc.assert(
       fc.property(documentArb, (doc) => {

@@ -128,6 +128,11 @@ export type TriggerType =
   | "OnStateChange"
   | "OnChildEvent"
   | "Ambient"
+  | "OnPointerMove" // Phase 53 (MDM v6): one TriggerType per document Trigger
+  | "OnDrag"
+  | "OnTime"
+  | "OnUnmount"
+  | "OnLayoutChange"
   | "Continuous"; // Grammar §13.1 (v0.2): Reactive's trigger, `Continuous(<SignalExpr>)`
 
 export type GrammarStateName =

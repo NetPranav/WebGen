@@ -239,10 +239,60 @@ describe("Phase 9.3: performance ('evaluating 200 tracks at one t takes < 1ms in
   });
 });
 
+describe("Phase 53: Exit and LayoutTransition clips (golden values)", () => {
+  // An interaction composition is exactly as long as its clip, with an exclusive end, so the last frame is sampled just inside it.
+  const near = (actual: unknown, expected: number, eps = 1e-9) => assert.ok(Math.abs((actual as number) - expected) < eps, `expected ${expected}, got ${actual}`);
+
+  it("an Exit clip plays in the interaction composition its `unmount` trigger drives", () => {
+    const b = new DocBuilder();
+    const id = b.layer("container", "Card", null, { "appearance.opacity": 1 });
+    const clipId = b.clip(id, {
+      name: "Leave",
+      type: "exit",
+      trigger: "unmount",
+      duration: 0.4,
+      easing: "linear",
+      tracks: [{ id: "t", property: "appearance.opacity", keyframes: [{ id: "k0", time: 0, value: 1 }, { id: "k1", time: 0.4, value: 0 }] }],
+    });
+    const doc = b.build();
+    const comp = `comp_${clipId}`;
+    assert.equal(doc.compositions[comp].trigger?.on, "unmount");
+
+    near(evaluate(doc, comp, id, 0)["appearance.opacity"], 1);
+    near(evaluate(doc, comp, id, 0.1)["appearance.opacity"], 0.75);
+    near(evaluate(doc, comp, id, 0.2)["appearance.opacity"], 0.5);
+    near(evaluate(doc, comp, id, 0.3)["appearance.opacity"], 0.25);
+    // While the layer is mounted (main composition) an Exit clip does nothing.
+    assert.equal(evaluate(doc, MAIN_COMPOSITION_ID, id, 0.2)["appearance.opacity"], 1);
+  });
+
+  it("a LayoutTransition clip plays on `layoutChange` and eases a FLIP offset to zero", () => {
+    const b = new DocBuilder();
+    const id = b.layer("container", "Tile", null);
+    const clipId = b.clip(id, {
+      name: "Reflow",
+      type: "layout",
+      trigger: "layoutChange",
+      duration: 1,
+      easing: "linear",
+      tracks: [{ id: "t", property: "transform.x", keyframes: [{ id: "k0", time: 0, value: 40 }, { id: "k1", time: 1, value: 0, ease: "power1.in" }] }],
+    });
+    const doc = b.build();
+    const comp = `comp_${clipId}`;
+    assert.equal(doc.compositions[comp].trigger?.on, "layoutChange");
+
+    assert.equal(evaluate(doc, comp, id, 0)["transform.x"], 40);
+    // power1.in(0.5) = 0.25, so 40 + (0 - 40) × 0.25 = 30.
+    near(evaluate(doc, comp, id, 0.5)["transform.x"], 30);
+    assert.equal(evaluate(doc, comp, id, 0.5).transform, "translate3d(30px, 0px, 0px)");
+  });
+});
+
 describe("Phase 9.3: what the kernel does not evaluate yet", () => {
   it("names its gaps rather than silently faking Phase 12/60's territory", () => {
     const areas = KERNEL_GAPS.map((g) => g.area);
     assert.ok(areas.includes("behaviours"));
     assert.ok(areas.includes("signal bindings"));
+    assert.ok(!areas.includes("stateful clip categories"), "closed by Phase 53");
   });
 });

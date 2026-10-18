@@ -35,7 +35,7 @@ test("Phase 42: a v2 project migrates to v3 and renders identically to the nativ
   const migratedShot = await stageShot(page, outDir, "migrated-from-v2");
 
   const doc = migrated.file.snapshot.document as { schemaVersion: number; layers: Record<string, { properties: Record<string, unknown> }> };
-  expect(doc.schemaVersion).toBe(5); // v2 → v3 (Phase 42) → v4 (Phase 7) → v5 (Phase 46): imports migrate to the current schema
+  expect(doc.schemaVersion).toBe(6); // v2 → v3 (Phase 42) → v4 (Phase 7) → v5 (Phase 46) → v6 (Phase 53): imports migrate to the current schema
   for (const layer of Object.values(doc.layers)) {
     for (const key of Object.keys(layer.properties)) expect(key, "every prop key is a canonical dot-path").toContain(".");
   }
