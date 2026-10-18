@@ -13,12 +13,13 @@ const timelineOnly = (ctx: ContextKeys) => !ctx.textEditing && ctx.timelineFocus
  * Registers the transport commands and mirrors `playing` into the
  * `transport.playing` context key. Returns the unregister function.
  *
- * Space (play / pause) is not bound here: the old Sequencer still owns it
- * until Phase 56 moves playback onto this transport.
+ * Space (play / pause) and Home are timeline-focus commands, as the Sequencer's own were
+ * before Phase 56; on the canvas Space stays the hand tool.
  */
 export function installTransportCommands(): () => void {
   const unregisters = [
-    defineCommand({ id: "transport.togglePlay", title: "Play / Pause", category: "Transport", run: () => transport.togglePlay() }),
+    defineCommand({ id: "transport.togglePlay", title: "Play / Pause", category: "Transport", keybinding: "Space", when: timelineOnly, run: () => transport.togglePlay() }),
+    defineCommand({ id: "transport.seekStart", title: "Go to Start", category: "Transport", keybinding: "Home", when: timelineOnly, run: () => transport.seek(0) }),
     defineCommand({ id: "transport.play", title: "Play", category: "Transport", run: () => transport.play() }),
     defineCommand({ id: "transport.pause", title: "Pause", category: "Transport", run: () => transport.pause() }),
     defineCommand({ id: "transport.stop", title: "Stop and Return to Start", category: "Transport", run: () => transport.stop() }),

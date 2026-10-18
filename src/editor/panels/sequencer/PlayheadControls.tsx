@@ -14,6 +14,7 @@
  */
 
 import React from "react";
+import { useTransportTime } from "@/core/time/useTransportTime";
 import {
   Play,
   Pause,
@@ -31,7 +32,6 @@ export interface PlayheadControlsProps {
   isPlaying: boolean;
   isLooping: boolean;
   playbackRate: number;
-  currentTime: number;
   totalDuration: number;
   viewMode?: "tracks" | "curves";
   onTogglePlay: () => void;
@@ -58,7 +58,6 @@ export const PlayheadControls: React.FC<PlayheadControlsProps> = ({
   isPlaying,
   isLooping,
   playbackRate,
-  currentTime,
   totalDuration,
   viewMode = "tracks",
   onTogglePlay,
@@ -71,6 +70,8 @@ export const PlayheadControls: React.FC<PlayheadControlsProps> = ({
   onToggleViewMode,
 }) => {
   const rates = [0.25, 0.5, 1, 2];
+  // The readout is text, so it re-renders at 10 Hz at most (Phase 54).
+  const currentTime = useTransportTime({ maxHz: 10 });
 
   return (
     <div className="sequencer-toolbar" role="toolbar" aria-label="Sequencer Transport Controls">
