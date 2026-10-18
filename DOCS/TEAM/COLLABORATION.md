@@ -8,6 +8,23 @@
 
 ---
 
+## 0. Where do I push? (the short version)
+
+```
+main                      ← nobody pushes here. It only changes when a PR is merged.
+a/phase-NN-short-name     ← NetPranav's work   (e.g. a/phase-13-command-bus)
+b/phase-NN-short-name     ← OVERxPOWERED's work (e.g. b/phase-53-schema-gaps)
+```
+
+Every day:
+1. `git switch main && git pull` to get the other person's merged work.
+2. Start or continue your phase branch: `git switch -c b/phase-53-schema-gaps` (new), or `git switch b/phase-53-schema-gaps && git rebase main` (existing).
+3. Work, commit, then `git push origin b/phase-53-schema-gaps`.
+4. Open a PR into `main` on GitHub (`gh pr create --base main`). When CI is green, squash-merge it. GitHub deletes the branch after the merge.
+5. Next phase, or still working tomorrow? Back to step 1.
+
+Those are the only kinds of branches. Anything else on GitHub is old and can be deleted.
+
 ## 1. The two lanes
 
 | | **Lane A** | **Lane B** |

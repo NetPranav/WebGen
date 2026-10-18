@@ -40,6 +40,8 @@ Read in this order: ROADMAP §0–§4 (rules and laws), then Stage 2's intro and
 
 ## 4. Every session
 
+The step-by-step "where do I push" is in `DOCS/TEAM/COLLABORATION.md` §0. In short: push to your own `b/phase-NN-…` branch, never to `main`, and merge through a PR.
+
 ```bash
 git fetch origin && git rebase origin/main   # on your phase branch
 ```
