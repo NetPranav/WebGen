@@ -21,7 +21,8 @@
     "check:bundle-scope": "tsx scripts/check-bundle-scope.mts",
     "check:doc-links": "tsx scripts/check-doc-links.mts",
     "check:no-adhoc-compat": "tsx scripts/check-no-adhoc-compat.mts",
-    "check:roadmap-order": "tsx scripts/check-roadmap-order.mts"
+    "check:roadmap-order": "tsx scripts/check-roadmap-order.mts",
+    "changelog:fold": "tsx scripts/fold-changelog.mts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
