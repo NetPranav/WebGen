@@ -474,6 +474,25 @@ body.is-resizing .dock-corner-splitter {
   white-space: nowrap;
 }
 
+.transport-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  height: 100%;
+}
+
+.transport-bar__timecode {
+  margin-left: var(--space-xs);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.transport-bar__total {
+  color: var(--text-tertiary);
+}
+
 .statusbar__left,
 .statusbar__right {
   display: flex;

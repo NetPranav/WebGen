@@ -230,7 +230,7 @@ One row per phase, in execution order. Update the Status column together with th
 | # | Phase | Needs | Was (v3) | Stage | Status |
 |---|---|---|---|---|---|
 | 53 | Animation grammar: close the schema gaps | 10, 11 | — (AUD-59, found by v3 8) | 2 | 📋 |
-| 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | 📋 |
+| 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | 🚧 |
 | 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | 📋 |
 | 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | 📋 |
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | 📋 |
@@ -827,9 +827,9 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** the rule table, kernel and migration tests pass with no schema gaps listed.
 
 ### Phase 54 · Transport & one clock
-**Needs:** 11, 12 · **Was:** v3 45.1 · **Closes:** AUD-30 · **Status:** 📋
-- [ ] `src/core/time/transport.ts`: time, playing, rate, loop (off / loop / ping-pong), work area, fps, composition. Commands: play, pause, seek, step frame, shuttle (J/K/L), set work area.
-- [ ] An observable store outside React. Text reads it through `useTransportTime({ maxHz: 10 })`.
+**Needs:** 11, 12 · **Was:** v3 45.1 · **Closes:** AUD-30 · **Status:** 🚧
+- [x] `src/core/time/transport.ts`: time, playing, rate, loop (off / loop / ping-pong), work area, fps, composition. Commands: play, pause, seek, step frame, shuttle (J/K/L), set work area.
+- [x] An observable store outside React. Text reads it through `useTransportTime({ maxHz: 10 })`.
 
 **You'll see:** a transport bar (play, pause, timecode, loop) that controls the whole studio.
 **Done when:** frame stepping lands on exact frame times at 24, 30 and 60 fps (golden tests).
