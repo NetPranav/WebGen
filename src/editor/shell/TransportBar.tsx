@@ -6,7 +6,7 @@
  * ============================================================================
  * Play / pause, frame step, timecode and loop mode for the one transport that
  * drives the whole studio (`src/core/time/transport.ts`). It also installs the
- * transport's commands, its document binding and its clock while it is mounted.
+ * transport's commands, its document binding and its per-frame driver while it is mounted.
  * ============================================================================
  */
 
@@ -15,8 +15,8 @@ import { Pause, Play, Repeat, Repeat1, SkipBack, StepBack, StepForward } from "l
 import { useStore } from "zustand";
 import { formatTimecode, transport, transportStore, type LoopMode } from "@/core/time/transport";
 import { bindTransportToDocument } from "@/core/time/transportBinding";
-import { startTransportClock } from "@/core/time/transportClock";
 import { installTransportCommands } from "@/core/time/transportCommands";
+import { installTransportDriver } from "@/core/time/transportDriver";
 import { useTransportTime } from "@/core/time/useTransportTime";
 
 const LOOP_LABEL: Record<LoopMode, string> = { off: "Loop: off", loop: "Loop: on", "ping-pong": "Loop: ping-pong" };
@@ -35,9 +35,9 @@ export const TransportBar: React.FC<TransportBarProps> = ({ className }) => {
   useEffect(() => {
     const unbind = bindTransportToDocument();
     const uninstall = installTransportCommands();
-    const stopClock = startTransportClock();
+    const uninstallDriver = installTransportDriver();
     return () => {
-      stopClock();
+      uninstallDriver();
       uninstall();
       unbind();
     };
