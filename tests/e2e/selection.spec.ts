@@ -8,7 +8,6 @@ import { test, expect, type Page } from "@playwright/test";
 import { openEditor, waitSaved } from "./support/editor";
 
 const DEEP = process.platform === "darwin" ? "Meta" : "Control";
-const CANVAS = ".whiteboard-stage";
 
 async function openLab(page: Page) {
   await page.goto("/editor/canvas-lab", { waitUntil: "domcontentloaded" });
@@ -152,7 +151,7 @@ test("Phase 26: the selection stays in sync across the canvas, the inspector and
   // select all siblings: the status bar counts them, the canvas outlines each
   await page.keyboard.press("Control+a");
   await expect(status).toContainText(/\d+ layers selected/);
-  expect(await page.locator(".canvas-overlay__selection:not([hidden])").count()).toBeGreaterThan(1);
+  await expect.poll(() => page.locator(".canvas-overlay__selection:not([hidden])").count()).toBeGreaterThan(1); // the overlay paints on the next frame
 
   // Escape: nothing selected anywhere, the inspector is back on the World Environment
   await page.keyboard.press("Escape");
