@@ -32,6 +32,7 @@ import {
   FolderArchive,
 } from "lucide-react";
 import { useProjectStore, ProjectStoreState } from "@/core/store/useProjectStore";
+import { useProjectMetaStore } from "@/core/store/useProjectMetaStore";
 import { useLayers } from "@/core/store/useDocumentStore";
 import type { Layer } from "@/core/document/schema";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
@@ -145,7 +146,7 @@ export const LiveCodeInspector: React.FC<LiveCodeInspectorProps> = ({ className,
   const databaseSchemas = useProjectStore((s) => s.databaseSchemas);
   const animationSamples = useProjectStore((s) => s.animationSamples);
   const blueprintGraphs = useProjectStore((s) => s.blueprintGraphs);
-  const projectName = useProjectStore((s) => s.projectName);
+  const projectName = useProjectMetaStore((s) => s.projectName);
   const selectedElementId = useSelectionStore((s) => s.selectedId);
   const selectElement = useSelectionStore((s) => s.select);
 

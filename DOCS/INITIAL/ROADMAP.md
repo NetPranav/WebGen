@@ -486,12 +486,12 @@ The document and World Environment have their own stores, After-track actions mo
 **Needs:** 12 · **Was:** v3 43.1 (rest), 43.3 · **Closes:** — · **Status:** 🚧
 **Goal:** Every action (shortcut, menu, toolbar, palette, context menu, AI, MCP) is one typed command, so every later phase only adds commands.
 - [x] Command registry, context keys, keymap with `when` clauses, palette on the registry, one focused region (landed 2026-09-27).
-- [ ] Menus and toolbar buttons run commands through `getCommand(id)?.run()`, which skips the `when` gate the way the palette does. Review and land the work in progress on branch `phase-43-command-bus-finish` (`0792374`) instead of redoing it.
-- [ ] Every command declares a typed argument schema (zod) and result type; `runCommand(id, args)` validates them. The MCP server (50) is generated from these schemas (Law 20).
-- [ ] Coverage test: every menu item, toolbar button, palette entry and shortcut resolves to a registered command.
-- [ ] Commit the manual checks of v3 43 as a Playwright spec: Space pans over the canvas and plays over the timeline; Delete in the timeline removes one keyframe; undo works from the palette.
-- [ ] Project metadata (id, name, scope, root archetype) gets its own small store (the gap left by Phase 12).
-- [ ] `npm run check:roadmap-order` runs in CI (Law 18).
+- [x] Menus and toolbar buttons run commands through `invokeCommand(id)`, which skips the `when` gate the way the palette does. File, Edit, View and Help are one data model (`src/editor/menus/menuModel.tsx`); an item that isn't built yet is disabled and names its phase (Cut/Copy/Paste/Duplicate/Delete: 29). Landed from `0792374` and finished here.
+- [x] A command can declare a zod `args` schema and `result` schema; `tryRunCommand(id, args)` / `runCommand(id, args)` validate them and report why nothing ran (`unknown-command`, `unavailable`, `invalid-args`, `invalid-result`, `threw`). Both are optional so existing commands keep working. Each later phase declares schemas on the commands it adds; the MCP server (50) is generated from them (Law 20).
+- [x] Coverage test (`menus/__tests__/commandCoverage.test.ts`): every menu item names a registered command or is pending on a phase, and no new raw `keydown` shortcut listener may be added. The palette already lists the registry. `Ctrl+A` (+Add palette) moved onto the bus; the remaining listeners are Escape-to-close and the Space spring-load, which need no command.
+- [x] `tests/e2e/command-bus.spec.ts`: Edit > Undo/Redo, File > Save, a pending item is disabled, undo from the palette, Space plays over the timeline and not over the canvas, Delete in the timeline removes one keyframe.
+- [x] Project metadata (id, name, scope, root archetype) has its own store, `useProjectMetaStore`. `ProjectStateSnapshot` is unchanged (it is the `.lazy.json` contract); `getSnapshot`/`restoreSnapshot` compose it, and undo swaps name, scope and root archetype through it.
+- [ ] `npm run check:roadmap-order` runs in CI (Law 18). The script exists; adding the CI step needs a token with the `workflow` scope (blocked on 2026-10-19).
 
 **You'll see:** Edit and File menus and the toolbar's undo, redo and save behave exactly like their shortcuts.
 **Done when:** the coverage test and the committed spec pass in CI in 3 browsers.

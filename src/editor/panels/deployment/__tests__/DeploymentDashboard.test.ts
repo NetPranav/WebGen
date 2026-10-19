@@ -6,6 +6,7 @@ import {
   DeploymentConfig,
   DeploymentRecord,
 } from "../../../../core/types/deployment";
+import { useProjectMetaStore } from "../../../../core/store/useProjectMetaStore";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
 import { setDocument } from "../../../../core/store/documentState";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
@@ -16,8 +17,8 @@ import "../../../../after/store/pagesActions";
 describe("Sub-Phase 7.1: Build Pipeline Visualizer & Cloud Deploy (Panel 19)", () => {
   beforeEach(() => {
     // Reset project store to valid baseline
+    useProjectMetaStore.setState({ projectName: "Test Cloud App" });
     useProjectStore.setState({
-      projectName: "Test Cloud App",
       activePageId: "page_home",
       pages: {
         page_home: {

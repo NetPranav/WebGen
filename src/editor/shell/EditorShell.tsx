@@ -58,6 +58,7 @@ import { AiPromptBar } from "@/editor/panels/copilot/AiPromptBar";
 import { useTearOff, TearOffDragSource } from "@/core/events/useTearOff";
 import { useTearOffChannel } from "@/core/events/useTearOffChannel";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useProjectMetaStore } from "@/core/store/useProjectMetaStore";
 import { useEnvironmentStore } from "@/core/store/useEnvironmentStore";
 import { useHistoryStore } from "@/core/store/useHistoryStore";
 import { ProjectDatabase, generateProjectId, createDefaultBlankSnapshot } from "@/core/storage/ProjectDatabase";
@@ -353,7 +354,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [activeWorkspace, setActiveWorkspace] = useState("full-studio");
   const [isPlaying, setIsPlaying] = useState(false);
   const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const projectId = useProjectStore((s) => s.projectId) ?? "";
+  const projectId = useProjectMetaStore((s) => s.projectId) ?? "";
 
   const [selectedElement, setSelectedElement] = useState<{ id: string; name: string } | null>(null);
   const [focusedBlueprintNodeId, setFocusedBlueprintNodeId] = useState<string | null>(null);
@@ -420,12 +421,13 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   /** Exports the open project as a `.lazy.json` file download. */
   const handleExportProjectFile = useCallback(async () => {
     const state = useProjectStore.getState();
-    const record = state.projectId ? await ProjectDatabase.getProject(state.projectId) : null;
+    const meta = useProjectMetaStore.getState();
+    const record = meta.projectId ? await ProjectDatabase.getProject(meta.projectId) : null;
     const blob = new Blob([serializeLazyFile(state.getSnapshot(), record?.settings)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = lazyFileName(state.projectName || "project");
+    a.download = lazyFileName(meta.projectName || "project");
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -749,6 +751,23 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       for (const unregister of unregisters) unregister();
     };
   }, [toggleAiCoPilot, handleDockFullPage]);
+
+  // Phase 13: every File/Edit/View menu item runs one of these through the
+  // command bus (see `menus/menuModel.tsx`), so menu, palette and (later) MCP
+  // all reach the same handler.
+  useEffect(() => {
+    const unregisters = [
+      defineCommand({ id: "file.exportProjectFile", title: "Export Project File (.lazy.json)", category: "File", run: () => void handleExportProjectFile() }),
+      defineCommand({ id: "file.importProjectFile", title: "Import Project File...", category: "File", run: () => handleOpenImportPicker() }),
+      defineCommand({ id: "view.zoomIn", title: "Zoom In", category: "View", run: () => setZoomLevel((z) => Math.min(z + 10, 250)) }),
+      defineCommand({ id: "view.zoomOut", title: "Zoom Out", category: "View", run: () => setZoomLevel((z) => Math.max(z - 10, 25)) }),
+      defineCommand({ id: "view.zoomReset", title: "Reset Zoom (100%)", category: "View", run: () => setZoomLevel(100) }),
+      defineCommand({ id: "app.preferences", title: "Preferences...", category: "Edit", run: () => setCenterActiveTab("settings") }),
+    ];
+    return () => {
+      for (const unregister of unregisters) unregister();
+    };
+  }, [handleExportProjectFile, handleOpenImportPicker]);
 
   const startTearOffRef = React.useRef<
     (panelId: string, panelTitle: string, dragSource: TearOffDragSource, originX: number, originY: number) => void
@@ -1256,16 +1275,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             onToggleBottom={() => setBottomCollapsed((c) => !c)}
             onSelectWorkspace={handleSelectWorkspace}
             activeWorkspace={activeWorkspace}
-            onSave={handleSaveProject}
-            onExportProjectFile={() => void handleExportProjectFile()}
-            onImportProjectFile={handleOpenImportPicker}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
             canUndo={canUndo}
             canRedo={canRedo}
-            onZoomIn={() => setZoomLevel((z) => Math.min(z + 10, 250))}
-            onZoomOut={() => setZoomLevel((z) => Math.max(z - 10, 25))}
-            onZoomReset={() => setZoomLevel(100)}
             onResetLayout={handleResetLayout}
             onOpenPanel={handleOpenPanel}
             onOpenSettings={handleOpenSettings}

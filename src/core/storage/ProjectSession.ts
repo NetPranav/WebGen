@@ -26,6 +26,7 @@
 import { create } from "zustand";
 import type { Patch } from "immer";
 import { useProjectStore, type ProjectStateSnapshot } from "../store/useProjectStore";
+import { useProjectMetaStore } from "../store/useProjectMetaStore";
 import { useHistoryStore } from "../store/useHistoryStore";
 import { documentCommands, documentStore, getDocument, isTransactionOpen, subscribeToDocumentChanges } from "../store/useDocumentStore";
 import { useEnvironmentStore } from "../store/useEnvironmentStore";
@@ -95,10 +96,7 @@ function defaultStorage(): Storage | null {
 }
 
 /** Snapshot fields whose change means the project needs saving. The document and environment are watched separately (`documentStore`/`useEnvironmentStore`, Sub-Phase 41.1). */
-const WATCHED_KEYS: (keyof Omit<ProjectStateSnapshot, "document" | "environment">)[] = [
-  "projectName",
-  "scope",
-  "rootArchetype",
+const WATCHED_KEYS: (keyof Omit<ProjectStateSnapshot, "document" | "environment" | "projectId" | "projectName" | "scope" | "rootArchetype">)[] = [
   "activePageId",
   "pages",
   "databaseSchemas",
@@ -229,6 +227,11 @@ export class ProjectSession {
         this.schedule();
       }),
       // Sub-Phase 41.1: the World Environment owns its own store now, watched separately.
+      // Phase 13: the project name, scope and root archetype live in their own store.
+      useProjectMetaStore.subscribe((state, prev) => {
+        if (state.projectName === prev.projectName && state.scope === prev.scope && state.rootArchetype === prev.rootArchetype) return;
+        this.schedule();
+      }),
       useEnvironmentStore.subscribe((state, prev) => {
         if (state.environment === prev.environment) return;
         this.schedule();

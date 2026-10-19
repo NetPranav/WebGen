@@ -155,3 +155,62 @@ describe("Sub-Phase 43.1: Command Registry", () => {
     unregister();
   });
 });
+
+import { z } from "zod";
+import { tryRunCommand, invokeCommand } from "../registry";
+
+describe("Phase 13: typed command arguments", () => {
+  it("validates args against the schema and passes the parsed value to run", () => {
+    let received: unknown;
+    const unregister = defineCommand({
+      id: "test.typed.move",
+      title: "Move",
+      args: z.object({ dx: z.number(), dy: z.number().default(0) }),
+      result: z.object({ moved: z.boolean() }),
+      run: (a) => {
+        received = a;
+        return { moved: true };
+      },
+    });
+    const ok = tryRunCommand("test.typed.move", { dx: 5 });
+    assert.deepEqual(ok, { ok: true, result: { moved: true } });
+    assert.deepEqual(received, { dx: 5, dy: 0 });
+    unregister();
+  });
+
+  it("refuses invalid args without running, and says why", () => {
+    let ran = false;
+    const unregister = defineCommand({
+      id: "test.typed.reject",
+      title: "Reject",
+      args: z.object({ id: z.string() }),
+      run: () => void (ran = true),
+    });
+    const outcome = tryRunCommand("test.typed.reject", { id: 7 });
+    assert.equal(outcome.ok, false);
+    assert.equal(outcome.ok === false && outcome.reason, "invalid-args");
+    assert.equal(ran, false);
+    assert.equal(runCommand("test.typed.reject", {}), false);
+    assert.equal(invokeCommand("test.typed.reject", { id: 7 }), false);
+    unregister();
+  });
+
+  it("rejects a result that breaks the declared schema, and reports a throwing command", () => {
+    const u1 = defineCommand({ id: "test.typed.badresult", title: "Bad", result: z.number(), run: () => "nope" });
+    const u2 = defineCommand({ id: "test.typed.throws", title: "Throws", run: () => { throw new Error("boom"); } });
+    const bad = tryRunCommand("test.typed.badresult");
+    assert.equal(bad.ok === false && bad.reason, "invalid-result");
+    const thrown = tryRunCommand("test.typed.throws");
+    assert.deepEqual(thrown, { ok: false, reason: "threw", message: "boom" });
+    u1();
+    u2();
+  });
+
+  it("reports unknown and unavailable commands distinctly", () => {
+    const unregister = defineCommand({ id: "test.typed.gated", title: "Gated", when: (c) => c.canvasFocus, run: () => 1 });
+    assert.equal(tryRunCommand("test.typed.nope").ok === false && (tryRunCommand("test.typed.nope") as { reason: string }).reason, "unknown-command");
+    const gated = tryRunCommand("test.typed.gated");
+    assert.equal(gated.ok === false && gated.reason, "unavailable");
+    unregister();
+  });
+});

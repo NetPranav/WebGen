@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { VersionControlEngine } from "../../../../core/engine/VersionControlEngine";
 import { useVersionControlStore } from "../../../../core/store/useVersionControlStore";
 import { useProjectStore, ProjectStateSnapshot } from "../../../../core/store/useProjectStore";
+import { useProjectMetaStore } from "../../../../core/store/useProjectMetaStore";
 import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import { DiagnosticEvent } from "../../../../core/types/diagnostics";
 import { loadDocument } from "@/core/document/migrations";
@@ -283,10 +284,10 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     const baselineRecord = store.createSnapshot("Baseline V1", "Original elements");
 
     // 2. Mutate live project store
-    useProjectStore.setState({ projectName: "Mutated Project Name" });
+    useProjectMetaStore.setState({ projectName: "Mutated Project Name" });
     setDocument(loadDocument({ elements: {} }));
 
-    assert.strictEqual(useProjectStore.getState().projectName, "Mutated Project Name");
+    assert.strictEqual(useProjectMetaStore.getState().projectName, "Mutated Project Name");
     assert.strictEqual(Object.keys(getDocument().layers).length, 0);
 
     // 3. Restore snapshot
@@ -294,7 +295,7 @@ describe("Sub-Phase 8.2: Panel 24 — Version Control & Snapshots", () => {
     assert.strictEqual(restored, true);
 
     // 4. Confirm project store has restored elements and original project name
-    assert.strictEqual(useProjectStore.getState().projectName, "Versioned Web App");
+    assert.strictEqual(useProjectMetaStore.getState().projectName, "Versioned Web App");
     assert.ok(getDocument().layers.el_btn);
     assert.strictEqual(getDocument().layers.el_btn.properties["content.label"], "Submit");
   });

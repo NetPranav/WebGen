@@ -13,6 +13,8 @@
  * ============================================================================
  */
 
+import type { ZodType } from "zod";
+
 /** Which region currently has pointer/keyboard focus, for shortcut disambiguation. Exactly one (or none) at a time — see `useFocusScope`. */
 export type FocusScope = "canvas" | "timeline" | "blueprint";
 
@@ -37,6 +39,19 @@ export interface Command {
   keybinding?: string | string[];
   /** Returns whether this command currently applies, given the live context keys. Omit for a command that's always available (most global commands). */
   when?: (ctx: ContextKeys) => boolean;
-  /** Return value is always discarded (callers `void` it) — a command can be a plain function whose own return isn't `void`. */
-  run: () => unknown;
+  /**
+   * Optional zod schema for the command's arguments (Phase 13, Law 20). When present, `runCommand`/`invokeCommand`
+   * validate the caller's args against it and pass the parsed value to `run`; the MCP server (Phase 50) is
+   * generated from these schemas. Omit it for a command that takes no arguments (menu items, shortcuts).
+   */
+  args?: ZodType;
+  /** Optional zod schema for the value `run` returns, so a caller (an agent, a test) can rely on its shape. */
+  result?: ZodType;
+  /** Called with the validated args when the command declares an `args` schema, otherwise with `undefined`. */
+  run: (args?: never) => unknown;
 }
+
+/** What running a command by id produced. `reason` tells an agent why nothing ran. */
+export type CommandOutcome =
+  | { ok: true; result: unknown }
+  | { ok: false; reason: "unknown-command" | "unavailable" | "invalid-args" | "invalid-result" | "threw"; message?: string };

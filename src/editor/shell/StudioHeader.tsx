@@ -29,11 +29,8 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { FileMenu } from "@/editor/menus/FileMenu";
-import { EditMenu } from "@/editor/menus/EditMenu";
-import { ViewMenu } from "@/editor/menus/ViewMenu";
+import { MenuDropdown } from "@/editor/menus/MenuDropdown";
 import { WindowMenu } from "@/editor/menus/WindowMenu";
-import { HelpMenu } from "@/editor/menus/HelpMenu";
 import { LazyLayoutLogo } from "@/editor/panels/launcher/LazyLayoutLogo";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { useLayers } from "@/core/store/useDocumentStore";
@@ -55,19 +52,10 @@ interface StudioHeaderProps {
   onToggleBottom?: () => void;
   onSelectWorkspace?: (preset: string) => void;
   activeWorkspace?: string;
-  onSave?: () => void;
   /** Downloads the project as a `.lazy.json` file. */
-  onExportProjectFile?: () => void;
   /** Opens a `.lazy.json` file as a new project. */
-  onImportProjectFile?: () => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
-  onZoomIn?: () => void;
-  onZoomOut?: () => void;
-  onZoomReset?: () => void;
-  onFitToStage?: () => void;
   onResetLayout?: () => void;
   onOpenPanel?: (zone: "left" | "right" | "bottom" | "center", tabId: string) => void;
   onOpenSettings?: () => void;
@@ -93,17 +81,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onToggleBottom,
   onSelectWorkspace,
   activeWorkspace = "full-studio",
-  onSave,
-  onExportProjectFile,
-  onImportProjectFile,
-  onUndo,
-  onRedo,
   canUndo = true,
   canRedo = true,
-  onZoomIn,
-  onZoomOut,
-  onZoomReset,
-  onFitToStage,
   onResetLayout,
   onOpenPanel,
   onOpenSettings,
@@ -213,14 +192,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             >
               File
             </button>
-            <FileMenu
-              isOpen={openMenu === "file"}
-              onClose={() => setOpenMenu(null)}
-              onSave={onSave}
-              onOpen={onImportProjectFile}
-              onExportProjectFile={onExportProjectFile}
-              onImportProjectFile={onImportProjectFile}
-            />
+            <MenuDropdown menu="file" isOpen={openMenu === "file"} onClose={() => setOpenMenu(null)} />
           </div>
 
           {/* Edit Menu */}
@@ -234,13 +206,11 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             >
               Edit
             </button>
-            <EditMenu
+            <MenuDropdown
+              menu="edit"
               isOpen={openMenu === "edit"}
               onClose={() => setOpenMenu(null)}
-              onUndo={onUndo}
-              onRedo={onRedo}
-              canUndo={canUndo}
-              canRedo={canRedo}
+              disabledCommands={[...(canUndo ? [] : ["edit.undo"]), ...(canRedo ? [] : ["edit.redo"])]}
             />
           </div>
 
@@ -255,14 +225,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             >
               View
             </button>
-            <ViewMenu
-              isOpen={openMenu === "view"}
-              onClose={() => setOpenMenu(null)}
-              onZoomIn={onZoomIn}
-              onZoomOut={onZoomOut}
-              onZoomReset={onZoomReset}
-              onFitToStage={onFitToStage}
-            />
+            <MenuDropdown menu="view" isOpen={openMenu === "view"} onClose={() => setOpenMenu(null)} />
           </div>
 
           {/* Window Menu */}
@@ -306,10 +269,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             >
               Help
             </button>
-            <HelpMenu
-              isOpen={openMenu === "help"}
-              onClose={() => setOpenMenu(null)}
-            />
+            <MenuDropdown menu="help" isOpen={openMenu === "help"} onClose={() => setOpenMenu(null)} />
           </div>
         </nav>
       </div>

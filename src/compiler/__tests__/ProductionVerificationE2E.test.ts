@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Core Stores and AST
+import { useProjectMetaStore } from "../../core/store/useProjectMetaStore";
 import { useProjectStore, StateVariable } from "../../core/store/useProjectStore";
 import { getFullEditionState } from "../../core/store/fullEditionTypes";
 // Sub-Phase 41.1: detectRouteCollisions is After-track; this file exercises it directly.
@@ -37,8 +38,8 @@ import { getDocument, setDocument } from "@/core/store/documentState";
 describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2E)", () => {
   // Stage 1: Blank Project Initialization & Dynamic Route Setup
   it("Stage 1: initializes a fresh visual project with dynamic route architecture", () => {
+    useProjectMetaStore.setState({ projectName: "Enterprise Commerce Studio" });
     useProjectStore.setState({
-      projectName: "Enterprise Commerce Studio",
       activePageId: "page_home",
       pages: {
         page_home: {
@@ -74,7 +75,7 @@ describe("Sub-Phase 7.5: Final Integration Testing & Production Verification (E2
     setDocument(loadDocument({ elements: {} }));
 
     const store = useProjectStore.getState();
-    assert.strictEqual(store.projectName, "Enterprise Commerce Studio");
+    assert.strictEqual(useProjectMetaStore.getState().projectName, "Enterprise Commerce Studio");
     assert.strictEqual(Object.keys(store.pages).length, 3);
     assert.strictEqual(store.pages.page_product.parameters?.[0].name, "productId");
 
