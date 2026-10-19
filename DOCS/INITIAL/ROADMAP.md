@@ -501,7 +501,7 @@ The document and World Environment have their own stores, After-track actions mo
 **Goal:** The shell renders from a saved layout instead of 22 local `useState` calls, and panels load only when shown.
 - [x] `registerPanel({ id, title, zone, edition, focusScope, load | component, props })` (`src/editor/shell/panels/registry.ts`, every panel registered in `panels/builtins.tsx`) and a zod-validated `WorkspaceLayout` (`src/core/workspace/`: sizes, collapsed state, active tabs, the AI dock, the preset) saved to `localStorage` 300 ms after a change and restored on load; corrupt or blocked storage falls back to the default.
 - [x] `EditorShell.tsx` is 389 lines (was 2,139): it composes `DockTree`, `PanelHost`, `CanvasChrome`, `AiDockColumn`, `OutputLogDrawer` and six hooks (`shell/hooks/`). Only the stage, Details and the Content Browser are imported statically; every other panel is fetched when first shown, and a unit test fails if a shell file imports a panel module outside the registry.
-- [~] The canvas DOM node never remounts on resize, a preset switch or a viewport change (Playwright proves it). Splitters already write live px straight to the dock's DOM node during a drag and commit once on release; they were not moved to CSS variables.
+- [x] The canvas DOM node never remounts on resize, a preset switch or a viewport change (Playwright proves it). Splitters write the zone's `--zone-size` custom property straight to its DOM node during a drag and commit once on release.
 
 **You'll see:** the panel layout you arrange survives a reload.
 **Done when:** `EditorShell.tsx` is under 500 lines; Playwright proves the stage node is the same object across resizes; the bundle check shows unopened panels aren't loaded.
