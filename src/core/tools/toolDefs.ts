@@ -4,7 +4,7 @@
  * a spring-only tool (deep select) has no button.
  */
 
-export const TOOL_IDS = ["select", "deepSelect", "pan", "frame", "rectangle", "ellipse", "line", "text", "pen", "pencil", "comment"] as const;
+export const TOOL_IDS = ["select", "deepSelect", "pan", "frame", "rectangle", "ellipse", "line", "arrow", "polygon", "star", "text", "pen", "pencil", "comment"] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
 export interface ToolDef {
@@ -29,6 +29,9 @@ export const TOOL_DEFS: Record<ToolId, ToolDef> = {
   rectangle: { id: "rectangle", label: "Rectangle Tool", shortcut: "R", cursor: "crosshair", available: true },
   ellipse: { id: "ellipse", label: "Ellipse Tool", shortcut: "O", cursor: "crosshair", available: true },
   line: { id: "line", label: "Line Tool", shortcut: "L", cursor: "crosshair", available: true },
+  arrow: { id: "arrow", label: "Arrow Tool", shortcut: "Shift+L", cursor: "crosshair", available: true },
+  polygon: { id: "polygon", label: "Polygon Tool", shortcut: "Y", cursor: "crosshair", available: true },
+  star: { id: "star", label: "Star Tool", shortcut: "Shift+Y", cursor: "crosshair", available: true },
   text: { id: "text", label: "Text Tool", shortcut: "T", cursor: "text", available: true },
   pen: { id: "pen", label: "Pen Tool", shortcut: "P", cursor: "crosshair", available: false, phase: 40 },
   pencil: { id: "pencil", label: "Pencil Tool", shortcut: "Shift+P", cursor: "crosshair", available: false, phase: 40 },

@@ -12,6 +12,9 @@ interface ToolState {
   current: ToolId;
   /** The keys whose springs are held right now ("space", "mod"). */
   springKeys: string[];
+  /** A canvas gesture is in progress (a drag a tool began): Escape cancels it rather than clearing the selection. */
+  gesturing: boolean;
+  setGesturing: (on: boolean) => void;
   setActive: (id: string) => boolean;
   beginSpring: (key: string, tool: ToolId) => void;
   endSpring: (key: string) => void;
@@ -27,6 +30,8 @@ export const useToolStore = create<ToolState>((set) => {
     active: "select",
     current: "select",
     springKeys: [],
+    gesturing: false,
+    setGesturing: (gesturing) => set({ gesturing }),
     setActive: (id) => machine.setActive(id),
     beginSpring: (key, tool) => void machine.beginSpring(key, tool),
     endSpring: (key) => machine.endSpring(key),

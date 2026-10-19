@@ -7,7 +7,7 @@ import type { Layer } from "../../document/schema";
 import { listFrames } from "../../frames/frames";
 
 const hl = (id: string, parentId: string | null, depth: number, order: number, x: number, y: number, w: number, h: number, locked = false): HitLayer => ({
-  id, parentId, depth, order, locked, frameId: "f", rect: { x, y, width: w, height: h },
+  id, parentId, depth, order, locked, frameId: "f", rect: { x, y, width: w, height: h }, archetype: depth === 0 ? "container" : "text", origin: { x, y }, bounds: { x, y, width: w, height: h },
 });
 
 // frame f (0..400 x 0..400) > group g (0..200 x 0..200) > button b (20..120 x 20..60); sibling text t (250..350 x 250..300)

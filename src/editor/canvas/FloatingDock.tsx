@@ -20,6 +20,9 @@ import {
   Square,
   Circle,
   Minus,
+  ArrowUpRight,
+  Hexagon,
+  Star,
   Frame as FrameIcon,
   Type,
   Plus,
@@ -52,6 +55,9 @@ const ICONS: Partial<Record<ToolId, React.ComponentType<{ size?: number; classNa
   rectangle: Square,
   ellipse: Circle,
   line: Minus,
+  arrow: ArrowUpRight,
+  polygon: Hexagon,
+  star: Star,
   text: Type,
 };
 

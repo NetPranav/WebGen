@@ -13,7 +13,10 @@ import { PRESET_IDS, presetsFor } from "@/core/workspace/layout";
 import { useWorkspaceStore } from "@/core/workspace/useWorkspaceStore";
 import { useCameraStore } from "@/core/store/useCameraStore";
 import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
+import { useSnapStore } from "@/core/store/useSnapStore";
 import { registerFrameCommands } from "@/core/frames/frameCommands";
+import { registerSelectionCommands } from "@/core/selection/selectionCommands";
+import { registerEditingCommands } from "@/core/editing/editCommands";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
 export interface ShellCommandActions {
@@ -84,6 +87,7 @@ export function useShellCommands(actions: ShellCommandActions) {
         title: "Live Code Inspector",
         category: "View",
         keybinding: "Ctrl+Shift+G",
+        when: (ctx) => !ctx.canvasFocus, // on the canvas Ctrl+Shift+G is Ungroup (Phase 29)
         run: () => dockFullPage("code", "Live Code Inspector"),
       }),
       defineCommand({
@@ -119,6 +123,7 @@ export function useShellCommands(actions: ShellCommandActions) {
         title: "Undo History & Transaction Timeline",
         category: "Navigation",
         keybinding: "Ctrl+Shift+H",
+        when: (ctx) => !ctx.canvasFocus, // on the canvas Ctrl+Shift+H is Hide / Show (Phase 29)
         run: () => dockFullPage("history", "Undo History"),
       }),
       defineCommand({
@@ -177,6 +182,18 @@ export function useShellCommands(actions: ShellCommandActions) {
     };
   }, [exportProjectFile, openImportPicker, openSettings]);
 
+  // Phase 28: snapping and rulers.
+  useEffect(() => {
+    const snap = () => useSnapStore.getState();
+    const unregisters = [
+      defineCommand({ id: "view.snapObjects", title: "Toggle Snap to Objects", category: "View", run: () => snap().toggle("objects") }),
+      defineCommand({ id: "view.snapGuides", title: "Toggle Snap to Guides", category: "View", run: () => snap().toggle("guides") }),
+      defineCommand({ id: "view.snapGrid", title: "Toggle Pixel Grid Snap", category: "View", run: () => snap().toggle("grid") }),
+      defineCommand({ id: "view.toggleRulers", title: "Show / Hide Rulers", category: "View", keybinding: "Shift+R", when: (ctx) => ctx.canvasFocus && !ctx.textEditing, run: () => snap().toggle("rulers") }),
+    ];
+    return () => unregisters.forEach((off) => off());
+  }, []);
+
   // Phase 23: Design mode (the canvas picks layers) and Preview mode (the page is clickable).
   useEffect(() => {
     const view = () => useCanvasViewStore.getState();
@@ -190,6 +207,12 @@ export function useShellCommands(actions: ShellCommandActions) {
 
   // Phase 21: add, duplicate, rename, resize, reorder and delete frames, and focus one.
   useEffect(() => registerFrameCommands(), []);
+
+  // Phase 26: select all / none / inverse / children / parent.
+  useEffect(() => registerSelectionCommands(), []);
+
+  // Phase 29: copy, paste, duplicate, delete, nudge, arrange, group, lock, hide, rename.
+  useEffect(() => registerEditingCommands(), []);
 
   // Phase 15: workspace presets and saved layouts. The no-argument commands are what the
   // palette runs; the typed ones (`args`) are what an agent calls (Law 20).

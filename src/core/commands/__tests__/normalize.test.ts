@@ -53,6 +53,19 @@ describe("Sub-Phase 43.1: Shortcut Normalization", () => {
     assert.strictEqual(normalizeShortcut(ev("A", "KeyA")), "Shift+A");
   });
 
+  it("a control character from Control+letter (WebKit on a Mac) is read as the letter from the physical key", () => {
+    const ev = (key: string, code: string, shift = false) => ({ ctrlKey: true, metaKey: false, altKey: false, shiftKey: shift, key, code }) as unknown as KeyboardEvent;
+    assert.strictEqual(normalizeShortcut(ev("\u0018", "KeyX")), "Ctrl+X");
+    assert.strictEqual(normalizeShortcut(ev("\u0004", "KeyD")), "Ctrl+D");
+    assert.strictEqual(normalizeShortcut(ev("x", "KeyX")), "Ctrl+X");
+  });
+
+  it("Shift+bracket is the bracket key", () => {
+    const ev = (key: string, code: string) => ({ ctrlKey: true, metaKey: false, altKey: false, shiftKey: true, key, code }) as unknown as KeyboardEvent;
+    assert.strictEqual(normalizeShortcut(ev("}", "BracketRight")), "Ctrl+Shift+]");
+    assert.strictEqual(normalizeShortcut(ev("{", "BracketLeft")), "Ctrl+Shift+[");
+  });
+
   it("isTextEditingTarget recognizes inputs, textareas and contentEditable, but not select", () => {
     assert.strictEqual(isTextEditingTarget({ tagName: "INPUT", isContentEditable: false } as unknown as EventTarget), true);
     assert.strictEqual(isTextEditingTarget({ tagName: "TEXTAREA", isContentEditable: false } as unknown as EventTarget), true);

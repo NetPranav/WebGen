@@ -35,10 +35,12 @@ export function buildHitLayers(
       order++;
       if (!r) return; // not drawn: hidden, or not mounted yet
       // The frame clips what it draws: a layer's reachable part is what lies inside the frame.
-      const left = Math.max(r.x, 0);
-      const top = Math.max(r.y, 0);
-      const right = Math.min(r.x + r.width, frame.width);
-      const bottom = Math.min(r.y + r.height, frame.height);
+      // The frame itself is the whole artboard, whatever height its content hugs.
+      const isFrame = w.depth === 0;
+      const left = isFrame ? 0 : Math.max(r.x, 0);
+      const top = isFrame ? 0 : Math.max(r.y, 0);
+      const right = isFrame ? frame.width : Math.min(r.x + r.width, frame.width);
+      const bottom = isFrame ? frame.height : Math.min(r.y + r.height, frame.height);
       if (right <= left || bottom <= top) return;
       const layer = document.layers[w.id];
       out.push({
@@ -49,6 +51,9 @@ export function buildHitLayers(
         depth: w.depth,
         order,
         locked: layer.locked === true,
+        archetype: layer.archetype,
+        origin: { x: frame.x + r.x, y: frame.y + r.y },
+        bounds: { x: frame.x + r.x, y: frame.y + r.y, width: r.width, height: r.height },
       });
     });
   }
@@ -84,5 +89,10 @@ export class CanvasHitTester {
 
   pickAt(world: Point, options: PickOptions = {}): HitLayer | null {
     return this.ensure().pick(world, options);
+  }
+
+  /** The deepest container (frame) under the point: where a layer drawn there goes. Null over bare canvas. */
+  containerAt(world: Point): HitLayer | null {
+    return this.ensure().candidates(world).find((l) => l.archetype === "container") ?? null;
   }
 }

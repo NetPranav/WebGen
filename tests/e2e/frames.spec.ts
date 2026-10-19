@@ -69,6 +69,14 @@ test("Phase 21: add a custom frame, rename, resize, duplicate, reorder and delet
   await expect(page.locator(FRAME)).toHaveCount(2);
   expect((await frames(page))[1]).toMatchObject({ name: "Custom", width: 500, height: 400 });
 
+  // (the title buttons are driven with a dispatched click: they sit in the clipped title row, only visible on hover)
+  // all frames in view
+  const fit = async () => {
+    await page.getByRole("button", { name: "Fit Viewport to Screen" }).click();
+    await expect(page.getByRole("button", { name: /^Current Zoom (?!100%)/ }), "zoomed out to show every frame").toBeVisible();
+  };
+  await fit();
+
   // rename by double-click
   await page.locator(`${FRAME} .canvas-frame__name`).nth(1).dblclick();
   await page.getByLabel("Rename Custom").fill("Promo");
@@ -81,18 +89,19 @@ test("Phase 21: add a custom frame, rename, resize, duplicate, reorder and delet
   await expect.poll(async () => (await frames(page))[1].width).toBe(620);
 
   // duplicate
-  await page.getByRole("button", { name: "Duplicate Promo" }).click({ force: true });
+  await page.getByRole("button", { name: "Duplicate Promo" }).dispatchEvent("click");
   await expect(page.locator(FRAME)).toHaveCount(3);
+  await fit();
   expect((await frames(page))[2].name).toBe("Promo copy");
 
   // reorder: move the copy left of Promo
-  await page.getByRole("button", { name: "Move Promo copy left" }).click({ force: true });
+  await page.getByRole("button", { name: "Move Promo copy left" }).dispatchEvent("click");
   await expect.poll(async () => (await frames(page)).map((f) => f.name)).toEqual([expect.any(String), "Promo copy", "Promo"]);
   const row = await frames(page);
   expect(row[2].left, "no overlap after a reorder").toBeGreaterThanOrEqual(row[1].left + row[1].width);
 
   // delete
-  await page.getByRole("button", { name: "Delete Promo copy" }).click({ force: true });
+  await page.getByRole("button", { name: "Delete Promo copy" }).dispatchEvent("click");
   await expect(page.locator(FRAME)).toHaveCount(2);
 });
 

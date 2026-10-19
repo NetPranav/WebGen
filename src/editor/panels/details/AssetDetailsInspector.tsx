@@ -553,7 +553,7 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
       title: "Toggle +Add Palette",
       category: "Details",
       keybinding: "Ctrl+A",
-      when: (ctx) => !ctx.textEditing,
+      when: (ctx) => !ctx.textEditing && !ctx.canvasFocus, // on the canvas Ctrl+A selects all (Phase 26)
       run: () => setIsAddPaletteOpen((prev) => !prev),
     },
     [],

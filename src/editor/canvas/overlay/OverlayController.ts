@@ -12,6 +12,8 @@
 import type { CanvasHitTester } from "@/core/hit/CanvasHitTester";
 import { frameScheduler } from "@/core/time/scheduler";
 import type { Point, Rect } from "@/core/viewport/camera";
+import type { TransformModel } from "../transformModel";
+import type { SnapLine, SpacingMark } from "@/core/geometry/snap";
 
 export interface OverlayEnv {
   hitTester: CanvasHitTester;
@@ -22,6 +24,14 @@ export interface OverlayEnv {
   hoverEnabled: () => boolean;
   selectedIds: () => readonly string[];
   layerName: (id: string) => string;
+  /** The transform handles' target, or null when none should show (no selection, Preview mode, a drawing tool). */
+  transformModel: () => TransformModel | null;
+  /** The guide lines a gesture snapped to and the spacing marks it shows (from the snap store). */
+  snapFeedback: () => { lines: readonly SnapLine[]; spacing: readonly SpacingMark[] };
+  /** The distance HUD for the selection while Alt is held and nothing is being dragged. */
+  hudMarks: () => readonly SpacingMark[];
+  /** Every frame's ruler guides, in canvas space: a vertical guide is `axis: "x"`; `from` / `to` span the frame. */
+  guides: () => readonly { axis: "x" | "y"; pos: number; from: number; to: number; id: string }[];
 }
 
 interface Box {
@@ -32,6 +42,11 @@ interface Box {
 export class OverlayController {
   private readonly hover: Box;
   private readonly selection: Box[] = [];
+  private readonly transform: HTMLDivElement;
+  private readonly params: HTMLDivElement[] = [];
+  private readonly snapLines: HTMLDivElement[] = [];
+  private readonly marks: { root: HTMLDivElement; label: HTMLSpanElement }[] = [];
+  private readonly guideLines: HTMLDivElement[] = [];
   private queued = false;
   private extraPasses = 0;
   private disposed = false;
@@ -44,6 +59,28 @@ export class OverlayController {
   constructor(private readonly container: HTMLElement, private readonly env: OverlayEnv) {
     this.hover = this.makeBox("canvas-overlay__hover", false);
     this.hover.root.hidden = true;
+    // The transform frame: an outline that turns with the selection, with eight handles on it.
+    this.transform = document.createElement("div");
+    this.transform.className = "canvas-overlay__transform";
+    this.transform.hidden = true;
+    for (const [name, x, y] of [["nw", 0, 0], ["n", 50, 0], ["ne", 100, 0], ["e", 100, 50], ["se", 100, 100], ["s", 50, 100], ["sw", 0, 100], ["w", 0, 50]] as const) {
+      const h = document.createElement("div");
+      h.className = "canvas-overlay__handle";
+      h.dataset.handle = name;
+      h.style.left = `${x}%`;
+      h.style.top = `${y}%`;
+      this.transform.appendChild(h);
+    }
+    this.container.appendChild(this.transform);
+  }
+
+  private fill(pool: HTMLDivElement[], n: number, className: string): void {
+    while (pool.length < n) {
+      const el = document.createElement("div");
+      el.className = className;
+      this.container.appendChild(el);
+      pool.push(el);
+    }
   }
 
   private makeBox(className: string, withLabel: boolean): Box {
@@ -105,6 +142,107 @@ export class OverlayController {
       if (box.label) box.label.textContent = `${this.env.layerName(item.id)} · ${Math.round(item.rect.width)} × ${Math.round(item.rect.height)}`;
     });
 
+    // Transform frame and parameter handles
+    const model = this.env.transformModel();
+    this.transform.hidden = model === null;
+    if (model) {
+      const f = model.frame;
+      const s = this.transform.style;
+      s.left = `${f.cx - f.w / 2}px`;
+      s.top = `${f.cy - f.h / 2}px`;
+      s.width = `${f.w}px`;
+      s.height = `${f.h}px`;
+      s.transform = f.rot ? `rotate(${f.rot}deg)` : "";
+      this.transform.dataset.rotation = String(f.rot);
+    }
+    const params = model?.params ?? [];
+    while (this.params.length < params.length) {
+      const d = document.createElement("div");
+      d.className = "canvas-overlay__param";
+      this.container.appendChild(d);
+      this.params.push(d);
+    }
+    this.params.forEach((d, i) => {
+      const p = params[i];
+      d.hidden = !p;
+      if (!p) return;
+      d.style.left = `${p.world.x}px`;
+      d.style.top = `${p.world.y}px`;
+      d.dataset.param = p.handle.kind;
+    });
+
+    // Snap lines, spacing marks and ruler guides
+    const fb = this.env.snapFeedback();
+    this.fill(this.snapLines, fb.lines.length, "canvas-overlay__snapline");
+    this.snapLines.forEach((el, i) => {
+      const l = fb.lines[i];
+      el.hidden = !l;
+      if (!l) return;
+      const s = el.style;
+      if (l.axis === "x") {
+        s.left = `${l.pos}px`;
+        s.top = `${l.from}px`;
+        s.width = "0px";
+        s.height = `${l.to - l.from}px`;
+      } else {
+        s.left = `${l.from}px`;
+        s.top = `${l.pos}px`;
+        s.width = `${l.to - l.from}px`;
+        s.height = "0px";
+      }
+      el.dataset.kind = l.kind;
+    });
+    const spacing = [...fb.spacing, ...this.env.hudMarks()];
+    while (this.marks.length < spacing.length) {
+      const root = document.createElement("div");
+      root.className = "canvas-overlay__spacing";
+      const label = document.createElement("span");
+      root.appendChild(label);
+      this.container.appendChild(root);
+      this.marks.push({ root, label });
+    }
+    this.marks.forEach((m, i) => {
+      const mark = spacing[i];
+      m.root.hidden = !mark;
+      if (!mark) return;
+      const s = m.root.style;
+      if (mark.axis === "x") {
+        s.left = `${mark.from}px`;
+        s.top = `${mark.at}px`;
+        s.width = `${mark.to - mark.from}px`;
+        s.height = "0px";
+      } else {
+        s.left = `${mark.at}px`;
+        s.top = `${mark.from}px`;
+        s.width = "0px";
+        s.height = `${mark.to - mark.from}px`;
+      }
+      m.root.dataset.axis = mark.axis;
+      m.root.dataset.equal = mark.equal ? "true" : "false";
+      m.label.textContent = String(Math.round(mark.value));
+    });
+    const guides = this.env.guides();
+    this.fill(this.guideLines, guides.length, "canvas-overlay__guide");
+    this.guideLines.forEach((el, i) => {
+      const g = guides[i];
+      el.hidden = !g;
+      if (!g) return;
+      const s = el.style;
+      if (g.axis === "x") {
+        s.left = `${g.pos}px`;
+        s.top = `${g.from}px`;
+        s.width = "0px";
+        s.height = `${g.to - g.from}px`;
+      } else {
+        s.left = `${g.from}px`;
+        s.top = `${g.pos}px`;
+        s.width = `${g.to - g.from}px`;
+        s.height = "0px";
+      }
+      el.dataset.axis = g.axis;
+      el.dataset.guideId = g.id;
+    });
+
     // Hover: what a click at the pointer would select
     let hoveredId: string | null = null;
     let hoveredRect: Rect | null = null;
@@ -132,6 +270,11 @@ export class OverlayController {
   dispose(): void {
     this.disposed = true;
     this.hover.root.remove();
+    this.transform.remove();
+    this.params.forEach((d) => d.remove());
+    this.snapLines.forEach((d) => d.remove());
+    this.marks.forEach((m) => m.root.remove());
+    this.guideLines.forEach((d) => d.remove());
     this.selection.forEach((b) => b.root.remove());
     this.selection.length = 0;
   }

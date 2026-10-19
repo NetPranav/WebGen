@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { getContextKeys } from "@/core/commands";
 import { useToolStore } from "@/core/store/useToolStore";
+import { useSnapStore } from "@/core/store/useSnapStore";
 
 /**
  * Spring-loaded tools (ROADMAP Phase 24): holding Space gives the Hand, holding Cmd/Ctrl gives deep select, and
@@ -17,6 +18,7 @@ export function useToolKeys(): void {
       t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t as HTMLElement | null)?.isContentEditable === true;
 
     const down = (e: KeyboardEvent) => {
+      if (e.key === "Alt") useSnapStore.getState().setAlt(true);
       if (editingText(e.target) || e.repeat) return;
       if (e.code === "Space" && getContextKeys().canvasFocus) {
         e.preventDefault();
@@ -26,6 +28,7 @@ export function useToolKeys(): void {
       }
     };
     const up = (e: KeyboardEvent) => {
+      if (e.key === "Alt") useSnapStore.getState().setAlt(false);
       if (e.code === "Space") {
         // A focused button would take the Space release as a click: the hold that just ended owns it.
         if (useToolStore.getState().springKeys.includes("space")) e.preventDefault();
@@ -33,7 +36,10 @@ export function useToolKeys(): void {
       }
       else if ((e.key === "Control" || e.key === "Meta") && !e.ctrlKey && !e.metaKey) useToolStore.getState().endSpring("mod");
     };
-    const blur = () => useToolStore.getState().endAllSprings();
+    const blur = () => {
+      useToolStore.getState().endAllSprings();
+      useSnapStore.getState().setAlt(false);
+    };
 
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
