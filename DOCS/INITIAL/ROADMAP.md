@@ -195,7 +195,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 21 | Multi-frame canvas | 20 | v3 49.2, 20.3 | 1 | 🚧 |
 | 22 | Hit-testing | 21 | v3 49.3 | 1 | 🚧 |
 | 23 | Overlay layer & Design / Preview modes | 22 | v3 49.4, 49.5 | 1 | 🚧 |
-| 24 | Tool state machine | 13, 23 | v3 43.2 (infrastructure) | 1 | 📋 |
+| 24 | Tool state machine | 13, 23 | v3 43.2 (infrastructure) | 1 | 🚧 |
 | 25 | Creation tools: frames, shapes and text boxes | 24 | v3 43.2 (Tier A), 20.4 | 1 | 📋 |
 | 26 | Selection | 25 | v3 20.1 (selection) | 1 | 📋 |
 | 27 | Transform handles | 26 | v3 20.1 (transform) | 1 | 📋 |
@@ -602,13 +602,15 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence (2026-10-19):** `tests/e2e/overlay-modes.spec.ts` in Chromium, Firefox and WebKit on the 1,055-layer canvas lab: there is one overlay layer, after the frames in the same world, with `pointer-events: none`; **a dispatched mouse move has its outline on screen by the second animation frame** (the gate's "within 1 frame"; the annotation records the count); a selected layer gets an outline labelled with its name and size; in Design mode a click selects and never reaches the frame, in Preview mode the same click reaches a handler inside the frame, doesn't change the selection, and the overlay shows no selection. **Design:** `OverlayController` writes a few pooled DOM elements and redraws in the frame scheduler's `overlay` phase, asked for by pointer, selection, document, camera and mode changes (edits ask for two follow-up passes, since layout can land a frame later); no React renders per pointer move. **Deviation:** the deep-select modifier is read from mouse events, not from a key listener (Phase 13's coverage test forbids raw key listeners), so Cmd/Ctrl changes the hover on the next pointer move. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 24 · Tool state machine
-**Needs:** 13, 23 · **Was:** v3 43.2 (infrastructure) · **Status:** 📋
-- [ ] A tool is `{ id, cursor, onPointerDown/Move/Up, onKey, drawOverlay }` with pointer capture. Spring-loaded tools: holding Space gives the Hand, holding Cmd/Ctrl gives deep select, and releasing returns to the previous tool.
-- [ ] The floating dock switches tools through commands. Buttons whose feature doesn't exist yet are hidden until their phase.
-- [ ] Port the Tier A tools from branch `phase-43-command-bus-finish` (`7a97baa`, `6d4e1bd`, `5c020dd`) onto the overlay instead of rewriting them.
+**Needs:** 13, 23 · **Was:** v3 43.2 (infrastructure) · **Status:** 🚧
+- [x] A tool is `{ id, cursor, onPointerDown/Move/Up, onKey, drawOverlay }` with pointer capture. Spring-loaded tools: holding Space gives the Hand, holding Cmd/Ctrl gives deep select, and releasing returns to the previous tool.
+- [x] The floating dock switches tools through commands. Buttons whose feature doesn't exist yet are hidden until their phase.
+- [x] Port the Tier A tools from branch `phase-43-command-bus-finish` (`7a97baa`, `6d4e1bd`, `5c020dd`) onto the overlay instead of rewriting them. (Those three commits were already on `main`; the tools now live in the tool runtime instead of inline in the canvas.)
 
 **You'll see:** every tool button in the dock either works or isn't there.
 **Done when:** tool-switching and spring-loaded tests pass.
+
+**Evidence (2026-10-20):** `src/core/tools/__tests__/toolMachine.test.ts` (switch, refuse tools that don't exist, Space and Cmd/Ctrl springs, key repeat, out-of-order release, choosing a tool during a spring, losing focus, and that the dock lists exactly the tools that exist); `tests/e2e/tools.spec.ts` in Chromium, Firefox and WebKit (the dock shows seven tools and no Pen, Pencil, Comment or Quick Insert; each button and shortcut switches the tool; Space holds the Hand and releases to the previous tool; Cmd/Ctrl holds deep select; a blur can't leave a hold stuck; the Rectangle tool draws, returns to Select and undoes; Space-drag and the middle button pan with a drawing tool active and draw nothing). **Design:** `ToolMachine` (pure) holds the active tool and a stack of springs; `useToolStore` exposes `active` and `current`; `toolRuntime.ts` has the tools (`Tool`: `onPointerDown/Move/Up`, `onKey`, `drawOverlay`) and the canvas captures the pointer for a gesture a tool began; the dock is built from `dockTools()` and switches tools with the typed `tool.set` command. **Found and fixed:** Lane B's J/K/L shuttle was bound with canvas focus too, so on the canvas `L` never reached the Line tool (the transport registered first and won); J/K/L are now timeline-focus commands, as Phase 63 already says. Tools whose phase isn't built (Pen and Pencil 40, Comment 193) are in `TOOL_DEFS` with `available: false`. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 25 · Creation tools: frames, shapes and text boxes
 **Needs:** 24 · **Was:** v3 43.2 (Tier A), 20.4 · **Status:** 📋
