@@ -12,6 +12,7 @@ import { edition } from "@/core/flags";
 import { PRESET_IDS, presetsFor } from "@/core/workspace/layout";
 import { useWorkspaceStore } from "@/core/workspace/useWorkspaceStore";
 import { useCameraStore } from "@/core/store/useCameraStore";
+import { registerFrameCommands } from "@/core/frames/frameCommands";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
 export interface ShellCommandActions {
@@ -174,6 +175,9 @@ export function useShellCommands(actions: ShellCommandActions) {
       for (const unregister of unregisters) unregister();
     };
   }, [exportProjectFile, openImportPicker, openSettings]);
+
+  // Phase 21: add, duplicate, rename, resize, reorder and delete frames, and focus one.
+  useEffect(() => registerFrameCommands(), []);
 
   // Phase 15: workspace presets and saved layouts. The no-argument commands are what the
   // palette runs; the typed ones (`args`) are what an agent calls (Law 20).

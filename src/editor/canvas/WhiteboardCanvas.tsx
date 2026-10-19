@@ -17,6 +17,12 @@ import "@/editor/styles/whiteboard.css";
 import { FloatingDock, CanvasTool } from "./FloatingDock";
 import { ZoomControls } from "./ZoomControls";
 import { CanvasOverlay, SelectionRect } from "./CanvasOverlay";
+import { CanvasFrames, FrameBar, visibleFrames } from "./CanvasFrames";
+import { useFrames } from "./useFrames";
+import { useCanvasViewStore, restoreBackdrop } from "@/core/store/useCanvasViewStore";
+import { frameIdOf } from "@/core/frames/frames";
+import { setActiveStageFrame } from "@/core/render/StageRenderer";
+import { getDocument } from "@/core/store/documentState";
 import {
   ArrowRight,
   Film,
@@ -32,7 +38,6 @@ import {
   Focus,
   ShieldAlert,
 } from "lucide-react";
-import { StageHost } from "@/editor/stage/StageHost";
 import { SandboxHost } from "@/editor/shell/afterTrackPanels";
 import { edition } from "@/core/flags";
 import { useProjectStore } from "@/core/store/useProjectStore";
@@ -45,7 +50,7 @@ import { useFocusScope, useCommand, getContextKeys, type ContextKeys } from "@/c
 import { useCameraStore, selectZoomPercent } from "@/core/store/useCameraStore";
 import { gridSpacing, wheelZoomFactor } from "@/core/viewport/camera";
 import { projectSession } from "@/core/storage/ProjectSession";
-import { getStageRenderer } from "@/core/render/StageRenderer";
+import { getStageRendererForLayer } from "@/core/render/StageRenderer";
 import { useShapeDrawing } from "./tools/useShapeDrawing";
 import { isShapeToolId } from "./tools/shapeTools";
 
@@ -131,7 +136,26 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
   const activePage = pages[activePageId] || Object.values(pages)[0];
   const rootContainer = activePage ? elements[activePage.rootElementId] : null;
-  const childCount = rootContainer?.children?.length || 0;
+  const frames = useFrames();
+  const shownFrames = useMemo(() => visibleFrames(frames), [frames]);
+  const activeFrameId = useCanvasViewStore((state) => state.activeFrameId);
+  // The frame new shapes and text go into: the one last picked, else the first.
+  const activeFrame = frames.find((f) => f.id === activeFrameId) ?? frames[0];
+  // The backdrop is a remembered preference; read it once the canvas is on the client.
+  useEffect(() => restoreBackdrop(), []);
+  const backdrop = useCanvasViewStore((state) => state.backdrop);
+  // `getStageRenderer()` answers for the active frame.
+  useEffect(() => setActiveStageFrame(activeFrame?.id ?? null), [activeFrame?.id]);
+
+  /** A click on a layer in a frame selects it and makes its frame the active one. */
+  const handleStageClick = useCallback(
+    (layerId: string) => {
+      selectEntity(layerId, "element");
+      const frameId = frameIdOf(getDocument().layers, layerId);
+      if (frameId) useCanvasViewStore.getState().setActiveFrame(frameId);
+    },
+    [selectEntity]
+  );
 
   // Sub-Phase 43.2 follow-up fix: a drawn shape used to appear correctly on
   // the canvas but the Details panel fell back to World Environment instead
@@ -154,7 +178,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const { handlePointerDown: handleShapeDrawPointerDown, overlayStyle: shapeDrawOverlay } = useShapeDrawing({
     activeTool,
     containerRef,
-    parentId: rootContainer?.id ?? null,
+    parentId: activeFrame?.id ?? rootContainer?.id ?? null,
     onCreated: (layerId, label) => {
       justDrewShapeRef.current = true;
       selectEntity(layerId, "element");
@@ -226,34 +250,41 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     return projectSession.onOpen(load);
   }, [applyCamera]);
 
-  /** The device frame in canvas (document) space: centred on the origin. */
-  const frameRect = useMemo(
-    () => ({ x: -device.width / 2, y: -device.height / 2, width: device.width, height: device.height }),
-    [device.width, device.height]
-  );
+  /** What the canvas fits: every frame that is drawn, as one rectangle (or the sandbox's device frame in full-edition Play mode). */
+  const contentRect = useMemo(() => {
+    if (isPlayMode && edition === "full") return { x: -device.width / 2, y: -device.height / 2, width: device.width, height: device.height };
+    if (shownFrames.length === 0) return null;
+    const minX = Math.min(...shownFrames.map((f) => f.x));
+    const minY = Math.min(...shownFrames.map((f) => f.y));
+    const maxX = Math.max(...shownFrames.map((f) => f.x + f.width));
+    const maxY = Math.max(...shownFrames.map((f) => f.y + f.height));
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }, [isPlayMode, device.width, device.height, shownFrames]);
 
   /** Bring back to center: 100% with the origin in the middle of the viewport. */
   const bringBackToCenter = useCallback((auto = false) => {
     useCameraStore.getState().centerOrigin(auto);
   }, []);
 
-  /** Zoom so the whole device frame fits the viewport (never above 100%), a little above the middle so the floating tool dock doesn't cover its bottom edge. */
+  /** Zoom so every frame fits the viewport (never above 100%), a little above the middle so the floating tool dock doesn't cover its bottom edge. */
   const fitToFrame = useCallback((auto = false) => {
-    useCameraStore.getState().fitToRect(frameRect, { padding: 48, maxZoom: 1, bottomInset: 56, auto });
-  }, [frameRect]);
+    if (contentRect) useCameraStore.getState().fitToRect(contentRect, { padding: 48, maxZoom: 1, bottomInset: 56, auto });
+  }, [contentRect]);
 
   /** Zoom so the selected layer fills the viewport (zoom to selection). */
   const zoomToSelection = useCallback(async () => {
     const id = useSelectionStore.getState().selectedId;
-    const renderer = getStageRenderer();
-    if (!id || !renderer) return;
+    if (!id) return;
+    const layers = getDocument().layers;
+    const frameId = frameIdOf(layers, id);
+    const frame = frames.find((f) => f.id === frameId);
+    const renderer = getStageRendererForLayer(id, layers);
+    if (!frame || !renderer) return;
     const [rect] = await renderer.measure([id]);
     if (!rect) return;
-    useCameraStore.getState().fitToRect(
-      { x: frameRect.x + rect.x, y: frameRect.y + rect.y, width: rect.width, height: rect.height },
-      { padding: 96 }
-    );
-  }, [frameRect]);
+    // measure() answers relative to the frame's own origin; the frame sits at (x, y) on the canvas
+    useCameraStore.getState().fitToRect({ x: frame.x + rect.x, y: frame.y + rect.y, width: rect.width, height: rect.height }, { padding: 96 });
+  }, [frames]);
 
   // The recenter event (View > recenter, Ctrl+0) is the person's own move.
   useEffect(() => {
@@ -262,21 +293,18 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     return () => window.removeEventListener("antigravity:recenter_canvas", handleRecenterEvent);
   }, [bringBackToCenter]);
 
-  // The canvas lays itself out until the person moves the view (or a saved view is restored): it centres when empty
-  // and fits the frame when the page preview appears, "Clear Showcase" returns it to 100%. Switching the device
-  // target always fits the new frame.
-  const hasFrame = isPlayMode || childCount > 0;
+  // The canvas lays itself out until the person moves the view (or a saved view is restored): it centres when
+  // empty and fits the frames when they appear; "Clear Showcase" returns it to 100%. Picking a device frame in the
+  // header focuses it through the `frame.*` commands instead.
+  const hasFrame = contentRect !== null;
   useEffect(() => {
     autoLayoutRef.current = () => (hasFrame ? fitToFrame(true) : bringBackToCenter(true));
   }, [hasFrame, fitToFrame, bringBackToCenter]);
-  const lastDeviceRef = useRef(deviceMode);
   useEffect(() => {
-    const deviceChanged = lastDeviceRef.current !== deviceMode;
-    lastDeviceRef.current = deviceMode;
-    if (!deviceChanged && useCameraStore.getState().touched) return;
+    if (useCameraStore.getState().touched) return;
     if (hasFrame) fitToFrame(true);
     else bringBackToCenter(true);
-  }, [hasFrame, deviceMode, fitToFrame, bringBackToCenter]);
+  }, [hasFrame, fitToFrame, bringBackToCenter]);
 
   // Dynamically adapt selected element bounds when switching device dimensions
   const [prevDeviceWidth, setPrevDeviceWidth] = useState(device.width);
@@ -448,8 +476,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       e.preventDefault();
       if (isShapeToolId(activeTool)) {
         handleShapeDrawPointerDown(e);
-      } else if (activeTool === "text" && rootContainer?.id) {
-        const id = documentCommands.addLayer({ archetype: "text", parentId: rootContainer.id }, "Add Text");
+      } else if (activeTool === "text" && (activeFrame?.id ?? rootContainer?.id)) {
+        const id = documentCommands.addLayer({ archetype: "text", parentId: activeFrame?.id ?? rootContainer?.id }, "Add Text");
         justDrewShapeRef.current = true;
         selectEntity(id, "element");
         onSelectElement?.({ id, name: "Text" });
@@ -524,6 +552,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         } ${isPanning ? "whiteboard-stage--is-dragging-pan" : ""} whiteboard-stage--tool-${activeTool} ${className || ""
         }`}
       style={canvasStyle}
+      data-backdrop={backdrop}
       onMouseDown={handleMouseDown}
       onClick={() => {
         // The browser still synthesizes a click after the mousedown+mouseup
@@ -567,43 +596,31 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
       {/* Hardware-Accelerated Transformed World Canvas (Infinite Blank Canvas) */}
       <div className="whiteboard-world">
-        {/* Play Sandbox Mode or Elements Present: render live device viewport */}
-        {isPlayMode || childCount > 0 ? (
-          <div
-            className={`device-frame-container device-frame--${deviceMode}`}
-            style={{ width: `${device.width}px` }}
-          >
+        {/* The full edition's Play mode runs the logic sandbox in a single device frame. Everything else is the
+            frames of the document, each its own live DOM stage (Phase 18, 21). A frame is a separate browsing
+            context, so mouse events over it never reach this component: while a shape or text tool is active
+            (and not in Play mode, see `toolCapturesPointer`) the frames ignore pointer events so a drag can
+            start anywhere on the canvas. Select and Hand keep them, since click-to-pick-an-element needs real
+            clicks inside a frame. */}
+        {isPlayMode && edition === "full" ? (
+          <div className={`device-frame-container device-frame--${deviceMode}`} style={{ width: `${device.width}px` }}>
             <div className="device-frame" style={{ width: `${device.width}px`, height: `${device.height}px` }}>
-              {/* Play mode in the full edition runs the logic sandbox; everything else is the live DOM stage
-                  (Phase 18). The frame is a separate browsing context, so mouse events over it never reach this
-                  component: while a shape or text tool is active (and not in Play mode, see `toolCapturesPointer`)
-                  the frame ignores pointer events so a drag can start anywhere on the canvas. Select and Hand
-                  keep them, since click-to-pick-an-element needs real clicks inside the frame. */}
-              {isPlayMode && edition === "full" ? (
-                <SandboxHost
-                  width="100%"
-                  height="100%"
-                  deviceMode={deviceMode}
-                  onStopPlay={() => handleTogglePlay(false)}
-                  onOpenExecutionTrace={onOpenExecutionTrace}
-                  style={{ pointerEvents: toolCapturesPointer ? "none" : undefined }}
-                  onElementClick={(elId) => {
-                    selectEntity(elId, "element");
-                  }}
-                />
-              ) : (
-                <StageHost
-                  width="100%"
-                  height="100%"
-                  style={{ pointerEvents: toolCapturesPointer ? "none" : undefined }}
-                  onElementClick={(elId) => {
-                    selectEntity(elId, "element");
-                  }}
-                />
-              )}
+              <SandboxHost
+                width="100%"
+                height="100%"
+                deviceMode={deviceMode}
+                onStopPlay={() => handleTogglePlay(false)}
+                onOpenExecutionTrace={onOpenExecutionTrace}
+                style={{ pointerEvents: toolCapturesPointer ? "none" : undefined }}
+                onElementClick={(elId) => {
+                  selectEntity(elId, "element");
+                }}
+              />
             </div>
           </div>
-        ) : null}
+        ) : (
+          <CanvasFrames frames={frames} toolCapturesPointer={toolCapturesPointer} onElementClick={handleStageClick} />
+        )}
 
         {/* World-space Origin Marker — a fixed point of reference (Blender's 3D-cursor
             equivalent) so "where is center" has an answer even on an empty canvas.
@@ -624,7 +641,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         )}
 
         {/* Overlays when elements exist */}
-        {childCount > 0 && !isPlayMode && <CanvasOverlay selectedElement={selectedElement} />}
+        {shownFrames.length > 0 && !isPlayMode && <CanvasOverlay selectedElement={selectedElement} />}
       </div>
 
       {/* Sub-Phase 43.2: live dashed-rect preview while dragging a shape tool.
@@ -634,6 +651,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
           (containerRef), same as FloatingDock/ZoomControls below. Nesting
           this inside .whiteboard-world would double-apply the transform. */}
       {shapeDrawOverlay && <div className="canvas-shape-draw-overlay" style={shapeDrawOverlay} />}
+
+      <FrameBar />
 
       {/* Floating Atlassian-Style Bottom Dock */}
       <FloatingDock

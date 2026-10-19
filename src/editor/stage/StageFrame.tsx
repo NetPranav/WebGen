@@ -29,6 +29,8 @@ export interface StageFrameProps {
   style?: React.CSSProperties;
   /** The focus region the frame belongs to: while the pointer is over the frame it holds this scope, so scoped shortcuts keep working inside it. */
   focusScope?: FocusScope;
+  /** Set on a canvas frame's stage (Phase 21): the id of the top-level layer it draws. */
+  frameId?: string;
   /** Called with the frame once its document is ready, and with null when it goes. */
   onFrame?: (frame: FrameMount | null) => void;
   children: React.ReactNode;
@@ -79,7 +81,7 @@ function readMount(iframe: HTMLIFrameElement): FrameMount | null {
   return root ? { document: frameDocument, window: frameWindow, root } : null;
 }
 
-export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ title, width = "100%", height = "100%", className, style, focusScope, onFrame, children }, ref) => {
+export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ title, width = "100%", height = "100%", className, style, focusScope, frameId, onFrame, children }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [mount, setMount] = useState<FrameMount | null>(null);
   useImperativeHandle(ref, () => iframeRef.current as HTMLIFrameElement);
@@ -147,6 +149,7 @@ export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ titl
         ref={iframeRef}
         src={STAGE_FRAME_SRC}
         title={title}
+        data-frame-id={frameId}
         onLoad={attach}
         className={className}
         style={{ border: 0, display: "block", width, height, ...style }}

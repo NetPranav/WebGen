@@ -192,7 +192,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 18 | Stage host v2: live DOM frames, no HTML strings | 17 | v3 48.2, 48.5 | 1 | 📋 |
 | 19 | Incremental updates & measurement API | 18 | v3 48.3, 48.4 | 1 | 📋 |
 | 20 | Viewport camera | 19 | v3 49.1 | 1 | 🚧 |
-| 21 | Multi-frame canvas | 20 | v3 49.2, 20.3 | 1 | 📋 |
+| 21 | Multi-frame canvas | 20 | v3 49.2, 20.3 | 1 | 🚧 |
 | 22 | Hit-testing | 21 | v3 49.3 | 1 | 📋 |
 | 23 | Overlay layer & Design / Preview modes | 22 | v3 49.4, 49.5 | 1 | 📋 |
 | 24 | Tool state machine | 13, 23 | v3 43.2 (infrastructure) | 1 | 📋 |
@@ -564,7 +564,7 @@ The document and World Environment have their own stores, After-track actions mo
 **Needs:** 19 · **Was:** v3 49.1 · **Closes:** — (World Environment properties 1–6) · **Status:** 🚧
 - [x] Document ↔ screen transform (`src/core/viewport/camera.ts`, pure and unit-tested); pan (Space-drag, middle mouse, trackpad), zoom 2%–6,400% (wheel, pinch, keys) around the cursor, zoom to fit (Shift+1), to selection (Shift+2) and to 100% (Shift+0). The camera is saved per document. Reuses the `WhiteboardCanvas.tsx` maths.
 - [x] Wheel and pinch over the stage frame reach the camera (record 0009 §4 said Phase 20 must forward them).
-- [ ] Pan and zoom hold 60 fps with 5 frames × 200 layers. Needs Phase 21's several frames; measured there.
+- [~] Pan and zoom hold 60 fps with 5 frames × 200 layers: measured in Phase 21's canvas lab. Chromium and Firefox hold it; WebKit holds it for pan but not for zoom (37–45 ms a frame).
 
 **You'll see:** smooth panning and zooming around your frames.
 **Done when:** pan and zoom hold 60 fps with 5 frames × 200 layers; zoom keeps the point under the cursor fixed (test).
@@ -572,12 +572,14 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence (2026-10-19):** `src/core/viewport/__tests__/camera.test.ts` (round trip, the point under the cursor stays fixed through zooms from 2% to 6,400%, clamping, steps, fit); `tests/e2e/viewport-camera.spec.ts` in Chromium, Firefox and WebKit (zoom keeps the cursor point fixed to 0.01 px, 2%–6,400% range, wheel pans, buttons zoom to 100% and fit, pinch and wheel over the stage frame reach the camera, the camera survives a reload, Shift+2 centres the selected layer and Shift+0 returns to 100%). **Design:** the camera lives in `useCameraStore` and is written straight to the canvas node's CSS variables, so a wheel tick never re-renders React. It is saved per project id in `localStorage` (a view setting, not document content, so no schema change). **Deviations:** the 60 fps gate needs five frames, which Phase 21 builds, so it is measured there; zoom limits in the World Environment defaults moved to 2–6,400 and the canvas no longer reads them (the camera clamps). Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 21 · Multi-frame canvas
-**Needs:** 20 · **Was:** v3 49.2, 20.3 · **Status:** 📋
-- [ ] Several top-level frames side by side, each its own stage host, with device presets and custom sizes, titles, and add, duplicate and reorder. The backdrop can be light, dark or checkerboard.
-- [ ] The header's Desktop / Tablet / Mobile switch creates or focuses frames of those sizes.
+**Needs:** 20 · **Was:** v3 49.2, 20.3 · **Status:** 🚧
+- [x] Several top-level frames side by side, each its own stage host, with device presets and custom sizes, titles, and add, duplicate and reorder. The backdrop can be light, dark or checkerboard.
+- [x] The header's Desktop / Tablet / Mobile switch creates or focuses frames of those sizes.
 
 **You'll see:** Desktop, Tablet and Mobile frames next to each other.
 **Done when:** Playwright creates 3 frames, reloads, and finds the same 3.
+
+**Evidence (2026-10-19):** `src/core/frames/__tests__/frames.test.ts` (frames are top-level layers, order, positions, add / duplicate / rename / resize / reorder / delete as one undo step each) and `src/core/render/__tests__/frameRenderers.test.ts`; `tests/e2e/frames.spec.ts` (Desktop, Tablet and Mobile make three frames, each its own frame element with its own width, and the same three come back after a reload; custom size, rename, resize, duplicate, reorder, delete; the three backdrops; the active frame follows the header and clicks). **Design:** a frame is a top-level layer (Phase 42), so frames are saved with the document and need no schema change; their order is their position left to right, and a reorder re-spaces the row in one undo step. Each frame is its own `StageHost` (`frameId`) with its own renderer; `getStageRenderer()` answers for the active frame, `getStageRendererForLayer(id, layers)` for the frame that draws a layer. Everything runs through typed `frame.*` commands (Law 20). **Phase 20's 60 fps gate** is measured here on `/editor/canvas-lab` (5 frames × 200 layers): Chromium and Firefox 16.7 ms per frame for pan and zoom; WebKit 18 ms for pan but 37–45 ms for zoom, because it repaints a scaled frame's text on every zoom step (two compositing-layer hints did not help). **Open:** WebKit zoom at 60 fps, so Phase 20's last box stays unticked. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 22 · Hit-testing
 **Needs:** 21 · **Was:** v3 49.3 · **Status:** 📋

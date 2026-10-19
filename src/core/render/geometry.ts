@@ -19,8 +19,9 @@ export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: Render
 
   if (g.positioning === "absolute") {
     style.position = "absolute";
-    style.left = g.frame.x;
-    style.top = g.frame.y;
+    const atOrigin = ctx.frameAtOrigin === true && layer.parentId === null;
+    style.left = atOrigin ? 0 : g.frame.x;
+    style.top = atOrigin ? 0 : g.frame.y;
   } else {
     // A positioned box, so absolute children inside it anchor to it.
     style.position = "relative";
