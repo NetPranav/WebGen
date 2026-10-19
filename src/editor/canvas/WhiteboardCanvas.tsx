@@ -32,7 +32,9 @@ import {
   Focus,
   ShieldAlert,
 } from "lucide-react";
-import { SandboxHost } from "@/editor/runtime/SandboxHost";
+import { StageHost } from "@/editor/stage/StageHost";
+import { SandboxHost } from "@/editor/shell/afterTrackPanels";
+import { edition } from "@/core/flags";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { useEnvironmentStore } from "@/core/store/useEnvironmentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
@@ -565,32 +567,33 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
             style={{ width: `${device.width}px` }}
           >
             <div className="device-frame" style={{ width: `${device.width}px`, height: `${device.height}px` }}>
-              <SandboxHost
-                width="100%"
-                height="100%"
-                deviceMode={deviceMode}
-                onStopPlay={() => handleTogglePlay(false)}
-                onOpenExecutionTrace={onOpenExecutionTrace}
-                // Sub-Phase 43.2: the sandbox is a real <iframe> — a separate
-                // browsing context, so mouse events over it never reach this
-                // component's handlers at all (confirmed: a drag starting on
-                // top of the device frame silently did nothing; the same
-                // drag just outside it worked correctly). Disabling pointer
-                // events on the whole sandbox while a shape/text tool is
-                // active (and not in Play mode — see `toolCapturesPointer`;
-                // without that exclusion, pressing Play while a shape tool
-                // was still selected froze the running app under an
-                // unclickable overlay) lets the drag reach `.whiteboard-stage`
-                // instead, so shapes can be drawn anywhere on the canvas, not
-                // only in the margin around the device frame. Select/Hand
-                // keep pointer-events on, since Select's
-                // click-to-pick-an-element (`onElementClick` below) needs
-                // real clicks inside the iframe to work at all.
-                style={{ pointerEvents: toolCapturesPointer ? "none" : undefined }}
-                onElementClick={(elId) => {
-                  selectEntity(elId, "element");
-                }}
-              />
+              {/* Play mode in the full edition runs the logic sandbox; everything else is the live DOM stage
+                  (Phase 18). The frame is a separate browsing context, so mouse events over it never reach this
+                  component: while a shape or text tool is active (and not in Play mode, see `toolCapturesPointer`)
+                  the frame ignores pointer events so a drag can start anywhere on the canvas. Select and Hand
+                  keep them, since click-to-pick-an-element needs real clicks inside the frame. */}
+              {isPlayMode && edition === "full" ? (
+                <SandboxHost
+                  width="100%"
+                  height="100%"
+                  deviceMode={deviceMode}
+                  onStopPlay={() => handleTogglePlay(false)}
+                  onOpenExecutionTrace={onOpenExecutionTrace}
+                  style={{ pointerEvents: toolCapturesPointer ? "none" : undefined }}
+                  onElementClick={(elId) => {
+                    selectEntity(elId, "element");
+                  }}
+                />
+              ) : (
+                <StageHost
+                  width="100%"
+                  height="100%"
+                  style={{ pointerEvents: toolCapturesPointer ? "none" : undefined }}
+                  onElementClick={(elId) => {
+                    selectEntity(elId, "element");
+                  }}
+                />
+              )}
             </div>
           </div>
         ) : null}

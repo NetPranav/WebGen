@@ -199,7 +199,7 @@ export class HotReloadEngine {
           properties: patch.delta,
         },
       },
-      "*"
+      window.location.origin
     );
   }
 
@@ -221,7 +221,7 @@ export class HotReloadEngine {
           variableName: patch.delta.name,
         },
       },
-      "*"
+      window.location.origin
     );
   }
 

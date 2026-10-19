@@ -541,13 +541,14 @@ The document and World Environment have their own stores, After-track actions mo
 
 ### Phase 18 · Stage host v2: live DOM frames, no HTML strings
 **Needs:** 17 · **Was:** v3 48.2, 48.5 · **Closes:** AUD-29, AUD-33 · **Status:** 📋
-- [ ] Each frame renders into a same-origin iframe with a React root mounted in its document (no `srcDoc`). The frame's width is a real viewport, so media queries work.
-- [ ] A typed bridge per frame; all 4 `postMessage(…, "*")` calls are deleted.
-- [ ] The After-track logic sandbox (mock database and API, tracer, hot reload) stays in `SandboxHost` behind the `full` edition; the design stage no longer imports it.
-- [ ] Delete `buildSandboxDocument` and `generateElementMarkup` from the design path (decision record 0009, render host).
+- [x] The stage is a same-origin `<iframe src="/stage-frame.html">` (a static file: doctype, reset, empty root, no script) drawn into by a React portal from the editor's own tree (not a second React root: stores, context and handlers stay shared). No `srcDoc`. The frame's width is a real viewport, so media queries work; it is in standards mode. `sandbox="allow-same-origin"` only: no script can run in it. (`src/editor/stage/`)
+- [x] No `postMessage(…, "*")` remains in `src/` (a unit test scans every source, including scripts inside template literals). The design stage sends no messages, so it needs no bridge; the logic sandbox's messages go through `frameBridge.ts` (editor origin as target, accepted only from that frame's window, from that origin and in zod-checked shapes).
+- [x] The logic sandbox (mock database and API, tracer, hot reload) stays in `SandboxHost`, loaded only through `afterTrackPanels.tsx` in the `full` edition and added to `check:bundle-scope`; the design stage (`WhiteboardCanvas` → `StageHost`) does not import it (a test checks).
+- [x] `buildSandboxDocument` and `generateElementMarkup` are off the design path (decision record 0009, render host). They remain inside the full edition's logic sandbox, with every interpolated value escaped, until Phase 140 rebuilds it on the render definitions.
 
 **You'll see:** the showcase demo is drawn from layer geometry, and editing a property no longer reloads the stage.
 **Done when:** a property edit updates the stage in < 16 ms without a reload (the iframe document stays the same object); `grep` finds no `postMessage(…, "*")`; the demo matches the render gallery.
+**Evidence (2026-10-19):** `tests/e2e/stage-host.spec.ts` (the frame's document is the same object across edits; undo and redo of a drawn shape reach the frame's DOM in under one frame in Chromium; keys typed over the stage reach the command bus), `frameBridge.test.ts` (including the wildcard scan), `stage.test.ts`, and the render gallery now draws through the same `StageFrame`. **Deviations:** (1) the inspector's fields are not yet wired to the document (Phases 33–34), so the latency test drives real document edits (undo/redo of a drawn shape) rather than a field; (2) Chromium is held to 16 ms, Firefox and WebKit to 50 ms until their numbers on the CI runner are known; (3) the demo no longer has the old stage's padding and card defaults, because it is now drawn from geometry. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 19 · Incremental updates & measurement API
 **Needs:** 18 · **Was:** v3 48.3, 48.4 · **Status:** 📋

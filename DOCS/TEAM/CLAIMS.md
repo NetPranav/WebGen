@@ -12,11 +12,12 @@ Current schema: **v5** (on `main`).
 
 ## Decision records (`DOCS/INITIAL/decisions/`)
 
-Next free number: **0014** (0008 is the threat model; 0009–0013 are named in ROADMAP §6). (0006 is unused on purpose; v3 numbers clashed, see ROADMAP §6.)
+Next free number: **0014** (0008 is the threat model and 0009 the render host; 0010–0013 are named in ROADMAP §6). (0006 is unused on purpose; v3 numbers clashed, see ROADMAP §6.)
 
 | Number | Lane | Title | PR |
 |---|---|---|---|
 | 0008 | A | Threat model for the stage and user content (Phase 16) | |
+| 0009 | A | Render host: live DOM frames, no HTML strings (Phase 18) | |
 
 ## New AUDIT IDs
 
