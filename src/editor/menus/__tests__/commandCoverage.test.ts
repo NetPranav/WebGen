@@ -50,7 +50,9 @@ describe("Phase 13: menu → command coverage", () => {
       "core/commands/dispatcher.ts",
       "core/events/useTearOff.ts",
       "editor/shell/StudioHeader.tsx",
-      "editor/shell/EditorShell.tsx",
+      "editor/shell/EditorShell.tsx", // Escape closes Settings
+      "editor/shell/CanvasChrome.tsx", // Escape closes the World popover
+      "editor/shell/hooks/useAiDock.ts", // Escape cancels the AI dock drag
       "editor/panels/launcher/ProjectHub.tsx",
       "editor/canvas/WhiteboardCanvas.tsx",
     ]);

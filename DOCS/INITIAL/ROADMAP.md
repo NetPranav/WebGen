@@ -499,12 +499,13 @@ The document and World Environment have their own stores, After-track actions mo
 ### Phase 14 · Workspace model & panel registry
 **Needs:** 13 · **Was:** v3 44.1, 44.4 · **Closes:** AUD-35 · **Status:** 📋
 **Goal:** The shell renders from a saved layout instead of 22 local `useState` calls, and panels load only when shown.
-- [ ] `registerPanel({ id, title, zone, load, edition, focusScope })` and a `WorkspaceLayout` JSON (zones, sizes, tabs, collapsed state) saved in UI preferences.
-- [ ] Split `EditorShell.tsx` (2,137 lines) into `Shell`, `DockTree` and `PanelHost`. A panel that isn't in the layout costs zero bytes.
-- [ ] Splitter drags update CSS variables only; the canvas DOM node never remounts on resize.
+- [x] `registerPanel({ id, title, zone, edition, focusScope, load | component, props })` (`src/editor/shell/panels/registry.ts`, every panel registered in `panels/builtins.tsx`) and a zod-validated `WorkspaceLayout` (`src/core/workspace/`: sizes, collapsed state, active tabs, the AI dock, the preset) saved to `localStorage` 300 ms after a change and restored on load; corrupt or blocked storage falls back to the default.
+- [x] `EditorShell.tsx` is 389 lines (was 2,139): it composes `DockTree`, `PanelHost`, `CanvasChrome`, `AiDockColumn`, `OutputLogDrawer` and six hooks (`shell/hooks/`). Only the stage, Details and the Content Browser are imported statically; every other panel is fetched when first shown, and a unit test fails if a shell file imports a panel module outside the registry.
+- [~] The canvas DOM node never remounts on resize, a preset switch or a viewport change (Playwright proves it). Splitters already write live px straight to the dock's DOM node during a drag and commit once on release; they were not moved to CSS variables.
 
 **You'll see:** the panel layout you arrange survives a reload.
 **Done when:** `EditorShell.tsx` is under 500 lines; Playwright proves the stage node is the same object across resizes; the bundle check shows unopened panels aren't loaded.
+**Evidence (2026-10-19):** `shellStructure.test.ts` (under 500 lines, no static panel imports); `tests/e2e/workspace.spec.ts` (layout survives a reload, stage node is the same object, unopened panels are not loaded, read from `data-loaded-panels` on the dock root). Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 15 · Design / Animate / Code presets & inspector tabs
 **Needs:** 14 · **Was:** v3 44.2, 44.3 · **Closes:** AUD-21 (shell) · **Status:** 📋

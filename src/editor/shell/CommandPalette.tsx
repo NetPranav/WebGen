@@ -38,7 +38,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   // The registry is mutable (panels register/unregister their own commands
   // as they mount); snapshot it, and which of those currently apply given
   // live focus/context, each time the palette opens.
-  const [allCommands, setAllCommands] = useState<Command[]>([]);
+  // Phase 14: the palette is loaded the first time it opens, so it may mount already open; snapshot then too.
+  const [allCommands, setAllCommands] = useState<Command[]>(() => (isOpen ? getAllCommands().filter((cmd) => isCommandAvailable(cmd)) : []));
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
