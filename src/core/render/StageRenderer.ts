@@ -48,6 +48,10 @@ export class StageRenderer {
   private readonly cache = new Map<string, { epoch: number; rect: LayerRect }>();
   private queue: Pending[] = [];
   private scheduled = false;
+  /** Changes whenever something could have moved a layer. A cache keyed on it (the hit-test index) knows when to rebuild. */
+  get layoutVersion(): number {
+    return this.epoch;
+  }
   /** Layout read passes performed, for the batching test. */
   passes = 0;
   private readonly onResize = () => {

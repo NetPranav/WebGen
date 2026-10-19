@@ -18,7 +18,11 @@ import { FloatingDock, CanvasTool } from "./FloatingDock";
 import { ZoomControls } from "./ZoomControls";
 import { CanvasOverlay, SelectionRect } from "./CanvasOverlay";
 import { CanvasFrames, FrameBar, visibleFrames } from "./CanvasFrames";
+import { CanvasHitTester, type FrameSurface } from "@/core/hit/CanvasHitTester";
+import { useHoverStore } from "@/core/store/useHoverStore";
+import { screenToDoc } from "@/core/viewport/camera";
 import { useFrames } from "./useFrames";
+import { HoverOutline } from "./HoverOutline";
 import { useCanvasViewStore, restoreBackdrop } from "@/core/store/useCanvasViewStore";
 import { frameIdOf } from "@/core/frames/frames";
 import { setActiveStageFrame } from "@/core/render/StageRenderer";
@@ -50,7 +54,7 @@ import { useFocusScope, useCommand, getContextKeys, type ContextKeys } from "@/c
 import { useCameraStore, selectZoomPercent } from "@/core/store/useCameraStore";
 import { gridSpacing, wheelZoomFactor } from "@/core/viewport/camera";
 import { projectSession } from "@/core/storage/ProjectSession";
-import { getStageRendererForLayer } from "@/core/render/StageRenderer";
+import { getStageRendererForLayer, getFrameRenderers } from "@/core/render/StageRenderer";
 import { useShapeDrawing } from "./tools/useShapeDrawing";
 import { isShapeToolId } from "./tools/shapeTools";
 
@@ -146,6 +150,30 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const backdrop = useCanvasViewStore((state) => state.backdrop);
   // `getStageRenderer()` answers for the active frame.
   useEffect(() => setActiveStageFrame(activeFrame?.id ?? null), [activeFrame?.id]);
+
+  // Hit-testing (Phase 22). In Design mode the canvas captures every pointer event and the frames get none: the
+  // pointer's place on the canvas is mapped to canvas space and looked up in a spatial index of the frames' layers.
+  const hitTester = useMemo(
+    () =>
+      new CanvasHitTester(getDocument, () => {
+        const surfaces = new Map<string, FrameSurface>();
+        for (const [frameId, r] of getFrameRenderers()) {
+          surfaces.set(frameId, { frameId, get layoutVersion() { return r.layoutVersion; }, measureNow: (ids) => r.measureNow(ids) });
+        }
+        return surfaces;
+      }),
+    []
+  );
+  // Test seam (with `window.__LL_TEST__` set before load): the hit-tester, for the hit-testing spec.
+  useEffect(() => {
+    const w = window as unknown as { __LL_TEST__?: boolean; __LL_HIT__?: CanvasHitTester };
+    if (w.__LL_TEST__) w.__LL_HIT__ = hitTester;
+  }, [hitTester]);
+  const hoverFrameRef = useRef<number | null>(null);
+  const pointerWorld = (e: { clientX: number; clientY: number }) => {
+    const rect = containerRef.current!.getBoundingClientRect();
+    return screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
 
   /** A click on a layer in a frame selects it and makes its frame the active one. */
   const handleStageClick = useCallback(
@@ -554,7 +582,20 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       style={canvasStyle}
       data-backdrop={backdrop}
       onMouseDown={handleMouseDown}
-      onClick={() => {
+      onMouseMove={(e) => {
+        if (activeTool !== "select" || isSpacePressed || isPanning || isPlayMode) return;
+        const { clientX, clientY, metaKey, ctrlKey } = e;
+        if (hoverFrameRef.current !== null) return; // one lookup per frame
+        hoverFrameRef.current = requestAnimationFrame(() => {
+          hoverFrameRef.current = null;
+          if (!containerRef.current) return;
+          const hit = hitTester.pickAt(pointerWorld({ clientX, clientY }), { deep: metaKey || ctrlKey });
+          useHoverStore.getState().set(hit?.id ?? null, hit?.rect ?? null);
+        });
+      }}
+      onMouseLeave={() => useHoverStore.getState().set(null, null)}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest(".floating-dock-wrapper, .zoom-controls, .frame-bar, .canvas-frame__title")) return;
         // The browser still synthesizes a click after the mousedown+mouseup
         // that just finished drawing a shape/placing text (same target, no
         // native drag happened) — skip clearing the selection `onCreated`
@@ -562,6 +603,15 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         if (justDrewShapeRef.current) {
           justDrewShapeRef.current = false;
           return;
+        }
+        // Design mode: what is under the pointer is looked up in the hit index, never in the frames.
+        if (activeTool === "select" && !isPlayMode) {
+          const hit = hitTester.pickAt(pointerWorld(e), { deep: e.metaKey || e.ctrlKey });
+          if (hit) {
+            handleStageClick(hit.id);
+            onSelectElement?.({ id: hit.id, name: getDocument().layers[hit.id]?.name ?? hit.id });
+            return;
+          }
         }
         setSelectedElement(null);
         onSelectElement?.(null);
@@ -619,7 +669,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
             </div>
           </div>
         ) : (
-          <CanvasFrames frames={frames} toolCapturesPointer={toolCapturesPointer} onElementClick={handleStageClick} />
+          <CanvasFrames frames={frames} toolCapturesPointer={!isPlayMode} onElementClick={handleStageClick} />
         )}
 
         {/* World-space Origin Marker — a fixed point of reference (Blender's 3D-cursor
@@ -639,6 +689,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
             </div>
           </>
         )}
+
+        <HoverOutline />
 
         {/* Overlays when elements exist */}
         {shownFrames.length > 0 && !isPlayMode && <CanvasOverlay selectedElement={selectedElement} />}

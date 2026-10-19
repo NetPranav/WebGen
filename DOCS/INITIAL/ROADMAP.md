@@ -193,7 +193,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 19 | Incremental updates & measurement API | 18 | v3 48.3, 48.4 | 1 | 📋 |
 | 20 | Viewport camera | 19 | v3 49.1 | 1 | 🚧 |
 | 21 | Multi-frame canvas | 20 | v3 49.2, 20.3 | 1 | 🚧 |
-| 22 | Hit-testing | 21 | v3 49.3 | 1 | 📋 |
+| 22 | Hit-testing | 21 | v3 49.3 | 1 | 🚧 |
 | 23 | Overlay layer & Design / Preview modes | 22 | v3 49.4, 49.5 | 1 | 📋 |
 | 24 | Tool state machine | 13, 23 | v3 43.2 (infrastructure) | 1 | 📋 |
 | 25 | Creation tools: frames, shapes and text boxes | 24 | v3 43.2 (Tier A), 20.4 | 1 | 📋 |
@@ -582,12 +582,14 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence (2026-10-19):** `src/core/frames/__tests__/frames.test.ts` (frames are top-level layers, order, positions, add / duplicate / rename / resize / reorder / delete as one undo step each) and `src/core/render/__tests__/frameRenderers.test.ts`; `tests/e2e/frames.spec.ts` (Desktop, Tablet and Mobile make three frames, each its own frame element with its own width, and the same three come back after a reload; custom size, rename, resize, duplicate, reorder, delete; the three backdrops; the active frame follows the header and clicks). **Design:** a frame is a top-level layer (Phase 42), so frames are saved with the document and need no schema change; their order is their position left to right, and a reorder re-spaces the row in one undo step. Each frame is its own `StageHost` (`frameId`) with its own renderer; `getStageRenderer()` answers for the active frame, `getStageRendererForLayer(id, layers)` for the frame that draws a layer. Everything runs through typed `frame.*` commands (Law 20). **Phase 20's 60 fps gate** is measured here on `/editor/canvas-lab` (5 frames × 200 layers): Chromium and Firefox 16.7 ms per frame for pan and zoom; WebKit 18 ms for pan but 37–45 ms for zoom, because it repaints a scaled frame's text on every zoom step (two compositing-layer hints did not help). **Open:** WebKit zoom at 60 fps, so Phase 20's last box stays unticked. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 22 · Hit-testing
-**Needs:** 21 · **Was:** v3 49.3 · **Status:** 📋
-- [ ] A spatial index over measured rectangles (the existing TS `SpatialIndex`): deepest layer first, Cmd/Ctrl for deep select, locked and hidden layers skipped.
-- [ ] In Design mode the canvas captures every pointer event; nothing reaches the frames.
+**Needs:** 21 · **Was:** v3 49.3 · **Status:** 🚧
+- [x] A spatial index over measured rectangles (the existing TS `SpatialIndex`): deepest layer first, Cmd/Ctrl for deep select, locked and hidden layers skipped.
+- [x] In Design mode the canvas captures every pointer event; nothing reaches the frames.
 
 **You'll see:** hovering shows the layer a click would select.
 **Done when:** hit-test p95 < 1 ms with 1,000 layers; clicks at 20 known points select the expected layers at 3 zoom levels.
+
+**Evidence (2026-10-19):** `src/core/hit/__tests__/hitTest.test.ts` (the rules, the build from measured frames, and **p95 under 1 ms for a plain plus a deep pick with 1,001 layers**); `tests/e2e/hit-testing.spec.ts` in Chromium, Firefox and WebKit (the frames get `pointer-events: none`; 20 points chosen from the visible layers of `/editor/canvas-lab`, at three zoom levels, each clicked plainly and with the deep-select modifier and the exact selection asserted; a locked group is skipped and a hidden one is not there to hit; hovering shows the outline of what a click would select). **Rules decided here:** a plain click picks the frame's direct child (Figma's rule), Cmd/Ctrl picks the deepest layer, empty space inside a frame picks the frame, a locked layer hides its whole subtree from hits, and a layer is clipped to its frame. The index is rebuilt only when the document or a frame's layout version changes. **Deviation:** clicks no longer reach the frames' own click handlers in Design mode (record 0009 §2 said they did); `onElementClick` stays for Preview mode (Phase 23). A frame whose own content scrolls isn't handled yet. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 23 · Overlay layer & Design / Preview modes
 **Needs:** 22 · **Was:** v3 49.4, 49.5 · **Status:** 📋

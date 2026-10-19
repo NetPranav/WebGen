@@ -1043,3 +1043,11 @@
 .whiteboard-stage[data-backdrop="checker"] .whiteboard-grid {
   display: none;
 }
+
+/* The layer a click would select (Phase 22). */
+.canvas-hover-outline {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 0 0 calc(1.5px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+}
