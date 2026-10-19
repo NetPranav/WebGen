@@ -4,7 +4,7 @@
  * The design stage (ROADMAP Phase 18, incremental since Phase 19): the active page's layers drawn by the
  * render definitions (`src/core/render`, Law 11) into a live DOM frame. Every layer subscribes to its own
  * object in the document store, so an edit re-renders the layer it touched and nothing else, and the
- * frame's document is never reloaded. The `StageRenderer` keeps each layer's element (for per-frame
+ * frame's document is never reloaded. The animation engine (Phase 57) puts the transport's time on the stage. The `StageRenderer` keeps each layer's element (for per-frame
  * writes without React, Law 9) and measures layers in document space. Clicking an element reports its
  * layer id to the editor.
  */
@@ -16,6 +16,9 @@ import type { RenderContext } from "@/core/render";
 import { createPlanStore } from "@/core/render/planStore";
 import { StageContext, StoreRenderLayer, type StageContextValue } from "@/core/render/StoreRenderLayer";
 import { StageRenderer, setStageRenderer } from "@/core/render/StageRenderer";
+import { installStageEngine } from "@/core/engine/stage/StageEngine";
+import { evaluate } from "@/core/kernel/evaluate";
+import { getTransport, transport } from "@/core/time/transport";
 import { StageFrame, type FrameMount } from "./StageFrame";
 
 export interface StageHostProps {
@@ -32,6 +35,7 @@ declare global {
   interface Window {
     __LL_TEST__?: boolean;
     __LL_STAGE__?: StageRenderer;
+    __LL_ENGINE__?: { kernel(layerId: string, time: number): Record<string, unknown>; seek(time: number): void; play(): void; pause(): void };
   }
 }
 
@@ -85,6 +89,19 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
     return () => {
       setStageRenderer(null);
       if (window.__LL_STAGE__ === renderer) delete window.__LL_STAGE__;
+    };
+  }, [renderer]);
+
+  // The animation engine: shows the transport's time on the stage by writing to the layers' elements (Phase 57).
+  useEffect(() => {
+    const uninstall = installStageEngine(renderer);
+    // Test seam: the kernel's answer for a layer, and the transport's seek, so a browser test can compare the stage with the oracle.
+    if (window.__LL_TEST__) {
+      window.__LL_ENGINE__ = { kernel: (layerId, time) => evaluate(getDocument(), getTransport().compositionId, layerId, time), seek: (time) => transport.seek(time), play: () => transport.play(), pause: () => transport.pause() };
+    }
+    return () => {
+      uninstall();
+      delete window.__LL_ENGINE__;
     };
   }, [renderer]);
 
