@@ -17,6 +17,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Copy, Plus, Trash2 } from "lucide-react";
 import { invokeCommand } from "@/core/commands";
 import { FRAME_PRESETS } from "@/core/frames/frames";
+import { useSnapStore } from "@/core/store/useSnapStore";
 import { useCanvasViewStore, BACKDROPS, type Backdrop } from "@/core/store/useCanvasViewStore";
 import { StageHost } from "@/editor/stage/StageHost";
 import type { CanvasFrame } from "./useFrames";
@@ -174,6 +175,11 @@ const BACKDROP_LABEL: Record<Backdrop, string> = { light: "Light", dark: "Dark",
 /** Adds frames (device presets or a custom size) and picks the backdrop. */
 export const FrameBar: React.FC = () => {
   const mode = useCanvasViewStore((s) => s.mode);
+  const snapObjects = useSnapStore((s) => s.objects);
+  const snapGuides = useSnapStore((s) => s.guides);
+  const snapGrid = useSnapStore((s) => s.grid);
+  const snapRulers = useSnapStore((s) => s.rulers);
+  const snap = { objects: snapObjects, guides: snapGuides, grid: snapGrid, rulers: snapRulers };
   const backdrop = useCanvasViewStore((s) => s.backdrop);
   const setBackdrop = useCanvasViewStore((s) => s.setBackdrop);
   const [open, setOpen] = useState(false);
@@ -215,6 +221,13 @@ export const FrameBar: React.FC = () => {
         {(["design", "preview"] as const).map((m) => (
           <button key={m} type="button" className="frame-bar__btn" aria-pressed={mode === m} onClick={() => useCanvasViewStore.getState().setMode(m)}>
             {m === "design" ? "Design" : "Preview"}
+          </button>
+        ))}
+      </div>
+      <div className="frame-bar__group" role="group" aria-label="Snapping">
+        {(["objects", "guides", "grid", "rulers"] as const).map((k) => (
+          <button key={k} type="button" className="frame-bar__btn" aria-pressed={snap[k]} onClick={() => useSnapStore.getState().toggle(k)}>
+            {k === "objects" ? "Snap objects" : k === "guides" ? "Snap guides" : k === "grid" ? "Pixel grid" : "Rulers"}
           </button>
         ))}
       </div>

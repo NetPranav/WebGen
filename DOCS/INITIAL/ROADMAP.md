@@ -199,7 +199,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 25 | Creation tools: frames, shapes and text boxes | 24 | v3 43.2 (Tier A), 20.4 | 1 | 🚧 |
 | 26 | Selection | 25 | v3 20.1 (selection) | 1 | 🚧 |
 | 27 | Transform handles | 26 | v3 20.1 (transform) | 1 | 🚧 |
-| 28 | Snapping, smart guides & rulers | 27 | v3 20.2 | 1 | 📋 |
+| 28 | Snapping, smart guides & rulers | 27 | v3 20.2 | 1 | 🚧 |
 | 29 | Editing operations | 26 | — (new: not planned in v3) | 1 | 📋 |
 | 30 | Align, distribute & tidy | 29 | — (new) | 1 | 📋 |
 | 31 | Text on the canvas | 25 | — (new) | 1 | 📋 |
@@ -642,11 +642,13 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence (2026-10-20):** `src/core/geometry/__tests__/transform.test.ts`: 30 standard manipulations with exact geometry (moves, every corner and edge, aspect lock, from the centre, minimum size, rotated boxes, group resize, rotation with snapping, group rotation, handle positions) and the parameter handles (radius, inner radius, count, rotated). `tests/e2e/transform.spec.ts`: **30 real gestures on the canvas lab (moves, resizes, rotations, group moves/resizes/rotations, and the radius / inner-radius / points / sides handles) are exactly 30 undo steps**: after each gesture the shapes' markup changed, and then 30 undos walk back through the 30 recorded states character for character; Escape cancels a drag and leaves no step and keeps the selection; a resize keeps the layer's parent. **Design:** `transform.ts` is pure (a `Box` is centre, size, rotation); `transformModel.ts` builds the selection's boxes and handles from the hit index; the select tool owns the gestures (a handle drag, a drag on the selection, or on an unselected layer which it selects first) through one `documentCommands.begin` transaction; the overlay draws the frame and handles. **Rules:** moving or resizing converts a flow-placed layer to absolute at its measured position; positions are relative to the parent's top-left; parents aren't rotated (a rotated parent's children use their own box). Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 28 · Snapping, smart guides & rulers
-**Needs:** 27 · **Was:** v3 20.2 · **Closes:** AUD-20 (Tier 1: properties 7–23, 27–30) · **Status:** 📋
-- [ ] Snap to the pixel grid, to layout grids, and to edges and centres of other layers; equal-spacing detection; the distance HUD (Alt shows distances); rulers with draggable guides; snap toggles.
+**Needs:** 27 · **Was:** v3 20.2 · **Closes:** AUD-20 (Tier 1: properties 7–23, 27–30) · **Status:** 🚧
+- [x] Snap to the pixel grid, to layout grids (none exist yet: Phase 41), and to edges and centres of other layers; equal-spacing detection; the distance HUD (Alt shows distances); rulers with draggable guides; snap toggles.
 
 **You'll see:** guides and spacing labels while you drag.
 **Done when:** snapping golden tests pass; guides persist per frame.
+
+**Evidence (2026-10-20):** `src/core/geometry/__tests__/snap.test.ts` (golden cases: an edge, a centre and the closest of several; both axes; the frame's edges and centre; guides, and the object toggle not turning them off; all toggles off; the pixel grid; equal spacing between two neighbours and repeating an existing gap; resize edges; the distance HUD; guide text round trip) and `rulerTicks.test.ts`; `tests/e2e/snapping.spec.ts` in Chromium, Firefox and WebKit: a move snaps to another layer's edge to the pixel while the guide line shows and clears on release; with snapping off the same drag doesn't land there; a resize snaps the dragged edge; Alt shows numeric distances (250 to the neighbour) and releasing hides them; a guide dragged out of the ruler is a snap target, dragging it back onto the ruler deletes it, and the rulers can be hidden; **guides belong to their frame, are saved, come back after a reload and are undone**. **Design:** a frame's guides are `frame.guides` (JSON text) on the frame layer, a new canonical path (additive, no schema bump), so they travel with the document; snapping is pure (`snap.ts`) and the select tool asks the canvas for a nudge; settings are remembered per person. **Not built:** snapping to layout grids (Phase 41 has none yet). Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 29 · Editing operations
 **Needs:** 26 · **Was:** — (new: not planned in v3) · **Status:** 📋

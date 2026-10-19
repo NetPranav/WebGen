@@ -26,8 +26,14 @@ import { useCanvasViewStore, restoreBackdrop } from "@/core/store/useCanvasViewS
 import { frameIdOf } from "@/core/frames/frames";
 import { combineSelection, marqueeCandidates, rootIds } from "@/core/selection/selectionOps";
 import { buildTransformModel, handleAtScreen } from "./transformModel";
+import { snapEnvironment, guideLines } from "./snapEnv";
+import { moveGuide, removeGuide } from "./guides";
+import { CanvasRulers, RULER_SIZE } from "./CanvasRulers";
+import { distanceMarks, snapEdges, snapMove } from "@/core/geometry/snap";
+import { useSnapStore, restoreSnapSettings } from "@/core/store/useSnapStore";
+import { unionBox } from "@/core/geometry/transform";
 import type { DocumentTransaction } from "@/core/store/useDocumentStore";
-import type { Rect } from "@/core/viewport/camera";
+import { docToScreen, type Rect } from "@/core/viewport/camera";
 import { setActiveStageFrame } from "@/core/render/StageRenderer";
 import { getDocument } from "@/core/store/documentState";
 import {
@@ -207,6 +213,21 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     const zoom = useCameraStore.getState().camera.zoom;
     return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / zoom);
   }, [hitTester]);
+  /** Every frame's ruler guides as lines in canvas space. */
+  const overlayGuides = useCallback(() => guideLines(hitTester.ensure(), getDocument().layers), [hitTester]);
+  /** The distance HUD for the selection while Alt is held and no gesture is running. */
+  const overlayHud = useCallback(() => {
+    if (!useSnapStore.getState().alt || useToolStore.getState().gesturing || useCanvasViewStore.getState().mode !== "design") return [];
+    const ids = useSelectionStore.getState().selectedIds;
+    const index = hitTester.ensure();
+    const layers = getDocument().layers;
+    const model = buildTransformModel(index, layers, ids, 0);
+    const env = model ? snapEnvironment(index, layers, model.ids) : null;
+    if (!model || !env) return [];
+    const u = unionBox(model.boxes)!;
+    return distanceMarks({ x: u.cx - u.w / 2, y: u.cy - u.h / 2, width: u.w, height: u.h }, env.others, env.parent);
+  }, [hitTester]);
+  useEffect(() => restoreSnapSettings(), []);
   const tools = useMemo(() => createTools(), []);
   const gestureToolRef = useRef<Tool | null>(null);
   const transformTxRef = useRef<DocumentTransaction | null>(null);
@@ -258,6 +279,52 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
           documentCommands.updateProps(id, patch);
         });
       },
+      snapMove: (ids, rect, off = false) => {
+        const settings = useSnapStore.getState();
+        const env = snapEnvironment(hitTester.ensure(), getDocument().layers, ids);
+        const threshold = 6 / useCameraStore.getState().camera.zoom;
+        if (!env) return { dx: 0, dy: 0 };
+        const result = off
+          ? { dx: 0, dy: 0, lines: [], spacing: [] }
+          : snapMove(rect, env.others, env.parent, env.guides, threshold, settings);
+        const final = { x: rect.x + result.dx, y: rect.y + result.dy, width: rect.width, height: rect.height };
+        const hud = settings.alt ? distanceMarks(final, env.others, env.parent) : [];
+        settings.setFeedback(result.lines, [...result.spacing, ...hud]);
+        return { dx: result.dx, dy: result.dy };
+      },
+      snapEdges: (ids, rect, edges, off = false) => {
+        const settings = useSnapStore.getState();
+        const env = snapEnvironment(hitTester.ensure(), getDocument().layers, ids);
+        const threshold = 6 / useCameraStore.getState().camera.zoom;
+        if (!env || off) {
+          settings.clearFeedback();
+          return { left: 0, right: 0, top: 0, bottom: 0 };
+        }
+        const r = snapEdges(rect, edges, env.others, env.parent, env.guides, threshold, settings);
+        settings.setFeedback(r.lines, settings.alt ? distanceMarks(rect, env.others, env.parent) : []);
+        return r;
+      },
+      clearSnap: () => useSnapStore.getState().clearFeedback(),
+      guideAt: (screen) => {
+        const camera = useCameraStore.getState().camera;
+        for (const g of guideLines(hitTester.ensure(), getDocument().layers)) {
+          const s = docToScreen(camera, g.axis === "x" ? { x: g.pos, y: g.from } : { x: g.from, y: g.pos });
+          const e = docToScreen(camera, g.axis === "x" ? { x: g.pos, y: g.to } : { x: g.to, y: g.pos });
+          const near = g.axis === "x" ? Math.abs(s.x - screen.x) <= 4 && screen.y >= s.y && screen.y <= e.y : Math.abs(s.y - screen.y) <= 4 && screen.x >= s.x && screen.x <= e.x;
+          if (near) {
+            const [frameId, index] = g.id.split(":");
+            return { frameId, index: Number(index), axis: g.axis };
+          }
+        }
+        return null;
+      },
+      moveGuide: (ref, world) => {
+        const hit = hitTester.ensure().get(ref.frameId);
+        if (!hit) return;
+        moveGuide(ref.frameId, ref.index, Math.round((ref.axis === "x" ? world.x - hit.origin.x : world.y - hit.origin.y) * 100) / 100);
+      },
+      removeGuide: (ref) => removeGuide(ref.frameId, ref.index),
+      overRuler: (screen) => useSnapStore.getState().rulers && (screen.x < RULER_SIZE || screen.y < RULER_SIZE),
       setParam: (layerId, prop, value) => documentCommands.updateProps(layerId, { [prop]: value }),
       commitTransform: () => {
         transformTxRef.current?.commit();
@@ -576,7 +643,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const handlePointerDown = (e: React.PointerEvent) => {
     // The dock, the zoom controls, the frame bar and the frame titles are children of this div and their presses
     // bubble up here; they are not canvas gestures.
-    if ((e.target as HTMLElement).closest(".floating-dock-wrapper, .zoom-controls, .frame-bar, .canvas-frame__title")) return;
+    if ((e.target as HTMLElement).closest(".floating-dock-wrapper, .zoom-controls, .frame-bar, .canvas-frame__title, .canvas-ruler")) return;
     if (isPlayMode) return;
     // The middle button always pans, whatever tool is active: a drawing tool must never trap you in "can only
     // draw, can't pan to get somewhere else first". (Space does the same through its spring.)
@@ -707,7 +774,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         )}
 
         {/* Overlays when elements exist */}
-        <OverlayLayer hitTester={hitTester} canvasRef={containerRef} transformModel={overlayTransformModel} />
+        <OverlayLayer hitTester={hitTester} canvasRef={containerRef} transformModel={overlayTransformModel} guides={overlayGuides} hudMarks={overlayHud} />
       </div>
 
       {/* Sub-Phase 43.2: live dashed-rect preview while dragging a shape tool.
@@ -723,6 +790,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         />
       )}
 
+      <CanvasRulers hitTester={hitTester} containerRef={containerRef} />
       <FrameBar />
 
       {/* Floating Atlassian-Style Bottom Dock */}

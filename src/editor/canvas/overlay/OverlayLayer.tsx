@@ -8,7 +8,8 @@ import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
 import { useCameraStore } from "@/core/store/useCameraStore";
 import { useToolStore } from "@/core/store/useToolStore";
 import { screenToDoc, type Point } from "@/core/viewport/camera";
-import { OverlayController } from "./OverlayController";
+import { OverlayController, type OverlayEnv } from "./OverlayController";
+import { useSnapStore } from "@/core/store/useSnapStore";
 import type { TransformModel } from "../transformModel";
 
 interface OverlayLayerProps {
@@ -17,6 +18,8 @@ interface OverlayLayerProps {
   canvasRef: React.RefObject<HTMLElement | null>;
   /** The transform handles' target for the current selection, or null. */
   transformModel: () => TransformModel | null;
+  guides: OverlayEnv["guides"];
+  hudMarks: OverlayEnv["hudMarks"];
   /** Called when the hovered layer changes (the canvas keeps it for tests and for the status line). */
   onController?: (controller: OverlayController | null) => void;
 }
@@ -26,8 +29,14 @@ interface OverlayLayerProps {
  * `OverlayController` draws into. It listens to the pointer on the canvas element and to selection, document
  * and mode changes, and asks the controller for a redraw; the controller draws on the next frame.
  */
-export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef, transformModel, onController }) => {
+export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef, transformModel, guides, hudMarks, onController }) => {
   const layerRef = useRef<HTMLDivElement | null>(null);
+  const hudRef = useRef(hudMarks);
+  const guidesRef = useRef(guides);
+  useEffect(() => {
+    hudRef.current = hudMarks;
+    guidesRef.current = guides;
+  }, [hudMarks, guides]);
   const transformModelRef = useRef(transformModel);
   useEffect(() => {
     transformModelRef.current = transformModel;
@@ -48,6 +57,9 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       selectedIds: () => (useCanvasViewStore.getState().mode === "design" ? useSelectionStore.getState().selectedIds : []),
       layerName: (id) => getDocument().layers[id]?.name ?? id,
       transformModel: () => transformModelRef.current(),
+      snapFeedback: () => ({ lines: useSnapStore.getState().lines, spacing: useSnapStore.getState().spacing }),
+      hudMarks: () => hudRef.current(),
+      guides: () => guidesRef.current(),
     });
     onController?.(controller);
 
@@ -76,6 +88,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       // the pointer's place in canvas space moves when the camera does under a still pointer
       if (pointer && s.camera !== p.camera) controller.invalidate();
     });
+    const offSnap = useSnapStore.subscribe(() => controller.invalidate());
     const offTool = useToolStore.subscribe((s, p) => {
       if (s.current !== p.current) controller.invalidate();
     });
@@ -83,6 +96,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
 
     return () => {
       offTool();
+      offSnap();
       canvas.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("mouseleave", onLeave);
       offSelection();

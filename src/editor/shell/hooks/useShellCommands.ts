@@ -13,6 +13,7 @@ import { PRESET_IDS, presetsFor } from "@/core/workspace/layout";
 import { useWorkspaceStore } from "@/core/workspace/useWorkspaceStore";
 import { useCameraStore } from "@/core/store/useCameraStore";
 import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
+import { useSnapStore } from "@/core/store/useSnapStore";
 import { registerFrameCommands } from "@/core/frames/frameCommands";
 import { registerSelectionCommands } from "@/core/selection/selectionCommands";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
@@ -177,6 +178,18 @@ export function useShellCommands(actions: ShellCommandActions) {
       for (const unregister of unregisters) unregister();
     };
   }, [exportProjectFile, openImportPicker, openSettings]);
+
+  // Phase 28: snapping and rulers.
+  useEffect(() => {
+    const snap = () => useSnapStore.getState();
+    const unregisters = [
+      defineCommand({ id: "view.snapObjects", title: "Toggle Snap to Objects", category: "View", run: () => snap().toggle("objects") }),
+      defineCommand({ id: "view.snapGuides", title: "Toggle Snap to Guides", category: "View", run: () => snap().toggle("guides") }),
+      defineCommand({ id: "view.snapGrid", title: "Toggle Pixel Grid Snap", category: "View", run: () => snap().toggle("grid") }),
+      defineCommand({ id: "view.toggleRulers", title: "Show / Hide Rulers", category: "View", keybinding: "Shift+R", when: (ctx) => ctx.canvasFocus && !ctx.textEditing, run: () => snap().toggle("rulers") }),
+    ];
+    return () => unregisters.forEach((off) => off());
+  }, []);
 
   // Phase 23: Design mode (the canvas picks layers) and Preview mode (the page is clickable).
   useEffect(() => {

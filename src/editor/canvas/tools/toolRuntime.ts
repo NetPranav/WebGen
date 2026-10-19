@@ -74,6 +74,24 @@ export interface ToolContext {
   setParam: (layerId: string, prop: string, value: number) => void;
   commitTransform: () => void;
   cancelTransform: () => void;
+  /** Snaps the selection's bounds `rect` while it moves; returns the nudge. `off` (a modifier) skips snapping but still shows the HUD. */
+  snapMove: (ids: readonly string[], rect: { x: number; y: number; width: number; height: number }, off?: boolean) => { dx: number; dy: number };
+  /** Snaps the edges being resized; each value is the adjustment to that edge. */
+  snapEdges: (
+    ids: readonly string[],
+    rect: { x: number; y: number; width: number; height: number },
+    edges: { left?: boolean; right?: boolean; top?: boolean; bottom?: boolean },
+    off?: boolean,
+  ) => { left: number; right: number; top: number; bottom: number };
+  /** The ruler guide under a screen point, if any (within a few px). */
+  guideAt: (screen: Point) => { frameId: string; index: number; axis: "x" | "y" } | null;
+  /** Moves a guide to canvas-space `world` (along its axis); `remove` deletes it (dragged back onto a ruler). */
+  moveGuide: (ref: { frameId: string; index: number; axis: "x" | "y" }, world: Point) => void;
+  removeGuide: (ref: { frameId: string; index: number; axis: "x" | "y" }) => void;
+  /** Is a screen point over a ruler (a guide dropped there is deleted)? */
+  overRuler: (screen: Point) => boolean;
+  /** Clears the snap lines, spacing marks and HUD a gesture was showing. */
+  clearSnap: () => void;
   /** A marquee from `start` to `end` (canvas space), begun inside frame `startFrameId` (null: on bare canvas). */
   marquee: (start: Point, end: Point, startFrameId: string | null, mode: SelectMode) => void;
   /** Where new layers go: the active frame. */
@@ -137,6 +155,12 @@ export function createHandTool(): Tool {
   };
 }
 
+/** Which edges a resize handle drags. */
+const HANDLE_DIRS: Record<string, { sx: -1 | 0 | 1; sy: -1 | 0 | 1 }> = {
+  nw: { sx: -1, sy: -1 }, n: { sx: 0, sy: -1 }, ne: { sx: 1, sy: -1 }, e: { sx: 1, sy: 0 },
+  se: { sx: 1, sy: 1 }, s: { sx: 0, sy: 1 }, sw: { sx: -1, sy: 1 }, w: { sx: -1, sy: 0 },
+};
+
 /**
  * Select, and deep select (the same tool, picking the deepest layer).
  *
@@ -151,7 +175,8 @@ export function createHandTool(): Tool {
  */
 export function createSelectTool(id: "select" | "deepSelect"): Tool {
   const pan = panGesture();
-  type Mode = "idle" | "click" | "marquee" | "pan" | "pending-move" | "move" | "resize" | "rotate" | "param" | "cancelled";
+  type Mode = "idle" | "click" | "marquee" | "pan" | "pending-move" | "move" | "resize" | "rotate" | "param" | "guide" | "cancelled";
+  let guide: { frameId: string; index: number; axis: "x" | "y" } | null = null;
   let mode: Mode = "idle";
   let down: ToolPointer | null = null;
   let cursor: ToolPointer | null = null;
@@ -168,6 +193,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
     hit = null;
     began = false;
     start = null;
+    guide = null;
   };
   const snapshot = (model: TransformModel, handle?: HandleHit) => {
     start = { ids: model.ids, boxes: model.boxes, frame: model.frame, handle };
@@ -190,6 +216,12 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
       hit = ctx.pick(p.world, id === "deepSelect" || p.metaKey || p.ctrlKey);
       marqueeFrame = hit && hit.depth === 0 ? hit.id : null;
 
+      const grabbed = ctx.guideAt(p.screen);
+      if (grabbed) {
+        guide = grabbed;
+        mode = "guide";
+        return true;
+      }
       const model = ctx.transformModel();
       const handle = model ? ctx.handleAt(p.screen) : null;
       if (model && handle) {
@@ -214,6 +246,11 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
       cursor = p;
       if (!down) return;
       if (mode === "pan") return pan.move(p, ctx);
+      if (mode === "guide" && guide && moved(p, down)) {
+        begin(ctx, "Move guide");
+        ctx.moveGuide(guide, p.world);
+        return;
+      }
       if (mode === "pending-move" && moved(p, down)) {
         if (!start) {
           // select the layer under the pointer first, then move the new selection
@@ -231,14 +268,32 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
       if (mode === "move") {
         begin(ctx, "Move");
         let { x, y } = delta;
-        if (p.shiftKey) {
-          if (Math.abs(x) >= Math.abs(y)) y = 0;
-          else x = 0;
-        }
-        ctx.applyBoxes(start.ids, moveBoxes(start.boxes, x, y));
+        const lockY = p.shiftKey && Math.abs(x) >= Math.abs(y);
+        const lockX = p.shiftKey && !lockY;
+        if (lockY) y = 0;
+        if (lockX) x = 0;
+        const union = unionBox(moveBoxes(start.boxes, x, y))!;
+        const snap = ctx.snapMove(start.ids, { x: union.cx - union.w / 2, y: union.cy - union.h / 2, width: union.w, height: union.h }, p.metaKey || p.ctrlKey);
+        // a Shift-locked axis stays locked: its snap is ignored
+        ctx.applyBoxes(start.ids, moveBoxes(start.boxes, x + (lockX ? 0 : snap.dx), y + (lockY ? 0 : snap.dy)));
       } else if (mode === "resize" && start.handle?.kind === "resize" && moved(p, down)) {
         begin(ctx, "Resize");
-        ctx.applyBoxes(start.ids, resizeBoxes(start.boxes, start.frame, start.handle.handle, delta, { aspect: p.shiftKey, fromCenter: p.altKey }));
+        const opts = { aspect: p.shiftKey, fromCenter: p.altKey };
+        let d = delta;
+        // Snap the edges the handle drags (an upright box with the ratio free: a rotated or ratio-locked resize doesn't snap).
+        if (start.frame.rot === 0 && !p.shiftKey && !p.altKey) {
+          const next = resizeBoxes(start.boxes, start.frame, start.handle.handle, delta, opts);
+          const nf = unionBox(next)!;
+          const dir = HANDLE_DIRS[start.handle.handle];
+          const adj = ctx.snapEdges(
+            start.ids,
+            { x: nf.cx - nf.w / 2, y: nf.cy - nf.h / 2, width: nf.w, height: nf.h },
+            { left: dir.sx === -1, right: dir.sx === 1, top: dir.sy === -1, bottom: dir.sy === 1 },
+            p.metaKey || p.ctrlKey,
+          );
+          d = { x: delta.x + (dir.sx === 1 ? adj.right : dir.sx === -1 ? adj.left : 0), y: delta.y + (dir.sy === 1 ? adj.bottom : dir.sy === -1 ? adj.top : 0) };
+        }
+        ctx.applyBoxes(start.ids, resizeBoxes(start.boxes, start.frame, start.handle.handle, d, opts));
       } else if (mode === "rotate" && moved(p, down)) {
         begin(ctx, "Rotate");
         const pivot = { x: start.frame.cx, y: start.frame.cy };
@@ -257,10 +312,20 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
       const was = mode;
       const frameBg = marqueeFrame;
       const didBegin = began;
+      const grabbedGuide = guide;
       if (was === "pan") pan.end(ctx);
       reset();
       ctx.requestOverlay();
       if (!from || was === "cancelled") return;
+      ctx.clearSnap();
+      if (was === "guide" && grabbedGuide) {
+        const g = grabbedGuide;
+        if (didBegin) {
+          if (ctx.overRuler(p.screen)) ctx.removeGuide(g);
+          ctx.commitTransform();
+        }
+        return;
+      }
       if (didBegin) {
         ctx.commitTransform();
         return;
@@ -276,12 +341,14 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
     },
     onPointerCancel: (ctx) => {
       if (mode === "pan") pan.end(ctx);
+      ctx.clearSnap();
       if (began) ctx.cancelTransform();
       reset();
       ctx.requestOverlay();
     },
     onKey: (e, ctx) => {
       if (e.key === "Escape" && began) {
+        ctx.clearSnap();
         ctx.cancelTransform();
         began = false;
         mode = "cancelled";
