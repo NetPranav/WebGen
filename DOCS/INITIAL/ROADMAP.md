@@ -520,11 +520,12 @@ The document and World Environment have their own stores, After-track actions mo
 ### Phase 16 · Threat model for the stage and user content
 **Needs:** 3 · **Was:** v3 80.1 · **Closes:** AUD-51 (partial) · **Status:** 📋
 **Goal:** Decide the security boundaries before building the new stage host.
-- [ ] A STRIDE threat model as decision record 0008: the editor origin, stage frames, imported SVG, fonts and images, and the later code components, shaders, expressions, AI routes, MCP bridge and share links.
-- [ ] Rules the new renderer (17–19) must follow: same-origin stage frames render only document content through render definitions (never user HTML strings); untrusted code always goes to an opaque-origin sandbox (140).
+- [x] A STRIDE threat model as decision record 0008 (`decisions/0008-threat-model.md`): nine trust boundaries, each with its threats and the phase that enforces it, and seven findings in today's code.
+- [x] Rules the new renderer (17–19) must follow (R1–R10 in the record): no HTML strings, same-origin stage frames render only document content through render definitions, one typed bridge per frame with `event.source` checked, imported SVG sanitised once at import, limits, and a test for each rule; untrusted code goes to an opaque-origin sandbox (140).
 
 **You'll see:** nothing yet (a document). It unblocks Phase 18.
 **Done when:** the record is reviewed, and each boundary names the phase that enforces it.
+**Found while writing it (2026-10-19):** layer text and ids were put into the stage's HTML unescaped inside a same-origin, scripts-allowed frame, so an imported project could run script on the editor origin; AI chat text was rendered as HTML unescaped. Both are mitigated now (`escapeHtml`, with tests) and removed for good by Phases 18 and 168.
 
 ### Phase 17 · Render definitions per archetype
 **Needs:** 7, 8, 16 · **Was:** v3 48.1 · **Closes:** AUD-29 (markup half) · **Status:** 📋

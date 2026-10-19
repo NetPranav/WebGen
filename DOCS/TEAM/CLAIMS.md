@@ -12,11 +12,11 @@ Current schema: **v5** (on `main`).
 
 ## Decision records (`DOCS/INITIAL/decisions/`)
 
-Next free number: **0008**. (0006 is unused on purpose; v3 numbers clashed, see ROADMAP §6.)
+Next free number: **0014** (0008 is the threat model; 0009–0013 are named in ROADMAP §6). (0006 is unused on purpose; v3 numbers clashed, see ROADMAP §6.)
 
 | Number | Lane | Title | PR |
 |---|---|---|---|
-| | | | |
+| 0008 | A | Threat model for the stage and user content (Phase 16) | |
 
 ## New AUDIT IDs
 
