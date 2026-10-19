@@ -63,7 +63,7 @@ import { useHistoryStore } from "@/core/store/useHistoryStore";
 import { ProjectDatabase, generateProjectId, createDefaultBlankSnapshot } from "@/core/storage/ProjectDatabase";
 import { projectSession, useSaveStatus, type PendingRecovery } from "@/core/storage/ProjectSession";
 import { historyCommands, installGestureCoalescing } from "@/core/store/useDocumentStore";
-import { defineCommand, installGlobalCommands } from "@/core/commands";
+import { defineCommand, installGlobalCommands, invokeCommand } from "@/core/commands";
 import { LazyFileError, isLazyFileName, lazyFileName, parseLazyFile, serializeLazyFile } from "@/core/storage/lazyFile";
 import { RecoveryPrompt, SaveErrorBanner, FileDropOverlay } from "./PersistenceUi";
 import {
@@ -497,8 +497,10 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   }, [handleImportProjectFile]);
 
   const handleSaveProject = useCallback(() => {
-    void projectSession.flush();
+    invokeCommand("file.save");
   }, []);
+  const handleUndo = useCallback(() => void invokeCommand("edit.undo"), []);
+  const handleRedo = useCallback(() => void invokeCommand("edit.redo"), []);
   // Sub-Phase 43.1: Ctrl/Cmd+S is now the "file.save" command (registered below).
 
   /* --------------------------------------------------------------------------
@@ -1257,8 +1259,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             onSave={handleSaveProject}
             onExportProjectFile={() => void handleExportProjectFile()}
             onImportProjectFile={handleOpenImportPicker}
-            onUndo={historyCommands.undo}
-            onRedo={historyCommands.redo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
             canUndo={canUndo}
             canRedo={canRedo}
             onZoomIn={() => setZoomLevel((z) => Math.min(z + 10, 250))}
@@ -1316,8 +1318,8 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                 onTabDragStart={handleFullPageTabDragStart}
                 isDirty={isDirty}
                 onSave={handleSaveProject}
-                onUndo={historyCommands.undo}
-                onRedo={historyCommands.redo}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
                 onCloseAll={handleCloseAllFullPage}
                 onOpenAsset={(id, title) => handleDockFullPage(id, title)}
               >
@@ -1524,7 +1526,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     <button
                       type="button"
                       className="viewport-action-btn"
-                      onClick={historyCommands.undo}
+                      onClick={handleUndo}
                       title="Undo (Ctrl+Z)"
                     >
                       <Undo2 size={14} />
@@ -1533,7 +1535,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
                     <button
                       type="button"
                       className="viewport-action-btn"
-                      onClick={historyCommands.redo}
+                      onClick={handleRedo}
                       title="Redo (Ctrl+Shift+Z)"
                     >
                       <Redo2 size={14} />

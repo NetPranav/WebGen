@@ -309,17 +309,26 @@
 
 ---
 
-## `src/editor/canvas/` — Visual Workspace (7 files)
+## `src/editor/canvas/` — Visual Workspace (7 files + new `tools/` subfolder)
 
 | File | Status | Description |
 |------|--------|-------------|
-| `src/editor/canvas/WhiteboardCanvas.tsx` | ⬜ | Main 2D infinite canvas — pan, zoom, element rendering |
+| `src/editor/canvas/WhiteboardCanvas.tsx` | ⬜ | Main 2D infinite canvas — pan, zoom, element rendering, tool keybindings and drag routing (Sub-Phase 43.2) |
 | `src/editor/canvas/WasmCableCanvas.tsx` | ⬜ | WASM-accelerated cable/wire rendering between nodes |
 | `src/editor/canvas/CanvasOverlay.tsx` | ⬜ | Overlay layer for selection boxes, guides, snapping |
 | `src/editor/canvas/Scene3DViewport.tsx` | ⬜ | Three.js 3D viewport using React Three Fiber |
-| `src/editor/canvas/FloatingDock.tsx` | ⬜ | Floating quick-action dock on the canvas |
+| `src/editor/canvas/FloatingDock.tsx` | ⬜ | Floating tool dock — Select/Hand/Frame/Rectangle/Ellipse/Line/Text (Sub-Phase 43.2; was a generic Select/Pan/Pencil/Text/Wire/Shapes/Components/Assets set before) |
 | `src/editor/canvas/ZoomControls.tsx` | ⬜ | Zoom in/out/fit buttons |
 | `src/editor/canvas/CollabCursorOverlay.tsx` | ⬜ | Renders other users' cursors on the canvas |
+
+### `src/editor/canvas/tools/` — Shape Draw Tools (Sub-Phase 43.2; new, 4 files)
+
+| File | Status | Description |
+|------|--------|-------------|
+| `src/editor/canvas/tools/types.ts` | ⬜ | `ShapeToolDefinition` — the config shape for Frame/Rectangle/Ellipse/Line |
+| `src/editor/canvas/tools/shapeTools.ts` | ⬜ | `SHAPE_TOOLS` registry and the pure `computeShapeProperties` drag-to-size logic |
+| `src/editor/canvas/tools/useShapeDrawing.ts` | ⬜ | The drag-mechanics hook shared by all four shape tools — pointer capture, live overlay, commits the new layer on mouseup |
+| `src/editor/canvas/tools/__tests__/shapeTools.test.ts` | ⬜ | Unit tests for `computeShapeProperties` (Shift-constrain, click-vs-drag threshold, Line's width-only sizing) |
 
 ---
 

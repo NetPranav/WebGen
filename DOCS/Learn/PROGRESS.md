@@ -319,9 +319,11 @@ WebAPPBuilder/                     ← Root of the repo
 | 130 | `src/editor/canvas/WasmCableCanvas.tsx` | ⬜ | WASM-powered cable rendering |
 | 131 | `src/editor/canvas/CanvasOverlay.tsx` | ⬜ | Canvas overlay layer |
 | 132 | `src/editor/canvas/Scene3DViewport.tsx` | ⬜ | 3D viewport |
-| 133 | `src/editor/canvas/FloatingDock.tsx` | ⬜ | Floating tool dock |
+| 133 | `src/editor/canvas/FloatingDock.tsx` | ⬜ | Floating tool dock — Select/Hand/Frame/Rectangle/Ellipse/Line/Text (Sub-Phase 43.2) |
 | 134 | `src/editor/canvas/ZoomControls.tsx` | ⬜ | Zoom in/out controls |
 | 135 | `src/editor/canvas/CollabCursorOverlay.tsx` | ⬜ | Multi-user cursor overlay |
+
+> Sub-Phase 43.2 (2026-09-27) added `src/editor/canvas/tools/` (4 files: `types.ts`, `shapeTools.ts`, `useShapeDrawing.ts`, `__tests__/shapeTools.test.ts`) — the shared drag-mechanics for the Frame/Rectangle/Ellipse/Line tools. See `UNTRACKED.md`'s `src/editor/canvas/tools/` section for per-file descriptions.
 
 ### Layer 12: Panels (Feature Panels)
 *(Will expand this list as we reach this layer — approximately 50 components)*
