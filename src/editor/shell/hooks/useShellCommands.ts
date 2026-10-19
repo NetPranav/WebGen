@@ -206,6 +206,18 @@ export function useShellCommands(actions: ShellCommandActions) {
     return () => unregisters.forEach((off) => off());
   }, []);
 
+  // Phase 28: snapping and rulers.
+  useEffect(() => {
+    const snap = () => useSnapStore.getState();
+    const unregisters = [
+      defineCommand({ id: "view.snapObjects", title: "Toggle Snap to Objects", category: "View", run: () => snap().toggle("objects") }),
+      defineCommand({ id: "view.snapGuides", title: "Toggle Snap to Guides", category: "View", run: () => snap().toggle("guides") }),
+      defineCommand({ id: "view.snapGrid", title: "Toggle Pixel Grid Snap", category: "View", run: () => snap().toggle("grid") }),
+      defineCommand({ id: "view.toggleRulers", title: "Show / Hide Rulers", category: "View", keybinding: "Shift+R", when: (ctx) => ctx.canvasFocus && !ctx.textEditing, run: () => snap().toggle("rulers") }),
+    ];
+    return () => unregisters.forEach((off) => off());
+  }, []);
+
   // Phase 23: Design mode (the canvas picks layers) and Preview mode (the page is clickable).
   useEffect(() => {
     const view = () => useCanvasViewStore.getState();
