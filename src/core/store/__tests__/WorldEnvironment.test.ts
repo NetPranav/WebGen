@@ -18,8 +18,8 @@ test("World Environment: Default state verification across all 20 properties", (
   assert.equal(env.viewport.pan.trigger, "space_drag");
   assert.equal(env.viewport.zoom.enabled, true);
   assert.equal(env.viewport.zoom.speed, "normal");
-  assert.equal(env.viewport.zoom.min, 10);
-  assert.equal(env.viewport.zoom.max, 400);
+  assert.equal(env.viewport.zoom.min, 2);
+  assert.equal(env.viewport.zoom.max, 6400);
   assert.equal(env.viewport.grid.style, "dots");
   assert.equal(env.viewport.grid.size, 24);
 

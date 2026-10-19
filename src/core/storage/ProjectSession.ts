@@ -133,6 +133,14 @@ export class ProjectSession {
     return this.projectId;
   }
 
+  private readonly openListeners = new Set<(id: string) => void>();
+
+  /** Calls `listener` each time a project finishes opening, with its id. Returns the unsubscribe function. */
+  onOpen(listener: (id: string) => void): () => void {
+    this.openListeners.add(listener);
+    return () => this.openListeners.delete(listener);
+  }
+
   /** Loads `id` into the stores (creating it if needed) and starts autosave. */
   async open(id: string, options: OpenProjectOptions = {}): Promise<OpenProjectResult> {
     this.close();
@@ -168,6 +176,7 @@ export class ProjectSession {
 
     this.start();
     useSaveStatus.setState({ state: "saved", lastSavedAt: Date.parse(record.updatedAt) || Date.now() });
+    this.openListeners.forEach((listener) => listener(id));
     return { created, recovery };
   }
 

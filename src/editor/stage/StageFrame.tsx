@@ -110,6 +110,37 @@ export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ titl
   // Keys typed while the frame has focus reach the command bus too (the dispatcher is per window).
   useEffect(() => (mount ? installCommandDispatcher(mount.window) : undefined), [mount]);
 
+  // Wheel and pinch over the frame never reach the editor (a frame is its own browsing context), so the frame's
+  // document hands them back: each one is re-dispatched on the <iframe> element, with the pointer position
+  // mapped through the canvas' pan/zoom, and bubbles to the canvas' own wheel handler (Phase 20, record 0009 §4).
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!mount || !iframe) return undefined;
+    const forward = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = iframe.getBoundingClientRect();
+      const scaleX = iframe.clientWidth > 0 ? rect.width / iframe.clientWidth : 1;
+      const scaleY = iframe.clientHeight > 0 ? rect.height / iframe.clientHeight : 1;
+      iframe.dispatchEvent(
+        new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          clientX: rect.left + e.clientX * scaleX,
+          clientY: rect.top + e.clientY * scaleY,
+          deltaX: e.deltaX,
+          deltaY: e.deltaY,
+          deltaMode: e.deltaMode,
+          ctrlKey: e.ctrlKey,
+          metaKey: e.metaKey,
+          shiftKey: e.shiftKey,
+          altKey: e.altKey,
+        })
+      );
+    };
+    mount.document.addEventListener("wheel", forward, { passive: false });
+    return () => mount.document.removeEventListener("wheel", forward);
+  }, [mount]);
+
   return (
     <>
       <iframe

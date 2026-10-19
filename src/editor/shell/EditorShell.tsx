@@ -15,6 +15,7 @@
 
 import React, { Suspense, lazy, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import "@/editor/styles/dock.css";
+import { useCameraStore, selectZoomPercent } from "@/core/store/useCameraStore";
 import { StatusBar } from "./StatusBar";
 import { StudioHeader } from "./StudioHeader";
 import { WorkspaceTabStrip } from "./WorkspaceTabStrip";
@@ -58,7 +59,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
 
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(100);
+  const zoomLevel = useCameraStore(selectZoomPercent);
   const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [isPlaying] = useState(false);
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
@@ -165,7 +166,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
     showBottomTab,
     exportProjectFile: () => void files.handleExportProjectFile(),
     openImportPicker: files.handleOpenImportPicker,
-    setZoomLevel,
     openSettings: handleOpenSettings,
     selectPreset: handleSelectWorkspace,
   });
@@ -221,11 +221,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
       isDirty,
       save: handleSaveProject,
       deviceMode,
-      zoomLevel,
-      setZoomLevel,
       closeSettings: handleCloseSettings,
     }),
-    [selectedElement, handleDockFullPage, fp.handleGenericTearOffStart, showBottomTab, ws.setBottomActiveTab, setBottomCollapsed, focusedBlueprintNodeId, isDirty, handleSaveProject, deviceMode, zoomLevel, handleCloseSettings],
+    [selectedElement, handleDockFullPage, fp.handleGenericTearOffStart, showBottomTab, ws.setBottomActiveTab, setBottomCollapsed, focusedBlueprintNodeId, isDirty, handleSaveProject, deviceMode, handleCloseSettings],
   );
 
   return (

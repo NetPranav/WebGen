@@ -191,7 +191,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 17 | Render definitions per archetype | 7, 8, 16 | v3 48.1 | 1 | ✅ |
 | 18 | Stage host v2: live DOM frames, no HTML strings | 17 | v3 48.2, 48.5 | 1 | ✅ |
 | 19 | Incremental updates & measurement API | 18 | v3 48.3, 48.4 | 1 | ✅ |
-| 20 | Viewport camera | 19 | v3 49.1 | 1 | 📋 |
+| 20 | Viewport camera | 19 | v3 49.1 | 1 | 🚧 |
 | 21 | Multi-frame canvas | 20 | v3 49.2, 20.3 | 1 | 📋 |
 | 22 | Hit-testing | 21 | v3 49.3 | 1 | 📋 |
 | 23 | Overlay layer & Design / Preview modes | 22 | v3 49.4, 49.5 | 1 | 📋 |
@@ -561,11 +561,15 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence (2026-10-19):** `/editor/stage-lab` loads 500 layers into the real stage and edits them through the real document commands; `tests/e2e/stage-incremental.spec.ts` (6 tests, Chromium, Firefox and WebKit) measured, on a quiet laptop, **500 layers mounting in 15 ms (Chromium), 42 ms (Firefox) and 34 ms (WebKit)**; one property edit → exactly one layer rendered once; add → the new layer and its parent only; remove → the parent only; `measure()` within 0.5 px of the DOM for the root, first, middle and last layers, unchanged by scrolling the frame, correct after a layout shift, and 100 simultaneous callers costing one read pass. Unit tests cover the plan store, the registry, the batching and the cache (`src/core/render/__tests__/incremental.test.ts`). Edits reach the frame's DOM in 2–7 ms in all three engines. Gate passed in CI in 3 browsers on `main` (2026-10-19).
 
 ### Phase 20 · Viewport camera
-**Needs:** 19 · **Was:** v3 49.1 · **Closes:** — (World Environment properties 1–6) · **Status:** 📋
-- [ ] Document ↔ screen transform; pan (Space-drag, middle mouse, trackpad), zoom 2%–6,400% (wheel, pinch, keys) around the cursor, zoom to fit, to selection and to 100%. The camera is saved per document. Reuses the `WhiteboardCanvas.tsx` maths.
+**Needs:** 19 · **Was:** v3 49.1 · **Closes:** — (World Environment properties 1–6) · **Status:** 🚧
+- [x] Document ↔ screen transform (`src/core/viewport/camera.ts`, pure and unit-tested); pan (Space-drag, middle mouse, trackpad), zoom 2%–6,400% (wheel, pinch, keys) around the cursor, zoom to fit (Shift+1), to selection (Shift+2) and to 100% (Shift+0). The camera is saved per document. Reuses the `WhiteboardCanvas.tsx` maths.
+- [x] Wheel and pinch over the stage frame reach the camera (record 0009 §4 said Phase 20 must forward them).
+- [ ] Pan and zoom hold 60 fps with 5 frames × 200 layers. Needs Phase 21's several frames; measured there.
 
 **You'll see:** smooth panning and zooming around your frames.
 **Done when:** pan and zoom hold 60 fps with 5 frames × 200 layers; zoom keeps the point under the cursor fixed (test).
+
+**Evidence (2026-10-19):** `src/core/viewport/__tests__/camera.test.ts` (round trip, the point under the cursor stays fixed through zooms from 2% to 6,400%, clamping, steps, fit); `tests/e2e/viewport-camera.spec.ts` in Chromium, Firefox and WebKit (zoom keeps the cursor point fixed to 0.01 px, 2%–6,400% range, wheel pans, buttons zoom to 100% and fit, pinch and wheel over the stage frame reach the camera, the camera survives a reload, Shift+2 centres the selected layer and Shift+0 returns to 100%). **Design:** the camera lives in `useCameraStore` and is written straight to the canvas node's CSS variables, so a wheel tick never re-renders React. It is saved per project id in `localStorage` (a view setting, not document content, so no schema change). **Deviations:** the 60 fps gate needs five frames, which Phase 21 builds, so it is measured there; zoom limits in the World Environment defaults moved to 2–6,400 and the canvas no longer reads them (the camera clamps). Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 21 · Multi-frame canvas
 **Needs:** 20 · **Was:** v3 49.2, 20.3 · **Status:** 📋

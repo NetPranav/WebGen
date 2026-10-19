@@ -41,6 +41,9 @@ export function normalizeShortcut(input: KeyboardEvent | string): string {
   if (e.shiftKey) result.push("Shift");
 
   let key = e.key;
+  // Shift+digit reports the symbol on that key ("@" for Shift+2 on a US layout). A binding names the digit, so
+  // read the physical key; it is the same on every layout. (Phase 20: Shift+0 / Shift+1 / Shift+2 zoom.)
+  if (e.shiftKey && typeof e.code === "string" && /^Digit\d$/.test(e.code)) key = e.code.slice(5);
   if (key === "Control" || key === "Meta" || key === "Alt" || key === "Shift") {
     return result.join("+");
   }

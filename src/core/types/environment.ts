@@ -161,8 +161,8 @@ export const DEFAULT_ENVIRONMENT_SETTINGS: WorldEnvironmentSettings = {
     zoom: {
       enabled: true,
       speed: "normal",
-      min: 10,
-      max: 400,
+      min: 2,
+      max: 6400,
     },
     grid: {
       style: "dots",

@@ -25,7 +25,5 @@ export interface PanelContext {
   isDirty: boolean;
   save: () => void;
   deviceMode: "desktop" | "tablet" | "mobile";
-  zoomLevel: number;
-  setZoomLevel: (zoom: number) => void;
   closeSettings: () => void;
 }

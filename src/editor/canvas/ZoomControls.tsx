@@ -34,8 +34,8 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
   onResetZoom,
   onFitToScreen,
   onRecenter,
-  minZoom = 10,
-  maxZoom = 400,
+  minZoom = 2,
+  maxZoom = 6400,
   className,
   style,
 }) => {
