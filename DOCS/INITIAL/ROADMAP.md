@@ -509,12 +509,13 @@ The document and World Environment have their own stores, After-track actions mo
 
 ### Phase 15 · Design / Animate / Code presets & inspector tabs
 **Needs:** 14 · **Was:** v3 44.2, 44.3 · **Closes:** AUD-21 (shell) · **Status:** 📋
-- [ ] Presets: **Design** (Layers │ Canvas │ Design inspector, the timeline collapsed to a slim transport bar), **Animate** (timeline at ~40% height), **Code** (Canvas │ Code). The header's existing Design and Animate tabs switch them.
-- [ ] Inspector tabs **Design · Motion · Code**; users can save custom layouts.
-- [ ] Logic, Data and Debug tabs appear only in the `full` edition.
+- [x] Presets: **Design** (the default: stage │ Design inspector, the timeline folded to the transport bar in the status bar; the Layers panel joins it in Phase 32), **Animate** (timeline at 40% of the window, clamped to the splitter limits, Motion inspector), **Code** (stage │ a 520 px Code inspector). The header's tabs switch them; each is also a command (`workspace.preset.<id>`, and the typed `workspace.setPreset`).
+- [x] Inspector tabs **Design · Motion · Code**. Motion lists the selected layer's clips and tracks from the document and opens the timeline (`MotionInspector`); editing stays on the timeline until Stage 2. Users save a layout under a name, apply it with one click and delete it (`Layouts` menu; commands `workspace.saveLayout/applyLayout/deleteLayout`, up to 20, kept in `localStorage`).
+- [x] Logic, Data and Debug presets, and the Debug inspector tab, appear only in the `full` edition (unit-tested; the initial-edition browser test finds none of them).
 
 **You'll see:** one click switches between a Figma-like and an After Effects-like layout.
 **Done when:** a preset switch takes < 100 ms and doesn't remount the stage; a custom layout survives a reload.
+**Evidence (2026-10-19):** `tests/e2e/presets.spec.ts` (median of five switches under 100 ms, the stage node survives them, custom layout saved, applied after a reload and deleted); `src/core/workspace/__tests__/`. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 16 · Threat model for the stage and user content
 **Needs:** 3 · **Was:** v3 80.1 · **Closes:** AUD-51 (partial) · **Status:** 📋

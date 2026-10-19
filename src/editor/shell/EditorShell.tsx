@@ -145,6 +145,18 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
     return () => window.removeEventListener("keydown", handleEscapeSettings);
   }, [ws.centerActiveTab, handleCloseSettings]);
 
+  /** Switches workspace preset (UI.md §5.2) and performs what the preset asks beyond layout. */
+  const { selectPreset } = ws;
+  const handleSelectWorkspace = useCallback(
+    (preset: string) => {
+      for (const effect of selectPreset(preset)) {
+        if (effect.type === "fullPage") handleDockFullPage(effect.panelId, effect.title);
+        else handleZoneClick(effect.zone);
+      }
+    },
+    [selectPreset, handleDockFullPage, handleZoneClick],
+  );
+
   useShellCommands({
     toggleCommandPalette: () => setIsCommandPaletteOpen((prev) => !prev),
     toggleGlobalSearch: () => setIsGlobalSearchOpen((prev) => !prev),
@@ -155,6 +167,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
     openImportPicker: files.handleOpenImportPicker,
     setZoomLevel,
     openSettings: handleOpenSettings,
+    selectPreset: handleSelectWorkspace,
   });
 
   /** Opens a panel in a zone, or as a full-page tab (Window menu, workspace strip). */
@@ -191,14 +204,6 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
       setIsGlobalSearchOpen(true);
     } else {
       setCenterActiveTab(tabId === "settings" ? "settings" : "viewport");
-    }
-  };
-
-  /** Switches workspace preset (UI.md §5.2) and performs what the preset asks beyond layout. */
-  const handleSelectWorkspace = (preset: string) => {
-    for (const effect of ws.selectPreset(preset)) {
-      if (effect.type === "fullPage") handleDockFullPage(effect.panelId, effect.title);
-      else handleZoneClick(effect.zone);
     }
   };
 
@@ -274,7 +279,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
             activeWorkspace={ws.activeWorkspace}
             canUndo={canUndo}
             canRedo={canRedo}
-            onResetLayout={() => handleSelectWorkspace("full-studio")}
+            onResetLayout={() => handleSelectWorkspace("design")}
             onOpenPanel={handleOpenPanel}
             onOpenSettings={handleOpenSettings}
             onCloseSettings={handleCloseSettings}
@@ -314,7 +319,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
             onOpenWorldInspector={() => {
               if (ws.rightCollapsed) ws.setRightCollapsed(false);
               setSelectedElement(null);
-              ws.setRightActiveTab("details");
+              ws.setRightActiveTab("design");
             }}
           />
         }

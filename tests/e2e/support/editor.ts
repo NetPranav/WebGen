@@ -32,7 +32,8 @@ export async function openFileMenu(page: Page) {
 }
 
 export async function openSequencer(page: Page) {
-  await page.getByRole("button", { name: "Motion Sequencer" }).click();
+  // The Design workspace folds the drawer away, so open the timeline from the Motion shelf.
+  await page.getByRole("button", { name: "Timeline tool" }).click();
   // The Sequencer's code is fetched the first time it is shown (Phase 14).
   await page.locator(".sequencer-ruler-wrap").waitFor({ state: "visible", timeout: 15_000 });
   await page.waitForTimeout(300);

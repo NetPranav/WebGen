@@ -17,6 +17,7 @@
  */
 
 import { useEffect } from "react";
+import type { ZodType, z } from "zod";
 import type { Command, CommandOutcome } from "./types";
 import { getContextKeys } from "./contextKeys";
 
@@ -30,6 +31,11 @@ export function defineCommand(command: Command): () => void {
     // shouldn't be undone by an earlier command's stale cleanup running late).
     if (commands.get(command.id) === command) commands.delete(command.id);
   };
+}
+
+/** `defineCommand` for a command with an `args` schema: `run` receives the parsed, typed arguments. */
+export function defineTypedCommand<S extends ZodType>(command: Omit<Command, "args" | "run"> & { args: S; run: (args: z.infer<S>) => unknown }): () => void {
+  return defineCommand({ ...command, run: command.run as Command["run"] });
 }
 
 export function getCommand(id: string): Command | undefined {

@@ -6,7 +6,12 @@
  * File / View / Edit commands the menus run (Phase 13).
  */
 import { useEffect, type Dispatch, type SetStateAction } from "react";
-import { defineCommand, installGlobalCommands } from "@/core/commands";
+import { z } from "zod";
+import { defineCommand, defineTypedCommand, installGlobalCommands } from "@/core/commands";
+import { edition } from "@/core/flags";
+import { PRESET_IDS, presetsFor } from "@/core/workspace/layout";
+import { useWorkspaceStore } from "@/core/workspace/useWorkspaceStore";
+import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
 export interface ShellCommandActions {
   toggleCommandPalette: () => void;
@@ -18,6 +23,8 @@ export interface ShellCommandActions {
   openImportPicker: () => void;
   setZoomLevel: Dispatch<SetStateAction<number>>;
   openSettings: () => void;
+  /** Switches to a workspace preset and performs what it asks beyond layout. */
+  selectPreset: (preset: string) => void;
 }
 
 export function useShellCommands(actions: ShellCommandActions) {
@@ -31,6 +38,7 @@ export function useShellCommands(actions: ShellCommandActions) {
     openImportPicker,
     setZoomLevel,
     openSettings,
+    selectPreset,
   } = actions;
 
   /**
@@ -167,4 +175,62 @@ export function useShellCommands(actions: ShellCommandActions) {
       for (const unregister of unregisters) unregister();
     };
   }, [exportProjectFile, openImportPicker, setZoomLevel, openSettings]);
+
+  // Phase 15: workspace presets and saved layouts. The no-argument commands are what the
+  // palette runs; the typed ones (`args`) are what an agent calls (Law 20).
+  useEffect(() => {
+    const label: Record<string, string> = { design: "Design", animate: "Animate", code: "Code", logic: "Logic", data: "Data", debug: "Debug" };
+    const available = presetsFor(edition);
+    const unregisters = [
+      ...available.map((id) =>
+        defineCommand({ id: `workspace.preset.${id}`, title: `${label[id]} Workspace`, category: "Workspace", run: () => selectPreset(id) }),
+      ),
+      defineTypedCommand({
+        id: "workspace.setPreset",
+        title: "Switch Workspace Preset",
+        category: "Workspace",
+        args: z.object({ preset: z.enum(PRESET_IDS) }),
+        result: z.object({ preset: z.string() }),
+        run: ({ preset }) => {
+          if (!available.includes(preset)) throw new Error(`The ${preset} workspace is not in this edition.`);
+          selectPreset(preset);
+          return { preset };
+        },
+      }),
+      defineTypedCommand({
+        id: "workspace.saveLayout",
+        title: "Save Current Layout As...",
+        category: "Workspace",
+        args: z.object({ name: z.string() }),
+        result: z.object({ ok: z.boolean(), replaced: z.boolean().optional(), reason: z.string().optional() }),
+        run: ({ name }) => {
+          const result = useSavedLayouts.getState().save(name, useWorkspaceStore.getState().layout);
+          return result.ok ? { ok: true, replaced: result.replaced } : { ok: false, reason: result.reason };
+        },
+      }),
+      defineTypedCommand({
+        id: "workspace.applyLayout",
+        title: "Apply Saved Layout",
+        category: "Workspace",
+        args: z.object({ name: z.string() }),
+        result: z.object({ applied: z.boolean() }),
+        run: ({ name }) => {
+          const layout = useSavedLayouts.getState().get(name);
+          if (layout) useWorkspaceStore.getState().applyLayout(layout, name);
+          return { applied: !!layout };
+        },
+      }),
+      defineTypedCommand({
+        id: "workspace.deleteLayout",
+        title: "Delete Saved Layout",
+        category: "Workspace",
+        args: z.object({ name: z.string() }),
+        run: ({ name }) => useSavedLayouts.getState().remove(name),
+      }),
+      defineCommand({ id: "workspace.resetLayout", title: "Reset Layout to Default", category: "Workspace", run: () => selectPreset("design") }),
+    ];
+    return () => {
+      for (const unregister of unregisters) unregister();
+    };
+  }, [selectPreset]);
 }

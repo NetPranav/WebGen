@@ -80,7 +80,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onToggleRight,
   onToggleBottom,
   onSelectWorkspace,
-  activeWorkspace = "full-studio",
+  activeWorkspace = "design",
   canUndo = true,
   canRedo = true,
   onResetLayout,

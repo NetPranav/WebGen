@@ -214,3 +214,24 @@ describe("Phase 13: typed command arguments", () => {
     unregister();
   });
 });
+
+import { defineTypedCommand } from "../registry";
+
+describe("Phase 15: defineTypedCommand", () => {
+  it("gives run the parsed, typed arguments", () => {
+    let seen: { name: string; count: number } | undefined;
+    const unregister = defineTypedCommand({
+      id: "test.typed.helper",
+      title: "Helper",
+      args: z.object({ name: z.string(), count: z.number().default(1) }),
+      run: (a) => {
+        seen = a;
+        return a.name.length;
+      },
+    });
+    assert.deepEqual(tryRunCommand("test.typed.helper", { name: "abc" }), { ok: true, result: 3 });
+    assert.deepEqual(seen, { name: "abc", count: 1 });
+    assert.equal(tryRunCommand("test.typed.helper", { name: 5 }).ok, false);
+    unregister();
+  });
+});

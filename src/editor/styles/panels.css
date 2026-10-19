@@ -7399,3 +7399,60 @@
 
 
 
+
+/* ---- Motion inspector (Phase 15) ---- */
+.motion-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  overflow-y: auto;
+  height: 100%;
+}
+.motion-inspector__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: var(--font-semibold);
+}
+.motion-inspector__empty,
+.motion-inspector__none {
+  margin: 0;
+  color: var(--text-muted);
+}
+.motion-inspector__clip {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+}
+.motion-inspector__clip h4 {
+  margin: 0 0 2px;
+  font-size: var(--text-xs);
+}
+.motion-inspector__clip p {
+  margin: 0 0 var(--space-xs);
+  color: var(--text-muted);
+}
+.motion-inspector__clip ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.motion-inspector__clip li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+}
+.motion-inspector__open {
+  align-self: flex-start;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent-primary);
+  cursor: pointer;
+}

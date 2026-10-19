@@ -30,6 +30,9 @@ const EDITS = 20;
 
 function shot(page: import("@playwright/test").Page, outDir: string, label: string) {
   return (async () => {
+    // The canvas origin is placed when the stage mounts, relative to its size at that moment; the drawer opens
+    // after mount in one run and before it in another, so recentre both (Phase 15's default layout starts closed).
+    await page.locator("#canvas-bring-back-to-center").click();
     await page.mouse.move(5, 995); // no hover states
     await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
     await page.waitForTimeout(600);

@@ -49,7 +49,8 @@ test("Phase 14: the stage node is the same object across resizes and preset swit
   await dragRightSplitter(page, 40);
   await page.getByRole("tab", { name: /Design/ }).click();
   await page.getByRole("tab", { name: /Animate/ }).click();
-  await page.getByRole("tab", { name: /Full Studio/ }).click();
+  await page.getByRole("tab", { name: /Code/ }).click();
+  await page.getByRole("tab", { name: /Design/ }).click();
   await page.setViewportSize({ width: 1100, height: 700 });
   await page.setViewportSize({ width: 1400, height: 900 });
 
@@ -63,13 +64,11 @@ test("Phase 14: the stage node is the same object across resizes and preset swit
 test("Phase 14: panels outside the layout are not loaded until they are shown", async ({ page }) => {
   await openEditor(page);
   const initial = await loadedPanels(page);
-  expect(initial, "the stage, Details and the Content Browser are in the default layout").toEqual(
-    expect.arrayContaining(["center:viewport", "right:details", "bottom:content-browser"]),
-  );
-  for (const absent of ["bottom:sequencer", "bottom:curves", "bottom:export-code", "fullpage:history", "fullpage:code", "right:console"]) {
+  expect(initial, "the stage and the Design inspector are in the default layout").toEqual(expect.arrayContaining(["center:viewport", "right:design"]));
+  for (const absent of ["bottom:content-browser", "bottom:sequencer", "bottom:curves", "bottom:export-code", "fullpage:history", "fullpage:code", "right:console", "right:code", "right:motion"]) {
     expect(initial, `${absent} must not be loaded on first paint`).not.toContain(absent);
   }
 
-  await page.getByRole("button", { name: "Motion Sequencer" }).click();
+  await page.getByRole("button", { name: "Timeline tool" }).click();
   await expect.poll(() => loadedPanels(page)).toContain("bottom:sequencer");
 });

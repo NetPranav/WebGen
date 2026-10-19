@@ -31,6 +31,8 @@ interface WorkspaceState {
   setAi: (patch: Partial<WorkspaceLayout["ai"]>) => void;
   /** Applies a preset and returns the effects (full-page panel, zone focus) the shell must perform. */
   selectPreset: (preset: string) => PresetEffect[];
+  /** Replaces the layout with a saved one, recorded as the custom preset `custom:<name>`. */
+  applyLayout: (layout: WorkspaceLayout, name: string) => void;
   resetLayout: () => PresetEffect[];
 }
 
@@ -68,12 +70,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setAi: (patch) => set((s) => ({ layout: { ...s.layout, ai: { ...s.layout.ai, ...patch } } })),
 
   selectPreset: (preset) => {
-    const { layout, effects } = applyPreset(get().layout, preset);
+    const viewportHeight = typeof window === "undefined" ? undefined : window.innerHeight;
+    const { layout, effects } = applyPreset(get().layout, preset, { viewportHeight });
     set({ layout });
     return effects;
   },
+  applyLayout: (layout, name) => set({ layout: { ...clampLayout(layout), preset: `custom:${name}` } }),
   resetLayout: () => {
-    const { layout, effects } = applyPreset(DEFAULT_LAYOUT, "full-studio");
+    const { layout, effects } = applyPreset(DEFAULT_LAYOUT, "design");
     set({ layout });
     return effects;
   },

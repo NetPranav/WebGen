@@ -16,7 +16,9 @@ import { TearOffDragOverlay } from "./TearOffDragOverlay";
 import { AiDockColumn } from "./AiDockColumn";
 import { OutputLogDrawer } from "./OutputLogDrawer";
 import { PanelHost } from "./panels/PanelHost";
-import { RIGHT_TABS } from "./dockTabs";
+import { rightTabsFor } from "./dockTabs";
+import { edition } from "@/core/flags";
+import { normalizeInspectorTab } from "@/core/workspace/layout";
 import { ZONE_LIMITS } from "@/core/workspace/layout";
 import type { PanelContext } from "./panels/context";
 import type { Workspace } from "./hooks/useWorkspace";
@@ -83,7 +85,8 @@ export const DockTree: React.FC<DockTreeProps> = ({
     return tabs;
   }, [fp.visibleBottomTabs, bottomActiveTab]);
 
-  const rightId = rightActiveTab === "details" || rightActiveTab === "tokens" ? rightActiveTab : "console";
+  const rightTabs = useMemo(() => rightTabsFor(edition), []);
+  const rightId = normalizeInspectorTab(rightActiveTab, edition);
   const bottomIds = ["content-browser", "export-code", "trace", "blueprint", "curves"];
   const bottomId = bottomIds.includes(bottomActiveTab) ? bottomActiveTab : "sequencer";
   const showingStageInFullPage = currentTabId === "viewport" || currentFullPagePanel?.panelId === "content-browser";
@@ -101,7 +104,7 @@ export const DockTree: React.FC<DockTreeProps> = ({
     />
   );
 
-  const rightZone = (tabs: typeof RIGHT_TABS, activeTabId: string, content: React.ReactNode) => (
+  const rightZone = (tabs: typeof rightTabs, activeTabId: string, content: React.ReactNode) => (
     <DockZone
       ref={rightZoneRef}
       zoneId="right"
@@ -163,12 +166,12 @@ export const DockTree: React.FC<DockTreeProps> = ({
           {rightSplitter}
           {rightZone(
             showingStageInFullPage
-              ? RIGHT_TABS
+              ? rightTabs
               : [
                   { id: "asset-details", title: `${currentFullPagePanel.title} Details`, closable: false },
                   { id: "tokens", title: "Tokens", closable: true },
                 ],
-            showingStageInFullPage ? rightActiveTab : "asset-details",
+            showingStageInFullPage ? rightId : "asset-details",
             showingStageInFullPage ? (
               <PanelHost zone="right" panelId={rightId} context={context} override={overrides.right[rightActiveTab]} />
             ) : (
@@ -193,8 +196,8 @@ export const DockTree: React.FC<DockTreeProps> = ({
           <AiDockColumn side="right" ai={ai} layers={layers} zoneRef={aiZoneRef} />
           {rightSplitter}
           {rightZone(
-            RIGHT_TABS,
-            rightActiveTab,
+            rightTabs,
+            rightId,
             <PanelHost zone="right" panelId={rightId} context={context} override={overrides.right[rightActiveTab]} />,
           )}
         </>
