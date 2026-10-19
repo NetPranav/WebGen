@@ -13,14 +13,12 @@
 
 import React, { useState } from "react";
 import {
-  Table,
   Plus,
   Trash2,
   Search,
   Check,
   X,
   Database,
-  ArrowUpDown,
 } from "lucide-react";
 import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { DatabaseField } from "@/core/types/database";

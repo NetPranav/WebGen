@@ -15,7 +15,7 @@
 
 import React, { useState } from "react";
 import type { ScrollTriggerConfig } from "@/core/document/schema";
-import { Sliders, Anchor, Eye, Compass } from "lucide-react";
+import { Sliders, Anchor, Compass } from "lucide-react";
 
 export interface ScrollTriggerBarProps {
   config?: ScrollTriggerConfig;

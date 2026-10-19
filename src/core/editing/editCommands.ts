@@ -19,7 +19,8 @@ import {
 const ids = () => useSelectionStore.getState().selectedIds;
 const hasSelection = () => ids().length > 0;
 /** Canvas shortcuts: the canvas has focus, no text field does, something is selected, and no drag is in progress. */
-const onSelection = (ctx: ContextKeys) => ctx.canvasFocus && !ctx.textEditing && hasSelection() && !useToolStore.getState().gesturing;
+const onSelection = (ctx: ContextKeys) =>
+  ctx.canvasFocus && !ctx.textEditing && hasSelection() && !useToolStore.getState().gesturing && useCanvasViewStore.getState().mode === "design";
 
 /** The container a paste goes into when exactly one container is selected (and it isn't a top-level frame being copied elsewhere). */
 function pasteTarget(): string | null {
@@ -29,12 +30,11 @@ function pasteTarget(): string | null {
   return l && l.archetype === "container" ? l.id : null;
 }
 
+/** Copies the selection. Returns the text only if a copy was actually kept (the mirror took it), so a cut never deletes into nothing. */
 function doCopy(): string | null {
   const text = copyText(ids());
-  if (text) {
-    mirrorWrite(text);
-    void navigator.clipboard?.writeText(text).catch(() => undefined);
-  }
+  if (!text || !mirrorWrite(text)) return null;
+  void navigator.clipboard?.writeText(text).catch(() => undefined);
   return text;
 }
 
@@ -101,7 +101,7 @@ export function installClipboardEvents(target: Window): () => void {
     if (!canvas() || !hasSelection() || !e.clipboardData) return;
     const text = copyText(ids());
     if (!text) return;
-    e.clipboardData.setData("text/plain", text);
+    e.clipboardData.setData("text/plain", text); // the system clipboard has it now: a cut can go ahead
     mirrorWrite(text);
     e.preventDefault();
     if (cut) deleteLayers(ids());

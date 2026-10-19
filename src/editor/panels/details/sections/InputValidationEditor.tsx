@@ -14,18 +14,13 @@
 
 import React, { useState } from "react";
 import {
-  FileCheck,
   CheckCircle,
   AlertCircle,
   ChevronRight,
-  RotateCcw,
   ShieldCheck,
   Play,
   Key,
   Lock,
-  Hash,
-  Mail,
-  Search,
 } from "lucide-react";
 import { InputSpecificConfig } from "@/core/types/element-sections";
 import { PropertyBlueprintBindingControl } from "../../common/PropertyBlueprintBindingControl";
@@ -39,7 +34,7 @@ export interface InputValidationEditorProps {
 export const InputValidationEditor: React.FC<InputValidationEditorProps> = ({
   config,
   onChange,
-  onReset,
+  onReset: _onReset,
 }) => {
   const [openSubgroups, setOpenSubgroups] = useState({
     typeAndPlaceholder: true,

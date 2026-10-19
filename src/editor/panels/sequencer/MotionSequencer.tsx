@@ -26,7 +26,7 @@ import { KeyframeTrack } from "./KeyframeTrack";
 import { ScrollTriggerBar } from "./ScrollTriggerBar";
 import { StaggerManager } from "./StaggerManager";
 import { CurveEditor } from "@/editor/panels/curves/CurveEditor";
-import { Plus, ChevronDown, Trash2, Copy, Sliders, ChevronsLeftRight } from "lucide-react";
+import { Plus, ChevronDown, Trash2, Copy } from "lucide-react";
 import { frameScheduler } from "@/core/time/scheduler";
 import { getTransport, transport, transportStore } from "@/core/time/transport";
 
@@ -160,7 +160,7 @@ export const MotionSequencer: React.FC = () => {
   // The layer's animation stack: its clips, in order.
   const animationStack = useLayerClips(activeElement?.id);
 
-  const [activeAnimIndex, setActiveAnimIndex] = useState(0);
+  const [activeAnimIndex] = useState(0);
   const currentAnimation: Clip | undefined = animationStack[activeAnimIndex] || animationStack[0];
 
   // Tracks for active animation

@@ -225,7 +225,7 @@ export function useTearOff(options: UseTearOffOptions) {
         }
       };
 
-      const handlePointerUp = (e: PointerEvent) => {
+      const handlePointerUp = (_e: PointerEvent) => {
         const pending = pendingPanelRef.current;
         const exceeded = hasExceededThresholdRef.current;
         const wasInSnapBack = isInSnapBackRef.current;
@@ -286,7 +286,7 @@ export function useTearOff(options: UseTearOffOptions) {
         window.removeEventListener("keydown", handleKeyDown);
       };
     },
-    [reset]
+    [reset, optionsRef]
   );
 
   // Cleanup on unmount

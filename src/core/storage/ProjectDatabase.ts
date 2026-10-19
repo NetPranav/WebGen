@@ -304,6 +304,15 @@ export class ProjectDatabaseManager {
   }
 
   public async deleteProject(id: string): Promise<boolean> {
+    // the project's other per-document leftovers in localStorage go with it (its saved camera, its crash journal)
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(`lazylayout:camera:${id}`);
+        window.localStorage.removeItem(`lazylayout:journal:${id}`);
+      }
+    } catch {
+      // storage blocked: nothing to clean
+    }
     const db = await this.db();
     if (!db) {
       this.memoryHistory.delete(id);

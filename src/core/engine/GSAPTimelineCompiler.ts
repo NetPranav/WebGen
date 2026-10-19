@@ -12,9 +12,7 @@
 
 import {
   AnimationSample,
-  AnimationTrack,
   AnimationTrackId,
-  KeyframePoint,
   toScalarKeyframeValue,
 } from "../types/animations";
 

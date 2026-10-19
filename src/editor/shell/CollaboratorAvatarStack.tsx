@@ -1,19 +1,16 @@
 "use client";
 
 import React from "react";
-import { Users, Wifi, WifiOff, Share2 } from "lucide-react";
+import { WifiOff, Share2 } from "lucide-react";
 import { useCollabStore } from "@/core/store/useCollabStore";
-import { useShellStore } from "@/core/store/useShellStore";
 
 export const CollaboratorAvatarStack: React.FC = () => {
   const isConnected = useCollabStore((s) => s.isConnected);
   const latencyMs = useCollabStore((s) => s.latencyMs);
   const localUser = useCollabStore((s) => s.localUser);
   const connectedPeers = useCollabStore((s) => s.connectedPeers);
-  const openModal = useShellStore((s) => s.openModal);
 
   const peers = Object.values(connectedPeers);
-  const totalCount = peers.length + 1; // including local user
 
   const getInitials = (name: string) => {
     return name

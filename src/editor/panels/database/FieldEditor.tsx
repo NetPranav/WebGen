@@ -54,7 +54,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
   const [cardinality, setCardinality] = useState<Cardinality>(
     existingField?.relation?.cardinality || "1:N"
   );
-  const [onDelete, setOnDelete] = useState<DeleteRule>(
+  const [onDelete] = useState<DeleteRule>(
     existingField?.relation?.onDelete || "CASCADE"
   );
 

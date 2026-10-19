@@ -15,8 +15,6 @@ import {
   Globe,
   Variable,
   Lock,
-  ArrowRight,
-  ShieldCheck,
   AlertTriangle,
   FolderTree,
 } from "lucide-react";
@@ -28,12 +26,6 @@ export interface NavigationFlowDiagramProps {
   onSelectPage: (pageId: string) => void;
 }
 
-interface FlowTreeNode {
-  page: PageDefinition;
-  depth: number;
-  parentSlug: string | null;
-  children: FlowTreeNode[];
-}
 
 export const NavigationFlowDiagram: React.FC<NavigationFlowDiagramProps> = ({
   pages,
@@ -41,7 +33,7 @@ export const NavigationFlowDiagram: React.FC<NavigationFlowDiagramProps> = ({
   onSelectPage,
 }) => {
   // Organize pages by route hierarchy depth
-  const { levels, tree } = useMemo(() => {
+  const { levels } = useMemo(() => {
     const pageList = Object.values(pages);
     const sorted = [...pageList].sort((a, b) => {
       if (a.slug === "/") return -1;

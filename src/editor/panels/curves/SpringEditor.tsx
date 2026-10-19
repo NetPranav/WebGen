@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useMemo } from "react";
-import { Play, RotateCcw, Activity, Sparkles } from "lucide-react";
+import { Play, Activity } from "lucide-react";
 
 export interface SpringConfig {
   stiffness: number; // default: 100

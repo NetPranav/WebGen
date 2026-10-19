@@ -20,17 +20,10 @@ import {
   Copy,
   Check,
   Download,
-  Zap,
   Sparkles,
-  FileCode,
-  Layers,
-  Terminal,
-  ExternalLink,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
-import { GSAPAnimationEmitter } from "@/compiler/emitters/GSAPAnimationEmitter";
 
-import { AnimationLoweringCompiler } from "@/core/engine/AnimationLoweringCompiler";
 import { multiEngineAnimationRuntime } from "@/core/engine/MultiEngineAnimationRuntime";
 import type { Layer } from "@/core/document/schema";
 import { useLayers } from "@/core/store/useDocumentStore";

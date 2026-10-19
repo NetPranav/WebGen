@@ -22,14 +22,12 @@
  * ============================================================================
  */
 
-import { Point2D, SplineConfig, SplineResult, SplineSolver } from "./SplineSolver";
+import { SplineResult, SplineSolver } from "./SplineSolver";
 import {
   BUFFER_HEADER_BYTES,
   WIRE_INPUT_BYTES,
-  WIRE_OUTPUT_BYTES,
   WIRE_INPUT_FLOATS,
   WIRE_OUTPUT_FLOATS,
-  computeRequiredBufferBytes,
   FrameSyncConfig,
   WireJobInput,
   WorkerPoolMetrics,
@@ -228,7 +226,6 @@ export class WasmWorkerPool {
   ): Promise<Map<string, SplineResult>> {
     if (wires.length === 0) return new Map();
 
-    const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     const framePromise = this.submitBatch(wires);
 
@@ -325,7 +322,6 @@ export class WasmWorkerPool {
     const uint32View = new Uint32Array(buffer, 0, 4);
     const wireCount = uint32View[0];
 
-    const inputOffsetFloats = wireCount * WIRE_INPUT_FLOATS;
     const outputOffsetBytes = BUFFER_HEADER_BYTES + wireCount * WIRE_INPUT_BYTES;
     const float32OutputView = new Float32Array(buffer, outputOffsetBytes);
 

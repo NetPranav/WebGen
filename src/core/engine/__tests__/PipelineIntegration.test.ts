@@ -1,6 +1,5 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { useProjectStore } from "../../store/useProjectStore";
 import { multiEngineAnimationRuntime } from "../MultiEngineAnimationRuntime";
 import { CrossFrameworkExporter } from "../../../compiler/export/CrossFrameworkExporter";
 import { AnimationSample } from "../../types/animations";
@@ -8,7 +7,6 @@ import type { Layer } from "@/core/document/schema";
 import { documentCommands, getDocument } from "@/core/store/useDocumentStore";
 
 test("Sub-Phase 8.1: Full Pipeline Integration — Interactive Family (Button)", () => {
-  const store = useProjectStore.getState();
 
   // 1. Launcher: Initialize project with Button archetype
   const buttonElement: Layer = {
@@ -63,7 +61,6 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Interactive Family (Button)",
 });
 
 test("Sub-Phase 8.1: Full Pipeline Integration — Media Family (Image)", () => {
-  const store = useProjectStore.getState();
 
   // 1. Launcher: Initialize with Image archetype
   const imageElement: Layer = {
@@ -118,7 +115,6 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Media Family (Image)", () => 
 });
 
 test("Sub-Phase 8.1: Full Pipeline Integration — Structural Family (Divider)", () => {
-  const store = useProjectStore.getState();
 
   // 1. Launcher: Initialize with Divider archetype
   const dividerElement: Layer = {
@@ -168,7 +164,6 @@ test("Sub-Phase 8.1: Full Pipeline Integration — Structural Family (Divider)",
 });
 
 test("Sub-Phase 8.1: Full Pipeline Integration — Text Family (Text)", () => {
-  const store = useProjectStore.getState();
 
   // 1. Launcher: Initialize with Text archetype
   const textElement: Layer = {

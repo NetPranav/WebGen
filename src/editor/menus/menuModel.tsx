@@ -34,7 +34,7 @@ export const MENU_MODEL: Record<MenuId, { label: string; entries: MenuEntry[] }>
   file: {
     label: "File Options",
     entries: [
-      { kind: "item", label: "New Project...", icon: FilePlus, shortcut: "Ctrl+N", pending: "Phase 14" },
+      { kind: "item", label: "New Project...", icon: FilePlus, command: "file.newProject" },
       { kind: "item", label: "Open Project...", icon: FolderOpen, shortcut: "Ctrl+O", command: "file.importProjectFile" },
       sep,
       { kind: "item", label: "Save Project", icon: Save, shortcut: "Ctrl+S", command: "file.save" },
@@ -45,7 +45,7 @@ export const MENU_MODEL: Record<MenuId, { label: string; entries: MenuEntry[] }>
       sep,
       { kind: "item", label: "Export Next.js + Prisma Code", icon: Sparkles, shortcut: "Ctrl+E", pending: "Phase 49" },
       sep,
-      { kind: "item", label: "Close Project", icon: LogOut, pending: "Phase 14" },
+      { kind: "item", label: "Close Project", icon: LogOut, command: "file.closeProject" },
     ],
   },
   edit: {
@@ -85,7 +85,7 @@ export const MENU_MODEL: Record<MenuId, { label: string; entries: MenuEntry[] }>
       { kind: "item", label: "Preview Mode", icon: Grid, command: "view.previewMode" },
       { kind: "item", label: "120 FPS Cable Physics", icon: Activity, pending: "Phase 119" },
       sep,
-      { kind: "item", label: "Toggle Fullscreen", icon: Expand, shortcut: "F11", pending: "Phase 14" },
+      { kind: "item", label: "Toggle Fullscreen", icon: Expand, shortcut: "F11", command: "view.toggleFullscreen" },
     ],
   },
   help: {

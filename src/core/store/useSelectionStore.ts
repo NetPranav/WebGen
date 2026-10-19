@@ -11,6 +11,7 @@
  */
 
 import { create } from "zustand";
+import { documentStore } from "./documentState";
 
 export type SelectionType =
   | "element"
@@ -78,3 +79,18 @@ export const useSelectionStore = create<SelectionState>((set, get) => ({
     return get().selectedIds.includes(id);
   },
 }));
+
+// A layer that stops existing (an undo of its creation, a delete from anywhere, a frame removed) leaves the selection
+// with it. Only ids that *were* layers are dropped: the selection also holds folders and assets, which aren't layers.
+documentStore.subscribe((state, prev) => {
+  if (state.document === prev.document) return;
+  const { selectedIds, selectionType } = useSelectionStore.getState();
+  if (selectedIds.length === 0) return;
+  const kept = selectedIds.filter((id) => !(prev.document.layers[id] && !state.document.layers[id]));
+  if (kept.length === selectedIds.length) return;
+  useSelectionStore.setState({
+    selectedIds: kept,
+    selectedId: kept.length > 0 ? kept[kept.length - 1] : null,
+    selectionType: kept.length > 0 ? selectionType : null,
+  });
+});

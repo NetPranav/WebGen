@@ -16,10 +16,7 @@ import React, { useState } from "react";
 import {
   Image as ImageIcon,
   ChevronRight,
-  RotateCcw,
   Crop,
-  Layers,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import { ImageSpecificConfig } from "@/core/types/element-sections";
@@ -33,7 +30,7 @@ export interface ImagePropertiesEditorProps {
 export const ImagePropertiesEditor: React.FC<ImagePropertiesEditorProps> = ({
   config,
   onChange,
-  onReset,
+  onReset: _onReset,
 }) => {
   const [openSubgroups, setOpenSubgroups] = useState({
     source: true,

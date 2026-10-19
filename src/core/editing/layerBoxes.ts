@@ -68,9 +68,10 @@ export function parentOrigin(id: string): Point {
 /**
  * Writes boxes back as `frame.*`, positioned absolutely relative to each layer's parent (`origin` overrides where
  * the parent is, for layers about to be moved into a parent that doesn't exist yet or isn't drawn). A flow layer
- * becomes absolute at its measured place.
+ * becomes absolute at its measured place. Only a position is written unless `options.size` is set (a resize): a move
+ * must not turn a layer that sizes itself to its content (hug) into one with a fixed width and height.
  */
-export function writeBoxes(ids: readonly string[], boxes: readonly Box[], origin?: Point): void {
+export function writeBoxes(ids: readonly string[], boxes: readonly Box[], origin?: Point, options: { size?: boolean } = {}): void {
   ids.forEach((id, i) => {
     const layer = getDocument().layers[id];
     const box = boxes[i];
@@ -80,8 +81,7 @@ export function writeBoxes(ids: readonly string[], boxes: readonly Box[], origin
       positioning: "absolute",
       "frame.x": round(box.cx - box.w / 2 - o.x),
       "frame.y": round(box.cy - box.h / 2 - o.y),
-      "frame.width": round(box.w),
-      "frame.height": round(box.h),
+      ...(options.size ? { "frame.width": round(box.w), "frame.height": round(box.h) } : {}),
     };
     if (box.rot !== 0 || num(layer.properties["frame.rotation"]) !== null) patch["frame.rotation"] = round(box.rot);
     documentCommands.updateProps(id, patch);

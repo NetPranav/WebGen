@@ -20,9 +20,10 @@ import { documentCommands } from "../store/useDocumentStore";
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { cloneLayers, subtreeIds, topmost } from "./cloneLayers";
-import { parseClip, serializeClip, type ClipPayload } from "./clipboard";
+import { MAX_CLIP_LAYERS, parseClip, serializeClip, type ClipPayload } from "./clipboard";
 import { parentOrigin, worldBox, writeBoxes } from "./layerBoxes";
-import { documentOrder } from "../selection/selectionOps";
+import { documentOrder, isSelectable } from "../selection/selectionOps";
+import { repairPageRoots } from "../frames/pageRoots";
 
 const DEFAULT_OFFSET = { dx: 16, dy: 16 };
 
@@ -53,6 +54,20 @@ export function selectionRoots(ids: readonly string[]): string[] {
 // Copy and paste
 // ---------------------------------------------------------------------------
 
+/** The selection's top-most layers that can be changed: not locked, and not inside a locked layer. */
+export function editableRoots(ids: readonly string[]): string[] {
+  const l = layers();
+  return selectionRoots(ids).filter((id) => {
+    let cur: Layer | undefined = l[id];
+    let guard = 0;
+    while (cur && guard++ < 10_000) {
+      if (cur.locked === true) return false;
+      cur = cur.parentId ? l[cur.parentId] : undefined;
+    }
+    return true;
+  });
+}
+
 /** The clipboard text for `ids` (their subtrees and animations), or null when there is nothing to copy. */
 export function copyText(ids: readonly string[], projectId?: string): string | null {
   const roots = selectionRoots(ids);
@@ -60,6 +75,8 @@ export function copyText(ids: readonly string[], projectId?: string): string | n
   const doc = getDocument();
   const include = new Set<string>();
   for (const r of roots) subtreeIds(doc.layers, r).forEach((id) => include.add(id));
+  // More than a paste will take: copy nothing rather than put a clip on the clipboard that pastes nothing.
+  if (include.size > MAX_CLIP_LAYERS) return null;
   const payload: ClipPayload = {
     v: 1,
     layers: documentOrder(doc.layers).filter((id) => include.has(id)).map((id) => structuredClone(doc.layers[id])),
@@ -84,7 +101,7 @@ export function pasteText(text: string | null | undefined, options: PasteOptions
   const doc = getDocument();
   const byId: Record<string, Layer> = Object.fromEntries(payload.layers.map((l) => [l.id, l]));
   const clipById = Object.fromEntries(payload.clips.map((c) => [c.id, c]));
-  const bundle = cloneLayers(byId, clipById, payload.roots);
+  const bundle = cloneLayers(byId, clipById, payload.roots, { layers: doc.layers, clips: doc.clips });
   const frames = listFrames(doc.layers);
   const active = useCanvasViewStore.getState().activeFrameId;
   const fallbackFrame = (active && doc.layers[active] && doc.layers[active].parentId === null ? active : frames[0]?.id) ?? null;
@@ -98,7 +115,7 @@ export function pasteText(text: string | null | undefined, options: PasteOptions
       const sourceStillThere = !!doc.layers[originalId];
       let parentId: string | null;
       if (wasFrame) parentId = null;
-      else if (options.into && doc.layers[options.into]) parentId = options.into;
+      else if (options.into && doc.layers[options.into] && isSelectable(doc.layers, options.into)) parentId = options.into;
       else if (original.parentId && doc.layers[original.parentId]) parentId = original.parentId;
       else parentId = fallbackFrame;
       clone.parentId = parentId;
@@ -150,7 +167,7 @@ function duplicateOffset(ids: readonly string[]): { dx: number; dy: number } {
 
 /** Duplicates the selection beside the originals (frames to the right). Returns the copies' ids. */
 export function duplicateLayers(ids: readonly string[]): string[] {
-  const roots = selectionRoots(ids);
+  const roots = editableRoots(ids);
   if (roots.length === 0) return [];
   const doc = getDocument();
   const offset = duplicateOffset(roots);
@@ -162,7 +179,7 @@ export function duplicateLayers(ids: readonly string[]): string[] {
         copies.push(duplicateFrame(id));
         continue;
       }
-      const bundle = cloneLayers(getDocument().layers, getDocument().clips, [id]);
+      const bundle = cloneLayers(getDocument().layers, getDocument().clips, [id], { layers: getDocument().layers, clips: getDocument().clips });
       const root = bundle.layers[0];
       root.parentId = original.parentId;
       if (original.properties.positioning === "absolute") {
@@ -187,7 +204,7 @@ export function duplicateLayers(ids: readonly string[]): string[] {
 
 /** Deletes the selection. A document keeps at least one frame. Returns how many top-level layers went. */
 export function deleteLayers(ids: readonly string[]): number {
-  let roots = selectionRoots(ids);
+  let roots = editableRoots(ids);
   const frameCount = listFrames(layers()).length;
   const frames = roots.filter((id) => layers()[id].parentId === null);
   if (frames.length >= frameCount) {
@@ -198,6 +215,7 @@ export function deleteLayers(ids: readonly string[]): number {
   transaction("Delete", () => {
     for (const id of roots) if (getDocument().layers[id]) documentCommands.removeLayer(id, "Delete");
   });
+  repairPageRoots();
   useSelectionStore.getState().clearSelection();
   return roots.length;
 }
@@ -208,7 +226,7 @@ export function deleteLayers(ids: readonly string[]): number {
 
 /** Moves the selection by (dx, dy). A flow-placed layer becomes absolute at its place first. */
 export function nudgeLayers(ids: readonly string[], dx: number, dy: number): void {
-  const roots = selectionRoots(ids);
+  const roots = editableRoots(ids);
   const boxes = roots.map((id) => worldBox(id)).filter((b): b is Box => b !== null);
   if (boxes.length !== roots.length || roots.length === 0) return;
   transaction("Nudge", () => writeBoxes(roots, moveBoxes(boxes, dx, dy)));
@@ -237,7 +255,7 @@ export function reorder(children: readonly string[], selected: ReadonlySet<strin
 export function reorderLayers(ids: readonly string[], op: ZOrderOp): boolean {
   const doc = getDocument();
   const byParent = new Map<string, Set<string>>();
-  for (const id of selectionRoots(ids)) {
+  for (const id of editableRoots(ids)) {
     const parent = doc.layers[id].parentId;
     if (parent === null) continue; // the frames' order is their position, not a z-order
     byParent.set(parent, (byParent.get(parent) ?? new Set()).add(id));
@@ -264,17 +282,20 @@ export function reorderLayers(ids: readonly string[], op: ZOrderOp): boolean {
 /** Wraps the selected siblings in a new container at their combined box. `frame` makes it a white frame, not an invisible group. */
 export function groupLayers(ids: readonly string[], kind: "group" | "frame" = "group"): string | null {
   const doc = getDocument();
-  const roots = selectionRoots(ids);
+  const roots = editableRoots(ids);
   if (roots.length === 0) return null;
-  const parentId = doc.layers[roots[0]].parentId;
-  if (parentId === null) return null; // top-level frames aren't grouped
-  const members = roots.filter((id) => doc.layers[id].parentId === parentId);
+  // Top-level frames aren't grouped; layers from different parents are, under the first one's parent (their canvas
+  // positions are kept, so nothing seems to move).
+  if (roots.some((id) => doc.layers[id].parentId === null)) return null;
+  const parentId = doc.layers[roots[0]].parentId!;
+  const members = roots;
   const boxes = members.map((id) => worldBox(id)).filter((b): b is Box => b !== null);
   if (boxes.length !== members.length) return null;
   const u = unionBox(boxes)!;
   const rect = { x: u.cx - u.w / 2, y: u.cy - u.h / 2, w: u.w, h: u.h };
   const origin = parentOrigin(members[0]);
-  const index = Math.min(...members.map((id) => doc.layers[parentId].children.indexOf(id)));
+  const sameParent = members.filter((id) => doc.layers[id].parentId === parentId);
+  const index = Math.min(...sameParent.map((id) => doc.layers[parentId].children.indexOf(id)));
   return transaction(kind === "frame" ? "Frame selection" : "Group", () => {
     const props = {
       ...getDefaultProps("container"),
@@ -298,7 +319,7 @@ export function groupLayers(ids: readonly string[], kind: "group" | "frame" = "g
 
 /** Dissolves each selected container (not a top-level frame) into its parent; the children take its place. Returns the freed layers. */
 export function ungroupLayers(ids: readonly string[]): string[] {
-  const roots = selectionRoots(ids).filter((id) => {
+  const roots = editableRoots(ids).filter((id) => {
     const l = layers()[id];
     return l && l.parentId !== null && l.archetype === "container" && l.children.length > 0;
   });

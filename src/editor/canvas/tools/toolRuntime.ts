@@ -437,6 +437,7 @@ export function createCreationTool(id: ToolId): Tool {
   let start: ToolPointer | null = null;
   let now: ToolPointer | null = null;
   let parent: { id: string; origin: Point } | null = null;
+  let cancelled = false;
 
   const box = (to: ToolPointer, ctx: ToolContext) =>
     dragBox(spec.kind, start!.world, to.world, { shift: to.shiftKey, alt: to.altKey }, dragDefaults, CLICK_SLOP / (ctx.zoom() || 1));
@@ -451,6 +452,7 @@ export function createCreationTool(id: ToolId): Tool {
       if (parent === null && spec.archetype !== "container") return false;
       start = p;
       now = p;
+      cancelled = false;
       return true;
     },
     onPointerMove: (p, ctx) => {
@@ -458,12 +460,25 @@ export function createCreationTool(id: ToolId): Tool {
       now = p;
       ctx.requestOverlay();
     },
+    onKey: (e, ctx) => {
+      // Escape drops the drag: nothing is created when the button comes up
+      if (e.key !== "Escape" || !start) return false;
+      start = null;
+      now = null;
+      cancelled = true;
+      ctx.requestOverlay();
+      return true;
+    },
     onPointerUp: (p, ctx) => {
       const from = start;
       const dragBoxNow = from ? box(p, ctx) : null;
       start = null;
       now = null;
       ctx.requestOverlay();
+      if (cancelled) {
+        cancelled = false;
+        return;
+      }
       if (!from || !dragBoxNow) return;
       const layerId = createLayerFromDrag(spec, dragBoxNow, parent);
       ctx.created({ id: layerId, name: spec.label });

@@ -65,14 +65,21 @@ export const timeToFrame = (time: number, fps: number): number => Math.round(tim
 export const frameToTime = (frame: number, fps: number): number => frame / fps;
 export const snapToFrame = (time: number, fps: number): number => frameToTime(timeToFrame(time, fps), fps);
 
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+/** Clamps into [lo, hi]. A non-finite `n` (NaN, +-Infinity) becomes `fallback`: NaN would otherwise pass straight through Math.min / Math.max and poison the playhead. */
+const clamp = (n: number, lo: number, hi: number, fallback = lo) => (Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : Math.min(hi, Math.max(lo, fallback)));
+
+/** The fastest speed `setRate` accepts, either way. */
+export const MAX_RATE = 16;
 
 /** `MM:SS:FF`, the timecode the transport bar shows (frames count from 0 within the second). */
 export function formatTimecode(time: number, fps: number): string {
-  const total = Math.max(0, timeToFrame(time, fps));
-  const frames = total % fps;
-  const seconds = Math.floor(total / fps) % 60;
-  const minutes = Math.floor(total / fps / 60);
+  // Frame numbers are whole, so a fractional rate (29.97, 23.976) counts frames within a second at its nominal whole rate
+  // (30, 24), like drop-frame-free timecode does, instead of printing `0.030000000000001137`.
+  const nominal = Math.max(1, Math.round(Number.isFinite(fps) ? fps : 1));
+  const total = Math.max(0, Number.isFinite(time) ? timeToFrame(time, fps) : 0);
+  const frames = total % nominal;
+  const seconds = Math.floor(total / nominal) % 60;
+  const minutes = Math.floor(total / nominal / 60);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(minutes)}:${pad(seconds)}:${pad(frames)}`;
 }
@@ -85,6 +92,7 @@ export function formatTimecode(time: number, fps: number): string {
  */
 export function advance(state: TransportState, dt: number): Pick<TransportState, "time" | "playing" | "direction"> {
   if (!state.playing) return { time: state.time, playing: false, direction: state.direction };
+  if (!Number.isFinite(dt) || dt <= 0) return { time: state.time, playing: state.playing, direction: state.direction };
   const { start, end } = state.workArea;
   const length = end - start;
   const step = dt * state.rate;
@@ -135,14 +143,20 @@ const patch = (next: Partial<TransportState>) => transportStore.setState(next);
 export const transport = {
   /** Points the transport at a composition. Time, work area and rate are kept inside the new bounds. */
   setComposition(composition: { id: string; fps: number; duration: number; workArea?: WorkArea }): void {
+    // A frame rate or length that isn't a positive finite number would divide by zero or poison the playhead: refuse it.
+    if (!(Number.isFinite(composition.fps) && composition.fps > 0 && Number.isFinite(composition.duration) && composition.duration >= 0)) return;
     const { fps, duration } = composition;
     const workArea = composition.workArea ?? { start: 0, end: duration };
+    // an inverted work area (start after end) is put the right way round; one frame is the shortest it can be
+    const a = clamp(workArea.start, 0, duration);
+    const b = clamp(workArea.end, 0, duration, duration);
+    const wa = a <= b ? { start: a, end: b } : { start: b, end: a };
     const switching = composition.id !== getTransport().compositionId;
     patch({
       compositionId: composition.id,
       fps,
       duration,
-      workArea: { start: clamp(workArea.start, 0, duration), end: clamp(workArea.end, 0, duration) },
+      workArea: wa,
       time: switching ? 0 : clamp(getTransport().time, 0, duration),
       ...(switching ? { playing: false, direction: 1 as const } : {}),
     });
@@ -176,19 +190,20 @@ export const transport = {
 
   /** Moves the head to `time` seconds (clamped to the composition). Does not change play state. */
   seek(time: number): void {
+    if (Number.isNaN(time)) return;
     const s = getTransport();
-    patch({ time: clamp(time, 0, s.duration) });
+    patch({ time: clamp(time, 0, s.duration, time > 0 ? s.duration : 0) }); // +-Infinity go to the end / the start
   },
 
   /** Moves the head to an exact frame. */
   seekFrame(frame: number): void {
-    const s = getTransport();
-    patch({ time: clamp(frameToTime(frame, s.fps), 0, s.duration) });
+    transport.seek(frameToTime(frame, getTransport().fps));
   },
 
   /** Steps whole frames (negative steps back) from the nearest frame, pausing playback. */
   stepFrame(frames = 1): void {
     const s = getTransport();
+    if (!Number.isFinite(frames)) return;
     const frame = timeToFrame(s.time, s.fps) + Math.trunc(frames);
     patch({ playing: false, time: clamp(frameToTime(frame, s.fps), 0, s.duration) });
   },
@@ -212,7 +227,7 @@ export const transport = {
   },
 
   setRate(rate: number): void {
-    if (Number.isFinite(rate) && rate !== 0) patch({ rate });
+    if (Number.isFinite(rate) && rate !== 0) patch({ rate: Math.max(-MAX_RATE, Math.min(MAX_RATE, rate)) });
   },
 
   setLoop(loop: LoopMode): void {
@@ -227,9 +242,10 @@ export const transport = {
   /** Sets the loop / render range. Kept inside the composition and at least one frame long. */
   setWorkArea(workArea: WorkArea): void {
     const s = getTransport();
+    if (Number.isNaN(workArea.start) || Number.isNaN(workArea.end)) return;
     const minLength = 1 / s.fps;
-    const start = clamp(workArea.start, 0, Math.max(0, s.duration - minLength));
-    const end = clamp(workArea.end, start + minLength, s.duration);
+    const start = clamp(workArea.start, 0, Math.max(0, s.duration - minLength), workArea.start > 0 ? s.duration : 0);
+    const end = clamp(workArea.end, start + minLength, s.duration, workArea.end > 0 ? s.duration : start + minLength);
     patch({ workArea: { start, end } });
   },
 

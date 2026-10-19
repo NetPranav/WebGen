@@ -21,9 +21,7 @@ import {
   MousePointer,
   ChevronRight,
   RotateCcw,
-  Sliders,
   Grid,
-  Sparkles,
 } from "lucide-react";
 import { AssetLayoutSchema, BoxEdgeValues } from "@/core/types/details";
 import { BoxModelDiagram } from "../controls/BoxModelDiagram";

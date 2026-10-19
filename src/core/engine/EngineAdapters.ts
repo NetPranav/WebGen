@@ -18,7 +18,6 @@
 
 import {
   AnimationBinding,
-  AnimationCategory,
   CompilationTarget,
   CATEGORY_PRIORITY_ORDER,
   ReducedMotionPolicy,
@@ -218,7 +217,7 @@ export class FramerMotionAdapter implements IEngineAdapter {
   public readonly name = "FramerMotion";
   public readonly target: CompilationTarget = "framer-motion";
 
-  public supportsProperty(property: string): boolean {
+  public supportsProperty(_property: string): boolean {
     return true; // Framer Motion supports transforms, opacity, layout, colors
   }
 
@@ -229,7 +228,7 @@ export class FramerMotionAdapter implements IEngineAdapter {
   public apply(
     element: HTMLElement | null,
     bindings: AnimationBinding[],
-    time: number,
+    _time: number,
     reducedMotion: boolean = false
   ): ComputedStylePatch {
     const patch: ComputedStylePatch = {};
@@ -299,7 +298,7 @@ export class GsapEngineAdapter implements IEngineAdapter {
   public readonly name = "GsapEngine";
   public readonly target: CompilationTarget = "gsap";
 
-  public supportsProperty(property: string): boolean {
+  public supportsProperty(_property: string): boolean {
     return true;
   }
 

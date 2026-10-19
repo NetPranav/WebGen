@@ -16,8 +16,6 @@ import {
   DeploymentRecord,
   BuildPipelineStep,
   INITIAL_PIPELINE_STEPS,
-  DeploymentTarget,
-  DeploymentEnvironment,
   PipelineStepId,
 } from "../core/types/deployment";
 import { useProjectStore } from "../core/store/useProjectStore";
@@ -176,7 +174,6 @@ class DeploymentEngineManager {
     }
 
     this.isExecuting = true;
-    const storeState = useProjectStore.getState();
     const projectName = useProjectMetaStore.getState().projectName;
     const deployId = `dep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const randomHash = Math.random().toString(16).substring(2, 9);

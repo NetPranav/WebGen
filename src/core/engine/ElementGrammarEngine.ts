@@ -19,11 +19,9 @@ import {
   GrammarElementType,
   GrammarStateName,
   ReducedMotionPolicy,
-  StateTransitionEdge,
   TriggerType,
   CATEGORY_PRIORITY_ORDER,
 } from "../types/element-grammar";
-import { DiagnosticBus } from "./DiagnosticBus";
 
 // ============================================================================
 // 1. AUTHORITATIVE 32 ELEMENT TYPE CONTRACT REGISTRY (Grammar §3 & §9)
@@ -682,7 +680,7 @@ export class ElementGrammarEngineService {
   private enumerateCategoryOffers(
     category: AnimationCategory,
     contract: ElementTypeContract,
-    element: EvaluatedElement
+    _element: EvaluatedElement
   ): CandidateBindingOffer[] {
     switch (category) {
       case "Entrance":

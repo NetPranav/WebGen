@@ -13,15 +13,12 @@
 
 import React from "react";
 import {
-  ChevronRight,
   Eye,
   EyeOff,
   Lock,
   Unlock,
   Trash2,
   Zap,
-  Film,
-  Sparkles,
 } from "lucide-react";
 import type { ClipTemplate } from "@/core/document/schema";
 

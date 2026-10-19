@@ -172,7 +172,7 @@ export class DAGSorter {
    */
   public static traceExecutionPath(
     startNodeId: string,
-    nodes: Record<string, GraphNodeRef>,
+    _nodes: Record<string, GraphNodeRef>,
     wires: GraphWireRef[]
   ): string[] {
     const visited = new Set<string>();

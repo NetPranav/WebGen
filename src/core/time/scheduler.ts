@@ -65,6 +65,7 @@ export class FrameScheduler {
   private frames = 0;
   private fps = 0;
   private taskErrors = 0;
+  private lastErrorLog = -Infinity;
   private deterministicOn = false;
   private virtualNow = 0;
 
@@ -111,6 +112,7 @@ export class FrameScheduler {
   /** Runs exactly one frame, `dt` seconds after the previous one, on the virtual clock. Deterministic mode only. */
   step(dt: number): FrameInfo {
     if (!this.deterministicOn) throw new Error("FrameScheduler.step needs deterministic mode (setDeterministic(true)).");
+    if (!Number.isFinite(dt) || dt < 0) throw new Error(`FrameScheduler.step needs a step of zero or more seconds, got ${dt}.`);
     this.virtualNow += dt * 1000;
     return this.runFrame(this.virtualNow, dt);
   }
@@ -154,7 +156,11 @@ export class FrameScheduler {
           task(info);
         } catch (error) {
           this.taskErrors++;
-          console.error(`[frame-scheduler] a ${phase} task threw:`, error);
+          // a task that throws every frame would log 60 times a second: the first few, then one a second
+          if (this.taskErrors <= 5 || now - this.lastErrorLog >= 1000) {
+            this.lastErrorLog = now;
+            console.error(`[frame-scheduler] a ${phase} task threw (${this.taskErrors} so far):`, error);
+          }
         }
       }
     }

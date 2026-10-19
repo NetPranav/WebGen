@@ -32,16 +32,12 @@ import {
   Trash2,
   Download,
   Zap,
-  Filter,
   ArrowRight,
-  Search,
   Square,
-  Bug,
   Flame,
   BarChart2,
   Eye,
   Plus,
-  Check,
   Edit2,
 } from "lucide-react";
 import { executionTracer } from "@/runtime/ExecutionTracer";
@@ -51,7 +47,7 @@ import { ProfilerReport, NodePerformanceMetric, FlameGraphBar } from "@/core/typ
 import { watchExpressionManager } from "@/runtime/WatchExpressionManager";
 import { WatchExpression, WatchEvaluationResult, WatchEvaluationContext } from "@/core/types/watch";
 import { DebuggerState, BreakpointHitEvent } from "@/core/types/debugger";
-import { ExecutionRun, TraceStep, TracePinSnapshot } from "@/core/types/trace";
+import { ExecutionRun, TraceStep } from "@/core/types/trace";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { getPinColor, PinDataType } from "@/core/types/node-registry";
 
@@ -1231,7 +1227,7 @@ export const ExecutionTracePanel: React.FC<ExecutionTracePanelProps> = ({
             </div>
           ) : (
             <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-              {filteredSteps.map((step, idx) => {
+              {filteredSteps.map((step, _idx) => {
                 const isSelected = selectedStepIndex === step.stepIndex;
                 const isSuccess = step.status === "success";
 

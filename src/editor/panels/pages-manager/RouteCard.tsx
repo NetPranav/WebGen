@@ -19,9 +19,6 @@ import {
   Copy,
   Trash2,
   Settings2,
-  ExternalLink,
-  CheckCircle,
-  FileCode2,
   AlertTriangle,
 } from "lucide-react";
 import { PageDefinition } from "@/core/store/useProjectStore";

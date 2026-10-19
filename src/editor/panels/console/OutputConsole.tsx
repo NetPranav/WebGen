@@ -14,7 +14,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Terminal,
   Trash2,
   Copy,
   ArrowDown,

@@ -25,6 +25,8 @@ import {
   centerOn,
   fitRect,
   isCamera,
+  isUsableCamera,
+  clampZoom,
   panBy,
   stepZoom,
   zoomAt,
@@ -43,7 +45,8 @@ export function loadSavedCamera(projectId: string | undefined): Camera | null {
     const raw = window.localStorage.getItem(storageKey(projectId));
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    return isCamera(parsed) ? { x: parsed.x, y: parsed.y, zoom: parsed.zoom } : null;
+    // a hand-edited or old entry can hold any zoom: clamp it into range like every other camera
+    return isCamera(parsed) ? { x: parsed.x, y: parsed.y, zoom: clampZoom(parsed.zoom) } : null;
   } catch {
     return null;
   }
@@ -85,7 +88,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 export const useCameraStore = create<CameraStoreState>((set, get) => {
   /** `auto` moves (the canvas laying itself out) don't count as the person's own view and aren't saved. */
   const move = (camera: Camera, auto = false) => {
-    if (camera === get().camera) return;
+    if (camera === get().camera || !isUsableCamera(camera)) return; // never a NaN or out-of-range camera
     set({ camera, touched: auto ? get().touched : true });
   };
   const center = (): Point => {

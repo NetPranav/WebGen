@@ -27,7 +27,8 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: "npm run build && npm run start",
+    // the lab pages are left out of a normal production build; the tests need them
+    command: "NEXT_PUBLIC_ENABLE_LABS=1 npm run build && npm run start",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

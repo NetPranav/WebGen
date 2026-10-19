@@ -11,8 +11,8 @@
  * ============================================================================
  */
 
-import React, { useState } from "react";
-import { Sparkles, X, Plus, Zap, Play, Eye } from "lucide-react";
+import React from "react";
+import { Sparkles, X, Plus } from "lucide-react";
 import type { ArchetypeId, FamilyId } from "@/core/document/registry";
 import type { ClipTemplate } from "@/core/document/schema";
 import { createId } from "@/core/ids";

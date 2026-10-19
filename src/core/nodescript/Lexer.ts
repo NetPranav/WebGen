@@ -9,7 +9,7 @@
  * ============================================================================
  */
 
-import { NodeScriptSyntaxError, SourceLocation, Token, TokenType } from "./types";
+import { NodeScriptSyntaxError, SourceLocation, Token } from "./types";
 
 const KEYWORDS = new Set([
   "graph",

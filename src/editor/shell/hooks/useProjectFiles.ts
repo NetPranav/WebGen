@@ -11,7 +11,7 @@ import { useProjectMetaStore } from "@/core/store/useProjectMetaStore";
 import { ProjectDatabase, generateProjectId, createDefaultBlankSnapshot } from "@/core/storage/ProjectDatabase";
 import { projectSession, type PendingRecovery } from "@/core/storage/ProjectSession";
 import { installGestureCoalescing } from "@/core/store/useDocumentStore";
-import { LazyFileError, isLazyFileName, lazyFileName, parseLazyFile, serializeLazyFile } from "@/core/storage/lazyFile";
+import { LazyFileError, MAX_LAZY_FILE_CHARS, isLazyFileName, lazyFileName, parseLazyFile, serializeLazyFile } from "@/core/storage/lazyFile";
 
 export function useProjectFiles() {
   const [recovery, setRecovery] = useState<PendingRecovery | null>(null);
@@ -96,6 +96,8 @@ export function useProjectFiles() {
   /** Imports a `.lazy.json` file as a new project and opens it. */
   const handleImportProjectFile = useCallback(async (file: File) => {
     try {
+      // check the size before reading: a huge file shouldn't be pulled into memory just to be refused
+      if (file.size > MAX_LAZY_FILE_CHARS) throw new LazyFileError(`This file is larger than the ${Math.round(MAX_LAZY_FILE_CHARS / 1_000_000)} MB a project import accepts.`);
       const parsed = parseLazyFile(await file.text());
       await projectSession.flush();
       const id = generateProjectId();

@@ -12,7 +12,6 @@ import {
   FileDiff,
   Plus,
   Search,
-  Check,
   AlertTriangle,
   X,
   ChevronRight,
@@ -22,16 +21,12 @@ import {
   Layers,
   Sparkles,
   FileText,
-  Boxes,
   HardDrive,
 } from "lucide-react";
 import { useVersionControlStore } from "../../../core/store/useVersionControlStore";
 import {
   ProjectSnapshotRecord,
   SnapshotDiffReport,
-  ElementDiff,
-  PageDiff,
-  SchemaDiff,
 } from "../../../core/types/versioning";
 import { useNow } from "@/core/hooks/useNow";
 

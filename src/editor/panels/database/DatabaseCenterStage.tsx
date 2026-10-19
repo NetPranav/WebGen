@@ -13,7 +13,6 @@
  */
 
 import React, { useState, useMemo, useRef } from "react";
-import { DatabaseFunctionLatch } from "@/core/store/useProjectStore";
 import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { EntityTableCard } from "./EntityTableCard";
 import { MockDataGrid } from "./MockDataGrid";
@@ -28,17 +27,14 @@ import {
   Copy,
   Check,
   Server,
-  Sparkles,
   Plus,
   X,
   Key,
   Link,
-  Shield,
   FileCode,
   ArrowRight,
   Workflow,
   ExternalLink,
-  Database,
 } from "lucide-react";
 
 export type DatabaseEngineType = "postgresql" | "sqlite" | "mysql" | "mongodb";

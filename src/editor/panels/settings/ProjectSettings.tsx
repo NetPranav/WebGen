@@ -36,7 +36,7 @@ export const ProjectSettings: React.FC<ProjectSettingsProps> = ({ onClose }) => 
 
   // General settings state
   const [appName, setAppName] = useState("MyProject.uweb");
-  const [appId, setAppId] = useState("proj_8f92ab41");
+  const [appId] = useState("proj_8f92ab41");
   const [appVersion, setAppVersion] = useState("1.0.0-alpha");
   const [baseUrl, setBaseUrl] = useState("https://myproject.local");
   const [appDesc, setAppDesc] = useState("Professional Web Application built with Visual Web Application Engine");

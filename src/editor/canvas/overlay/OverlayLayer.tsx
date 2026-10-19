@@ -52,7 +52,8 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
     const controller = new OverlayController(layer, {
       hitTester,
       pointerWorld: () => (pointer ? screenToDoc(useCameraStore.getState().camera, pointer) : null),
-      deep: () => deep,
+      // Cmd/Ctrl held without moving the pointer counts too: the tool store knows (its deep-select spring), the mouse event only on the next move
+      deep: () => deep || useToolStore.getState().current === "deepSelect",
       hoverEnabled: () => useCanvasViewStore.getState().mode === "design",
       selectedIds: () => (useCanvasViewStore.getState().mode === "design" ? useSelectionStore.getState().selectedIds : []),
       layerName: (id) => getDocument().layers[id]?.name ?? id,

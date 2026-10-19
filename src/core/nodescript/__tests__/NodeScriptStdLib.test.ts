@@ -5,7 +5,6 @@ import {
   toCanonicalNodeName,
   toRegistryNodeType,
   validateSchemaVersion,
-  CANONICAL_BUILTIN_MAP,
 } from "../stdlib";
 import { getAllRegisteredNodes } from "@/core/types/node-registry";
 

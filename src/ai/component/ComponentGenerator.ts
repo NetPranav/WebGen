@@ -196,7 +196,7 @@ export class ComponentGenerator {
   /**
    * 2. Testimonial Card Component
    */
-  private static generateTestimonialCard(prompt: string): GeneratedComponentResult {
+  private static generateTestimonialCard(_prompt: string): GeneratedComponentResult {
     const containerId = this.generateId("elem_container");
     const avatarId = this.generateId("elem_img");
     const quoteId = this.generateId("elem_text");
@@ -295,7 +295,7 @@ export class ComponentGenerator {
   /**
    * 3. Toggle & Switch Component
    */
-  private static generateToggleComponent(prompt: string): GeneratedComponentResult {
+  private static generateToggleComponent(_prompt: string): GeneratedComponentResult {
     const containerId = this.generateId("elem_container");
     const toggleId = this.generateId("elem_toggle");
     const labelId = this.generateId("elem_text");
@@ -362,7 +362,7 @@ export class ComponentGenerator {
   /**
    * 4. Hero Banner Component
    */
-  private static generateHeroBanner(prompt: string): GeneratedComponentResult {
+  private static generateHeroBanner(_prompt: string): GeneratedComponentResult {
     const containerId = this.generateId("elem_container");
     const badgeId = this.generateId("elem_badge");
     const headingId = this.generateId("elem_text");
@@ -503,7 +503,7 @@ export class ComponentGenerator {
   /**
    * 5. Media Showcase Component
    */
-  private static generateMediaShowcase(prompt: string): GeneratedComponentResult {
+  private static generateMediaShowcase(_prompt: string): GeneratedComponentResult {
     const containerId = this.generateId("elem_container");
     const imageId = this.generateId("elem_img");
     const captionId = this.generateId("elem_text");
@@ -572,7 +572,7 @@ export class ComponentGenerator {
   /**
    * 6. Badge Group Component
    */
-  private static generateBadgeGroup(prompt: string): GeneratedComponentResult {
+  private static generateBadgeGroup(_prompt: string): GeneratedComponentResult {
     const containerId = this.generateId("elem_container");
     const badge1Id = this.generateId("elem_badge");
     const badge2Id = this.generateId("elem_badge");

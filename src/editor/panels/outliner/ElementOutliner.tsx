@@ -24,7 +24,6 @@ import {
   Minus,
   Type,
   Film,
-  Folder,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { getArchetype, type ArchetypeId, type FamilyId } from "@/core/document/registry";

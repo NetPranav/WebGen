@@ -24,22 +24,10 @@ import {
   RotateCcw,
   Square,
   AlertCircle,
-  Play,
-  CheckCircle2,
   Bug,
-  Sparkles,
-  ExternalLink,
   Smartphone,
   Tablet,
   Monitor,
-  Plus,
-  Trash2,
-  Zap,
-  RefreshCw,
-  Sliders,
-  ChevronDown,
-  X,
-  Send,
   Activity,
 } from "lucide-react";
 import { useProjectStore, PageDefinition, StateVariable } from "@/core/store/useProjectStore";
@@ -698,17 +686,17 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
 }) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [isSandboxReady, setIsSandboxReady] = useState(false);
+  const [, setIsSandboxReady] = useState(false);
   const [trappedErrors, setTrappedErrors] = useState<TrappedError[]>([]);
   const [lastClickedElement, setLastClickedElement] = useState<string | null>(null);
 
   // Sub-Phase 5.2: Mock Database Drawer & Controls State
   const [selectedCollection, setSelectedCollection] = useState<string>("Products");
-  const [apiLatency, setApiLatency] = useState<number>(50);
-  const [testApiStatus, setTestApiStatus] = useState<string | null>(null);
-  const [isAddingRecord, setIsAddingRecord] = useState(false);
-  const [newRecordForm, setNewRecordForm] = useState<Record<string, string>>({});
-  const [dbMutationTick, setDbMutationTick] = useState(0);
+  const [] = useState<number>(50);
+  const [] = useState<string | null>(null);
+  const [] = useState(false);
+  const [] = useState<Record<string, string>>({});
+  const [, setDbMutationTick] = useState(0);
 
   // AST state from store
   const elements = useLayers();
@@ -763,10 +751,6 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
   }, []);
 
   // Sync server latency setting
-  const handleLatencyChange = useCallback((ms: number) => {
-    setApiLatency(ms);
-    mockApiServer.setLatency(ms);
-  }, []);
 
   // Compile full sandbox HTML document (a manual reload remounts the iframe via `key={reloadKey}`)
   const sandboxHtml = useMemo(() => {
@@ -822,49 +806,8 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
   }, []);
 
   // Test Fetch API call directly
-  const handleTestFetch = useCallback(async () => {
-    setTestApiStatus("Executing...");
-    const url = `/api/${selectedCollection}`;
-    const start = performance.now();
-    try {
-      const res = await mockApiServer.handleRequest(url);
-      const data = await res.json();
-      const dur = Math.round(performance.now() - start);
-      const count = Array.isArray(data) ? data.length : 1;
-      setTestApiStatus(`200 OK • ${count} items • ${dur}ms`);
-      setTimeout(() => setTestApiStatus(null), 4000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setTestApiStatus(`Error: ${msg}`);
-    }
-  }, [selectedCollection]);
 
   // Handle Add Record submit in HUD drawer
-  const handleSaveRecord = useCallback(() => {
-    try {
-      const payload: Record<string, unknown> = {};
-      const schema = databaseSchemas[selectedCollection];
-      if (schema) {
-        for (const [fieldName, field] of Object.entries(schema.fields)) {
-          if (field.isPrimaryKey) continue;
-          const inputVal = newRecordForm[fieldName];
-          if (inputVal !== undefined && inputVal !== "") {
-            if (field.type === "Int") payload[fieldName] = parseInt(inputVal, 10);
-            else if (field.type === "Float") payload[fieldName] = parseFloat(inputVal);
-            else if (field.type === "Boolean") payload[fieldName] = inputVal === "true";
-            else payload[fieldName] = inputVal;
-          } else if (field.type === "Boolean") {
-            payload[fieldName] = false;
-          }
-        }
-      }
-      mockDatabase.insert(selectedCollection, payload);
-      setIsAddingRecord(false);
-      setNewRecordForm({});
-    } catch (err: unknown) {
-      alert(`Insert failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, [databaseSchemas, selectedCollection, newRecordForm]);
 
   // Messages from the sandbox frame: exceptions, element clicks and API requests. Accepted only from this
   // frame's window, from the editor's origin, and in the shapes `frameBridge.ts` defines (rule R3).

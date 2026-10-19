@@ -28,7 +28,7 @@ export class IntentParser {
   /**
    * Parses a natural-language user prompt into a structured intent schema.
    */
-  public static parse(prompt: string, context?: IntentContext): StructuredIntent {
+  public static parse(prompt: string, _context?: IntentContext): StructuredIntent {
     const cleanPrompt = prompt.trim();
     const lower = cleanPrompt.toLowerCase();
 
@@ -426,7 +426,7 @@ export class IntentParser {
   // --------------------------------------------------------------------------
 
   private static extractActions(
-    raw: string,
+    _raw: string,
     lower: string,
     category: IntentCategory,
     entities: IntentEntity[]
@@ -497,7 +497,7 @@ export class IntentParser {
   // 5. Page & Route Extraction
   // --------------------------------------------------------------------------
 
-  private static extractPages(lower: string, category: IntentCategory): IntentPage[] {
+  private static extractPages(_lower: string, category: IntentCategory): IntentPage[] {
     const pages: IntentPage[] = [];
 
     if (category === "auth") {
@@ -546,7 +546,7 @@ export class IntentParser {
 
   private static extractRelationships(
     raw: string,
-    lower: string
+    _lower: string
   ): IntentRelationship[] {
     const relationships: IntentRelationship[] = [];
 
@@ -611,7 +611,7 @@ export class IntentParser {
     raw: string,
     category: IntentCategory,
     entities: IntentEntity[],
-    actions: IntentAction[]
+    _actions: IntentAction[]
   ): string {
     if (raw.length <= 60) return raw;
     const entityNames = entities.map((e) => e.name).join(", ");

@@ -14,7 +14,7 @@
  */
 
 import React from "react";
-import { Box, Layers, Eye } from "lucide-react";
+import { Box } from "lucide-react";
 import { PbrMaterialConfig } from "@/core/types/scene3d";
 import { readProps } from "@/core/document/props";
 import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
@@ -27,7 +27,7 @@ export interface MaterialInspectorSectionProps {
 
 export const MaterialInspectorSection: React.FC<MaterialInspectorSectionProps> = ({
   elementId,
-  elementName,
+  elementName: _elementName,
 }) => {
   const elements = useLayers();
   const currentElement = elements[elementId];

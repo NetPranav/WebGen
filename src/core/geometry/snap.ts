@@ -314,6 +314,9 @@ export function distanceMarks(box: Rect, others: readonly Rect[], frame: Rect | 
 }
 
 /** Parses a frame's stored guides (`frame.guides`, JSON text); a malformed value is no guides. */
+/** Most guides one frame keeps; a hostile file can't hang the canvas with a hundred thousand. */
+export const MAX_GUIDES = 200;
+
 export function parseGuides(value: unknown): Guide[] {
   if (typeof value !== "string" || value === "") return [];
   try {
@@ -321,6 +324,7 @@ export function parseGuides(value: unknown): Guide[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((g): g is Guide => !!g && typeof g === "object" && ((g as Guide).axis === "x" || (g as Guide).axis === "y") && Number.isFinite((g as Guide).pos))
+      .slice(0, MAX_GUIDES)
       .map((g) => ({ axis: g.axis, pos: r2(g.pos) }));
   } catch {
     return [];

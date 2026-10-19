@@ -18,8 +18,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Terminal,
-  Database,
-  Layers,
 } from "lucide-react";
 
 interface DatabaseStatusBarProps {

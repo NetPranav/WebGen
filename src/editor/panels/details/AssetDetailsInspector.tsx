@@ -14,7 +14,7 @@
  * ============================================================================
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ChevronRight,
   Cpu,
@@ -31,12 +31,10 @@ import {
   Layers,
   Sparkles,
   Type,
-  Palette,
   Check,
   Workflow,
   GripVertical,
   Sliders,
-  ChevronDown,
 } from "lucide-react";
 import {
   ComponentVariable,

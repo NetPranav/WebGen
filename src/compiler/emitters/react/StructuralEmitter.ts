@@ -222,7 +222,7 @@ export default ${name};
 
   private static emitContainer(
     name: string,
-    element: Layer,
+    _element: Layer,
     options: StructuralEmitterOptions
   ): EmittedStructuralResult {
     const isTailwind = options.stylingSystem !== "css-modules";

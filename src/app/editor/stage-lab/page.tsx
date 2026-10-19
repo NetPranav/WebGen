@@ -3,10 +3,13 @@
  * A developer route; nothing in the editor links to it.
  */
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { labsEnabled } from "../labsEnabled";
 import { StageLab } from "@/editor/stage-lab/StageLab";
 
 export const metadata: Metadata = { title: "Stage lab | LazyLayout" };
 
 export default function StageLabPage() {
+  if (!labsEnabled) notFound();
   return <StageLab />;
 }

@@ -18,13 +18,12 @@ if (typeof require !== "undefined" && require.extensions) {
   require.extensions[".css"] = () => ({});
 }
 
-import { describe, it, beforeEach } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import React from "react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { ALL_ARCHETYPE_IDS } from "../../launcher/archetypeData";
 import { FAMILY_ANIMATION_PRESETS, QuickAddModal } from "../QuickAddModal";
-import type { DetailSectionId } from "@/core/types/element-sections";
 import { getArchetype } from "@/core/document/registry";
 
 describe("Sub-Phase 3.5: Simplified Outliner & Content Browser Linkage", () => {
@@ -69,14 +68,12 @@ describe("Sub-Phase 3.5: Simplified Outliner & Content Browser Linkage", () => {
 
   describe("2. ElementOutliner & QuickAddModal Component Contracts", () => {
     it("instantiates QuickAddModal without crashing", () => {
-      let added = false;
       const modal = React.createElement(QuickAddModal, {
         isOpen: true,
         archetype: "image",
         family: "media",
         onClose: () => {},
         onAddAnimation: () => {
-          added = true;
         },
       });
 

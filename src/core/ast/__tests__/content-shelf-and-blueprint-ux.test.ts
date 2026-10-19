@@ -14,7 +14,6 @@ import {
   BUILTIN_NODES,
   PIN_COLOR_MAP,
   getPinColor,
-  getNodeDefinition,
 } from "../../types/node-registry";
 import { TypeChecker } from "../TypeChecker";
 

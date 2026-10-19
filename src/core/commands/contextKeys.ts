@@ -9,6 +9,7 @@
 
 import { create } from "zustand";
 import type { ContextKeys, FocusScope } from "./types";
+import { useSelectionStore } from "../store/useSelectionStore";
 
 const DEFAULT_CONTEXT: ContextKeys = {
   canvasFocus: false,
@@ -48,3 +49,8 @@ export function setFocusScope(scope: FocusScope | null): void {
 export function setTextEditing(editing: boolean): void {
   useContextKeysStore.setState({ textEditing: editing });
 }
+
+// `selection.count` follows the one selection store (it used to be declared and never written).
+useSelectionStore.subscribe((state, prev) => {
+  if (state.selectedIds.length !== prev.selectedIds.length) useContextKeysStore.setState({ "selection.count": state.selectedIds.length });
+});

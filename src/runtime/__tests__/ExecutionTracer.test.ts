@@ -1,7 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { ExecutionTracer } from "../ExecutionTracer";
-import { MockDatabase } from "../MockDatabase";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 import { BlueprintGraph } from "@/core/ast/ASTManager";
 

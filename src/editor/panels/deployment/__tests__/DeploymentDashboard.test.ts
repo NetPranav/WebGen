@@ -9,7 +9,6 @@ import {
 import { useProjectMetaStore } from "../../../../core/store/useProjectMetaStore";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
 import { setDocument } from "../../../../core/store/documentState";
-import { DiagnosticBus } from "../../../../core/engine/DiagnosticBus";
 import { loadDocument } from "@/core/document/migrations";
 // Sub-Phase 41.1: detectRouteCollisions (used by validatePreflight) is After-track.
 import "../../../../after/store/pagesActions";

@@ -25,7 +25,6 @@ import {
   ChevronRight,
   Database,
   Network,
-  Trash2,
   Layers,
   ArrowRight,
 } from "lucide-react";
