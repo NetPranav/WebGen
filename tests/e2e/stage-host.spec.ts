@@ -29,7 +29,7 @@ test("Phase 18: the stage is a script-free same-origin frame with live DOM, not 
   const iframe = page.locator(STAGE);
   expect(await iframe.getAttribute("srcdoc"), "no srcdoc: the frame loads a static file").toBeNull();
   expect(await iframe.getAttribute("src")).toBe("/stage-frame.html");
-  expect(await iframe.getAttribute("sandbox"), "scripts can never run in the frame").toBe("allow-same-origin");
+  expect(await iframe.getAttribute("sandbox"), "no sandbox attribute: WebKit drops event delivery to a sandboxed script-less frame").toBeNull();
 
   const frame = await stageFrame(page);
   const facts = await frame.evaluate(() => ({
@@ -44,6 +44,29 @@ test("Phase 18: the stage is a script-free same-origin frame with live DOM, not 
   expect(facts.scripts, "no script in the frame").toBe(0);
   expect(facts.archetypes, "the demo's layers are drawn by the render definitions").toEqual(expect.arrayContaining(["container", "text", "button"]));
   expect(facts.viewport, "the frame's width is a real viewport").toBeGreaterThan(300);
+
+  // Nothing can execute in the frame, however it is injected: an inline handler, a script element, a javascript: URL.
+  const pwned = await page.evaluate(async (sel) => {
+    const w = window as unknown as { __pwned?: number };
+    w.__pwned = 0;
+    const d = document.querySelector<HTMLIFrameElement>(sel)!.contentDocument!;
+    const holder = d.createElement("div");
+    d.body.appendChild(holder);
+    holder.innerHTML = '<img src="x" onerror="window.parent.__pwned=1">';
+    const script = d.createElement("script");
+    script.textContent = "window.parent.__pwned = 2";
+    d.body.appendChild(script);
+    const link = d.createElement("a");
+    link.href = "javascript:window.parent.__pwned=3";
+    d.body.appendChild(link);
+    link.click();
+    await new Promise((r) => setTimeout(r, 500));
+    holder.remove();
+    script.remove();
+    link.remove();
+    return w.__pwned;
+  }, STAGE);
+  expect(pwned, "no inline handler, script element or javascript: URL ran in the frame").toBe(0);
 });
 
 test("Phase 18: a document edit updates the stage in place, without reloading the frame, in under a frame", async ({ page, browserName }) => {

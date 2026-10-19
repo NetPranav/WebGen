@@ -53,7 +53,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
   );
 
   return (
-    <StageFrame title="Stage" width={width} height={height} className={className} style={style}>
+    <StageFrame title="Stage" width={width} height={height} className={className} style={style} focusScope="canvas">
       <div data-stage-content onClick={handleClick} style={{ position: "relative", minHeight: "100%" }}>
         <RenderTree layers={layers} rootIds={rootIds} ctx={ctx} />
       </div>

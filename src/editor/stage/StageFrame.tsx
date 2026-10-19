@@ -4,12 +4,14 @@
  * A stage frame (ROADMAP Phase 18): a same-origin iframe that loads the static `/stage-frame.html`
  * and gets its content from a React portal, so the layers are real DOM in the frame's own document
  * and the frame's width is a real viewport (media queries work), but nothing is written into it as
- * markup. `sandbox="allow-same-origin"` without `allow-scripts` means no script can ever run inside
- * the frame (decision record 0008, R2); the portal's event handlers live in the editor's realm.
+ * markup. The frame's document carries a Content-Security-Policy with `script-src 'none'` (a response header
+ * and a meta tag), so no script can ever run inside it (decision record 0008, R2); the portal's event handlers
+ * live in the editor's realm. It deliberately has no `sandbox` attribute: WebKit drops all event delivery to a
+ * script-disabled sandboxed frame, even to listeners added from outside, which would make the stage unclickable.
  */
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { installCommandDispatcher } from "@/core/commands";
+import { bindFocusScope, installCommandDispatcher, type FocusScope } from "@/core/commands";
 
 export const STAGE_FRAME_SRC = "/stage-frame.html";
 
@@ -25,6 +27,8 @@ export interface StageFrameProps {
   height?: number | string;
   className?: string;
   style?: React.CSSProperties;
+  /** The focus region the frame belongs to: while the pointer is over the frame it holds this scope, so scoped shortcuts keep working inside it. */
+  focusScope?: FocusScope;
   children: React.ReactNode;
 }
 
@@ -73,7 +77,7 @@ function readMount(iframe: HTMLIFrameElement): FrameMount | null {
   return root ? { document: frameDocument, window: frameWindow, root } : null;
 }
 
-export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ title, width = "100%", height = "100%", className, style, children }, ref) => {
+export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ title, width = "100%", height = "100%", className, style, focusScope, children }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [mount, setMount] = useState<FrameMount | null>(null);
   useImperativeHandle(ref, () => iframeRef.current as HTMLIFrameElement);
@@ -90,6 +94,10 @@ export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ titl
   // The frame may already have loaded before React attached `onLoad` (hydration).
   useEffect(() => attach(), [attach]);
 
+  // The pointer over the frame holds the region's focus scope. Some engines (WebKit) report the pointer leaving the
+  // parent's element the moment it enters the frame, so the frame's own document claims the scope back.
+  useEffect(() => (mount && focusScope ? bindFocusScope(mount.document.documentElement, focusScope) : undefined), [mount, focusScope]);
+
   // Keys typed while the frame has focus reach the command bus too (the dispatcher is per window).
   useEffect(() => (mount ? installCommandDispatcher(mount.window) : undefined), [mount]);
 
@@ -99,7 +107,6 @@ export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ titl
         ref={iframeRef}
         src={STAGE_FRAME_SRC}
         title={title}
-        sandbox="allow-same-origin"
         onLoad={attach}
         className={className}
         style={{ border: 0, display: "block", width, height, ...style }}

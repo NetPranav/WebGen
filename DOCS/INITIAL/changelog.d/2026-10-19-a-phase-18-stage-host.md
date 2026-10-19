@@ -3,7 +3,7 @@
 The canvas stage is now a live DOM frame drawn by the Phase 17 render definitions. Editing no longer rebuilds an HTML string or reloads the frame, and the script-free frame closes the XSS exposure that decision record 0008 found.
 
 #### Added
-- `public/stage-frame.html` (a static, script-free document), `StageFrame` (an iframe with `sandbox="allow-same-origin"` and a React portal into it, with the editor's fonts copied in and the command dispatcher installed on its window) and `StageHost` (the active page drawn by `RenderTree`; clicks report the layer id).
+- `public/stage-frame.html` (a static, script-free document with a `script-src 'none'` policy, also sent as a response header), `StageFrame` (an iframe with a React portal into it, the editor's fonts copied in, the command dispatcher installed on its window, and the canvas focus scope held while the pointer is over it), `bindFocusScope` and `StageHost` (the active page drawn by `RenderTree`; clicks report the layer id).
 - `frameBridge.ts`: the typed bridge for the logic sandbox (source, origin and schema checked; messages addressed to the editor's origin).
 - Decision record 0009 (render host). Tests: the frame bridge, a scan of all of `src/` for wildcard `postMessage` targets, the stage's structure, and `tests/e2e/stage-host.spec.ts`.
 

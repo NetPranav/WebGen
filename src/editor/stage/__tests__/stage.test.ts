@@ -40,10 +40,17 @@ describe("Phase 18: the stage host builds no HTML strings and runs no script", (
     assert.ok(!/<[^>]*\son[a-z]+\s*=/i.test(html.replace(/<!--[\s\S]*?-->/g, "")), "no inline handler");
   });
 
-  it("the frame is a script-free same-origin sandbox: allow-same-origin and nothing else", () => {
-    const frame = readFileSync(join(stageDir, "StageFrame.tsx"), "utf8");
-    assert.match(frame, /sandbox="allow-same-origin"/);
-    assert.ok(!/allow-scripts/.test(frame.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "")));
+  it("no script can run in the frame: a script-src 'none' policy in the file and in the response header", () => {
+    const html = readFileSync(join(root, "public", "stage-frame.html"), "utf8");
+    assert.match(html, /<meta http-equiv="Content-Security-Policy" content="[^"]*script-src 'none'/);
+    const config = readFileSync(join(root, "next.config.ts"), "utf8");
+    assert.match(config, /source:\s*"\/stage-frame\.html"[\s\S]*Content-Security-Policy[\s\S]*script-src 'none'/);
+  });
+
+  it("the frame has no sandbox attribute (WebKit drops event delivery to a script-disabled sandboxed frame) and never allows scripts", () => {
+    const code = readFileSync(join(stageDir, "StageFrame.tsx"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    assert.ok(!/sandbox\s*=/.test(code), "an iframe sandbox attribute would break the stage in WebKit");
+    assert.ok(!/allow-scripts/.test(code));
   });
 });
 
