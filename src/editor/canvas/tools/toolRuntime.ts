@@ -43,7 +43,12 @@ export interface ScreenRect {
 export interface PickedLayer {
   id: string;
   name: string;
+  /** 0 for a frame, 1 for its children, and so on. */
+  depth: number;
 }
+
+/** How a pick changes the selection: replace it, or toggle the layer in it (Shift). */
+export type SelectMode = "replace" | "add" | "toggle";
 
 export interface ToolContext {
   zoom: () => number;
@@ -55,11 +60,13 @@ export interface ToolContext {
   /** The deepest container (frame) under a canvas point, with the origin its children are positioned from; null over bare canvas. */
   containerAt: (world: Point) => { id: string; origin: Point } | null;
   /** Selects a layer, or clears the selection with null. */
-  select: (layer: PickedLayer | null) => void;
+  select: (layer: PickedLayer | null, mode?: SelectMode) => void;
+  /** A marquee from `start` to `end` (canvas space), begun inside frame `startFrameId` (null: on bare canvas). */
+  marquee: (start: Point, end: Point, startFrameId: string | null, mode: SelectMode) => void;
   /** Where new layers go: the active frame. */
   parentId: () => string | null;
   /** Called after a tool created a layer: select it and go back to Select. */
-  created: (layer: PickedLayer) => void;
+  created: (layer: { id: string; name: string }) => void;
   /** The drag is panning the view (the canvas shows the grabbing cursor). */
   setPanning: (on: boolean) => void;
   /** Asks the canvas to redraw the tool's overlay. */
@@ -117,39 +124,77 @@ export function createHandTool(): Tool {
   };
 }
 
-/** Select, and deep select (the same tool, picking the deepest layer). A click picks; a drag on bare canvas pans when the environment says so. */
+/**
+ * Select, and deep select (the same tool, picking the deepest layer). A click picks the layer under the pointer;
+ * Shift-click toggles it in the selection; a drag that starts on a frame's own background or on bare canvas is a
+ * marquee; a drag on bare canvas pans when the environment says so. (A drag that starts on a layer is Phase 27's move.)
+ */
 export function createSelectTool(id: "select" | "deepSelect"): Tool {
   const pan = panGesture();
-  let down: Point | null = null;
+  let down: ToolPointer | null = null;
+  let hit: PickedLayer | null = null;
   let panning = false;
+  let marqueeing = false;
+  let marqueeFrame: string | null = null;
+  let cursor: ToolPointer | null = null;
+  const moved = (p: ToolPointer) => down !== null && Math.hypot(p.screen.x - down.screen.x, p.screen.y - down.screen.y) >= CLICK_SLOP;
+  const reset = () => {
+    down = null;
+    hit = null;
+    panning = false;
+    marqueeing = false;
+    cursor = null;
+  };
   return {
     id,
     cursor: "default",
     onPointerDown: (p, ctx) => {
-      down = p.screen;
+      down = p;
+      cursor = p;
       panning = false;
+      marqueeing = false;
+      hit = ctx.pick(p.world, id === "deepSelect" || p.metaKey || p.ctrlKey);
+      // A drag that starts on a frame's background (depth 0) or on bare canvas can become a marquee.
+      marqueeFrame = hit && hit.depth === 0 ? hit.id : null;
       if (p.onBlank && ctx.panOnBlank()) panning = pan.start(p, ctx);
       return true;
     },
     onPointerMove: (p, ctx) => {
-      if (panning) pan.move(p, ctx);
+      cursor = p;
+      if (panning) {
+        pan.move(p, ctx);
+        return;
+      }
+      if (!marqueeing && moved(p) && (hit === null || hit.depth === 0)) marqueeing = true;
+      if (marqueeing) ctx.requestOverlay();
     },
     onPointerUp: (p, ctx) => {
       const start = down;
-      down = null;
-      if (panning) {
-        pan.end(ctx);
-        panning = false;
-        if (start && Math.hypot(p.screen.x - start.x, p.screen.y - start.y) >= CLICK_SLOP) return;
+      const picked = hit;
+      const wasMarquee = marqueeing;
+      const startFrame = marqueeFrame;
+      const wasPanning = panning;
+      if (wasPanning) pan.end(ctx);
+      reset();
+      ctx.requestOverlay();
+      if (!start) return;
+      if (wasMarquee) {
+        ctx.marquee(start.world, p.world, startFrame, p.shiftKey ? "add" : "replace");
+        return;
       }
-      if (!start || Math.hypot(p.screen.x - start.x, p.screen.y - start.y) >= CLICK_SLOP) return; // a drag: marquee comes in Phase 26
-      ctx.select(ctx.pick(p.world, id === "deepSelect" || p.metaKey || p.ctrlKey));
+      if (wasPanning || Math.hypot(p.screen.x - start.screen.x, p.screen.y - start.screen.y) >= CLICK_SLOP) return;
+      if (picked) ctx.select(picked, p.shiftKey ? "toggle" : "replace");
+      else if (!p.shiftKey) ctx.select(null);
     },
     onPointerCancel: (ctx) => {
-      down = null;
       if (panning) pan.end(ctx);
-      panning = false;
+      reset();
+      ctx.requestOverlay();
     },
+    drawOverlay: () =>
+      marqueeing && down && cursor
+        ? { x: Math.min(down.screen.x, cursor.screen.x), y: Math.min(down.screen.y, cursor.screen.y), width: Math.abs(cursor.screen.x - down.screen.x), height: Math.abs(cursor.screen.y - down.screen.y) }
+        : null,
   };
 }
 

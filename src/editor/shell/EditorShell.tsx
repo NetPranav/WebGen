@@ -16,6 +16,8 @@
 import React, { Suspense, lazy, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import "@/editor/styles/dock.css";
 import { useCameraStore, selectZoomPercent } from "@/core/store/useCameraStore";
+import { useSelectionStore } from "@/core/store/useSelectionStore";
+import { useDocument } from "@/core/store/useDocumentStore";
 import { StatusBar } from "./StatusBar";
 import { StudioHeader } from "./StudioHeader";
 import { WorkspaceTabStrip } from "./WorkspaceTabStrip";
@@ -62,7 +64,17 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
   const zoomLevel = useCameraStore(selectZoomPercent);
   const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [isPlaying] = useState(false);
-  const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
+  // The selection is one store (Phase 26), shared by the canvas, the Layers panel and the inspector; what the shell hands
+  // its panels as "the selected element" is that store's primary selection.
+  const selectedId = useSelectionStore((s) => s.selectedId);
+  const selectionCount = useSelectionStore((s) => s.selectedIds.length);
+  const selectedName = useDocument((d) => (selectedId ? d.layers[selectedId]?.name : undefined));
+  const selectedElement = useMemo<SelectedElement | null>(() => (selectedId ? { id: selectedId, name: selectedName ?? selectedId } : null), [selectedId, selectedName]);
+  const setSelectedElement = useCallback((element: SelectedElement | null) => {
+    const store = useSelectionStore.getState();
+    if (element) store.select(element.id, "element");
+    else store.clearSelection();
+  }, []);
   const [focusedBlueprintNodeId, setFocusedBlueprintNodeId] = useState<string | null>(null);
 
   // DOM handles the splitters write live px values to while dragging (no
@@ -229,7 +241,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
       deviceMode,
       closeSettings: handleCloseSettings,
     }),
-    [selectedElement, handleDockFullPage, fp.handleGenericTearOffStart, showBottomTab, ws.setBottomActiveTab, setBottomCollapsed, focusedBlueprintNodeId, isDirty, handleSaveProject, deviceMode, handleCloseSettings],
+    [selectedElement, handleDockFullPage, fp.handleGenericTearOffStart, showBottomTab, ws.setBottomActiveTab, setBottomCollapsed, focusedBlueprintNodeId, isDirty, handleSaveProject, deviceMode, handleCloseSettings, setSelectedElement],
   );
 
   return (
@@ -341,7 +353,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
         <StatusBar
           status={isPlaying ? "Live Simulation Running (120 FPS Wasm)" : "Engine Ready"}
           isDirty={isDirty}
-          activeSelection={selectedElement ? selectedElement.name : "World Environment"}
+          activeSelection={selectionCount > 1 ? `${selectionCount} layers selected` : selectedElement ? selectedElement.name : "World Environment"}
           zoomLevel={zoomLevel}
           onZoomIn={() => invokeCommand("view.zoomIn")}
           onZoomOut={() => invokeCommand("view.zoomOut")}

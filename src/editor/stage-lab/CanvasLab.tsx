@@ -5,7 +5,9 @@
  * canvas, so the pan and zoom gate ("60 fps with 5 frames × 200 layers") is measured in the real thing in
  * Chromium, Firefox and WebKit. Reachable at `/editor/canvas-lab`; nothing links to it.
  */
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { installCommandDispatcher } from "@/core/commands";
+import { registerSelectionCommands } from "@/core/selection/selectionCommands";
 import { createDocumentFromLayers, createLayer } from "@/core/document/factories";
 import type { Layer } from "@/core/document/schema";
 import { documentCommands } from "@/core/store/useDocumentStore";
@@ -47,7 +49,16 @@ function labLayers(): Layer[] {
 
 export const CanvasLab: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
-  const selectedId = useSelectionStore((st) => st.selectedId);
+  // The lab has no shell, so it brings the commands it exercises and the key dispatcher itself.
+  useEffect(() => {
+    const offKeys = installCommandDispatcher(window);
+    const offSelection = registerSelectionCommands();
+    return () => {
+      offKeys();
+      offSelection();
+    };
+  }, []);
+  const selectedIds = useSelectionStore((st) => st.selectedIds);
   const load = useCallback(() => {
     documentCommands.replaceDocument(createDocumentFromLayers(labLayers()), "Load canvas lab");
     setLoaded(true);
@@ -66,7 +77,7 @@ export const CanvasLab: React.FC = () => {
           Hide f0_g2
         </button>
         <span data-testid="selected" style={{ marginLeft: 12 }}>
-          {selectedId ?? "none"}
+          {selectedIds.length ? selectedIds.join(",") : "none"}
         </span>
         <span data-testid="lab-state" style={{ marginLeft: 12 }}>
           {loaded ? "loaded" : "empty"}

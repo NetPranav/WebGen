@@ -24,6 +24,8 @@ import { screenToDoc } from "@/core/viewport/camera";
 import { useFrames } from "./useFrames";
 import { useCanvasViewStore, restoreBackdrop } from "@/core/store/useCanvasViewStore";
 import { frameIdOf } from "@/core/frames/frames";
+import { combineSelection, marqueeCandidates, rootIds } from "@/core/selection/selectionOps";
+import type { Rect } from "@/core/viewport/camera";
 import { setActiveStageFrame } from "@/core/render/StageRenderer";
 import { getDocument } from "@/core/store/documentState";
 import {
@@ -193,7 +195,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   // Tools (Phase 24). The canvas hands the pointer to the current tool and captures it for a gesture the tool began.
   // New layers go into the active frame (the canvas is flow-placed, so the parent is the only place a shape lands).
   const environmentRef = useLatestRef(environment);
-  const onSelectElementRef = useLatestRef(onSelectElement);
   const parentIdRef = useLatestRef(activeFrame?.id ?? rootContainer?.id ?? null);
 
   const tools = useMemo(() => createTools(), []);
@@ -206,31 +207,50 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       panOnBlank: () => environmentRef.current.viewport.pan.enabled && environmentRef.current.viewport.pan.trigger === "any_blank",
       pick: (world, deep) => {
         const hit = hitTester.pickAt(world, { deep });
-        return hit ? { id: hit.id, name: getDocument().layers[hit.id]?.name ?? hit.id } : null;
+        return hit ? { id: hit.id, name: getDocument().layers[hit.id]?.name ?? hit.id, depth: hit.depth } : null;
       },
       containerAt: (world) => {
         const hit = hitTester.containerAt(world);
         return hit ? { id: hit.id, origin: hit.origin } : null;
       },
-      select: (layer) => {
-        if (layer) {
-          handleStageClick(layer.id);
-          onSelectElementRef.current?.(layer);
-        } else {
+      // The selection lives in one store (`useSelectionStore`), shared by the canvas, the Layers panel and the inspector.
+      select: (layer, mode = "replace") => {
+        const store = useSelectionStore.getState();
+        if (!layer) {
+          store.clearSelection();
           setSelectedElement(null);
-          onSelectElementRef.current?.(null);
+          return;
         }
+        store.selectMultiple(combineSelection(store.selectedIds, [layer.id], mode), "element");
+        const frameId = frameIdOf(getDocument().layers, layer.id);
+        if (frameId) useCanvasViewStore.getState().setActiveFrame(frameId);
+      },
+      marquee: (start, end, startFrameId, mode) => {
+        const rect = { x: Math.min(start.x, end.x), y: Math.min(start.y, end.y), width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) };
+        const layers = getDocument().layers;
+        const index = hitTester.ensure();
+        const boxes = new Map<string, Rect>();
+        const pool = startFrameId && layers[startFrameId] ? layers[startFrameId].children : rootIds(layers);
+        for (const id of pool) {
+          const hit = index.get(id);
+          if (hit) boxes.set(id, hit.rect);
+        }
+        const picked = marqueeCandidates(layers, boxes, rect, startFrameId);
+        const store = useSelectionStore.getState();
+        store.selectMultiple(combineSelection(store.selectedIds, picked, mode === "add" ? "add" : "replace"), "element");
+        if (startFrameId) useCanvasViewStore.getState().setActiveFrame(startFrameId);
       },
       parentId: () => parentIdRef.current,
       created: (layer) => {
-        handleStageClick(layer.id);
-        onSelectElementRef.current?.(layer);
+        useSelectionStore.getState().select(layer.id, "element");
+        const frameId = frameIdOf(getDocument().layers, layer.id);
+        if (frameId) useCanvasViewStore.getState().setActiveFrame(frameId);
         useToolStore.getState().setActive("select");
       },
       setPanning: setIsPanning,
       requestOverlay: () => setToolOverlay(gestureToolRef.current?.drawOverlay?.() ?? null),
     }),
-    [hitTester, handleStageClick, environmentRef, onSelectElementRef, parentIdRef]
+    [hitTester, environmentRef, parentIdRef]
   );
   const palette = THEME_PALETTES[environment?.theme?.palette] || THEME_PALETTES.clean_light;
 

@@ -197,7 +197,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 23 | Overlay layer & Design / Preview modes | 22 | v3 49.4, 49.5 | 1 | 🚧 |
 | 24 | Tool state machine | 13, 23 | v3 43.2 (infrastructure) | 1 | 🚧 |
 | 25 | Creation tools: frames, shapes and text boxes | 24 | v3 43.2 (Tier A), 20.4 | 1 | 🚧 |
-| 26 | Selection | 25 | v3 20.1 (selection) | 1 | 📋 |
+| 26 | Selection | 25 | v3 20.1 (selection) | 1 | 🚧 |
 | 27 | Transform handles | 26 | v3 20.1 (transform) | 1 | 📋 |
 | 28 | Snapping, smart guides & rulers | 27 | v3 20.2 | 1 | 📋 |
 | 29 | Editing operations | 26 | — (new: not planned in v3) | 1 | 📋 |
@@ -623,11 +623,13 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence (2026-10-20):** `src/core/geometry/__tests__/shapeDrag.test.ts` (golden cases for box and segment drags, Shift, Alt, Shift+Alt, clicks); `tests/e2e/creation-tools.spec.ts` in Chromium, Firefox and WebKit: every box tool (rectangle, ellipse, polygon, star, text box, nested frame) is drawn inside the demo frame and the layer's position and size are read back from the frame's DOM and match the drag, its parent is the frame, it is selected, the tool returns to Select, one undo takes exactly that layer away and redo restores it; Shift draws a square, Alt draws from the centre, Shift+Alt a centred square; a click places the default size at the press; line and arrow are rotated boxes (Shift snaps 42° to 45°); over bare canvas a rectangle does nothing and the Frame tool makes a top-level frame; a layer drawn inside a nested frame is parented to it. **Design:** drawn layers are `absolute` with `frame.x` / `frame.y` relative to their parent's own top-left (so the geometry is exact; Phase 43.2's flow-placed shapes are gone); the parent is the deepest container under the press, found by the hit index, whose frame root now covers the whole artboard. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 26 · Selection
-**Needs:** 25 · **Was:** v3 20.1 (selection) · **Status:** 📋
-- [ ] Click, Shift-click, marquee, select all / none / inverse, select children and parent (Enter / Shift+Enter), deep select. One selection store shared by the canvas, Layers panel, inspector and (later) timeline.
+**Needs:** 25 · **Was:** v3 20.1 (selection) · **Status:** 🚧
+- [x] Click, Shift-click, marquee, select all / none / inverse, select children and parent (Enter / Shift+Enter), deep select. One selection store shared by the canvas, Layers panel, inspector and (later) timeline. (The Layers panel is Phase 32 and the timeline's layer rows later; the canvas, the Design and Motion inspectors, the status bar and the command bus already share `useSelectionStore`.)
 
 **You'll see:** selection stays in sync everywhere.
 **Done when:** a 15-step selection journey asserts the exact selection after each step.
+
+**Evidence (2026-10-20):** `src/core/selection/__tests__/selectionOps.test.ts` (selectable rules, select all / inverse / children / parent scopes, combining, marquee candidates); `tests/e2e/selection.spec.ts` in Chromium, Firefox and WebKit: a **17-step journey** on the canvas lab asserts the exact selection after every step (click picks the frame's direct child; Shift-click adds and toggles; Ctrl+A takes the siblings; Escape clears; Cmd/Ctrl-click deep-selects; Shift+Enter is the parent, Enter the children; Ctrl+Shift+A inverts; a marquee from the frame's background selects the groups it touches; a click in another frame; select all follows the frame; the frame's background selects the frame), and a second test shows the canvas outline, the inspector header and the status bar agreeing, then back to the World Environment on Escape. **Design:** `selectionOps.ts` is pure; commands `selection.all/none/inverse/children/parent/set` (Law 20, `set` is what an agent calls); the shell's "selected element" is now derived from the store, not its own state. **Changes elsewhere:** Ctrl+A on the canvas selects all, so the +Add palette's Ctrl+A no longer applies while the canvas has focus. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 27 · Transform handles
 **Needs:** 26 · **Was:** v3 20.1 (transform) · **Closes:** AUD-19 (selection) · **Status:** 📋
