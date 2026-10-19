@@ -5,12 +5,13 @@
  * one registration point for what used to be hardcoded keydown chains, plus the
  * File / View / Edit commands the menus run (Phase 13).
  */
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { useEffect } from "react";
 import { z } from "zod";
 import { defineCommand, defineTypedCommand, installGlobalCommands } from "@/core/commands";
 import { edition } from "@/core/flags";
 import { PRESET_IDS, presetsFor } from "@/core/workspace/layout";
 import { useWorkspaceStore } from "@/core/workspace/useWorkspaceStore";
+import { useCameraStore } from "@/core/store/useCameraStore";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
 export interface ShellCommandActions {
@@ -21,7 +22,6 @@ export interface ShellCommandActions {
   showBottomTab: (tabId: string) => void;
   exportProjectFile: () => void;
   openImportPicker: () => void;
-  setZoomLevel: Dispatch<SetStateAction<number>>;
   openSettings: () => void;
   /** Switches to a workspace preset and performs what it asks beyond layout. */
   selectPreset: (preset: string) => void;
@@ -36,7 +36,6 @@ export function useShellCommands(actions: ShellCommandActions) {
     showBottomTab,
     exportProjectFile,
     openImportPicker,
-    setZoomLevel,
     openSettings,
     selectPreset,
   } = actions;
@@ -166,15 +165,15 @@ export function useShellCommands(actions: ShellCommandActions) {
     const unregisters = [
       defineCommand({ id: "file.exportProjectFile", title: "Export Project File (.lazy.json)", category: "File", run: () => exportProjectFile() }),
       defineCommand({ id: "file.importProjectFile", title: "Import Project File...", category: "File", run: () => openImportPicker() }),
-      defineCommand({ id: "view.zoomIn", title: "Zoom In", category: "View", run: () => setZoomLevel((z) => Math.min(z + 10, 250)) }),
-      defineCommand({ id: "view.zoomOut", title: "Zoom Out", category: "View", run: () => setZoomLevel((z) => Math.max(z - 10, 25)) }),
-      defineCommand({ id: "view.zoomReset", title: "Reset Zoom (100%)", category: "View", run: () => setZoomLevel(100) }),
+      defineCommand({ id: "view.zoomIn", title: "Zoom In", category: "View", run: () => useCameraStore.getState().stepZoom(1) }),
+      defineCommand({ id: "view.zoomOut", title: "Zoom Out", category: "View", run: () => useCameraStore.getState().stepZoom(-1) }),
+      defineCommand({ id: "view.zoomReset", title: "Reset Zoom (100%)", category: "View", run: () => useCameraStore.getState().zoomTo100() }),
       defineCommand({ id: "app.preferences", title: "Preferences...", category: "Edit", run: () => openSettings() }),
     ];
     return () => {
       for (const unregister of unregisters) unregister();
     };
-  }, [exportProjectFile, openImportPicker, setZoomLevel, openSettings]);
+  }, [exportProjectFile, openImportPicker, openSettings]);
 
   // Phase 15: workspace presets and saved layouts. The no-argument commands are what the
   // palette runs; the typed ones (`args`) are what an agent calls (Law 20).

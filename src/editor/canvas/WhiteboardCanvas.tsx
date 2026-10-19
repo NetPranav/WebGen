@@ -12,7 +12,7 @@
  * ============================================================================
  */
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import "@/editor/styles/whiteboard.css";
 import { FloatingDock, CanvasTool } from "./FloatingDock";
 import { ZoomControls } from "./ZoomControls";
@@ -42,13 +42,15 @@ import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import { useLayers, documentCommands } from "@/core/store/useDocumentStore";
 import { useFocusScope, useCommand, getContextKeys, type ContextKeys } from "@/core/commands";
+import { useCameraStore, selectZoomPercent } from "@/core/store/useCameraStore";
+import { gridSpacing, wheelZoomFactor } from "@/core/viewport/camera";
+import { projectSession } from "@/core/storage/ProjectSession";
+import { getStageRenderer } from "@/core/render/StageRenderer";
 import { useShapeDrawing } from "./tools/useShapeDrawing";
 import { isShapeToolId } from "./tools/shapeTools";
 
 interface WhiteboardCanvasProps {
   deviceMode?: "desktop" | "tablet" | "mobile";
-  zoomLevel: number;
-  onZoomChange: (newZoom: number) => void;
   onDropAsset?: (asset: { id: string; name: string; category: string }) => void;
   isPlaying?: boolean;
   onTogglePlay?: (isPlaying: boolean) => void;
@@ -72,8 +74,6 @@ const DEVICE_CONFIGS: Record<"desktop" | "tablet" | "mobile", DeviceDimensions> 
 
 export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   deviceMode = "desktop",
-  zoomLevel,
-  onZoomChange,
   onDropAsset,
   isPlaying: isPlayingProp = false,
   onTogglePlay,
@@ -110,7 +110,9 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   /* --------------------------------------------------------------------------
    * Pan & Zoom Coordinates
    * -------------------------------------------------------------------------- */
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // The camera (pan + zoom) lives in `useCameraStore` and is written to this node's CSS variables by the effect
+  // below, so moving the camera never re-renders the canvas. Only the zoom read-out subscribes.
+  const zoomPercent = useCameraStore(selectZoomPercent);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const [activeTool, setActiveTool] = useState<CanvasTool>("select");
@@ -151,7 +153,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   // for a shape with no absolute canvas position to land at.
   const { handlePointerDown: handleShapeDrawPointerDown, overlayStyle: shapeDrawOverlay } = useShapeDrawing({
     activeTool,
-    zoom: zoomLevel,
     containerRef,
     parentId: rootContainer?.id ?? null,
     onCreated: (layerId, label) => {
@@ -175,52 +176,106 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const device = DEVICE_CONFIGS[deviceMode] || DEVICE_CONFIGS.desktop;
 
   /* --------------------------------------------------------------------------
-   * Bring Back to Center: centers (0, 0) world coordinates in the viewport
+   * Camera: size tracking, CSS variables, fit / 100% / selection
    * -------------------------------------------------------------------------- */
-  const bringBackToCenter = useCallback(() => {
-    if (!containerRef.current) return;
-    const { clientWidth, clientHeight } = containerRef.current;
-    if (clientWidth === 0 || clientHeight === 0) return;
+  const gridBase = environment.viewport.grid.size || 24;
 
-    onZoomChange(100);
-    setPan({
-      x: clientWidth / 2,
-      y: clientHeight / 2,
+  /** Writes the camera to the canvas node's CSS variables. No React render. */
+  const applyCamera = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const { x, y, zoom } = useCameraStore.getState().camera;
+    const spacing = gridSpacing(gridBase, zoom);
+    el.style.setProperty("--canvas-pan-x", String(x));
+    el.style.setProperty("--canvas-pan-y", String(y));
+    el.style.setProperty("--canvas-zoom", String(zoom));
+    el.style.setProperty("--canvas-grid-size", `${spacing}px`);
+    // Modulo pan offset keeps the dots locked to world coordinates
+    el.style.setProperty("--canvas-grid-pos-x", `${((x % spacing) + spacing) % spacing}px`);
+    el.style.setProperty("--canvas-grid-pos-y", `${((y % spacing) + spacing) % spacing}px`);
+  }, [gridBase]);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const syncSize = () => useCameraStore.getState().setViewport({ width: el.clientWidth, height: el.clientHeight });
+    syncSize();
+    applyCamera();
+    const unsubscribe = useCameraStore.subscribe((state, prev) => {
+      if (state.camera !== prev.camera) applyCamera();
     });
-  }, [onZoomChange]);
-
-  /** Zoom so the whole device frame fits the viewport (never above 100%), centered
-   * slightly above the middle so the floating tool dock doesn't cover its bottom edge. */
-  const fitToFrame = useCallback(() => {
-    if (!containerRef.current) return;
-    const { clientWidth, clientHeight } = containerRef.current;
-    if (clientWidth === 0 || clientHeight === 0) return;
-
-    const scale = Math.min((clientWidth - 96) / device.width, (clientHeight - 160) / device.height, 1);
-    onZoomChange(Math.max(10, Math.floor(scale * 100)));
-    setPan({ x: clientWidth / 2, y: clientHeight / 2 - 28 });
-  }, [device.width, device.height, onZoomChange]);
-
-  // Center on mount and listen for recenter event
-  useEffect(() => {
-    bringBackToCenter();
-
-    const handleRecenterEvent = () => {
-      bringBackToCenter();
-    };
-    window.addEventListener("antigravity:recenter_canvas", handleRecenterEvent);
+    const observer = new ResizeObserver(syncSize);
+    observer.observe(el);
     return () => {
-      window.removeEventListener("antigravity:recenter_canvas", handleRecenterEvent);
+      unsubscribe();
+      observer.disconnect();
     };
+  }, [applyCamera]);
+
+  const autoLayoutRef = useRef<() => void>(() => {});
+
+  // The camera belongs to the open document: switch to its saved camera whenever a project opens. The key is the
+  // session's project id (the stored document), not the snapshot's own id, which is content and can repeat.
+  useLayoutEffect(() => {
+    const load = (id: string | null) => {
+      useCameraStore.getState().loadFor(id ?? undefined);
+      applyCamera();
+      if (!useCameraStore.getState().touched) autoLayoutRef.current();
+    };
+    load(projectSession.currentProjectId);
+    return projectSession.onOpen(load);
+  }, [applyCamera]);
+
+  /** The device frame in canvas (document) space: centred on the origin. */
+  const frameRect = useMemo(
+    () => ({ x: -device.width / 2, y: -device.height / 2, width: device.width, height: device.height }),
+    [device.width, device.height]
+  );
+
+  /** Bring back to center: 100% with the origin in the middle of the viewport. */
+  const bringBackToCenter = useCallback((auto = false) => {
+    useCameraStore.getState().centerOrigin(auto);
+  }, []);
+
+  /** Zoom so the whole device frame fits the viewport (never above 100%), a little above the middle so the floating tool dock doesn't cover its bottom edge. */
+  const fitToFrame = useCallback((auto = false) => {
+    useCameraStore.getState().fitToRect(frameRect, { padding: 48, maxZoom: 1, bottomInset: 56, auto });
+  }, [frameRect]);
+
+  /** Zoom so the selected layer fills the viewport (zoom to selection). */
+  const zoomToSelection = useCallback(async () => {
+    const id = useSelectionStore.getState().selectedId;
+    const renderer = getStageRenderer();
+    if (!id || !renderer) return;
+    const [rect] = await renderer.measure([id]);
+    if (!rect) return;
+    useCameraStore.getState().fitToRect(
+      { x: frameRect.x + rect.x, y: frameRect.y + rect.y, width: rect.width, height: rect.height },
+      { padding: 96 }
+    );
+  }, [frameRect]);
+
+  // The recenter event (View > recenter, Ctrl+0) is the person's own move.
+  useEffect(() => {
+    const handleRecenterEvent = () => bringBackToCenter();
+    window.addEventListener("antigravity:recenter_canvas", handleRecenterEvent);
+    return () => window.removeEventListener("antigravity:recenter_canvas", handleRecenterEvent);
   }, [bringBackToCenter]);
 
-  // Auto-fit whenever the page preview appears or the device target changes, and
-  // return to 100% when it goes away (e.g. "Clear Showcase"). Declared after the
-  // mount-time recenter so it wins when a project loads with content.
+  // The canvas lays itself out until the person moves the view (or a saved view is restored): it centres when empty
+  // and fits the frame when the page preview appears, "Clear Showcase" returns it to 100%. Switching the device
+  // target always fits the new frame.
   const hasFrame = isPlayMode || childCount > 0;
   useEffect(() => {
-    if (hasFrame) fitToFrame();
-    else bringBackToCenter();
+    autoLayoutRef.current = () => (hasFrame ? fitToFrame(true) : bringBackToCenter(true));
+  }, [hasFrame, fitToFrame, bringBackToCenter]);
+  const lastDeviceRef = useRef(deviceMode);
+  useEffect(() => {
+    const deviceChanged = lastDeviceRef.current !== deviceMode;
+    lastDeviceRef.current = deviceMode;
+    if (!deviceChanged && useCameraStore.getState().touched) return;
+    if (hasFrame) fitToFrame(true);
+    else bringBackToCenter(true);
   }, [hasFrame, deviceMode, fitToFrame, bringBackToCenter]);
 
   // Dynamically adapt selected element bounds when switching device dimensions
@@ -304,14 +359,17 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       // key's shift state differently, and the old handler accepted either.
       keybinding: ["Ctrl+=", "Ctrl+Shift++"],
       when: canvasCommandWhen,
-      run: () => onZoomChange(Math.min(zoomLevel + 10, 400)),
+      run: () => useCameraStore.getState().stepZoom(1),
     },
-    [canvasCommandWhen, zoomLevel, onZoomChange]
+    [canvasCommandWhen]
   );
   useCommand(
-    { id: "canvas.zoomOut", title: "Zoom Out", category: "Canvas", keybinding: "Ctrl+-", when: canvasCommandWhen, run: () => onZoomChange(Math.max(zoomLevel - 10, 10)) },
-    [canvasCommandWhen, zoomLevel, onZoomChange]
+    { id: "canvas.zoomOut", title: "Zoom Out", category: "Canvas", keybinding: "Ctrl+-", when: canvasCommandWhen, run: () => useCameraStore.getState().stepZoom(-1) },
+    [canvasCommandWhen]
   );
+  useCommand({ id: "canvas.zoomTo100", title: "Zoom to 100%", category: "Canvas", keybinding: "Shift+0", when: canvasCommandWhen, run: () => useCameraStore.getState().zoomTo100() }, [canvasCommandWhen]);
+  useCommand({ id: "canvas.zoomToFit", title: "Zoom to Fit", category: "Canvas", keybinding: "Shift+1", when: canvasCommandWhen, run: () => fitToFrame() }, [canvasCommandWhen, fitToFrame]);
+  useCommand({ id: "canvas.zoomToSelection", title: "Zoom to Selection", category: "Canvas", keybinding: "Shift+2", when: canvasCommandWhen, run: () => void zoomToSelection() }, [canvasCommandWhen, zoomToSelection]);
   useCommand(
     { id: "canvas.zoomReset", title: "Reset Zoom & Recenter", category: "Canvas", keybinding: "Ctrl+0", when: canvasCommandWhen, run: () => bringBackToCenter() },
     [canvasCommandWhen, bringBackToCenter]
@@ -322,7 +380,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Prevents the browser from EVER zooming the entire website on trackpad
    * pinch or Ctrl+wheel. Only the Whiteboard Canvas zooms.
    * -------------------------------------------------------------------------- */
-  const zoomLevelRef = useLatestRef(zoomLevel);
   const viewportRef = useLatestRef(environment.viewport);
 
   useEffect(() => {
@@ -338,36 +395,15 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
       if (isZoom) {
         if (!viewportRef.current.zoom.enabled) return;
-
-        // macOS trackpad pinch uses fractional deltaY; standard mouse wheel uses larger steps
-        const isSmallDelta = Math.abs(e.deltaY) < 50;
-        const speedMult = viewportRef.current.zoom.speed === "fast" ? 2.0 : 1.0;
-        const zoomDelta = -e.deltaY * (isSmallDelta ? 0.015 : 0.0015) * speedMult;
-        const currentScale = zoomLevelRef.current / 100;
-        const zoomFactor = 1 + Math.max(Math.min(zoomDelta, 0.25), -0.25);
-        const minScale = (viewportRef.current.zoom.min || 10) / 100;
-        const maxScale = (viewportRef.current.zoom.max || 400) / 100;
-        const newScale = Math.min(Math.max(currentScale * zoomFactor, minScale), maxScale);
-        const newZoom = Math.round(newScale * 100);
-
+        const speed = viewportRef.current.zoom.speed === "fast" ? 2.0 : 1.0;
         const rect = container.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        setPan((prev) => {
-          const newPanX = mouseX - (mouseX - prev.x) * (newScale / currentScale);
-          const newPanY = mouseY - (mouseY - prev.y) * (newScale / currentScale);
-          return { x: newPanX, y: newPanY };
-        });
-
-        onZoomChange(newZoom);
+        useCameraStore
+          .getState()
+          .zoomByAt({ x: e.clientX - rect.left, y: e.clientY - rect.top }, wheelZoomFactor(e.deltaY, speed));
       } else {
         if (!viewportRef.current.pan.enabled) return;
         // Normal 2-finger scroll or wheel: pan the canvas only
-        setPan((prev) => ({
-          x: prev.x - e.deltaX,
-          y: prev.y - e.deltaY,
-        }));
+        useCameraStore.getState().panBy(-e.deltaX, -e.deltaY);
       }
     };
 
@@ -386,7 +422,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       container.removeEventListener("gesturechange", preventGesture);
       container.removeEventListener("gestureend", preventGesture);
     };
-  }, [onZoomChange, zoomLevelRef, viewportRef]);
+  }, [viewportRef]);
 
   /* --------------------------------------------------------------------------
    * Canvas Drag / Panning Engine
@@ -445,10 +481,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         startX = moveEvent.clientX;
         startY = moveEvent.clientY;
 
-        setPan((prev) => ({
-          x: prev.x + deltaX,
-          y: prev.y + deltaY,
-        }));
+        useCameraStore.getState().panBy(deltaX, deltaY);
       };
 
       const handleMouseUp = () => {
@@ -477,33 +510,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     onSelectElement?.({ id, name: label });
   };
 
-  /* --------------------------------------------------------------------------
-   * Dynamic Level-of-Detail (LOD) Grid Calculation
-   * Prevents dots from ever merging into a solid grey soup or scattering into oblivion.
-   * Modulo octave folding keeps dot spacing strictly between 18px and 36px on screen.
-   * -------------------------------------------------------------------------- */
-  const currentScale = zoomLevel / 100;
-  const gridBase = environment.viewport.grid.size || 24;
-  let visualSpacing = gridBase * currentScale;
-
-  while (visualSpacing < 18) {
-    visualSpacing *= 2;
-  }
-  while (visualSpacing > 36) {
-    visualSpacing /= 2;
-  }
-
-  // Modulo pan offset to keep dots locked to world coordinates
-  const gridPosX = ((pan.x % visualSpacing) + visualSpacing) % visualSpacing;
-  const gridPosY = ((pan.y % visualSpacing) + visualSpacing) % visualSpacing;
-
   const canvasStyle: React.CSSProperties = {
-    "--canvas-pan-x": pan.x,
-    "--canvas-pan-y": pan.y,
-    "--canvas-zoom": currentScale,
-    "--canvas-grid-size": `${visualSpacing}px`,
-    "--canvas-grid-pos-x": `${gridPosX}px`,
-    "--canvas-grid-pos-y": `${gridPosY}px`,
     "--canvas-dot-color": palette.gridDot,
     backgroundColor: palette.bg,
     cursor: toolCapturesPointer && !isSpacePressed ? "crosshair" : undefined,
@@ -642,12 +649,12 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
       {/* Floating Zoom Controls Widget (Bottom-Right) */}
       <ZoomControls
-        zoomLevel={zoomLevel}
-        onZoomIn={() => onZoomChange(Math.min(zoomLevel + 10, 400))}
-        onZoomOut={() => onZoomChange(Math.max(zoomLevel - 10, 10))}
-        onResetZoom={bringBackToCenter}
-        onFitToScreen={fitToFrame}
-        onRecenter={bringBackToCenter}
+        zoomLevel={zoomPercent}
+        onZoomIn={() => useCameraStore.getState().stepZoom(1)}
+        onZoomOut={() => useCameraStore.getState().stepZoom(-1)}
+        onResetZoom={() => useCameraStore.getState().zoomTo100()}
+        onFitToScreen={() => fitToFrame()}
+        onRecenter={() => bringBackToCenter()}
       />
     </div>
   );

@@ -45,6 +45,14 @@ describe("Sub-Phase 43.1: Shortcut Normalization", () => {
     assert.strictEqual(normalizeShortcut(spaceEvent), "Space");
   });
 
+  it("Shift+digit is named by its digit, whatever symbol the layout puts on that key", () => {
+    const ev = (key: string, code: string) => ({ ctrlKey: false, metaKey: false, altKey: false, shiftKey: true, key, code }) as unknown as KeyboardEvent;
+    assert.strictEqual(normalizeShortcut(ev("@", "Digit2")), "Shift+2");
+    assert.strictEqual(normalizeShortcut(ev('"', "Digit2")), "Shift+2"); // UK layout
+    assert.strictEqual(normalizeShortcut(ev("!", "Digit1")), "Shift+1");
+    assert.strictEqual(normalizeShortcut(ev("A", "KeyA")), "Shift+A");
+  });
+
   it("isTextEditingTarget recognizes inputs, textareas and contentEditable, but not select", () => {
     assert.strictEqual(isTextEditingTarget({ tagName: "INPUT", isContentEditable: false } as unknown as EventTarget), true);
     assert.strictEqual(isTextEditingTarget({ tagName: "TEXTAREA", isContentEditable: false } as unknown as EventTarget), true);

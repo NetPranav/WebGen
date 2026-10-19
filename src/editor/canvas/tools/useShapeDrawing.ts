@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { documentCommands } from "@/core/store/useDocumentStore";
+import { useCameraStore } from "@/core/store/useCameraStore";
 import { SHAPE_TOOLS, computeShapeProperties } from "./shapeTools";
 import type { CanvasTool } from "../FloatingDock";
 
@@ -16,7 +17,6 @@ interface DragState {
 interface UseShapeDrawingOptions {
   activeTool: CanvasTool;
   /** Percent, e.g. 100 for 100%. */
-  zoom: number;
   containerRef: RefObject<HTMLElement | null>;
   /** Where a newly-created shape is added as a child — typically the active page's root. `null` disables drawing (e.g. no page loaded yet). */
   parentId: string | null;
@@ -29,7 +29,7 @@ interface UseShapeDrawingOptions {
  * one shared hook instead of four near-duplicate handlers, and for why this
  * canvas is flow-placed rather than absolute-position.
  */
-export function useShapeDrawing({ activeTool, zoom, containerRef, parentId, onCreated }: UseShapeDrawingOptions) {
+export function useShapeDrawing({ activeTool, containerRef, parentId, onCreated }: UseShapeDrawingOptions) {
   const [drag, setDrag] = useState<DragState | null>(null);
   const toolDef = SHAPE_TOOLS[activeTool as keyof typeof SHAPE_TOOLS];
 
@@ -76,7 +76,7 @@ export function useShapeDrawing({ activeTool, zoom, containerRef, parentId, onCr
       const finished = dragRef.current;
       setDragBoth(null);
       if (finished && toolDef && parentId) {
-        const scale = zoom / 100 || 1;
+        const scale = useCameraStore.getState().camera.zoom || 1;
         const properties = computeShapeProperties(
           toolDef,
           (finished.x - finished.startX) / scale,
@@ -98,7 +98,7 @@ export function useShapeDrawing({ activeTool, zoom, containerRef, parentId, onCr
       window.removeEventListener("mouseup", handleUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!drag, toolDef, parentId, zoom, containerRef, onCreated, setDragBoth]);
+  }, [!!drag, toolDef, parentId, containerRef, onCreated, setDragBoth]);
 
   const overlayStyle: React.CSSProperties | null = drag
     ? {
