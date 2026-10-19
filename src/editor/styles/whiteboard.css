@@ -818,3 +818,267 @@
     right: 12px;
   }
 }
+
+/* ----------------------------------------------------------------------------
+ * Frames on the canvas (Phase 21)
+ * ---------------------------------------------------------------------------- */
+.canvas-frame {
+  position: absolute;
+  background: var(--surface-panel-solid);
+  box-shadow: 0 18px 50px -18px rgba(15, 23, 42, 0.22), 0 0 0 1px var(--border-default);
+}
+
+.canvas-frame--active {
+  box-shadow: 0 18px 50px -18px rgba(15, 23, 42, 0.28), 0 0 0 calc(2px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+}
+
+.canvas-frame__surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* The title row sits above the frame and stays one size on screen whatever the zoom: its width is the frame's
+ * width on screen, and it is scaled back by the zoom around its bottom-left corner. */
+.canvas-frame__title {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  margin-bottom: 4px;
+  transform-origin: left bottom;
+  transform: scale(calc(1 / var(--canvas-zoom, 1)));
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+.canvas-frame__name {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: default;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-frame__rename {
+  font: inherit;
+  font-weight: 600;
+  width: 140px;
+  padding: 1px 4px;
+}
+
+.canvas-frame__dims {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.canvas-frame__size {
+  width: 44px;
+  padding: 1px 3px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+}
+
+.canvas-frame__size:hover,
+.canvas-frame__size:focus {
+  border-color: var(--border-default);
+  background: var(--surface-panel-solid);
+}
+
+.canvas-frame__actions {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+  opacity: 0;
+}
+
+.canvas-frame:hover .canvas-frame__actions,
+.canvas-frame__actions[data-active] {
+  opacity: 1;
+}
+
+.canvas-frame__actions button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.canvas-frame__actions button:hover:not(:disabled) {
+  background: var(--surface-panel-solid);
+  color: var(--text-primary);
+}
+
+.canvas-frame__actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* The frame bar: add frames, pick the backdrop. Top-left of the canvas, over everything. */
+.frame-bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 30;
+  font-size: 12px;
+}
+
+.frame-bar__add {
+  position: relative;
+}
+
+.frame-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--surface-panel-solid);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.frame-bar__btn[aria-pressed="true"] {
+  background: var(--accent-primary, #6366f1);
+  border-color: var(--accent-primary, #6366f1);
+  color: #fff;
+}
+
+.frame-bar__group {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.frame-bar__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-panel-solid);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.18));
+}
+
+.frame-bar__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.frame-bar__item:hover {
+  background: var(--surface-hover, rgba(99, 102, 241, 0.1));
+}
+
+.frame-bar__dim {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.frame-bar__custom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px 2px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 4px;
+}
+
+.frame-bar__custom input {
+  width: 52px;
+  padding: 2px 4px;
+}
+
+/* Backdrops. Light is the theme's own background (no rule). */
+.whiteboard-stage[data-backdrop="dark"] {
+  background-color: #1b1c22 !important;
+  --canvas-dot-color: rgba(255, 255, 255, 0.12);
+}
+
+.whiteboard-stage[data-backdrop="checker"] {
+  background-color: #ffffff !important;
+  background-image:
+    linear-gradient(45deg, #e6e7eb 25%, transparent 25%, transparent 75%, #e6e7eb 75%),
+    linear-gradient(45deg, #e6e7eb 25%, transparent 25%, transparent 75%, #e6e7eb 75%);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+.whiteboard-stage[data-backdrop="checker"] .whiteboard-grid {
+  display: none;
+}
+
+/* The overlay layer (Phase 23): above the frames, in canvas space, never takes the pointer. The outlines are one
+ * screen pixel wide at any zoom. */
+.canvas-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.canvas-overlay__hover,
+.canvas-overlay__selection {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.canvas-overlay__hover {
+  box-shadow: 0 0 0 calc(1.5px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+}
+
+.canvas-overlay__selection {
+  box-shadow: 0 0 0 calc(2px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+}
+
+.canvas-overlay__label {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: calc(4px / var(--canvas-zoom, 1));
+  transform: scale(calc(1 / var(--canvas-zoom, 1)));
+  transform-origin: left top;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--accent-primary, #6366f1);
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+}

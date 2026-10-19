@@ -16,7 +16,7 @@ Until now the stage was an `<iframe srcDoc>` whose whole document was regenerate
 
 ## 2. What the design stage does not do
 
-- **No messages.** Nothing crosses a window boundary on the design path, so there is no bridge to attack: clicks are handled by an `onClick` on a wrapper inside the portal, which reads `data-element-id` from the target and calls `onElementClick(layerId)`.
+- **No messages.** Nothing crosses a window boundary on the design path, so there is no bridge to attack. *(Phase 22 amendment: in Design mode the canvas captures every pointer event and the frames get none (`pointer-events: none`); a click is looked up in the hit index (`src/core/hit`) from the pointer's place in canvas space. The wrapper's `onClick`/`onElementClick` remains for Preview mode, where the page is clickable.)*
 - **No script, no HTML builder, no mock server.** A test fails if `src/editor/stage` or `src/editor/canvas` mentions `srcDoc`, `innerHTML`, `dangerouslySetInnerHTML`, `document.write`, `new Function`, `eval`, `buildSandboxDocument`, `generateElementMarkup`, the mock API server or the hot-reload engine, or imports `SandboxHost`.
 
 ## 3. The logic sandbox stays, in the full edition only
@@ -48,3 +48,15 @@ On an Apple-silicon laptop with nothing else running, an undo or redo of a drawn
 - **Rendering into a Shadow DOM in the editor's document.** Rejected: it has no viewport of its own (media queries would see the editor's window), so responsive design would be a fiction; and it would share the editor origin's `document` with user content.
 - **An empty `about:blank` frame.** Rejected: quirks mode, and Firefox replaces the initial document when `load` fires.
 - **`sandbox="allow-same-origin"`.** Tried first and rejected: it makes the stage unusable in WebKit (see §1). The CSP does the same job.
+
+## 7. Several frames (Phase 21)
+
+The canvas now draws one stage per frame: each top-level layer is a frame (Phase 42), and each is drawn by its own `StageHost` into its own frame element, so a frame's media queries see the frame's own width. The decisions above hold per frame; what changes:
+
+- `getStageRenderer()` now answers for the **active frame** (else the first), and the single-stage pages (render gallery, stage lab) still register through `setStageRenderer`. For a layer in a particular frame use `getStageRendererForLayer(layerId, layers)` or `getStageRendererForFrame(frameId)`; `getFrameRenderers()` lists them all. Lane B's Phase 57 reads node positions through these.
+- Measurements from `renderer.measure()` are relative to the frame's own origin; the frame sits at its `frame.x` / `frame.y` on the canvas, and the renderer draws the top-level layer at its frame element's origin (`RenderContext.frameAtOrigin`).
+- Phase 22 (hit-testing) must offset by the frame's position when it builds the spatial index.
+
+## 8. Hit-testing (Phase 22)
+
+The canvas, not the frames, receives pointer events in Design mode. `CanvasHitTester` builds a quadtree (`SpatialIndex`, new item type `layer`) from each frame's `measureNow` rectangles, moved into canvas space and clipped to the frame, and rebuilds it only when the document or a frame's `layoutVersion` changes. A plain click picks the frame's direct child, Cmd/Ctrl the deepest layer; locked layers (and their contents) are skipped, and hidden layers have no rectangle because they are not drawn.

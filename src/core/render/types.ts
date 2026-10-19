@@ -16,6 +16,11 @@ export interface RenderContext {
   interpolate?: (text: string) => string;
   /** The parent's main axis; `fill` on that axis grows, on the other it stretches. */
   parentDirection?: "row" | "column";
+  /**
+   * The stage is one frame's own frame element (Phase 21): its position on the canvas is the element's,
+   * so the top-level layer is drawn at the element's origin instead of at its own `frame.x` / `frame.y`.
+   */
+  frameAtOrigin?: boolean;
 }
 
 /** Every render definition has this shape: draw `layer` from its resolved props (Phase 17, Law 11). */

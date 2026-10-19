@@ -15,12 +15,16 @@ import { useProjectStore } from "@/core/store/useProjectStore";
 import type { RenderContext } from "@/core/render";
 import { createPlanStore } from "@/core/render/planStore";
 import { StageContext, StoreRenderLayer, type StageContextValue } from "@/core/render/StoreRenderLayer";
-import { StageRenderer, setStageRenderer } from "@/core/render/StageRenderer";
+import { StageRenderer, registerFrameRenderer, setStageRenderer } from "@/core/render/StageRenderer";
 import { StageFrame, type FrameMount } from "./StageFrame";
 
 export interface StageHostProps {
   width?: number | string;
   height?: number | string;
+  /** A canvas frame (Phase 21): the top-level layer this stage draws, alone, at the origin of its own frame element. */
+  frameId?: string;
+  /** The frame element's title (for assistive technology and tests). */
+  title?: string;
   /** Called with the layer id of a clicked element. */
   onElementClick?: (layerId: string) => void;
   className?: string;
@@ -35,7 +39,7 @@ declare global {
   }
 }
 
-export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "100%", onElementClick, className, style }) => {
+export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "100%", frameId, title = "Stage", onElementClick, className, style }) => {
   const pages = useProjectStore((s) => s.pages);
   const activePageId = useProjectStore((s) => s.activePageId);
   const stateVariables = useProjectStore((s) => s.stateVariables);
@@ -44,6 +48,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
   // The ids drawn at the top: the page's root layer if it exists, otherwise every parentless layer. A string, so a
   // property edit (which can't change it) doesn't re-render the host.
   const rootKey = useDocument((d) => {
+    if (frameId) return d.layers[frameId] ? frameId : "";
     const id = page?.rootElementId;
     if (id && d.layers[id]) return id;
     return Object.values(d.layers)
@@ -80,24 +85,27 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
   );
 
   useEffect(() => {
-    setStageRenderer(renderer);
+    const off = frameId ? registerFrameRenderer(frameId, renderer) : undefined;
+    if (!frameId) setStageRenderer(renderer);
     if (window.__LL_TEST__) window.__LL_STAGE__ = renderer;
     return () => {
-      setStageRenderer(null);
+      off?.();
+      if (!frameId) setStageRenderer(null);
       if (window.__LL_STAGE__ === renderer) delete window.__LL_STAGE__;
     };
-  }, [renderer]);
+  }, [renderer, frameId]);
 
   // `{{name}}` in a text layer shows the state variable's value.
   const ctx = useMemo<RenderContext>(
     () => ({
+      frameAtOrigin: frameId !== undefined,
       interpolate: (text) =>
         text.replace(/\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g, (match, name: string) => {
           const v = stateVariables[name];
           return v === undefined ? match : String(v.value ?? v.defaultValue ?? "");
         }),
     }),
-    [stateVariables],
+    [stateVariables, frameId],
   );
   const stage = useMemo<StageContextValue>(() => ({ plan, renderer, ctx }), [plan, renderer, ctx]);
 
@@ -111,7 +119,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
   );
 
   return (
-    <StageFrame title="Stage" width={width} height={height} className={className} style={style} focusScope="canvas" onFrame={handleFrame}>
+    <StageFrame title={title} frameId={frameId} width={width} height={height} className={className} style={style} focusScope="canvas" onFrame={handleFrame}>
       <StageContext.Provider value={stage}>
         <div data-stage-content onClick={handleClick} style={{ position: "relative", minHeight: "100%" }}>
           {rootIds.map((id) => (

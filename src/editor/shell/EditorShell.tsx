@@ -148,6 +148,12 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
 
   /** Switches workspace preset (UI.md §5.2) and performs what the preset asks beyond layout. */
   const { selectPreset } = ws;
+  // The header's Desktop / Tablet / Mobile switch focuses the frame of that size, creating it first if there is none (Phase 21).
+  const handleSelectDeviceMode = useCallback((mode: "desktop" | "tablet" | "mobile") => {
+    setDeviceMode(mode);
+    invokeCommand("frame.focusPreset", { preset: mode });
+  }, []);
+
   const handleSelectWorkspace = useCallback(
     (preset: string) => {
       for (const effect of selectPreset(preset)) {
@@ -266,7 +272,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
             projectId={projectId}
             isDirty={isDirty}
             deviceMode={deviceMode}
-            onSelectDeviceMode={setDeviceMode}
+            onSelectDeviceMode={handleSelectDeviceMode}
             leftOpen={!ws.leftCollapsed}
             rightOpen={!ws.rightCollapsed}
             bottomOpen={!ws.bottomCollapsed}

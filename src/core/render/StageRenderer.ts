@@ -48,6 +48,10 @@ export class StageRenderer {
   private readonly cache = new Map<string, { epoch: number; rect: LayerRect }>();
   private queue: Pending[] = [];
   private scheduled = false;
+  /** Changes whenever something could have moved a layer. A cache keyed on it (the hit-test index) knows when to rebuild. */
+  get layoutVersion(): number {
+    return this.epoch;
+  }
   /** Layout read passes performed, for the batching test. */
   passes = 0;
   private readonly onResize = () => {
@@ -151,12 +155,59 @@ function runOnNextFrame(callback: () => void): void {
 }
 
 let active: StageRenderer | null = null;
+const frameRenderers = new Map<string, StageRenderer>();
+let activeFrameId: string | null = null;
 
-/** The renderer of the stage that is on screen (there is one), or null. Phase 57 reads node positions and writes values through it. */
+/**
+ * The renderer of the stage that is on screen, or null. With several frames (Phase 21) it is the active
+ * frame's renderer, else the first frame's. Phase 57 reads node positions and writes values through it; for
+ * a layer in another frame use `getStageRendererForLayer`.
+ */
 export function getStageRenderer(): StageRenderer | null {
-  return active;
+  if (activeFrameId !== null) {
+    const r = frameRenderers.get(activeFrameId);
+    if (r) return r;
+  }
+  const first = frameRenderers.values().next();
+  return first.done ? active : first.value;
 }
 
+/** The renderer of the single stage of a page without frames (the render gallery, the stage lab). */
 export function setStageRenderer(renderer: StageRenderer | null): void {
   active = renderer;
+}
+
+/** Registers the renderer of one frame's stage; returns the function that removes it. */
+export function registerFrameRenderer(frameId: string, renderer: StageRenderer): () => void {
+  frameRenderers.set(frameId, renderer);
+  return () => {
+    if (frameRenderers.get(frameId) === renderer) frameRenderers.delete(frameId);
+  };
+}
+
+/** Which frame `getStageRenderer()` answers for (null: the first). */
+export function setActiveStageFrame(frameId: string | null): void {
+  activeFrameId = frameId;
+}
+
+export function getStageRendererForFrame(frameId: string): StageRenderer | null {
+  return frameRenderers.get(frameId) ?? null;
+}
+
+/** The renderer of the frame that draws `layerId`, found by walking up to the layer's top-level ancestor. */
+export function getStageRendererForLayer(layerId: string, layers: Record<string, { parentId: string | null }>): StageRenderer | null {
+  let id: string | null = layerId;
+  let guard = 0;
+  while (id !== null && guard++ < 10_000) {
+    const layer: { parentId: string | null } | undefined = layers[id];
+    if (!layer) return null;
+    if (layer.parentId === null) return frameRenderers.get(id) ?? null;
+    id = layer.parentId;
+  }
+  return null;
+}
+
+/** Every frame's renderer, by frame id. */
+export function getFrameRenderers(): ReadonlyMap<string, StageRenderer> {
+  return frameRenderers;
 }
