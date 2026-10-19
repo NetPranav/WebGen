@@ -1082,3 +1082,34 @@
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* Transform handles (Phase 27): a frame around the selection that turns with it, eight resize handles, and round
+ * parameter handles (corner radius, star, polygon). All one screen size at any zoom. */
+.canvas-overlay__transform {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  transform-origin: center;
+  box-shadow: 0 0 0 calc(1px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+}
+
+.canvas-overlay__handle {
+  position: absolute;
+  width: calc(8px / var(--canvas-zoom, 1));
+  height: calc(8px / var(--canvas-zoom, 1));
+  transform: translate(-50%, -50%);
+  background: #fff;
+  box-shadow: 0 0 0 calc(1px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+  pointer-events: none;
+}
+
+.canvas-overlay__param {
+  position: absolute;
+  width: calc(10px / var(--canvas-zoom, 1));
+  height: calc(10px / var(--canvas-zoom, 1));
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--accent-primary, #6366f1);
+  box-shadow: 0 0 0 calc(1.5px / var(--canvas-zoom, 1)) #fff;
+  pointer-events: none;
+}

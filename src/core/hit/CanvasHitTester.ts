@@ -53,6 +53,7 @@ export function buildHitLayers(
         locked: layer.locked === true,
         archetype: layer.archetype,
         origin: { x: frame.x + r.x, y: frame.y + r.y },
+        bounds: { x: frame.x + r.x, y: frame.y + r.y, width: r.width, height: r.height },
       });
     });
   }

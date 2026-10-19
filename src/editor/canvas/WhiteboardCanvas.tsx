@@ -25,6 +25,8 @@ import { useFrames } from "./useFrames";
 import { useCanvasViewStore, restoreBackdrop } from "@/core/store/useCanvasViewStore";
 import { frameIdOf } from "@/core/frames/frames";
 import { combineSelection, marqueeCandidates, rootIds } from "@/core/selection/selectionOps";
+import { buildTransformModel, handleAtScreen } from "./transformModel";
+import type { DocumentTransaction } from "@/core/store/useDocumentStore";
 import type { Rect } from "@/core/viewport/camera";
 import { setActiveStageFrame } from "@/core/render/StageRenderer";
 import { getDocument } from "@/core/store/documentState";
@@ -197,8 +199,17 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const environmentRef = useLatestRef(environment);
   const parentIdRef = useLatestRef(activeFrame?.id ?? rootContainer?.id ?? null);
 
+  /** The handles' target for the overlay: the selection's box, in Design mode with a selecting tool. */
+  const overlayTransformModel = useCallback(() => {
+    if (useCanvasViewStore.getState().mode !== "design") return null;
+    const tool = useToolStore.getState().current;
+    if (tool !== "select" && tool !== "deepSelect") return null;
+    const zoom = useCameraStore.getState().camera.zoom;
+    return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / zoom);
+  }, [hitTester]);
   const tools = useMemo(() => createTools(), []);
   const gestureToolRef = useRef<Tool | null>(null);
+  const transformTxRef = useRef<DocumentTransaction | null>(null);
   const toolCtx = useMemo<ToolContext>(
     () => ({
       zoom: () => useCameraStore.getState().camera.zoom,
@@ -212,6 +223,49 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       containerAt: (world) => {
         const hit = hitTester.containerAt(world);
         return hit ? { id: hit.id, origin: hit.origin } : null;
+      },
+      transformModel: () => {
+        const camera = useCameraStore.getState().camera;
+        return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom);
+      },
+      handleAt: (screen) => {
+        const camera = useCameraStore.getState().camera;
+        const model = buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom);
+        return model ? handleAtScreen(model, camera, screen) : null;
+      },
+      isSelected: (id) => useSelectionStore.getState().selectedIds.includes(id),
+      beginTransform: (label) => {
+        transformTxRef.current = documentCommands.begin(label);
+      },
+      applyBoxes: (ids, boxes) => {
+        const index = hitTester.ensure();
+        const layers = getDocument().layers;
+        const round = (n: number) => Math.round(n * 100) / 100;
+        ids.forEach((id, i) => {
+          const layer = layers[id];
+          const box = boxes[i];
+          if (!layer || !box) return;
+          // Positions are relative to the parent's own top-left (a top-level frame's parent is the canvas).
+          const parentOrigin = layer.parentId ? index.get(layer.parentId)?.origin : undefined;
+          const patch: Record<string, number | string> = {
+            positioning: "absolute",
+            "frame.x": round(box.cx - box.w / 2 - (parentOrigin?.x ?? 0)),
+            "frame.y": round(box.cy - box.h / 2 - (parentOrigin?.y ?? 0)),
+            "frame.width": round(box.w),
+            "frame.height": round(box.h),
+          };
+          if (box.rot !== 0 || typeof layer.properties["frame.rotation"] === "number") patch["frame.rotation"] = round(box.rot);
+          documentCommands.updateProps(id, patch);
+        });
+      },
+      setParam: (layerId, prop, value) => documentCommands.updateProps(layerId, { [prop]: value }),
+      commitTransform: () => {
+        transformTxRef.current?.commit();
+        transformTxRef.current = null;
+      },
+      cancelTransform: () => {
+        transformTxRef.current?.cancel();
+        transformTxRef.current = null;
       },
       // The selection lives in one store (`useSelectionStore`), shared by the canvas, the Layers panel and the inspector.
       select: (layer, mode = "replace") => {
@@ -417,6 +471,15 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   }, [canvasCommandWhen]);
   useToolKeys();
 
+  // Escape during a gesture lets the tool undo it (a move, a resize, a rotation).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && gestureToolRef.current?.onKey?.(e, toolCtx)) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toolCtx]);
+
   useCommand(
     {
       id: "canvas.zoomIn",
@@ -525,6 +588,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     e.preventDefault();
     if (tool.onPointerDown(toToolPointer(e), toolCtx)) {
       gestureToolRef.current = tool;
+      useToolStore.getState().setGesturing(true);
       containerRef.current?.setPointerCapture(e.pointerId);
     }
   };
@@ -537,6 +601,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     const tool = gestureToolRef.current;
     if (!tool) return;
     gestureToolRef.current = null;
+    useToolStore.getState().setGesturing(false);
     if (containerRef.current?.hasPointerCapture(e.pointerId)) containerRef.current.releasePointerCapture(e.pointerId);
     if (cancel) tool.onPointerCancel?.(toolCtx);
     else tool.onPointerUp?.(toToolPointer(e), toolCtx);
@@ -642,7 +707,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         )}
 
         {/* Overlays when elements exist */}
-        <OverlayLayer hitTester={hitTester} canvasRef={containerRef} />
+        <OverlayLayer hitTester={hitTester} canvasRef={containerRef} transformModel={overlayTransformModel} />
       </div>
 
       {/* Sub-Phase 43.2: live dashed-rect preview while dragging a shape tool.

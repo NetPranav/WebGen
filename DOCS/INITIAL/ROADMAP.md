@@ -198,7 +198,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 24 | Tool state machine | 13, 23 | v3 43.2 (infrastructure) | 1 | 🚧 |
 | 25 | Creation tools: frames, shapes and text boxes | 24 | v3 43.2 (Tier A), 20.4 | 1 | 🚧 |
 | 26 | Selection | 25 | v3 20.1 (selection) | 1 | 🚧 |
-| 27 | Transform handles | 26 | v3 20.1 (transform) | 1 | 📋 |
+| 27 | Transform handles | 26 | v3 20.1 (transform) | 1 | 🚧 |
 | 28 | Snapping, smart guides & rulers | 27 | v3 20.2 | 1 | 📋 |
 | 29 | Editing operations | 26 | — (new: not planned in v3) | 1 | 📋 |
 | 30 | Align, distribute & tidy | 29 | — (new) | 1 | 📋 |
@@ -632,12 +632,14 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence (2026-10-20):** `src/core/selection/__tests__/selectionOps.test.ts` (selectable rules, select all / inverse / children / parent scopes, combining, marquee candidates); `tests/e2e/selection.spec.ts` in Chromium, Firefox and WebKit: a **17-step journey** on the canvas lab asserts the exact selection after every step (click picks the frame's direct child; Shift-click adds and toggles; Ctrl+A takes the siblings; Escape clears; Cmd/Ctrl-click deep-selects; Shift+Enter is the parent, Enter the children; Ctrl+Shift+A inverts; a marquee from the frame's background selects the groups it touches; a click in another frame; select all follows the frame; the frame's background selects the frame), and a second test shows the canvas outline, the inspector header and the status bar agreeing, then back to the World Environment on Escape. **Design:** `selectionOps.ts` is pure; commands `selection.all/none/inverse/children/parent/set` (Law 20, `set` is what an agent calls); the shell's "selected element" is now derived from the store, not its own state. **Changes elsewhere:** Ctrl+A on the canvas selects all, so the +Add palette's Ctrl+A no longer applies while the canvas has focus. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 27 · Transform handles
-**Needs:** 26 · **Was:** v3 20.1 (transform) · **Closes:** AUD-19 (selection) · **Status:** 📋
-- [ ] Move, resize (edges and corners, aspect lock, from centre) and rotate (Shift snaps to 15°), for single and multiple selections. Each gesture writes `frame.*` in one transaction; Esc cancels it.
-- [ ] On-canvas parameter handles: corner radius, star points and inner radius, polygon sides.
+**Needs:** 26 · **Was:** v3 20.1 (transform) · **Closes:** AUD-19 (selection) · **Status:** 🚧
+- [x] Move, resize (edges and corners, aspect lock, from centre) and rotate (Shift snaps to 15°), for single and multiple selections. Each gesture writes `frame.*` in one transaction; Esc cancels it.
+- [x] On-canvas parameter handles: corner radius, star points and inner radius, polygon sides.
 
 **You'll see:** Figma-style handles on whatever you select.
 **Done when:** 30 standard manipulations give exact geometry and exactly 30 undo steps.
+
+**Evidence (2026-10-20):** `src/core/geometry/__tests__/transform.test.ts`: 30 standard manipulations with exact geometry (moves, every corner and edge, aspect lock, from the centre, minimum size, rotated boxes, group resize, rotation with snapping, group rotation, handle positions) and the parameter handles (radius, inner radius, count, rotated). `tests/e2e/transform.spec.ts`: **30 real gestures on the canvas lab (moves, resizes, rotations, group moves/resizes/rotations, and the radius / inner-radius / points / sides handles) are exactly 30 undo steps**: after each gesture the shapes' markup changed, and then 30 undos walk back through the 30 recorded states character for character; Escape cancels a drag and leaves no step and keeps the selection; a resize keeps the layer's parent. **Design:** `transform.ts` is pure (a `Box` is centre, size, rotation); `transformModel.ts` builds the selection's boxes and handles from the hit index; the select tool owns the gestures (a handle drag, a drag on the selection, or on an unselected layer which it selects first) through one `documentCommands.begin` transaction; the overlay draws the frame and handles. **Rules:** moving or resizing converts a flow-placed layer to absolute at its measured position; positions are relative to the parent's top-left; parents aren't rotated (a rotated parent's children use their own box). Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 28 · Snapping, smart guides & rulers
 **Needs:** 27 · **Was:** v3 20.2 · **Closes:** AUD-20 (Tier 1: properties 7–23, 27–30) · **Status:** 📋

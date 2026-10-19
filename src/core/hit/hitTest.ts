@@ -38,6 +38,8 @@ export interface HitLayer {
   archetype: string;
   /** Top-left of the layer's own box in canvas space, before it was clipped to its frame: what its children's positions are relative to. */
   origin: Point;
+  /** The layer's measured box in canvas space, before it was clipped to its frame (a rotated layer's is its bounding box). */
+  bounds: Rect;
   locked: boolean;
 }
 

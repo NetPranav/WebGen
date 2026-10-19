@@ -6,13 +6,17 @@ import { documentStore, getDocument } from "@/core/store/documentState";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
 import { useCameraStore } from "@/core/store/useCameraStore";
+import { useToolStore } from "@/core/store/useToolStore";
 import { screenToDoc, type Point } from "@/core/viewport/camera";
 import { OverlayController } from "./OverlayController";
+import type { TransformModel } from "../transformModel";
 
 interface OverlayLayerProps {
   hitTester: CanvasHitTester;
   /** The canvas element, whose pointer the overlay follows. */
   canvasRef: React.RefObject<HTMLElement | null>;
+  /** The transform handles' target for the current selection, or null. */
+  transformModel: () => TransformModel | null;
   /** Called when the hovered layer changes (the canvas keeps it for tests and for the status line). */
   onController?: (controller: OverlayController | null) => void;
 }
@@ -22,8 +26,12 @@ interface OverlayLayerProps {
  * `OverlayController` draws into. It listens to the pointer on the canvas element and to selection, document
  * and mode changes, and asks the controller for a redraw; the controller draws on the next frame.
  */
-export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef, onController }) => {
+export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef, transformModel, onController }) => {
   const layerRef = useRef<HTMLDivElement | null>(null);
+  const transformModelRef = useRef(transformModel);
+  useEffect(() => {
+    transformModelRef.current = transformModel;
+  }, [transformModel]);
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -39,6 +47,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       hoverEnabled: () => useCanvasViewStore.getState().mode === "design",
       selectedIds: () => (useCanvasViewStore.getState().mode === "design" ? useSelectionStore.getState().selectedIds : []),
       layerName: (id) => getDocument().layers[id]?.name ?? id,
+      transformModel: () => transformModelRef.current(),
     });
     onController?.(controller);
 
@@ -67,9 +76,13 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       // the pointer's place in canvas space moves when the camera does under a still pointer
       if (pointer && s.camera !== p.camera) controller.invalidate();
     });
+    const offTool = useToolStore.subscribe((s, p) => {
+      if (s.current !== p.current) controller.invalidate();
+    });
     controller.invalidate(true);
 
     return () => {
+      offTool();
       canvas.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("mouseleave", onLeave);
       offSelection();

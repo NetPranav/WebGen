@@ -6,11 +6,12 @@
  * Chromium, Firefox and WebKit. Reachable at `/editor/canvas-lab`; nothing links to it.
  */
 import React, { useCallback, useEffect, useState } from "react";
-import { installCommandDispatcher } from "@/core/commands";
+import { installGlobalCommands } from "@/core/commands";
 import { registerSelectionCommands } from "@/core/selection/selectionCommands";
 import { createDocumentFromLayers, createLayer } from "@/core/document/factories";
 import type { Layer } from "@/core/document/schema";
 import { documentCommands } from "@/core/store/useDocumentStore";
+import { getDefaultProps } from "@/core/document/registry";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { WhiteboardCanvas } from "@/editor/canvas/WhiteboardCanvas";
 
@@ -47,11 +48,30 @@ function labLayers(): Layer[] {
   return layers;
 }
 
+/** One frame (1400 x 1300) with three groups of texts and four absolutely positioned shapes, for the transform gestures. */
+function shapeLayers(): Layer[] {
+  const root = "frame_0";
+  const shapes = ["m_rect", "m_ellipse", "m_star", "m_poly"];
+  const groups = ["f0_g0", "f0_g1", "f0_g2"];
+  const layers: Layer[] = [
+    createLayer({ id: root, name: "Frame 1", archetype: "container", parentId: null, children: [...groups, ...shapes], properties: { "layout.gap": 4, "layout.padding": 8, "frame.x": 0, "frame.y": 0, "frame.width": 1400, "frame.height": 1300 } }) as Layer,
+  ];
+  groups.forEach((gid, g) => {
+    const kids = Array.from({ length: 6 }, (_, i) => `${gid}_t${i}`);
+    layers.push(createLayer({ id: gid, name: `Group ${g}`, archetype: "container", parentId: root, children: kids, properties: { "layout.gap": 0, "layout.padding": 0, "frame.width": 300 } }) as Layer);
+    kids.forEach((id, i) => layers.push(createLayer({ id, archetype: "text", parentId: gid, properties: { "content.text": `Text ${g}.${i}`, "typography.fontSize": 12, "frame.width": 300, "frame.height": 16 } }) as Layer));
+  });
+  const shape = (id: string, archetype: "rectangle" | "ellipse" | "star" | "polygon", x: number, y: number, w: number, h: number) =>
+    createLayer({ id, name: id, archetype, parentId: root, properties: { ...getDefaultProps(archetype), positioning: "absolute", "frame.x": x, "frame.y": y, "frame.width": w, "frame.height": h } }) as Layer;
+  layers.push(shape("m_rect", "rectangle", 450, 150, 200, 120), shape("m_ellipse", "ellipse", 900, 150, 200, 120), shape("m_star", "star", 450, 700, 200, 200), shape("m_poly", "polygon", 900, 700, 200, 200));
+  return layers;
+}
+
 export const CanvasLab: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
   // The lab has no shell, so it brings the commands it exercises and the key dispatcher itself.
   useEffect(() => {
-    const offKeys = installCommandDispatcher(window);
+    const offKeys = installGlobalCommands(window); // key dispatcher, undo / redo / save
     const offSelection = registerSelectionCommands();
     return () => {
       offKeys();
@@ -59,6 +79,10 @@ export const CanvasLab: React.FC = () => {
     };
   }, []);
   const selectedIds = useSelectionStore((st) => st.selectedIds);
+  const loadShapes = useCallback(() => {
+    documentCommands.replaceDocument(createDocumentFromLayers(shapeLayers()), "Load shapes lab");
+    setLoaded(true);
+  }, []);
   const load = useCallback(() => {
     documentCommands.replaceDocument(createDocumentFromLayers(labLayers()), "Load canvas lab");
     setLoaded(true);
@@ -69,6 +93,9 @@ export const CanvasLab: React.FC = () => {
         <strong>Canvas lab</strong> · {LAB_FRAMES} frames × {LAB_LAYERS_PER_FRAME} layers
         <button type="button" style={{ marginLeft: 12 }} onClick={load}>
           Load 5 frames × 200 layers
+        </button>
+        <button type="button" style={{ marginLeft: 12 }} onClick={loadShapes}>
+          Load one frame with shapes
         </button>
         <button type="button" style={{ marginLeft: 12 }} onClick={() => documentCommands.setLayerFlags("f0_g1", { locked: true }, "Lock group")}>
           Lock f0_g1

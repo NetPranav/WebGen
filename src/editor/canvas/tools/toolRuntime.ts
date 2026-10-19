@@ -19,6 +19,8 @@ import { getDocument } from "@/core/store/documentState";
 import { getDefaultProps, type ArchetypeId, type PropValue } from "@/core/document/registry";
 import { dragBox, type DragBox, type DragKind } from "@/core/geometry/shapeDrag";
 import { listFrames, uniqueFrameName } from "@/core/frames/frames";
+import { moveBoxes, paramValue, resizeBoxes, rotateBoxes, rotationDelta, unionBox, type Box } from "@/core/geometry/transform";
+import { frameContains, type HandleHit, type TransformModel } from "../transformModel";
 
 export interface ToolPointer {
   /** Canvas (document) space. */
@@ -61,6 +63,17 @@ export interface ToolContext {
   containerAt: (world: Point) => { id: string; origin: Point } | null;
   /** Selects a layer, or clears the selection with null. */
   select: (layer: PickedLayer | null, mode?: SelectMode) => void;
+  /** The selection as boxes with its handles; null when nothing selected is drawn. */
+  transformModel: () => TransformModel | null;
+  /** Which transform handle is under a screen point. */
+  handleAt: (screen: Point) => HandleHit | null;
+  isSelected: (id: string) => boolean;
+  /** Opens one transaction for a transform gesture: everything until `commitTransform` is one undo step, `cancelTransform` undoes it. */
+  beginTransform: (label: string) => void;
+  applyBoxes: (ids: readonly string[], boxes: readonly Box[]) => void;
+  setParam: (layerId: string, prop: string, value: number) => void;
+  commitTransform: () => void;
+  cancelTransform: () => void;
   /** A marquee from `start` to `end` (canvas space), begun inside frame `startFrameId` (null: on bare canvas). */
   marquee: (start: Point, end: Point, startFrameId: string | null, mode: SelectMode) => void;
   /** Where new layers go: the active frame. */
@@ -125,74 +138,159 @@ export function createHandTool(): Tool {
 }
 
 /**
- * Select, and deep select (the same tool, picking the deepest layer). A click picks the layer under the pointer;
- * Shift-click toggles it in the selection; a drag that starts on a frame's own background or on bare canvas is a
- * marquee; a drag on bare canvas pans when the environment says so. (A drag that starts on a layer is Phase 27's move.)
+ * Select, and deep select (the same tool, picking the deepest layer).
+ *
+ *  - A click picks the layer under the pointer; Shift-click toggles it in the selection.
+ *  - A drag that starts on a frame's own background or on bare canvas is a marquee (or a pan, when the environment
+ *    says any blank canvas pans).
+ *  - A drag that starts on a selected layer (anywhere in the selection's box) moves the selection; one that starts
+ *    on an unselected layer selects it and moves it. Shift locks the move to an axis.
+ *  - A drag that starts on a handle resizes (Shift keeps the aspect ratio, Alt resizes about the centre), rotates
+ *    (Shift snaps to 15 degrees) or changes a parameter (corner radius, star points and inner radius, polygon sides).
+ *  - Every gesture writes through one transaction: one undo step, and Escape puts everything back.
  */
 export function createSelectTool(id: "select" | "deepSelect"): Tool {
   const pan = panGesture();
+  type Mode = "idle" | "click" | "marquee" | "pan" | "pending-move" | "move" | "resize" | "rotate" | "param" | "cancelled";
+  let mode: Mode = "idle";
   let down: ToolPointer | null = null;
-  let hit: PickedLayer | null = null;
-  let panning = false;
-  let marqueeing = false;
-  let marqueeFrame: string | null = null;
   let cursor: ToolPointer | null = null;
-  const moved = (p: ToolPointer) => down !== null && Math.hypot(p.screen.x - down.screen.x, p.screen.y - down.screen.y) >= CLICK_SLOP;
+  let hit: PickedLayer | null = null;
+  let marqueeFrame: string | null = null;
+  let began = false;
+  let start: { ids: string[]; boxes: Box[]; frame: Box; handle?: HandleHit; startValue?: number } | null = null;
+
+  const moved = (p: ToolPointer, from: ToolPointer | null) => from !== null && Math.hypot(p.screen.x - from.screen.x, p.screen.y - from.screen.y) >= CLICK_SLOP;
   const reset = () => {
+    mode = "idle";
     down = null;
-    hit = null;
-    panning = false;
-    marqueeing = false;
     cursor = null;
+    hit = null;
+    began = false;
+    start = null;
   };
+  const snapshot = (model: TransformModel, handle?: HandleHit) => {
+    start = { ids: model.ids, boxes: model.boxes, frame: model.frame, handle };
+    if (handle?.kind === "param") start.startValue = model.params[handle.index].value;
+  };
+  const begin = (ctx: ToolContext, label: string) => {
+    if (began) return;
+    began = true;
+    ctx.beginTransform(label);
+  };
+
   return {
     id,
     cursor: "default",
     onPointerDown: (p, ctx) => {
       down = p;
       cursor = p;
-      panning = false;
-      marqueeing = false;
+      began = false;
+      start = null;
       hit = ctx.pick(p.world, id === "deepSelect" || p.metaKey || p.ctrlKey);
-      // A drag that starts on a frame's background (depth 0) or on bare canvas can become a marquee.
       marqueeFrame = hit && hit.depth === 0 ? hit.id : null;
-      if (p.onBlank && ctx.panOnBlank()) panning = pan.start(p, ctx);
+
+      const model = ctx.transformModel();
+      const handle = model ? ctx.handleAt(p.screen) : null;
+      if (model && handle) {
+        snapshot(model, handle);
+        mode = handle.kind;
+        return true;
+      }
+      if (model && !p.shiftKey && frameContains(model.frame, p.world) && hit && hit.depth >= 1) {
+        snapshot(model);
+        mode = "pending-move";
+        return true;
+      }
+      if (hit && hit.depth >= 1 && !p.shiftKey && !ctx.isSelected(hit.id)) {
+        mode = "pending-move"; // select it, then move it, once the pointer has really dragged
+        return true;
+      }
+      mode = "click";
+      if (p.onBlank && ctx.panOnBlank() && pan.start(p, ctx)) mode = "pan";
       return true;
     },
     onPointerMove: (p, ctx) => {
       cursor = p;
-      if (panning) {
-        pan.move(p, ctx);
-        return;
+      if (!down) return;
+      if (mode === "pan") return pan.move(p, ctx);
+      if (mode === "pending-move" && moved(p, down)) {
+        if (!start) {
+          // select the layer under the pointer first, then move the new selection
+          if (hit) ctx.select(hit, "replace");
+          const model = ctx.transformModel();
+          if (!model) return;
+          snapshot(model);
+        }
+        mode = "move";
       }
-      if (!marqueeing && moved(p) && (hit === null || hit.depth === 0)) marqueeing = true;
-      if (marqueeing) ctx.requestOverlay();
+      if (mode === "click" && moved(p, down) && (hit === null || hit.depth === 0)) mode = "marquee";
+      if (mode === "marquee") ctx.requestOverlay();
+      if (!start) return;
+      const delta = { x: p.world.x - down.world.x, y: p.world.y - down.world.y };
+      if (mode === "move") {
+        begin(ctx, "Move");
+        let { x, y } = delta;
+        if (p.shiftKey) {
+          if (Math.abs(x) >= Math.abs(y)) y = 0;
+          else x = 0;
+        }
+        ctx.applyBoxes(start.ids, moveBoxes(start.boxes, x, y));
+      } else if (mode === "resize" && start.handle?.kind === "resize" && moved(p, down)) {
+        begin(ctx, "Resize");
+        ctx.applyBoxes(start.ids, resizeBoxes(start.boxes, start.frame, start.handle.handle, delta, { aspect: p.shiftKey, fromCenter: p.altKey }));
+      } else if (mode === "rotate" && moved(p, down)) {
+        begin(ctx, "Rotate");
+        const pivot = { x: start.frame.cx, y: start.frame.cy };
+        ctx.applyBoxes(start.ids, rotateBoxes(start.boxes, pivot, rotationDelta(pivot, down.world, p.world), p.shiftKey));
+      } else if (mode === "param" && start.handle?.kind === "param" && moved(p, down)) {
+        const model = ctx.transformModel();
+        const info = model?.params[start.handle.index];
+        if (!info) return;
+        begin(ctx, "Change shape");
+        ctx.setParam(info.layerId, info.handle.prop, paramValue(info.handle, start.boxes[0], p.world, start.startValue ?? 0, down.world));
+      }
     },
     onPointerUp: (p, ctx) => {
-      const start = down;
+      const from = down;
       const picked = hit;
-      const wasMarquee = marqueeing;
-      const startFrame = marqueeFrame;
-      const wasPanning = panning;
-      if (wasPanning) pan.end(ctx);
+      const was = mode;
+      const frameBg = marqueeFrame;
+      const didBegin = began;
+      if (was === "pan") pan.end(ctx);
       reset();
       ctx.requestOverlay();
-      if (!start) return;
-      if (wasMarquee) {
-        ctx.marquee(start.world, p.world, startFrame, p.shiftKey ? "add" : "replace");
+      if (!from || was === "cancelled") return;
+      if (didBegin) {
+        ctx.commitTransform();
         return;
       }
-      if (wasPanning || Math.hypot(p.screen.x - start.screen.x, p.screen.y - start.screen.y) >= CLICK_SLOP) return;
+      if (was === "marquee") {
+        ctx.marquee(from.world, p.world, frameBg, p.shiftKey ? "add" : "replace");
+        return;
+      }
+      if (was === "pan" || moved(p, from)) return;
+      // a click (or a press on a handle that never moved)
       if (picked) ctx.select(picked, p.shiftKey ? "toggle" : "replace");
       else if (!p.shiftKey) ctx.select(null);
     },
     onPointerCancel: (ctx) => {
-      if (panning) pan.end(ctx);
+      if (mode === "pan") pan.end(ctx);
+      if (began) ctx.cancelTransform();
       reset();
       ctx.requestOverlay();
     },
+    onKey: (e, ctx) => {
+      if (e.key === "Escape" && began) {
+        ctx.cancelTransform();
+        began = false;
+        mode = "cancelled";
+        return true;
+      }
+      return false;
+    },
     drawOverlay: () =>
-      marqueeing && down && cursor
+      mode === "marquee" && down && cursor
         ? { x: Math.min(down.screen.x, cursor.screen.x), y: Math.min(down.screen.y, cursor.screen.y), width: Math.abs(cursor.screen.x - down.screen.x), height: Math.abs(cursor.screen.y - down.screen.y) }
         : null,
   };
