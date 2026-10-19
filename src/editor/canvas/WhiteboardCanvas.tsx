@@ -208,6 +208,10 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         const hit = hitTester.pickAt(world, { deep });
         return hit ? { id: hit.id, name: getDocument().layers[hit.id]?.name ?? hit.id } : null;
       },
+      containerAt: (world) => {
+        const hit = hitTester.containerAt(world);
+        return hit ? { id: hit.id, origin: hit.origin } : null;
+      },
       select: (layer) => {
         if (layer) {
           handleStageClick(layer.id);

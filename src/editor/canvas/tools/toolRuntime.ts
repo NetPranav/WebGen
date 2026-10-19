@@ -14,8 +14,11 @@
 
 import type { Point } from "@/core/viewport/camera";
 import type { ToolId } from "@/core/tools/toolDefs";
-import { SHAPE_TOOLS, computeShapeProperties, isShapeToolId } from "./shapeTools";
 import { documentCommands } from "@/core/store/useDocumentStore";
+import { getDocument } from "@/core/store/documentState";
+import { getDefaultProps, type ArchetypeId, type PropValue } from "@/core/document/registry";
+import { dragBox, type DragBox, type DragKind } from "@/core/geometry/shapeDrag";
+import { listFrames, uniqueFrameName } from "@/core/frames/frames";
 
 export interface ToolPointer {
   /** Canvas (document) space. */
@@ -49,6 +52,8 @@ export interface ToolContext {
   /** The World Environment's "any blank canvas drags the view" setting. */
   panOnBlank: () => boolean;
   pick: (world: Point, deep: boolean) => PickedLayer | null;
+  /** The deepest container (frame) under a canvas point, with the origin its children are positioned from; null over bare canvas. */
+  containerAt: (world: Point) => { id: string; origin: Point } | null;
   /** Selects a layer, or clears the selection with null. */
   select: (layer: PickedLayer | null) => void;
   /** Where new layers go: the active frame. */
@@ -148,60 +153,120 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
   };
 }
 
-/** Frame, Rectangle, Ellipse, Line: drag a box, create the archetype sized to it. A click places the archetype at its default size. */
-export function createShapeTool(id: "frame" | "rectangle" | "ellipse" | "line"): Tool {
-  const def = SHAPE_TOOLS[id];
-  let start: Point | null = null;
-  let now: Point | null = null;
-  let shift = false;
+/** What each creation tool makes. */
+interface CreationSpec {
+  archetype: ArchetypeId;
+  label: string;
+  kind: DragKind;
+}
+
+const CREATION: Partial<Record<ToolId, CreationSpec>> = {
+  frame: { archetype: "container", label: "Frame", kind: "box" },
+  rectangle: { archetype: "rectangle", label: "Rectangle", kind: "box" },
+  ellipse: { archetype: "ellipse", label: "Ellipse", kind: "box" },
+  polygon: { archetype: "polygon", label: "Polygon", kind: "box" },
+  star: { archetype: "star", label: "Star", kind: "box" },
+  line: { archetype: "line", label: "Line", kind: "segment" },
+  arrow: { archetype: "arrow", label: "Arrow", kind: "segment" },
+  text: { archetype: "text", label: "Text", kind: "box" },
+};
+
+export function isCreationTool(id: string): boolean {
+  return id in CREATION;
+}
+
+/** The size a click gives the tool's layer (its archetype's defaults). */
+function defaultsFor(spec: CreationSpec): { width: number; height: number } {
+  const props = getDefaultProps(spec.archetype);
+  const num = (v: unknown, fallback: number) => (typeof v === "number" ? v : fallback);
+  if (spec.archetype === "text") return { width: 240, height: 32 };
+  if (spec.archetype === "container") return { width: 320, height: 240 };
+  return { width: num(props["frame.width"], 120), height: num(props["frame.height"], 120) };
+}
+
+/**
+ * Makes the layer a drag describes, positioned absolutely inside `parent` (its `frame.x` / `frame.y` are relative
+ * to the parent's own top-left) or, with no parent, as a new top-level frame. One document command: one undo step.
+ */
+export function createLayerFromDrag(spec: CreationSpec, box: DragBox, parent: { id: string; origin: Point } | null): string {
+  const props: Record<string, PropValue> = {
+    ...getDefaultProps(spec.archetype),
+    positioning: "absolute",
+    "frame.x": Math.round((box.x - (parent?.origin.x ?? 0)) * 100) / 100,
+    "frame.y": Math.round((box.y - (parent?.origin.y ?? 0)) * 100) / 100,
+  };
+  if (spec.archetype === "text") {
+    // A click makes auto-width text; a drag makes a text box of the dragged size.
+    if (!box.click) {
+      props["frame.width"] = box.width;
+      props["frame.height"] = box.height;
+    }
+  } else {
+    props["frame.width"] = box.width;
+    props["frame.height"] = box.height;
+  }
+  if (box.rotation !== 0) props["frame.rotation"] = box.rotation;
+  if (spec.archetype === "container") {
+    props["appearance.background.color"] = "#ffffff";
+    if (parent) props["appearance.radius"] = 0;
+  }
+  const name = spec.archetype === "container" && !parent ? uniqueFrameName(listFrames(getDocument().layers), spec.label) : spec.label;
+  return documentCommands.addLayer({ archetype: spec.archetype, parentId: parent?.id ?? null, name, properties: props }, `Draw ${spec.label}`);
+}
+
+/**
+ * Frame, Rectangle, Ellipse, Polygon, Star, Line, Arrow and Text: drag to size, click for the default size.
+ * Shift constrains (a square, a 45-degree angle), Alt draws from the centre. A layer drawn inside a frame is
+ * parented to it; over bare canvas only the Frame tool does anything (it makes a new top-level frame).
+ */
+export function createCreationTool(id: ToolId): Tool {
+  const spec = CREATION[id]!;
+  const defaults = defaultsFor(spec);
+  const segment = spec.kind === "segment";
+  const dragDefaults = segment ? { width: defaults.width, height: spec.archetype === "arrow" ? 32 : 2 } : defaults;
+  let start: ToolPointer | null = null;
+  let now: ToolPointer | null = null;
+  let parent: { id: string; origin: Point } | null = null;
+
+  const box = (to: ToolPointer, ctx: ToolContext) =>
+    dragBox(spec.kind, start!.world, to.world, { shift: to.shiftKey, alt: to.altKey }, dragDefaults, CLICK_SLOP / (ctx.zoom() || 1));
+
   return {
     id,
-    cursor: def.cursor,
-    onPointerDown: (p) => {
-      start = p.screen;
-      now = p.screen;
-      shift = p.shiftKey;
+    cursor: "crosshair",
+    onPointerDown: (p, ctx) => {
+      const container = ctx.containerAt(p.world);
+      parent = container ? { id: container.id, origin: container.origin } : null;
+      // Only a frame can be drawn on bare canvas
+      if (parent === null && spec.archetype !== "container") return false;
+      start = p;
+      now = p;
       return true;
     },
     onPointerMove: (p, ctx) => {
       if (!start) return;
-      now = p.screen;
-      shift = p.shiftKey;
+      now = p;
       ctx.requestOverlay();
     },
     onPointerUp: (p, ctx) => {
       const from = start;
+      const dragBoxNow = from ? box(p, ctx) : null;
       start = null;
       now = null;
       ctx.requestOverlay();
-      const parentId = ctx.parentId();
-      if (!from || !parentId) return;
-      const scale = ctx.zoom() || 1;
-      const properties = computeShapeProperties(def, (p.screen.x - from.x) / scale, (p.screen.y - from.y) / scale, p.shiftKey || shift);
-      const layerId = documentCommands.addLayer({ archetype: def.archetype, parentId, ...(properties ? { properties } : {}) }, `Draw ${def.label}`);
-      ctx.created({ id: layerId, name: def.label });
+      if (!from || !dragBoxNow) return;
+      const layerId = createLayerFromDrag(spec, dragBoxNow, parent);
+      ctx.created({ id: layerId, name: spec.label });
     },
     onPointerCancel: (ctx) => {
       start = null;
       now = null;
       ctx.requestOverlay();
     },
-    drawOverlay: () =>
-      start && now ? { x: Math.min(start.x, now.x), y: Math.min(start.y, now.y), width: Math.abs(now.x - start.x), height: Math.abs(now.y - start.y) } : null,
-  };
-}
-
-/** Text: a click places a text layer in the active frame. */
-export function createTextTool(): Tool {
-  return {
-    id: "text",
-    cursor: "text",
-    onPointerDown: (_p, ctx) => {
-      const parentId = ctx.parentId();
-      if (!parentId) return false;
-      const layerId = documentCommands.addLayer({ archetype: "text", parentId }, "Add Text");
-      ctx.created({ id: layerId, name: "Text" });
-      return false;
+    drawOverlay: () => {
+      if (!start || !now) return null;
+      // the preview is a screen-space box around the drag (a segment's, its bounding box)
+      return { x: Math.min(start.screen.x, now.screen.x), y: Math.min(start.screen.y, now.screen.y), width: Math.abs(now.screen.x - start.screen.x), height: Math.abs(now.screen.y - start.screen.y) };
     },
   };
 }
@@ -212,8 +277,7 @@ export function createTools(): Partial<Record<ToolId, Tool>> {
     select: createSelectTool("select"),
     deepSelect: createSelectTool("deepSelect"),
     pan: createHandTool(),
-    text: createTextTool(),
   };
-  for (const id of Object.keys(SHAPE_TOOLS)) if (isShapeToolId(id)) tools[id] = createShapeTool(id);
+  for (const id of Object.keys(CREATION) as ToolId[]) tools[id] = createCreationTool(id);
   return tools;
 }

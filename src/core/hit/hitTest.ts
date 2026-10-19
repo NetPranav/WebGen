@@ -35,6 +35,9 @@ export interface HitLayer {
   depth: number;
   /** Paint order within the document: later is on top. */
   order: number;
+  archetype: string;
+  /** Top-left of the layer's own box in canvas space, before it was clipped to its frame: what its children's positions are relative to. */
+  origin: Point;
   locked: boolean;
 }
 
