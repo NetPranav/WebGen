@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 4.0.0
 **Date:** 2026-10-18
-**Status:** Active. Stage 0 (Phases 1–12) ✅. **Next: Phase 13** (in progress).
+**Status:** Active. Stage 0 (Phases 1–12) ✅. Phases 13–19 ✅ (CI green on `main`, 2026-10-19). **Next: Phase 20** (Lane A); Lane B continues from Phase 57.
 **File Location:** `DOCS/INITIAL/ROADMAP.md`
 **Supersedes:** v3.3 (91 phases, run through a separate order file). v3.3 is kept unchanged as `ROADMAP_v3_ARCHIVE.md` for its progress logs, amendments and evidence. `order.md` is retired: in v4, **the phase number is the order**.
 **Inputs:** `PRD.md` v2.4, `AUDIT.md`, the grammar (`lazylayout_element_grammer.md` v0.3), `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md`, `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md`, and the World Environment properties in `action working.md`.
@@ -184,13 +184,13 @@ One row per phase, in execution order. Update the Status column together with th
 
 | # | Phase | Needs | Was (v3) | Stage | Status |
 |---|---|---|---|---|---|
-| 13 | Command bus: finish and type every command | 12 | v3 43.1 (rest), 43.3 | 1 | 🚧 |
-| 14 | Workspace model & panel registry | 13 | v3 44.1, 44.4 | 1 | 📋 |
-| 15 | Design / Animate / Code presets & inspector tabs | 14 | v3 44.2, 44.3 | 1 | 📋 |
-| 16 | Threat model for the stage and user content | 3 | v3 80.1 | 1 | 📋 |
-| 17 | Render definitions per archetype | 7, 8, 16 | v3 48.1 | 1 | 📋 |
-| 18 | Stage host v2: live DOM frames, no HTML strings | 17 | v3 48.2, 48.5 | 1 | 📋 |
-| 19 | Incremental updates & measurement API | 18 | v3 48.3, 48.4 | 1 | 📋 |
+| 13 | Command bus: finish and type every command | 12 | v3 43.1 (rest), 43.3 | 1 | ✅ |
+| 14 | Workspace model & panel registry | 13 | v3 44.1, 44.4 | 1 | ✅ |
+| 15 | Design / Animate / Code presets & inspector tabs | 14 | v3 44.2, 44.3 | 1 | ✅ |
+| 16 | Threat model for the stage and user content | 3 | v3 80.1 | 1 | ✅ |
+| 17 | Render definitions per archetype | 7, 8, 16 | v3 48.1 | 1 | ✅ |
+| 18 | Stage host v2: live DOM frames, no HTML strings | 17 | v3 48.2, 48.5 | 1 | ✅ |
+| 19 | Incremental updates & measurement API | 18 | v3 48.3, 48.4 | 1 | ✅ |
 | 20 | Viewport camera | 19 | v3 49.1 | 1 | 🚧 |
 | 21 | Multi-frame canvas | 20 | v3 49.2, 20.3 | 1 | 🚧 |
 | 22 | Hit-testing | 21 | v3 49.3 | 1 | 🚧 |
@@ -483,7 +483,7 @@ The document and World Environment have their own stores, After-track actions mo
 > Order inside the stage: commands and workspace (13–15) → the renderer that finally draws layers from their geometry (16–19) → the viewport (20–23) → tools and direct manipulation (24–31) → panels (32–35) → assets, images and fonts (36–38) → vectors (39–40) → layout (41–44) → design systems (45–48) → output, agents and templates (49–51) → the gate (52).
 
 ### Phase 13 · Command bus: finish and type every command
-**Needs:** 12 · **Was:** v3 43.1 (rest), 43.3 · **Closes:** — · **Status:** 🚧
+**Needs:** 12 · **Was:** v3 43.1 (rest), 43.3 · **Closes:** — · **Status:** ✅
 **Goal:** Every action (shortcut, menu, toolbar, palette, context menu, AI, MCP) is one typed command, so every later phase only adds commands.
 - [x] Command registry, context keys, keymap with `when` clauses, palette on the registry, one focused region (landed 2026-09-27).
 - [x] Menus and toolbar buttons run commands through `invokeCommand(id)`, which skips the `when` gate the way the palette does. File, Edit, View and Help are one data model (`src/editor/menus/menuModel.tsx`); an item that isn't built yet is disabled and names its phase (Cut/Copy/Paste/Duplicate/Delete: 29). Landed from `0792374` and finished here.
@@ -491,13 +491,13 @@ The document and World Environment have their own stores, After-track actions mo
 - [x] Coverage test (`menus/__tests__/commandCoverage.test.ts`): every menu item names a registered command or is pending on a phase, and no new raw `keydown` shortcut listener may be added. The palette already lists the registry. `Ctrl+A` (+Add palette) moved onto the bus; the remaining listeners are Escape-to-close and the Space spring-load, which need no command.
 - [x] `tests/e2e/command-bus.spec.ts`: Edit > Undo/Redo, File > Save, a pending item is disabled, undo from the palette, Space plays over the timeline and not over the canvas, Delete in the timeline removes one keyframe.
 - [x] Project metadata (id, name, scope, root archetype) has its own store, `useProjectMetaStore`. `ProjectStateSnapshot` is unchanged (it is the `.lazy.json` contract); `getSnapshot`/`restoreSnapshot` compose it, and undo swaps name, scope and root archetype through it.
-- [ ] `npm run check:roadmap-order` runs in CI (Law 18). The script exists; adding the CI step needs a token with the `workflow` scope (blocked on 2026-10-19).
+- [x] `npm run check:roadmap-order` runs in CI (Law 18), in the `verify` job.
 
 **You'll see:** Edit and File menus and the toolbar's undo, redo and save behave exactly like their shortcuts.
 **Done when:** the coverage test and the committed spec pass in CI in 3 browsers.
 
 ### Phase 14 · Workspace model & panel registry
-**Needs:** 13 · **Was:** v3 44.1, 44.4 · **Closes:** AUD-35 · **Status:** 📋
+**Needs:** 13 · **Was:** v3 44.1, 44.4 · **Closes:** AUD-35 · **Status:** ✅
 **Goal:** The shell renders from a saved layout instead of 22 local `useState` calls, and panels load only when shown.
 - [x] `registerPanel({ id, title, zone, edition, focusScope, load | component, props })` (`src/editor/shell/panels/registry.ts`, every panel registered in `panels/builtins.tsx`) and a zod-validated `WorkspaceLayout` (`src/core/workspace/`: sizes, collapsed state, active tabs, the AI dock, the preset) saved to `localStorage` 300 ms after a change and restored on load; corrupt or blocked storage falls back to the default.
 - [x] `EditorShell.tsx` is 389 lines (was 2,139): it composes `DockTree`, `PanelHost`, `CanvasChrome`, `AiDockColumn`, `OutputLogDrawer` and six hooks (`shell/hooks/`). Only the stage, Details and the Content Browser are imported statically; every other panel is fetched when first shown, and a unit test fails if a shell file imports a panel module outside the registry.
@@ -505,20 +505,20 @@ The document and World Environment have their own stores, After-track actions mo
 
 **You'll see:** the panel layout you arrange survives a reload.
 **Done when:** `EditorShell.tsx` is under 500 lines; Playwright proves the stage node is the same object across resizes; the bundle check shows unopened panels aren't loaded.
-**Evidence (2026-10-19):** `shellStructure.test.ts` (under 500 lines, no static panel imports); `tests/e2e/workspace.spec.ts` (layout survives a reload, stage node is the same object, unopened panels are not loaded, read from `data-loaded-panels` on the dock root). Status stays 🚧 until CI passes in 3 browsers.
+**Evidence (2026-10-19):** `shellStructure.test.ts` (under 500 lines, no static panel imports); `tests/e2e/workspace.spec.ts` (layout survives a reload, stage node is the same object, unopened panels are not loaded, read from `data-loaded-panels` on the dock root). Gate passed in CI in 3 browsers on `main` (2026-10-19).
 
 ### Phase 15 · Design / Animate / Code presets & inspector tabs
-**Needs:** 14 · **Was:** v3 44.2, 44.3 · **Closes:** AUD-21 (shell) · **Status:** 📋
+**Needs:** 14 · **Was:** v3 44.2, 44.3 · **Closes:** AUD-21 (shell) · **Status:** ✅
 - [x] Presets: **Design** (the default: stage │ Design inspector, the timeline folded to the transport bar in the status bar; the Layers panel joins it in Phase 32), **Animate** (timeline at 40% of the window, clamped to the splitter limits, Motion inspector), **Code** (stage │ a 520 px Code inspector). The header's tabs switch them; each is also a command (`workspace.preset.<id>`, and the typed `workspace.setPreset`).
 - [x] Inspector tabs **Design · Motion · Code**. Motion lists the selected layer's clips and tracks from the document and opens the timeline (`MotionInspector`); editing stays on the timeline until Stage 2. Users save a layout under a name, apply it with one click and delete it (`Layouts` menu; commands `workspace.saveLayout/applyLayout/deleteLayout`, up to 20, kept in `localStorage`).
 - [x] Logic, Data and Debug presets, and the Debug inspector tab, appear only in the `full` edition (unit-tested; the initial-edition browser test finds none of them).
 
 **You'll see:** one click switches between a Figma-like and an After Effects-like layout.
 **Done when:** a preset switch takes < 100 ms and doesn't remount the stage; a custom layout survives a reload.
-**Evidence (2026-10-19):** `tests/e2e/presets.spec.ts` (median of five switches under 100 ms, the stage node survives them, custom layout saved, applied after a reload and deleted); `src/core/workspace/__tests__/`. Status stays 🚧 until CI passes in 3 browsers.
+**Evidence (2026-10-19):** `tests/e2e/presets.spec.ts` (median of five switches under 100 ms, the stage node survives them, custom layout saved, applied after a reload and deleted); `src/core/workspace/__tests__/`. Gate passed in CI in 3 browsers on `main` (2026-10-19).
 
 ### Phase 16 · Threat model for the stage and user content
-**Needs:** 3 · **Was:** v3 80.1 · **Closes:** AUD-51 (partial) · **Status:** 📋
+**Needs:** 3 · **Was:** v3 80.1 · **Closes:** AUD-51 (partial) · **Status:** ✅
 **Goal:** Decide the security boundaries before building the new stage host.
 - [x] A STRIDE threat model as decision record 0008 (`decisions/0008-threat-model.md`): nine trust boundaries, each with its threats and the phase that enforces it, and seven findings in today's code.
 - [x] Rules the new renderer (17–19) must follow (R1–R10 in the record): no HTML strings, same-origin stage frames render only document content through render definitions, one typed bridge per frame with `event.source` checked, imported SVG sanitised once at import, limits, and a test for each rule; untrusted code goes to an opaque-origin sandbox (140).
@@ -528,7 +528,7 @@ The document and World Environment have their own stores, After-track actions mo
 **Found while writing it (2026-10-19):** layer text and ids were put into the stage's HTML unescaped inside a same-origin, scripts-allowed frame, so an imported project could run script on the editor origin; AI chat text was rendered as HTML unescaped. Both are mitigated now (`escapeHtml`, with tests) and removed for good by Phases 18 and 168.
 
 ### Phase 17 · Render definitions per archetype
-**Needs:** 7, 8, 16 · **Was:** v3 48.1 · **Closes:** AUD-29 (markup half) · **Status:** 📋
+**Needs:** 7, 8, 16 · **Was:** v3 48.1 · **Closes:** AUD-29 (markup half) · **Status:** ✅
 **Goal:** One React component per archetype draws a layer from its geometry and props. The stage and the exporter both use them (Law 11).
 - [x] `src/core/render/archetypes/*`: one React component per archetype takes `(layer, resolved props)` (a complete `Record<ArchetypeId, …>` in `definitions.ts`, so a missing one is a compile error). `layerBoxStyle` positions every layer from `frame`, `sizing` and `positioning` (absolute at `frame.x/y`, fixed sizes, hug, and fill along or across the parent's main axis; rotation, opacity, CSS units). Archetypes the old stage drew as an invisible `<div>` (toggle, badge, fab, icon, divider, background, svg group/use/text) now draw; effect surfaces and the 3D layers draw a labelled placeholder until Stages 3 and 4.
 - [x] The six shape archetypes render as SVG (stroke drawn inside the frame); so do `svgPath`, `svgGroup`, `svgText`, `svgUse` and `icon`.
@@ -537,10 +537,10 @@ The document and World Environment have their own stores, After-track actions mo
 
 **You'll see:** the render gallery shows every element type drawn the new way.
 **Done when:** the gallery renders every archetype identically in 3 browsers (screenshot tests).
-**Evidence (2026-10-19):** `tests/e2e/render-gallery.spec.ts` compares what must not differ across Chromium, Firefox and WebKit: every case's drawn size where its geometry fixes it (±1 px), that nothing from a hostile case ran or loaded, and that column, row, fill and absolute layouts place their children the same way. **Deviation:** pixel baselines are not committed, because they differ by operating system and font rasteriser and would have to be generated on the CI runner; this is a geometry check, not a screenshot diff. Status stays 🚧 until CI passes in 3 browsers.
+**Evidence (2026-10-19):** `tests/e2e/render-gallery.spec.ts` compares what must not differ across Chromium, Firefox and WebKit: every case's drawn size where its geometry fixes it (±1 px), that nothing from a hostile case ran or loaded, and that column, row, fill and absolute layouts place their children the same way. **Deviation:** pixel baselines are not committed, because they differ by operating system and font rasteriser and would have to be generated on the CI runner; this is a geometry check, not a screenshot diff. Gate passed in CI in 3 browsers on `main` (2026-10-19).
 
 ### Phase 18 · Stage host v2: live DOM frames, no HTML strings
-**Needs:** 17 · **Was:** v3 48.2, 48.5 · **Closes:** AUD-29, AUD-33 · **Status:** 📋
+**Needs:** 17 · **Was:** v3 48.2, 48.5 · **Closes:** AUD-29, AUD-33 · **Status:** ✅
 - [x] The stage is a same-origin `<iframe src="/stage-frame.html">` (a static file: doctype, reset, empty root, no script) drawn into by a React portal from the editor's own tree (not a second React root: stores, context and handlers stay shared). No `srcDoc`. The frame's width is a real viewport, so media queries work; it is in standards mode. No script can run in it: its document has a `script-src 'none'` CSP (response header plus meta tag), tested with an injected inline handler, script element and `javascript:` URL in all three browsers. There is no `sandbox` attribute, because WebKit then drops all events to the frame (decision record 0009 §1). (`src/editor/stage/`)
 - [x] No `postMessage(…, "*")` remains in `src/` (a unit test scans every source, including scripts inside template literals). The design stage sends no messages, so it needs no bridge; the logic sandbox's messages go through `frameBridge.ts` (editor origin as target, accepted only from that frame's window, from that origin and in zod-checked shapes).
 - [x] The logic sandbox (mock database and API, tracer, hot reload) stays in `SandboxHost`, loaded only through `afterTrackPanels.tsx` in the `full` edition and added to `check:bundle-scope`; the design stage (`WhiteboardCanvas` → `StageHost`) does not import it (a test checks).
@@ -548,17 +548,17 @@ The document and World Environment have their own stores, After-track actions mo
 
 **You'll see:** the showcase demo is drawn from layer geometry, and editing a property no longer reloads the stage.
 **Done when:** a property edit updates the stage in < 16 ms without a reload (the iframe document stays the same object); `grep` finds no `postMessage(…, "*")`; the demo matches the render gallery.
-**Evidence (2026-10-19):** `tests/e2e/stage-host.spec.ts` (the frame's document is the same object across edits; undo and redo of a drawn shape reach the frame's DOM in under one frame in Chromium; keys typed over the stage reach the command bus), `frameBridge.test.ts` (including the wildcard scan), `stage.test.ts`, and the render gallery now draws through the same `StageFrame`. **Deviations:** (1) the inspector's fields are not yet wired to the document (Phases 33–34), so the latency test drives real document edits (undo/redo of a drawn shape) rather than a field; (2) Chromium is held to 16 ms, Firefox and WebKit to 50 ms until their numbers on the CI runner are known; (3) the demo no longer has the old stage's padding and card defaults, because it is now drawn from geometry. Status stays 🚧 until CI passes in 3 browsers.
+**Evidence (2026-10-19):** `tests/e2e/stage-host.spec.ts` (the frame's document is the same object across edits; undo and redo of a drawn shape reach the frame's DOM in under one frame in Chromium; keys typed over the stage reach the command bus), `frameBridge.test.ts` (including the wildcard scan), `stage.test.ts`, and the render gallery now draws through the same `StageFrame`. **Deviations:** (1) the inspector's fields are not yet wired to the document (Phases 33–34), so the latency test drives real document edits (undo/redo of a drawn shape) rather than a field; (2) Chromium is held to 16 ms, Firefox and WebKit to 50 ms until their numbers on the CI runner are known; (3) the demo no longer has the old stage's padding and card defaults, because it is now drawn from geometry. Gate passed in CI in 3 browsers on `main` (2026-10-19).
 
 ### Phase 19 · Incremental updates & measurement API
-**Needs:** 18 · **Was:** v3 48.3, 48.4 · **Status:** 📋
+**Needs:** 18 · **Was:** v3 48.3, 48.4 · **Status:** ✅
 - [x] Document patches re-render only the layers they touch. Every layer is a `StoreRenderLayer`: it subscribes to its own object (`useLayer`, which Immer's structural sharing keeps identical for every untouched layer) and to its own list of drawn children in a plan store that returns the same array while a layer's children are unchanged. `StageHost` re-renders only when the top-level ids change. Editing one layer's property re-renders that layer and nothing else; adding or removing a layer re-renders its parent and the new layer; both are tested in the browser by counting renders.
 - [x] `LayerNodeRegistry` (layer id → element, with subscriptions and a late-cleanup guard), filled by a `nodeRef` every render definition now receives, and held by the stage's `StageRenderer`, which `getStageRenderer()` returns (Phase 57 writes per-frame values through it).
 - [x] `renderer.measure(layerIds)` returns document-space rectangles (the frame's scroll is added, so they don't change when the frame scrolls), answered from one read pass per animation frame however many callers ask, and cached until a `ResizeObserver` on every drawn element, a `MutationObserver` on the stage root or a window resize says something may have moved. `measureNow` is the synchronous form.
 
 **You'll see:** a 500-layer document stays responsive while you edit it.
 **Done when:** 500 layers mount in < 500 ms; editing one layer re-renders no other layer (subscription test); `measure()` matches the DOM within 0.5 px.
-**Evidence (2026-10-19):** `/editor/stage-lab` loads 500 layers into the real stage and edits them through the real document commands; `tests/e2e/stage-incremental.spec.ts` (6 tests, Chromium, Firefox and WebKit) measured, on a quiet laptop, **500 layers mounting in 15 ms (Chromium), 42 ms (Firefox) and 34 ms (WebKit)**; one property edit → exactly one layer rendered once; add → the new layer and its parent only; remove → the parent only; `measure()` within 0.5 px of the DOM for the root, first, middle and last layers, unchanged by scrolling the frame, correct after a layout shift, and 100 simultaneous callers costing one read pass. Unit tests cover the plan store, the registry, the batching and the cache (`src/core/render/__tests__/incremental.test.ts`). Edits reach the frame's DOM in 2–7 ms in all three engines. Status stays 🚧 until CI passes in 3 browsers.
+**Evidence (2026-10-19):** `/editor/stage-lab` loads 500 layers into the real stage and edits them through the real document commands; `tests/e2e/stage-incremental.spec.ts` (6 tests, Chromium, Firefox and WebKit) measured, on a quiet laptop, **500 layers mounting in 15 ms (Chromium), 42 ms (Firefox) and 34 ms (WebKit)**; one property edit → exactly one layer rendered once; add → the new layer and its parent only; remove → the parent only; `measure()` within 0.5 px of the DOM for the root, first, middle and last layers, unchanged by scrolling the frame, correct after a layout shift, and 100 simultaneous callers costing one read pass. Unit tests cover the plan store, the registry, the batching and the cache (`src/core/render/__tests__/incremental.test.ts`). Edits reach the frame's DOM in 2–7 ms in all three engines. Gate passed in CI in 3 browsers on `main` (2026-10-19).
 
 ### Phase 20 · Viewport camera
 **Needs:** 19 · **Was:** v3 49.1 · **Closes:** — (World Environment properties 1–6) · **Status:** 🚧
