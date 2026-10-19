@@ -24,6 +24,9 @@ function handleKeyDown(e: KeyboardEvent): void {
   const normalized = normalizeShortcut(e);
   if (!normalized) return;
 
+  // The key's own target is the truth about text editing. A text field removed while it had focus (a rename box
+  // that closes on Enter) fires no `focusout` in some engines (WebKit), which left shortcuts dead for good.
+  setTextEditing(isTextEditingTarget(e.target));
   const ctx = getContextKeys();
   for (const command of getAllCommands()) {
     if (!command.keybinding) continue;

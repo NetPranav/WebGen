@@ -12,9 +12,8 @@
 
 import { z } from "zod";
 import { defineTypedCommand } from "../commands";
-import { createId } from "../ids";
+import { cloneLayers } from "../editing/cloneLayers";
 import { getDefaultProps } from "../document/registry";
-import type { Clip, Layer } from "../document/schema";
 import { documentCommands } from "../store/useDocumentStore";
 import { getDocument } from "../store/documentState";
 import { useCameraStore } from "../store/useCameraStore";
@@ -68,44 +67,18 @@ export function addFrame(input: AddFrameInput = {}): string {
   return id;
 }
 
-function cloneSubtree(layers: Record<string, Layer>, rootId: string): { layers: Layer[]; idMap: Map<string, string> } {
-  const idMap = new Map<string, string>();
-  const order: string[] = [];
-  const visit = (id: string) => {
-    const layer = layers[id];
-    if (!layer || idMap.has(id)) return;
-    idMap.set(id, createId(id.split("_")[0] || "el"));
-    order.push(id);
-    layer.children.forEach(visit);
-  };
-  visit(rootId);
-  const copies = order.map((id) => {
-    const layer = structuredClone(layers[id]);
-    return {
-      ...layer,
-      id: idMap.get(id)!,
-      parentId: layer.parentId !== null && idMap.has(layer.parentId) ? idMap.get(layer.parentId)! : null,
-      children: layer.children.filter((c) => idMap.has(c)).map((c) => idMap.get(c)!),
-    };
-  });
-  return { layers: copies, idMap };
-}
-
 /** Copies a frame, its layers and their animations, to the right of the others. Returns the copy's id. */
 export function duplicateFrame(frameId: string): string {
   const doc = getDocument();
   const source = doc.layers[frameId];
   if (!source || source.parentId !== null) throw new Error(`"${frameId}" is not a frame.`);
   const frames = framesNow();
-  const { layers, idMap } = cloneSubtree(doc.layers, frameId);
+  const bundle = cloneLayers(doc.layers, doc.clips, [frameId]);
   const { x, y } = nextFramePosition(frames);
-  const root = layers[0];
+  const root = bundle.layers[0];
   root.name = uniqueFrameName(frames, `${source.name} copy`);
   root.properties = { ...root.properties, "frame.x": x, "frame.y": y };
-  const clips: Clip[] = Object.values(doc.clips)
-    .filter((c) => idMap.has(c.layerId))
-    .map((c) => ({ ...structuredClone(c), id: createId("clip"), layerId: idMap.get(c.layerId)! }));
-  documentCommands.insertLayers(layers, clips, `Duplicate frame "${source.name}"`);
+  documentCommands.insertLayers(bundle.layers, bundle.clips, `Duplicate frame "${source.name}"`);
   return root.id;
 }
 
@@ -196,7 +169,14 @@ export function registerFrameCommands(): () => void {
       args: z.object({ preset: z.enum(["desktop", "tablet", "mobile"]) }),
       run: ({ preset }) => ({ frameId: focusOrCreatePreset(preset) }),
     }),
-    defineTypedCommand({ id: "frame.focus", title: "Focus Frame", category, args: FrameId, run: ({ frameId }) => focusFrame(frameId) }),
+    defineTypedCommand({
+      id: "frame.focus",
+      title: "Focus Frame",
+      category,
+      // `camera: false` selects the frame and makes it active without moving the view (what clicking its title does)
+      args: FrameId.extend({ camera: z.boolean().optional() }),
+      run: ({ frameId, camera }) => focusFrame(frameId, { camera }),
+    }),
     defineTypedCommand({
       id: "frame.duplicate",
       title: "Duplicate Frame",

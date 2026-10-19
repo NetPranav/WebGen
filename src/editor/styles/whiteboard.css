@@ -23,7 +23,9 @@
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  /* `clip`, not `hidden`: a hidden box can still be scrolled (by focus, by the browser revealing a selection), which
+   * moves every layer under the pointer without the camera knowing. A clipped one can't scroll at all. */
+  overflow: clip;
   user-select: none;
   background-color: var(--canvas-bg);
   cursor: default;
@@ -1187,3 +1189,48 @@
   border-left-width: 1px;
   border-top-width: 1px;
 }
+
+/* The layer context menu and the rename box (Phase 29) */
+.canvas-context-menu {
+  position: absolute;
+  z-index: 60;
+  min-width: 220px;
+  padding: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-panel-solid);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.22);
+  font-size: 12px;
+}
+.canvas-context-menu__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.canvas-context-menu__item:hover:not(:disabled) { background: var(--surface-hover, rgba(99, 102, 241, 0.12)); }
+.canvas-context-menu__item:disabled { opacity: 0.4; cursor: default; }
+.canvas-context-menu__item kbd { color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; }
+.canvas-context-menu__sep { height: 1px; margin: 4px 6px; background: var(--border-subtle); }
+.canvas-rename {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: 8px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-panel-solid);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.22);
+  font-size: 12px;
+}
+.canvas-rename label { display: flex; align-items: center; gap: 8px; }

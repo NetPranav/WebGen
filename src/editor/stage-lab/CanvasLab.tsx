@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { installGlobalCommands } from "@/core/commands";
 import { registerSelectionCommands } from "@/core/selection/selectionCommands";
+import { registerEditingCommands } from "@/core/editing/editCommands";
 import { createDocumentFromLayers, createLayer } from "@/core/document/factories";
 import type { Layer } from "@/core/document/schema";
 import { documentCommands } from "@/core/store/useDocumentStore";
@@ -73,9 +74,11 @@ export const CanvasLab: React.FC = () => {
   useEffect(() => {
     const offKeys = installGlobalCommands(window); // key dispatcher, undo / redo / save
     const offSelection = registerSelectionCommands();
+    const offEditing = registerEditingCommands();
     return () => {
       offKeys();
       offSelection();
+      offEditing();
     };
   }, []);
   const selectedIds = useSelectionStore((st) => st.selectedIds);

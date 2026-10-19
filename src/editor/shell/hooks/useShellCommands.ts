@@ -16,6 +16,7 @@ import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
 import { useSnapStore } from "@/core/store/useSnapStore";
 import { registerFrameCommands } from "@/core/frames/frameCommands";
 import { registerSelectionCommands } from "@/core/selection/selectionCommands";
+import { registerEditingCommands } from "@/core/editing/editCommands";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
 export interface ShellCommandActions {
@@ -86,6 +87,7 @@ export function useShellCommands(actions: ShellCommandActions) {
         title: "Live Code Inspector",
         category: "View",
         keybinding: "Ctrl+Shift+G",
+        when: (ctx) => !ctx.canvasFocus, // on the canvas Ctrl+Shift+G is Ungroup (Phase 29)
         run: () => dockFullPage("code", "Live Code Inspector"),
       }),
       defineCommand({
@@ -121,6 +123,7 @@ export function useShellCommands(actions: ShellCommandActions) {
         title: "Undo History & Transaction Timeline",
         category: "Navigation",
         keybinding: "Ctrl+Shift+H",
+        when: (ctx) => !ctx.canvasFocus, // on the canvas Ctrl+Shift+H is Hide / Show (Phase 29)
         run: () => dockFullPage("history", "Undo History"),
       }),
       defineCommand({
@@ -207,6 +210,9 @@ export function useShellCommands(actions: ShellCommandActions) {
 
   // Phase 26: select all / none / inverse / children / parent.
   useEffect(() => registerSelectionCommands(), []);
+
+  // Phase 29: copy, paste, duplicate, delete, nudge, arrange, group, lock, hide, rename.
+  useEffect(() => registerEditingCommands(), []);
 
   // Phase 15: workspace presets and saved layouts. The no-argument commands are what the
   // palette runs; the typed ones (`args`) are what an agent calls (Law 20).

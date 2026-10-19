@@ -39,6 +39,10 @@ interface CanvasViewState {
   /** The frame (top-level layer id) new shapes go into; null until a frame is picked, then the first frame is used. */
   activeFrameId: string | null;
   mode: CanvasMode;
+  /** The layer being renamed (F2 or the context menu), or null. */
+  renamingId: string | null;
+  startRename: (id: string) => void;
+  stopRename: () => void;
   setMode: (mode: CanvasMode) => void;
   setBackdrop: (backdrop: Backdrop) => void;
   setActiveFrame: (frameId: string | null) => void;
@@ -48,6 +52,9 @@ export const useCanvasViewStore = create<CanvasViewState>((set) => ({
   backdrop: "light",
   activeFrameId: null,
   mode: "design",
+  renamingId: null,
+  startRename: (renamingId) => set({ renamingId }),
+  stopRename: () => set({ renamingId: null }),
   setMode: (mode) => set({ mode }),
   setBackdrop: (backdrop) => {
     set({ backdrop });

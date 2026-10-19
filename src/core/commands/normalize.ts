@@ -44,6 +44,11 @@ export function normalizeShortcut(input: KeyboardEvent | string): string {
   // Shift+digit reports the symbol on that key ("@" for Shift+2 on a US layout). A binding names the digit, so
   // read the physical key; it is the same on every layout. (Phase 20: Shift+0 / Shift+1 / Shift+2 zoom.)
   if (e.shiftKey && typeof e.code === "string" && /^Digit\d$/.test(e.code)) key = e.code.slice(5);
+  // Shift+[ reports "{" and Shift+] "}": a binding names the bracket key itself (Phase 29: Ctrl+Shift+] is "to front").
+  // WebKit on macOS reports Control+letter as the control character ("\u0018" for Ctrl+X), not the letter.
+  if (e.ctrlKey && key.length === 1 && key.charCodeAt(0) < 32 && typeof e.code === "string" && /^Key[A-Z]$/.test(e.code)) key = e.code.slice(3);
+  if (e.shiftKey && e.code === "BracketLeft") key = "[";
+  if (e.shiftKey && e.code === "BracketRight") key = "]";
   if (key === "Control" || key === "Meta" || key === "Alt" || key === "Shift") {
     return result.join("+");
   }

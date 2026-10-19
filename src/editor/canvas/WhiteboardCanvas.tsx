@@ -29,6 +29,9 @@ import { buildTransformModel, handleAtScreen } from "./transformModel";
 import { snapEnvironment, guideLines } from "./snapEnv";
 import { moveGuide, removeGuide } from "./guides";
 import { CanvasRulers, RULER_SIZE } from "./CanvasRulers";
+import { CanvasContextMenu, RenameBox, type ContextMenuState } from "./CanvasContextMenu";
+import { layerMenu } from "@/core/editing/layerMenu";
+import { CLIP_MARK, mirrorRead } from "@/core/editing/clipboard";
 import { distanceMarks, snapEdges, snapMove } from "@/core/geometry/snap";
 import { useSnapStore, restoreSnapSettings } from "@/core/store/useSnapStore";
 import { unionBox } from "@/core/geometry/transform";
@@ -428,16 +431,25 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     return projectSession.onOpen(load);
   }, [applyCamera]);
 
-  /** What the canvas fits: every frame that is drawn, as one rectangle (or the sandbox's device frame in full-edition Play mode). */
-  const contentRect = useMemo(() => {
-    if (isPlayMode && edition === "full") return { x: -device.width / 2, y: -device.height / 2, width: device.width, height: device.height };
-    if (shownFrames.length === 0) return null;
+  /**
+   * What the canvas fits: every frame that is drawn, as one rectangle (or the sandbox's device frame in full-edition
+   * Play mode). Keyed on the numbers, not on the frames array: adding a layer inside a frame changes that array (its
+   * child count) but must not make an untouched camera re-fit itself.
+   */
+  const contentRectKey = useMemo(() => {
+    if (isPlayMode && edition === "full") return `${-device.width / 2},${-device.height / 2},${device.width},${device.height}`;
+    if (shownFrames.length === 0) return "";
     const minX = Math.min(...shownFrames.map((f) => f.x));
     const minY = Math.min(...shownFrames.map((f) => f.y));
     const maxX = Math.max(...shownFrames.map((f) => f.x + f.width));
     const maxY = Math.max(...shownFrames.map((f) => f.y + f.height));
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    return `${minX},${minY},${maxX - minX},${maxY - minY}`;
   }, [isPlayMode, device.width, device.height, shownFrames]);
+  const contentRect = useMemo(() => {
+    if (!contentRectKey) return null;
+    const [x, y, width, height] = contentRectKey.split(",").map(Number);
+    return { x, y, width, height };
+  }, [contentRectKey]);
 
   /** Bring back to center: 100% with the origin in the middle of the viewport. */
   const bringBackToCenter = useCallback((auto = false) => {
@@ -640,10 +652,27 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     };
   };
 
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+  /** Right-click: the layer under the pointer joins the selection if it isn't in it, then the layer menu opens. */
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest(".floating-dock-wrapper, .zoom-controls, .frame-bar, .canvas-frame__title, .canvas-ruler, .canvas-context-menu")) return;
+    e.preventDefault();
+    if (isPlayMode || mode === "preview") return;
+    const rect = containerRef.current!.getBoundingClientRect();
+    const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+    const hit = hitTester.pickAt(world, { deep: e.metaKey || e.ctrlKey });
+    const store = useSelectionStore.getState();
+    if (hit && !store.selectedIds.includes(hit.id)) store.select(hit.id, "element");
+    const canPaste = (mirrorRead() ?? "").startsWith(CLIP_MARK);
+    setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, entries: layerMenu(useSelectionStore.getState().selectedIds, canPaste) });
+  };
+
   const handlePointerDown = (e: React.PointerEvent) => {
     // The dock, the zoom controls, the frame bar and the frame titles are children of this div and their presses
     // bubble up here; they are not canvas gestures.
-    if ((e.target as HTMLElement).closest(".floating-dock-wrapper, .zoom-controls, .frame-bar, .canvas-frame__title, .canvas-ruler")) return;
+    if ((e.target as HTMLElement).closest(".floating-dock-wrapper, .zoom-controls, .frame-bar, .canvas-frame__title, .canvas-ruler, .canvas-context-menu, .canvas-rename")) return;
     if (isPlayMode) return;
     // The middle button always pans, whatever tool is active: a drawing tool must never trap you in "can only
     // draw, can't pan to get somewhere else first". (Space does the same through its spring.)
@@ -695,6 +724,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       style={canvasStyle}
       data-backdrop={backdrop}
       data-tool={currentTool}
+      onContextMenu={handleContextMenu}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={(e) => endGesture(e, false)}
@@ -791,6 +821,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       )}
 
       <CanvasRulers hitTester={hitTester} containerRef={containerRef} />
+      <CanvasContextMenu menu={contextMenu} onClose={closeContextMenu} />
+      <RenameBox currentName={(id) => getDocument().layers[id]?.name ?? id} />
       <FrameBar />
 
       {/* Floating Atlassian-Style Bottom Dock */}

@@ -75,7 +75,7 @@ function FrameTitle({ frame, index, count, active }: { frame: CanvasFrame; index
   };
 
   return (
-    <div className="canvas-frame__title" style={{ width: `calc(${frame.width}px * var(--canvas-zoom))` }} onMouseDown={(e) => e.stopPropagation()}>
+    <div className="canvas-frame__title" style={{ width: `max(calc(${frame.width}px * var(--canvas-zoom)), 168px)` }} /* a frame zoomed far out keeps a title you can read and click */ onMouseDown={(e) => e.stopPropagation()}>
       {editing ? (
         <input
           ref={inputRef}
@@ -100,7 +100,7 @@ function FrameTitle({ frame, index, count, active }: { frame: CanvasFrame; index
           title="Double-click to rename"
           onClick={(e) => {
             e.stopPropagation();
-            invokeCommand("frame.focus", { frameId: frame.id });
+            invokeCommand("frame.focus", { frameId: frame.id, camera: false }); // select it; clicking a title never moves the view
           }}
           onDoubleClick={(e) => {
             e.stopPropagation();
