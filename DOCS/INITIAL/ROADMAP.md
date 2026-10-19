@@ -530,13 +530,14 @@ The document and World Environment have their own stores, After-track actions mo
 ### Phase 17 · Render definitions per archetype
 **Needs:** 7, 8, 16 · **Was:** v3 48.1 · **Closes:** AUD-29 (markup half) · **Status:** 📋
 **Goal:** One React component per archetype draws a layer from its geometry and props. The stage and the exporter both use them (Law 11).
-- [ ] `src/core/render/archetypes/*` take `(layer, resolvedProps)`. Layers are positioned from `frame`, `sizing` and `positioning`; today the stage ignores geometry and uses flexbox.
-- [ ] The six shape archetypes render as SVG.
-- [ ] No inline `onmouseover` strings (hover and press come from states in Phase 78).
-- [ ] A dev route, `/editor/render-gallery`, shows every archetype with default and edge-case props.
+- [x] `src/core/render/archetypes/*`: one React component per archetype takes `(layer, resolved props)` (a complete `Record<ArchetypeId, …>` in `definitions.ts`, so a missing one is a compile error). `layerBoxStyle` positions every layer from `frame`, `sizing` and `positioning` (absolute at `frame.x/y`, fixed sizes, hug, and fill along or across the parent's main axis; rotation, opacity, CSS units). Archetypes the old stage drew as an invisible `<div>` (toggle, badge, fab, icon, divider, background, svg group/use/text) now draw; effect surfaces and the 3D layers draw a labelled placeholder until Stages 3 and 4.
+- [x] The six shape archetypes render as SVG (stroke drawn inside the frame); so do `svgPath`, `svgGroup`, `svgText`, `svgUse` and `icon`.
+- [x] No inline handlers and no HTML strings: a test fails on `innerHTML`, `srcDoc`, `dangerouslySetInnerHTML`, `eval` or `new Function` under `src/core/render/` (rule R1 of decision record 0008). Hover and press looks come from states in Phase 78. The renderer also applies R5–R7: unsafe image sources and path data are dropped, sizes are clamped, a document draws at most 5,000 layers and 64 levels deep, and a cyclic document ends.
+- [x] A dev route, `/editor/render-gallery`, shows 53 cases covering every archetype with default and edge-case props (empty, long and hostile text, blocked sources, tiny shapes, rotation, fill sizing).
 
 **You'll see:** the render gallery shows every element type drawn the new way.
 **Done when:** the gallery renders every archetype identically in 3 browsers (screenshot tests).
+**Evidence (2026-10-19):** `tests/e2e/render-gallery.spec.ts` compares what must not differ across Chromium, Firefox and WebKit: every case's drawn size where its geometry fixes it (±1 px), that nothing from a hostile case ran or loaded, and that column, row, fill and absolute layouts place their children the same way. **Deviation:** pixel baselines are not committed, because they differ by operating system and font rasteriser and would have to be generated on the CI runner; this is a geometry check, not a screenshot diff. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 18 · Stage host v2: live DOM frames, no HTML strings
 **Needs:** 17 · **Was:** v3 48.2, 48.5 · **Closes:** AUD-29, AUD-33 · **Status:** 📋
