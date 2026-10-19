@@ -21,14 +21,9 @@ import {
   ChevronRight,
   Plus,
   Trash2,
-  Play,
   FileCode,
-  Folder,
-  Hash,
-  ToggleLeft,
   Search,
   Zap,
-  ArrowRightCircle,
   HelpCircle,
 } from "lucide-react";
 import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
@@ -59,7 +54,7 @@ export const MyBlueprintPanel: React.FC<MyBlueprintPanelProps> = ({
 
   // Accordion open/closed state
   const [graphsExpanded, setGraphsExpanded] = useState(true);
-  const [functionsExpanded, setFunctionsExpanded] = useState(true);
+  const [] = useState(true);
   const [variablesExpanded, setVariablesExpanded] = useState(true);
   const [eventsExpanded, setEventsExpanded] = useState(true);
 

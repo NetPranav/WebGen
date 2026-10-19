@@ -88,7 +88,18 @@ export class HitIndex {
       const layer = this.byId.get(item.id);
       if (layer && !this.isLocked(layer)) out.push(layer);
     }
-    return out.sort((a, b) => b.depth - a.depth || b.order - a.order);
+    // Frames are opaque artboards drawn in order: where two overlap only the one drawn last is under the pointer,
+    // so only its layers are candidates (they used to be mixed in by depth with the frame beneath).
+    let topFrame: string | null = null;
+    let topOrder = -Infinity;
+    for (const l of out) {
+      const frameOrder = this.byId.get(l.frameId)?.order ?? l.order;
+      if (frameOrder > topOrder) {
+        topOrder = frameOrder;
+        topFrame = l.frameId;
+      }
+    }
+    return out.filter((l) => l.frameId === topFrame).sort((a, b) => b.depth - a.depth || b.order - a.order);
   }
 
   private isLocked(layer: HitLayer): boolean {

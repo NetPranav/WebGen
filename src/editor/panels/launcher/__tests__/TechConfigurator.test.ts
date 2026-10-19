@@ -23,11 +23,7 @@ import {
   TEMPLATE_OPTIONS,
   TechConfig,
   TechConfigurator,
-  TargetFramework,
-  StylingSystem,
-  AnimationEngine,
   ProjectLanguage,
-  StartingTemplate,
 } from "../TechConfigurator";
 
 describe("Sub-Phase 2.3: Technology & Engine Configurator", () => {
@@ -115,11 +111,9 @@ describe("Sub-Phase 2.3: Technology & Engine Configurator", () => {
         template: "blank",
       };
 
-      let changedConfig: TechConfig | null = null;
       const element = React.createElement(TechConfigurator, {
         config: dummyConfig,
-        onChange: (cfg) => {
-          changedConfig = cfg;
+        onChange: (_cfg) => {
         },
       });
 

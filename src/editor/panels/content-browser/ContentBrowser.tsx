@@ -43,7 +43,6 @@ import {
   ChevronDown,
   Box,
   Cpu,
-  Image as ImageIcon,
   FileCode2,
   Film,
   Zap,
@@ -53,11 +52,7 @@ import {
   ExternalLink,
   Layers,
   Sparkles,
-  Link,
   SlidersHorizontal,
-  FileText,
-  Clock,
-  Layers as LayersIcon,
   Crosshair,
   Copy,
   Maximize2,
@@ -67,23 +62,18 @@ import {
   Unlock,
   PanelLeft,
   PanelRight,
-  FolderTree,
   Play,
   Save,
   Trash2,
-  Code,
   Sliders,
   Pencil,
   AlertCircle,
-  Info,
-  Shield,
 } from "lucide-react";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
 import { TreeNode, INITIAL_TREE_DATA } from "@/editor/panels/outliner/OutlinerTree";
 import { TYPE_REGISTRY } from "@/core/engine/ElementGrammarEngine";
 import {
-  AnimationBinding,
   AnimationCategory,
   GrammarElementType,
 } from "@/core/types/element-grammar";
@@ -357,7 +347,7 @@ const NO_TRACKS: ElementAnimationTrack[] = [];
 
 export const ContentBrowser: React.FC<ContentBrowserProps> = ({
   selectedFolderId,
-  selectedFolderName,
+  selectedFolderName: _selectedFolderName,
   onSelectFolder,
   onOpenAsset,
   onTearOffItem,
@@ -389,7 +379,7 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
   const [outlinerPosition, setOutlinerPosition] = useState<"left" | "right">("left");
   const [outlinerWidth, setOutlinerWidth] = useState(315);
   const [isResizingOutliner, setIsResizingOutliner] = useState(false);
-  const [outlinerSearch, setOutlinerSearch] = useState("");
+  const [outlinerSearch] = useState("");
   const [openTreeNodes, setOpenTreeNodes] = useState<Record<string, boolean>>({
     pages_root: true,
     page_home: true,
@@ -435,17 +425,6 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
     }
   };
 
-  const totalTreeCount = useMemo(() => {
-    let count = 0;
-    const countNodes = (items: TreeNode[]) => {
-      items.forEach((item) => {
-        count++;
-        if (item.children) countNodes(item.children);
-      });
-    };
-    countNodes(INITIAL_TREE_DATA);
-    return count;
-  }, []);
 
   const getNodeIcon = (type: TreeNode["type"]) => {
     switch (type) {

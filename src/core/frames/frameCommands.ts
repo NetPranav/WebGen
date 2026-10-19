@@ -13,6 +13,7 @@
 import { z } from "zod";
 import { defineTypedCommand } from "../commands";
 import { cloneLayers } from "../editing/cloneLayers";
+import { repairPageRoots } from "./pageRoots";
 import { getDefaultProps } from "../document/registry";
 import { documentCommands } from "../store/useDocumentStore";
 import { getDocument } from "../store/documentState";
@@ -73,7 +74,7 @@ export function duplicateFrame(frameId: string): string {
   const source = doc.layers[frameId];
   if (!source || source.parentId !== null) throw new Error(`"${frameId}" is not a frame.`);
   const frames = framesNow();
-  const bundle = cloneLayers(doc.layers, doc.clips, [frameId]);
+  const bundle = cloneLayers(doc.layers, doc.clips, [frameId], { layers: doc.layers, clips: doc.clips });
   const { x, y } = nextFramePosition(frames);
   const root = bundle.layers[0];
   root.name = uniqueFrameName(frames, `${source.name} copy`);
@@ -98,7 +99,11 @@ export function resizeFrame(frameId: string, size: { width?: number; height?: nu
 
 /** Moves a frame one place left or right in the row and spaces the row out again. One undo step. */
 export function moveFrame(frameId: string, direction: -1 | 1): void {
-  const frames = framesNow();
+  // Only the row the frame is in (the frames that share its vertical span) is re-spaced; frames in other rows stay put.
+  const all = framesNow();
+  const me = all.find((f) => f.id === frameId);
+  if (!me) return;
+  const frames = all.filter((f) => f.y < me.y + me.height && f.y + f.height > me.y);
   const order = frames.map((f) => f.id);
   const next = moveInOrder(order, frameId, direction);
   if (next.every((id, i) => id === order[i])) return;
@@ -114,6 +119,7 @@ export function deleteFrame(frameId: string): void {
   if (!frames.some((f) => f.id === frameId)) throw new Error(`"${frameId}" is not a frame.`);
   if (frames.length <= 1) throw new Error("A document keeps at least one frame.");
   documentCommands.removeLayer(frameId, "Delete frame");
+  repairPageRoots();
   const view = useCanvasViewStore.getState();
   if (view.activeFrameId === frameId) view.setActiveFrame(null);
 }

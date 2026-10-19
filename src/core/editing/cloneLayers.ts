@@ -3,7 +3,7 @@
  * Used by duplicate, paste and "duplicate frame". Pure: no store, no DOM.
  */
 
-import { createId } from "../ids";
+import { createUniqueId } from "../ids";
 import type { Clip, Layer } from "../document/schema";
 
 export interface LayerBundle {
@@ -44,13 +44,22 @@ export function topmost(layers: Record<string, Layer>, ids: readonly string[]): 
   });
 }
 
-export function cloneLayers(layers: Record<string, Layer>, clips: Record<string, Clip>, rootIds: readonly string[]): LayerBundle {
+export function cloneLayers(
+  layers: Record<string, Layer>,
+  clips: Record<string, Clip>,
+  rootIds: readonly string[],
+  /** Ids already in the document the copies are going into: no copy takes one. */
+  existing: { layers?: Record<string, unknown>; clips?: Record<string, unknown> } = {},
+): LayerBundle {
   const idMap = new Map<string, string>();
+  const taken = new Set<string>([...Object.keys(existing.layers ?? {}), ...Object.keys(layers)]);
   const order: string[] = [];
   for (const root of rootIds) {
     for (const id of subtreeIds(layers, root)) {
       if (idMap.has(id)) continue;
-      idMap.set(id, createId(id.split("_").slice(0, -1).join("_") || "el"));
+      const fresh = createUniqueId(id.split("_").slice(0, -1).join("_") || "el", taken);
+      taken.add(fresh);
+      idMap.set(id, fresh);
       order.push(id);
     }
   }
@@ -63,8 +72,13 @@ export function cloneLayers(layers: Record<string, Layer>, clips: Record<string,
       children: layer.children.filter((c) => idMap.has(c)).map((c) => idMap.get(c)!),
     };
   });
+  const clipIds = new Set<string>([...Object.keys(clips), ...Object.keys(existing.clips ?? {})]);
   const clipCopies: Clip[] = Object.values(clips)
     .filter((c) => idMap.has(c.layerId))
-    .map((c) => ({ ...structuredClone(c), id: createId("clip"), layerId: idMap.get(c.layerId)! }));
+    .map((c) => {
+      const id = createUniqueId("clip", clipIds);
+      clipIds.add(id);
+      return { ...structuredClone(c), id, layerId: idMap.get(c.layerId)! };
+    });
   return { layers: copies, clips: clipCopies, roots: rootIds.map((r) => idMap.get(r)!), idMap };
 }

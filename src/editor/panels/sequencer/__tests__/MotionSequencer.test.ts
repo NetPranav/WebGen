@@ -19,7 +19,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { formatTimecode } from "../PlayheadControls";
 import { getPropertyFamilyBadge } from "../TrackHeader";
-import type { Track } from "@/core/document/schema";
 
 describe("Phase 4.1: Motion Sequencer Timeline & Property Tracks", async () => {
   const { getValidPropertiesForArchetype } = await import("../MotionSequencer");

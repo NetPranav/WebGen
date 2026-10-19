@@ -16,7 +16,8 @@ describe("Phase 21: one renderer per frame", () => {
   afterEach(() => {
     setActiveStageFrame(null);
     setStageRenderer(null);
-    for (const id of [...getFrameRenderers().keys()]) getFrameRenderers().get(id) && registerFrameRenderer(id, getFrameRenderers().get(id)!)();
+    // a registration removes itself: re-register each leftover and call its remover
+    for (const [id, renderer] of [...getFrameRenderers()]) registerFrameRenderer(id, renderer)();
   });
 
   it("finds the renderer of the frame that draws a layer, however deep", () => {

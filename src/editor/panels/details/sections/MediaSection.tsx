@@ -17,7 +17,6 @@ import {
   ChevronRight,
   Crop,
   Sliders,
-  Sparkles,
   Layers,
   Crosshair,
   Maximize2,

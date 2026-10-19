@@ -62,7 +62,8 @@ export function corners(b: Box): Point[] {
 }
 
 /** The axis-aligned box around several boxes (rotation 0). One box stays itself, rotation and all. */
-export function unionBox(boxes: readonly Box[]): Box | null {
+export function unionBox(all: readonly Box[]): Box | null {
+  const boxes = all.filter((b) => [b.cx, b.cy, b.w, b.h, b.rot].every(Number.isFinite)); // a box with a NaN would poison the union
   if (boxes.length === 0) return null;
   if (boxes.length === 1) return { ...boxes[0] };
   let minX = Infinity;

@@ -230,7 +230,7 @@ export class HotReloadEngine {
    * These don't modify the sandbox DOM directly but update the graph
    * available to the execution tracer for the next Play Mode run.
    */
-  private applyBlueprintPatch(patch: HotReloadPatch): void {
+  private applyBlueprintPatch(_patch: HotReloadPatch): void {
     // Blueprint patches are applied by the ExecutionTracer reading
     // the latest graph state from useProjectStore on next execution.
     // This handler simply signals that the patch was detected.

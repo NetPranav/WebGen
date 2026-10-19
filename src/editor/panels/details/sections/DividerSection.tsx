@@ -12,7 +12,6 @@
  */
 
 import React from "react";
-import { Minus, ChevronRight } from "lucide-react";
 import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
 import type { PropValue } from "@/core/document/registry";
 import { readProps } from "@/core/document/props";
@@ -25,7 +24,7 @@ export interface DividerSectionProps {
 
 export const DividerSection: React.FC<DividerSectionProps> = ({
   elementId,
-  elementName,
+  elementName: _elementName,
 }) => {
   const elements = useLayers();
   const currentElement = elements[elementId];
@@ -40,7 +39,6 @@ export const DividerSection: React.FC<DividerSectionProps> = ({
   const thickness = props.thickness ?? 1;
   const style = props.style || "solid";
   const color = props.color || "#e2e8f0";
-  const capStyle = props.capStyle || "round";
 
   return (
     <div className="element-specific-editor divider-section" data-testid="divider-section">

@@ -101,8 +101,14 @@ export const CanvasRulers: React.FC<CanvasRulersProps> = ({ hitTester, container
     const offView = useCanvasViewStore.subscribe((s, p) => {
       if (s.activeFrameId !== p.activeFrameId) draw();
     });
+    // Only a frame that moves changes what the rulers measure from; an edit to anything else leaves them as they are.
+    let origin = rulerOrigin();
     const offDoc = documentStore.subscribe((s, p) => {
-      if (s.document !== p.document) draw();
+      if (s.document === p.document) return;
+      const now = rulerOrigin();
+      if (now.x === origin.x && now.y === origin.y) return;
+      origin = now;
+      draw();
     });
     return () => {
       offCamera();

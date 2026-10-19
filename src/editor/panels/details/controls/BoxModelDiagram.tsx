@@ -16,7 +16,7 @@
  */
 
 import React, { useState } from "react";
-import { Link, Unlink, RotateCcw } from "lucide-react";
+import { Link, Unlink } from "lucide-react";
 import { BoxEdgeValues } from "@/core/types/details";
 
 export interface BoxModelDiagramProps {
@@ -39,7 +39,7 @@ export const BoxModelDiagram: React.FC<BoxModelDiagramProps> = ({
   onMarginChange,
   onPaddingChange,
 }) => {
-  const [activeEdge, setActiveEdge] = useState<string | null>(null);
+  const [, setActiveEdge] = useState<string | null>(null);
 
   // Update margin edge with uniform support
   const handleMarginEdit = (edge: "top" | "right" | "bottom" | "left", rawVal: number) => {

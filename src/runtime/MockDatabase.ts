@@ -23,7 +23,6 @@ import {
   MockQueryOptions,
   MockDatabaseListener,
   MockDatabaseEvent,
-  FilterCondition,
 } from "@/core/types/mock-database";
 import { DiagnosticBus } from "@/core/engine/DiagnosticBus";
 
@@ -273,7 +272,6 @@ export class MockDatabase {
 
     // Apply Select Projection
     if (options?.select && options.select.length > 0) {
-      const allowed = new Set(options.select);
       results = results.map((r) => {
         const projected: MockDatabaseRecord = {};
         for (const k of options.select!) {

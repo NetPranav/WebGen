@@ -28,9 +28,6 @@ import {
   Database,
   ArrowLeft,
   Plus,
-  Server,
-  Layers,
-  Sparkles,
   X,
 } from "lucide-react";
 import "@/editor/styles/database-studio.css";

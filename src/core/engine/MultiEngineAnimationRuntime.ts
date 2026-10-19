@@ -21,8 +21,6 @@
 import {
   AnimationSample,
   AnimationTrack,
-  AnimationTrackId,
-  KeyframePoint,
   toScalarKeyframeValue,
 } from "../types/animations";
 import { synthesizeSingleTransformMatrix } from "./EngineAdapters";

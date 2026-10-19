@@ -46,7 +46,9 @@ export class GlobalSearchEngineManager {
       try {
         const stored = localStorage.getItem("antigravity_recent_searches");
         if (stored) {
-          this.recentSearches = JSON.parse(stored);
+          const parsed: unknown = JSON.parse(stored);
+          // anything but a list of strings (an old format, a hand-edited value) is no history
+          this.recentSearches = Array.isArray(parsed) ? parsed.filter((q): q is string => typeof q === "string").slice(0, 10) : [];
         }
       } catch {
         this.recentSearches = [];
@@ -445,8 +447,7 @@ export class GlobalSearchEngineManager {
     item: SearchResultItem,
     openPanelCallback?: (panelId: string, panelTitle?: string) => void
   ): void {
-    const { targetPanel, pageId, elementId, graphId, nodeId, variableId, collectionId } =
-      item.navigationPayload;
+    const { targetPanel, pageId, elementId, graphId } = item.navigationPayload;
 
     const storeState = useProjectStore.getState();
 

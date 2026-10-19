@@ -11,8 +11,8 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { Globe, FileText, Layers, ChevronDown, Check, X, Variable } from "lucide-react";
-import { useProjectStore, StateVariable, StateVariableScope } from "@/core/store/useProjectStore";
+import { Globe, FileText, Layers, ChevronDown, Check } from "lucide-react";
+import { useProjectStore, StateVariableScope } from "@/core/store/useProjectStore";
 import "@/editor/styles/forms.css";
 
 interface StateVariablePickerProps {

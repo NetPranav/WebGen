@@ -18,9 +18,7 @@ import {
   Trash2,
   Table,
   Link,
-  Edit2,
   Shield,
-  Layers,
 } from "lucide-react";
 import {
   CollectionSchema,
@@ -57,7 +55,7 @@ export const EntityTableCard: React.FC<EntityTableCardProps> = ({
   onDoubleClickField,
   onDoubleClickTable,
   onAddField,
-  onEditField,
+  onEditField: _onEditField,
   onDeleteField,
   onDeleteTable,
   onViewRecords,

@@ -90,7 +90,8 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
             if (isAIOpen) {
               onToggleAI?.();
             } else {
-              onStartDragAI ? onStartDragAI() : onToggleAI?.();
+              if (onStartDragAI) onStartDragAI();
+              else onToggleAI?.();
             }
           })
         }

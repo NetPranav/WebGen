@@ -471,7 +471,7 @@ export class ProjectScaffolder {
   }
 
   private static generateStateVariables(
-    intent: StructuredIntent
+    _intent: StructuredIntent
   ): Record<string, StateVariable> {
     const stateVariables: Record<string, StateVariable> = {
       userEmail: {
@@ -559,7 +559,7 @@ export class ProjectScaffolder {
 
   private static generateDataBindings(
     elements: Record<string, Layer>,
-    databaseSchemas: Record<string, CollectionSchema>
+    _databaseSchemas: Record<string, CollectionSchema>
   ): Record<string, DataBindingDescriptor> {
     const bindings: Record<string, DataBindingDescriptor> = {};
 

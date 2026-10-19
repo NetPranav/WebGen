@@ -17,7 +17,6 @@ describe("Sub-Phase 8.3: Performance & 60 FPS Guarantee with Zero Memory Leaks",
         const x = Math.sin(t * Math.PI * 2) * 100;
         const y = Math.cos(t * Math.PI * 2) * 50;
         const scale = 1 + Math.sin(t * Math.PI) * 0.2;
-        const rotate = t * 360;
         const matrix = `matrix3d(${scale}, 0, 0, 0, 0, ${scale}, 0, 0, 0, 0, 1, 0, ${x.toFixed(2)}, ${y.toFixed(2)}, 0, 1)`;
         assert.ok(matrix.startsWith("matrix3d"));
       },

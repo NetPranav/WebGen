@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useRef } from "react";
-import { Plus, Trash2, RotateCw } from "lucide-react";
+import { Trash2, RotateCw } from "lucide-react";
 import { GradientConfig, GradientStop } from "@/core/types/details";
 
 export interface GradientEditorProps {

@@ -5,7 +5,7 @@
 
 import { documentCommands } from "@/core/store/useDocumentStore";
 import { getDocument } from "@/core/store/documentState";
-import { parseGuides, serializeGuides, type Guide } from "@/core/geometry/snap";
+import { MAX_GUIDES, parseGuides, serializeGuides, type Guide } from "@/core/geometry/snap";
 
 export function getGuides(frameId: string): Guide[] {
   return parseGuides(getDocument().layers[frameId]?.properties["frame.guides"]);
@@ -16,6 +16,7 @@ export function setGuides(frameId: string, guides: readonly Guide[], label = "Ch
 }
 
 export function addGuide(frameId: string, guide: Guide): void {
+  if (getGuides(frameId).length >= MAX_GUIDES) return;
   setGuides(frameId, [...getGuides(frameId), guide], "Add guide");
 }
 

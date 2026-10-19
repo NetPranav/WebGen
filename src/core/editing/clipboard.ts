@@ -55,11 +55,13 @@ export function parseClip(text: string | null | undefined): ClipPayload | null {
   }
 }
 
-export function mirrorWrite(text: string): void {
+/** Mirrors the clip to localStorage. Returns false when storage is full or blocked, so a cut knows nothing was kept. */
+export function mirrorWrite(text: string): boolean {
   try {
     window.localStorage.setItem(CLIP_STORAGE_KEY, text);
+    return true;
   } catch {
-    // storage full or blocked: the system clipboard still has it
+    return false;
   }
 }
 

@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Play, Pause, RotateCcw, Clock } from "lucide-react";
-import { AnimationSample, KeyframePoint } from "@/core/types/animations";
+import { AnimationSample } from "@/core/types/animations";
 import "@/editor/styles/forms.css";
 
 interface KeyframeTimelineProps {

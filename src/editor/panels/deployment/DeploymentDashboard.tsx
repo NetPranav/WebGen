@@ -16,8 +16,6 @@ import {
   DeploymentConfig,
   DeploymentRecord,
   DeploymentEnvironment,
-  DeploymentTarget,
-  BuildPipelineStep,
   PipelineStepId,
 } from "@/core/types/deployment";
 import { DeploymentEngine } from "@/runtime/DeploymentEngine";
@@ -29,7 +27,6 @@ import { DomainManager } from "./DomainManager";
 import { DeploymentHistory } from "./DeploymentHistory";
 import {
   Rocket,
-  Layers,
   Terminal,
   Globe,
   History,
@@ -37,17 +34,9 @@ import {
   AlertCircle,
   Clock,
   ExternalLink,
-  RotateCcw,
-  Activity,
   Server,
-  Zap,
-  Shield,
   Copy,
   Check,
-  Play,
-  Settings2,
-  ChevronRight,
-  Filter,
 } from "lucide-react";
 import { errorMessage } from "@/core/errors";
 

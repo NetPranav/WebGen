@@ -27,10 +27,7 @@ import {
   Download,
   FileCode,
   Layers,
-  Sparkles,
   Zap,
-  CheckCircle2,
-  Terminal,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { useLayers } from "@/core/store/useDocumentStore";

@@ -3,9 +3,7 @@ import assert from "node:assert/strict";
 import { useProjectStore } from "../useProjectStore";
 import { useEnvironmentStore } from "../useEnvironmentStore";
 import {
-  DEFAULT_ENVIRONMENT_SETTINGS,
   SPRING_PRESETS,
-  THEME_PALETTES,
 } from "../../types/environment";
 
 test("World Environment: Default state verification across all 20 properties", () => {

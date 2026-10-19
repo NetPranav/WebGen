@@ -82,7 +82,7 @@ export const ProjectHub: React.FC<ProjectHubProps> = ({
   // State matching the reference design
   const [projectName, setProjectName] = useState(initialProjectName);
   const [selectedScope, setSelectedScope] = useState<DesignScope>("element");
-  const [selectedArchetype, setSelectedArchetype] = useState<ArchetypeId>(initialArchetype);
+  const [selectedArchetype] = useState<ArchetypeId>(initialArchetype);
   const [projectDescription, setProjectDescription] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([
     "UI / UX",

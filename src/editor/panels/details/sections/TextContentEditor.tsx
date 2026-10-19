@@ -20,11 +20,8 @@ import {
   Underline,
   Strikethrough,
   Code,
-  RotateCcw,
   ChevronRight,
-  Sparkles,
   Scissors,
-  Eye,
   FileText,
 } from "lucide-react";
 import { TextSpecificConfig } from "@/core/types/element-sections";
@@ -38,7 +35,7 @@ export interface TextContentEditorProps {
 export const TextContentEditor: React.FC<TextContentEditorProps> = ({
   config,
   onChange,
-  onReset,
+  onReset: _onReset,
 }) => {
   const [openSubgroups, setOpenSubgroups] = useState({
     content: true,

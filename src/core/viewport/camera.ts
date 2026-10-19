@@ -41,6 +41,11 @@ export function clampZoom(zoom: number): number {
   return Math.min(Math.max(zoom, MIN_ZOOM), MAX_ZOOM);
 }
 
+/** A camera whose numbers are all finite and whose zoom is in range. */
+export function isUsableCamera(c: Camera): boolean {
+  return Number.isFinite(c.x) && Number.isFinite(c.y) && Number.isFinite(c.zoom) && c.zoom >= MIN_ZOOM && c.zoom <= MAX_ZOOM;
+}
+
 export function isCamera(value: unknown): value is Camera {
   if (typeof value !== "object" || value === null) return false;
   const c = value as Record<string, unknown>;
@@ -65,11 +70,13 @@ export function docRectToScreen(camera: Camera, rect: Rect): Rect {
 }
 
 export function panBy(camera: Camera, dx: number, dy: number): Camera {
+  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return camera;
   return { ...camera, x: camera.x + dx, y: camera.y + dy };
 }
 
 /** Sets the zoom to `zoom` (clamped) and keeps the document point under `anchor` (a screen point) where it is. */
 export function zoomAt(camera: Camera, anchor: Point, zoom: number): Camera {
+  if (!Number.isFinite(anchor.x) || !Number.isFinite(anchor.y)) return camera; // a NaN anchor would blank the canvas for good
   const next = clampZoom(zoom);
   if (next === camera.zoom) return camera;
   const ratio = next / camera.zoom;

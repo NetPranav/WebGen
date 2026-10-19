@@ -103,7 +103,6 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
           archetype: archId,
         });
 
-        const state = useProjectStore.getState();
         const rootEl = getDocument().layers[rootId];
         assert.ok(rootEl, `Element for ${archId} must exist in state`);
         assert.strictEqual(rootEl.archetype, archId);
@@ -189,8 +188,6 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
   describe("3. Verification Gate (ROADMAP.md Phase 2)", () => {
     it("confirms Element Design scope is the ONLY selectable scope", () => {
       let elementClicked = false;
-      let componentClicked = false;
-      let pageClicked = false;
 
       const elementCard = React.createElement(ScopeCard, {
         scope: "element",
@@ -213,7 +210,6 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
         disabled: true,
         disabledReason: "Coming in a later phase — see ROADMAP.md",
         onClick: () => {
-          componentClicked = true;
         },
       });
 
@@ -226,7 +222,6 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
         disabled: true,
         disabledReason: "Coming in a later phase — see ROADMAP.md",
         onClick: () => {
-          pageClicked = true;
         },
       });
 
@@ -259,7 +254,6 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       });
 
       // 2. Assert store state
-      const state = useProjectStore.getState();
       assert.strictEqual(useProjectMetaStore.getState().projectName, projectName);
       assert.strictEqual(useProjectMetaStore.getState().rootArchetype, "image");
       assert.strictEqual(useProjectMetaStore.getState().scope, "element");

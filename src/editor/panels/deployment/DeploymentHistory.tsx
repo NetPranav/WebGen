@@ -23,7 +23,6 @@ import {
   GitBranch,
   Terminal,
   User,
-  Zap,
 } from "lucide-react";
 import { errorMessage } from "@/core/errors";
 

@@ -199,7 +199,7 @@ export class ApiRouteEmitter {
   public static emitCustomApiRoute(
     endpointSlug: string,
     graph: BlueprintGraph,
-    options?: ApiRouteEmitterOptions
+    _options?: ApiRouteEmitterOptions
   ): EmittedFile {
     const cleanSlug = endpointSlug.replace(/^\/api\//, "").replace(/^\//, "");
     const fnName = LogicFlowEmitter.toFunctionName(graph.name);

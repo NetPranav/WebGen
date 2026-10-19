@@ -219,6 +219,9 @@ export class ProjectSession {
     this.disposers.forEach((dispose) => dispose());
     this.disposers = [];
     this.projectId = null;
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.retryDelay = 0;
   }
 
   // ------------------------------------------------------------------ internals
@@ -277,6 +280,19 @@ export class ProjectSession {
     }, delay);
   }
 
+  private retryDelay = 0;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** A save that failed is tried again after 2 s, then 4, 8 ... up to 30 s, until it works or the project closes. */
+  private scheduleRetry(projectId: string) {
+    this.retryDelay = Math.min(30_000, this.retryDelay ? this.retryDelay * 2 : 2_000);
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      if (this.projectId === projectId && useSaveStatus.getState().state === "error") void this.save();
+    }, this.retryDelay);
+  }
+
   private async save(): Promise<void> {
     if (this.saving) {
       this.saveAgain = true;
@@ -297,8 +313,10 @@ export class ProjectSession {
           this.revision = record.revision;
           this.trimJournal(coveredSeq, record.revision);
         }
+        this.retryDelay = 0;
         useSaveStatus.setState({ state: "saved", lastSavedAt: Date.now(), error: null });
       } catch (error) {
+        this.scheduleRetry(projectId);
         const quota = isQuotaError(error);
         useSaveStatus.setState({
           state: "error",

@@ -16,11 +16,9 @@ import {
   Link,
   Plus,
   Trash2,
-  Globe,
   CheckCircle2,
   AlertTriangle,
   ArrowRight,
-  Sliders,
   Sparkles,
   X,
 } from "lucide-react";
@@ -54,7 +52,7 @@ export const DataBindingEditor: React.FC<DataBindingEditorProps> = ({
   elementId,
   elementName = "Element",
   archetype = "container",
-  onOpenDatabase,
+  onOpenDatabase: _onOpenDatabase,
 }) => {
   const {
     bindings,
@@ -70,8 +68,8 @@ export const DataBindingEditor: React.FC<DataBindingEditorProps> = ({
   // New binding form state
   const [targetProperty, setTargetProperty] = useState("");
   const [sourceType, setSourceType] = useState<BindingSourceType>("state_variable");
-  const [selectedCollection, setSelectedCollection] = useState<string>("");
-  const [selectedField, setSelectedField] = useState<string>("");
+  const [selectedCollection] = useState<string>("");
+  const [selectedField] = useState<string>("");
   const [selectedStateVar, setSelectedStateVar] = useState<string>("");
   const [storageKey, setStorageKey] = useState<string>("");
   const [paramKey, setParamKey] = useState<string>("");

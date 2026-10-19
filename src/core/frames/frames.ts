@@ -81,10 +81,11 @@ export function frameIdOf(layers: Record<string, Layer>, layerId: string): strin
 }
 
 /** Where a new frame of `width` goes: to the right of the rightmost frame, on the same top edge as the first. */
-export function nextFramePosition(frames: readonly FrameInfo[]): { x: number; y: number } {
+export function nextFramePosition(allFrames: readonly FrameInfo[]): { x: number; y: number } {
+  const frames = allFrames.filter((f) => Number.isFinite(f.x) && Number.isFinite(f.y) && Number.isFinite(f.width));
   if (frames.length === 0) return { x: 0, y: 0 };
   const rightmost = frames.reduce((best, f) => (f.x + f.width > best.x + best.width ? f : best));
-  return { x: Math.round(rightmost.x + rightmost.width + FRAME_GAP), y: frames[0].y };
+  return { x: Math.round(rightmost.x + rightmost.width + FRAME_GAP), y: Math.min(...frames.map((f) => f.y)) };
 }
 
 /** The frame whose size is `preset`'s, if there is one (the first such frame, left to right). */

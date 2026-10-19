@@ -21,10 +21,7 @@ import {
   Plus,
   Check,
   X,
-  Zap,
-  ArrowRight,
   Filter,
-  ShieldAlert,
 } from "lucide-react";
 import { DatabaseFunctionLatch } from "@/core/store/useProjectStore";
 

@@ -8,7 +8,7 @@
  * which hands out the same array while a layer's children are unchanged. Wrapped in `memo`, so a property
  * edit re-renders the layer it touched and nothing else; adding or removing a layer re-renders its parent.
  */
-import React, { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useLayer } from "@/core/store/useDocumentStore";
 import { RENDER_DEFINITIONS } from "./definitions";
 import { resolveProps } from "./resolve";

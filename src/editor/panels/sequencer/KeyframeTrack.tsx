@@ -13,7 +13,7 @@
  * ============================================================================
  */
 
-import React, { useRef, useCallback } from "react";
+import React, { useRef } from "react";
 import type { Keyframe } from "@/core/document/schema";
 
 export interface KeyframeTrackProps {

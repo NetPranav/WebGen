@@ -15,17 +15,9 @@
 import React, { useState } from "react";
 import {
   Sparkles,
-  Layout,
   Plus,
   Check,
   Search,
-  SlidersHorizontal,
-  CreditCard,
-  UserCheck,
-  AlignLeft,
-  Grid,
-  Layers,
-  ArrowRight,
 } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import type { Layer } from "@/core/document/schema";

@@ -21,21 +21,14 @@ import {
   Sliders,
   Table,
   Key,
-  Shield,
   Link,
   Plus,
   Trash2,
-  CheckCircle2,
   ArrowLeft,
-  AlertTriangle,
   FileCode,
-  Layers,
   Database,
   Workflow,
   ExternalLink,
-  Zap,
-  ZapOff,
-  Check,
 } from "lucide-react";
 import { DatabaseLatchPickerModal, LatchCandidate } from "./DatabaseLatchPickerModal";
 import { DatabaseFunctionLatch } from "@/core/store/useProjectStore";

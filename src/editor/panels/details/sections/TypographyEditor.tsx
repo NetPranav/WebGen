@@ -21,12 +21,9 @@ import {
   RotateCcw,
   Sparkles,
   Italic,
-  Underline,
-  Strikethrough,
-  Baseline,
 } from "lucide-react";
 import { AssetTypographySchema } from "@/core/types/details";
-import { TextAlignToggle, TextAlignMode } from "../controls/TextAlignToggle";
+import { TextAlignToggle } from "../controls/TextAlignToggle";
 
 export interface TypographyEditorProps {
   typography: AssetTypographySchema;

@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import { CollectionSchema, DatabaseField, DatabaseFieldType } from "@/core/types/database";
+import { CollectionSchema, DatabaseField } from "@/core/types/database";
 import { PrismaSchemaEmitterOptions, EmittedFile } from "@/core/types/compiler";
 
 export class PrismaSchemaEmitter {
@@ -132,7 +132,6 @@ export class PrismaSchemaEmitter {
       lines.push(`model ${colName} {`);
 
       const fieldLines: string[] = [];
-      const relationHolders: string[] = [];
 
       for (const field of Object.values(schema.fields)) {
         let typeName = PrismaSchemaEmitter.mapPrismaScalarType(field, colName);

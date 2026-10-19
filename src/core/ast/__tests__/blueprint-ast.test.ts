@@ -1,7 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import {
-  BUILTIN_NODES,
   getNodeDefinition,
   getNodesByCategory,
   getAllNodeCategories,
@@ -10,7 +9,7 @@ import {
 } from "@/core/types/node-registry";
 import { TypeChecker } from "@/core/ast/TypeChecker";
 import { DAGSorter } from "@/core/ast/DAGSorter";
-import { ASTManager, BlueprintGraph } from "@/core/ast/ASTManager";
+import { ASTManager } from "@/core/ast/ASTManager";
 
 describe("Sub-Phase 3.1: Node Type Registry & Catalog", () => {
   it("Built-in nodes catalog is properly populated with typed pins", () => {
@@ -193,7 +192,7 @@ describe("Sub-Phase 3.4 & 3.5: ASTManager & Serialization", () => {
     assert.strictEqual(graph.nodes[nodeB.id].position.x, 450);
 
     // Add variable
-    const { graph: gVar, variable } = ASTManager.addVariable(graph, {
+    const { graph: gVar, variable: _variable } = ASTManager.addVariable(graph, {
       name: "userScore",
       type: "number",
       defaultValue: 100,

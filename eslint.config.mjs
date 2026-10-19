@@ -5,6 +5,15 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // A name that starts with an underscore is unused on purpose (a parameter an interface requires, a rest-sibling that is dropped).
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_", ignoreRestSiblings: true },
+      ],
+    },
+  },
   // Stale closures in editor/timeline code are a correctness risk (ROADMAP Phase 1.2).
   {
     files: ["src/editor/**/*.{ts,tsx}"],

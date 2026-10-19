@@ -13,13 +13,10 @@
 
 import React, { useState } from "react";
 import {
-  Sparkles,
   ChevronRight,
-  RotateCcw,
   MousePointer,
   Loader2,
   Waves,
-  Eye,
 } from "lucide-react";
 import { ButtonSpecificConfig } from "@/core/types/element-sections";
 
@@ -32,7 +29,7 @@ export interface ButtonStateEditorProps {
 export const ButtonStateEditor: React.FC<ButtonStateEditorProps> = ({
   config,
   onChange,
-  onReset,
+  onReset: _onReset,
 }) => {
   const [openSubgroups, setOpenSubgroups] = useState({
     states: true,

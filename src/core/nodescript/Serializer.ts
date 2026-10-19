@@ -13,7 +13,6 @@
 import {
   BlueprintGraph,
   BlueprintNodeInstance,
-  BlueprintVariable,
   BlueprintWire,
 } from "@/core/ast/ASTManager";
 import { NodeScriptReference } from "./types";

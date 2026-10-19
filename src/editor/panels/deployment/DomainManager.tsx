@@ -13,7 +13,6 @@
 import React, { useState } from "react";
 import {
   DomainConfig,
-  DnsRecord,
   DeploymentConfig,
 } from "@/core/types/deployment";
 import {

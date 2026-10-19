@@ -15,8 +15,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import "@/editor/styles/whiteboard.css";
 import { FloatingDock } from "./FloatingDock";
-import { ZoomControls } from "./ZoomControls";
-import type { SelectionRect } from "./CanvasOverlay";
+import { LiveZoomControls } from "./ZoomControls";
 import { OverlayLayer } from "./overlay/OverlayLayer";
 import { CanvasFrames, FrameBar, visibleFrames } from "./CanvasFrames";
 import { CanvasHitTester, type FrameSurface } from "@/core/hit/CanvasHitTester";
@@ -25,7 +24,7 @@ import { useFrames } from "./useFrames";
 import { useCanvasViewStore, restoreBackdrop } from "@/core/store/useCanvasViewStore";
 import { frameIdOf } from "@/core/frames/frames";
 import { combineSelection, marqueeCandidates, rootIds } from "@/core/selection/selectionOps";
-import { buildTransformModel, handleAtScreen } from "./transformModel";
+import { buildTransformModel, handleAtScreen, layerBox } from "./transformModel";
 import { snapEnvironment, guideLines } from "./snapEnv";
 import { moveGuide, removeGuide } from "./guides";
 import { CanvasRulers, RULER_SIZE } from "./CanvasRulers";
@@ -40,19 +39,7 @@ import { docToScreen, type Rect } from "@/core/viewport/camera";
 import { setActiveStageFrame } from "@/core/render/StageRenderer";
 import { getDocument } from "@/core/store/documentState";
 import {
-  ArrowRight,
-  Film,
-  Workflow,
-  Zap,
-  Layers,
-  Smartphone,
-  Tablet,
-  Monitor,
-  Play,
-  Square,
   Crosshair,
-  Focus,
-  ShieldAlert,
 } from "lucide-react";
 import { SandboxHost } from "@/editor/shell/afterTrackPanels";
 import { edition } from "@/core/flags";
@@ -62,8 +49,8 @@ import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import { useLayers, documentCommands } from "@/core/store/useDocumentStore";
-import { useFocusScope, useCommand, getContextKeys, type ContextKeys } from "@/core/commands";
-import { useCameraStore, selectZoomPercent } from "@/core/store/useCameraStore";
+import { useFocusScope, useCommand, type ContextKeys } from "@/core/commands";
+import { useCameraStore } from "@/core/store/useCameraStore";
 import { gridSpacing, wheelZoomFactor } from "@/core/viewport/camera";
 import { projectSession } from "@/core/storage/ProjectSession";
 import { getStageRendererForLayer, getFrameRenderers } from "@/core/render/StageRenderer";
@@ -105,7 +92,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   onOpenExecutionTrace,
   className,
   style,
-  onSelectElement,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // Sub-Phase 43.3: the canvas is focused for shortcuts while the pointer is
@@ -137,7 +123,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * -------------------------------------------------------------------------- */
   // The camera (pan + zoom) lives in `useCameraStore` and is written to this node's CSS variables by the effect
   // below, so moving the camera never re-renders the canvas. Only the zoom read-out subscribes.
-  const zoomPercent = useCameraStore(selectZoomPercent);
   // The tool acting now: the active tool, or a held spring's (Space is the Hand, Cmd/Ctrl is deep select).
   const currentTool = useToolStore((state) => state.current);
   const activeTool = useToolStore((state) => state.active);
@@ -147,8 +132,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   /* --------------------------------------------------------------------------
    * Component Selection & Interactive State
    * -------------------------------------------------------------------------- */
-  const [selectedElement, setSelectedElement] = useState<SelectionRect | null>(null);
-  const [ctaCount, setCtaCount] = useState(0);
 
   const environment = useEnvironmentStore((state) => state.environment);
   const elements = useLayers();
@@ -188,11 +171,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     const w = window as unknown as { __LL_TEST__?: boolean; __LL_HIT__?: CanvasHitTester };
     if (w.__LL_TEST__) w.__LL_HIT__ = hitTester;
   }, [hitTester]);
-  const pointerWorld = (e: { clientX: number; clientY: number }) => {
-    const rect = containerRef.current!.getBoundingClientRect();
-    return screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
-  };
-
   /** A click on a layer in a frame selects it and makes its frame the active one. */
   const handleStageClick = useCallback(
     (layerId: string) => {
@@ -275,9 +253,14 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
             positioning: "absolute",
             "frame.x": round(box.cx - box.w / 2 - (parentOrigin?.x ?? 0)),
             "frame.y": round(box.cy - box.h / 2 - (parentOrigin?.y ?? 0)),
-            "frame.width": round(box.w),
-            "frame.height": round(box.h),
           };
+          // Only a resize writes a size: a move must not turn a layer that sizes itself to its content into a fixed one.
+          const hit = index.get(id);
+          const was = hit ? layerBox(layer, hit.bounds) : null;
+          if (!was || Math.abs(was.w - box.w) > 0.01 || Math.abs(was.h - box.h) > 0.01) {
+            patch["frame.width"] = round(box.w);
+            patch["frame.height"] = round(box.h);
+          }
           if (box.rot !== 0 || typeof layer.properties["frame.rotation"] === "number") patch["frame.rotation"] = round(box.rot);
           documentCommands.updateProps(id, patch);
         });
@@ -342,7 +325,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         const store = useSelectionStore.getState();
         if (!layer) {
           store.clearSelection();
-          setSelectedElement(null);
           return;
         }
         store.selectMultiple(combineSelection(store.selectedIds, [layer.id], mode), "element");
@@ -495,23 +477,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     if (hasFrame) fitToFrame(true);
     else bringBackToCenter(true);
   }, [hasFrame, fitToFrame, bringBackToCenter]);
-
-  // Dynamically adapt selected element bounds when switching device dimensions
-  const [prevDeviceWidth, setPrevDeviceWidth] = useState(device.width);
-  if (device.width !== prevDeviceWidth) {
-    setPrevDeviceWidth(device.width);
-    setSelectedElement((prev) => {
-      if (!prev) return null;
-      if (prev.id === "comp_navbar" || prev.id === "comp_hero") {
-        return { ...prev, width: device.width };
-      }
-      if (prev.id === "comp_grid") {
-        const gridW = Math.min(device.width - 48, 1080);
-        return { ...prev, width: gridW, x: (device.width - gridW) / 2 };
-      }
-      return prev;
-    });
-  }
 
   /* --------------------------------------------------------------------------
    * Tool selection & zoom commands (Sub-Phase 43.1/43.3: focus-scoped)
@@ -693,6 +658,20 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     gestureToolRef.current?.onPointerMove?.(toToolPointer(e), toolCtx);
   };
 
+  /** Ends whatever gesture is running as a cancel: the window lost focus, or the browser took the pointer away. */
+  const abortGesture = useCallback(() => {
+    const tool = gestureToolRef.current;
+    if (!tool) return;
+    gestureToolRef.current = null;
+    useToolStore.getState().setGesturing(false);
+    tool.onPointerCancel?.(toolCtx);
+    setToolOverlay(null);
+  }, [toolCtx]);
+  useEffect(() => {
+    window.addEventListener("blur", abortGesture);
+    return () => window.removeEventListener("blur", abortGesture);
+  }, [abortGesture]);
+
   const endGesture = (e: React.PointerEvent, cancel: boolean) => {
     const tool = gestureToolRef.current;
     if (!tool) return;
@@ -729,6 +708,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={(e) => endGesture(e, false)}
       onPointerCancel={(e) => endGesture(e, true)}
+      onLostPointerCapture={() => abortGesture()}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
@@ -838,8 +818,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       />
 
       {/* Floating Zoom Controls Widget (Bottom-Right) */}
-      <ZoomControls
-        zoomLevel={zoomPercent}
+      <LiveZoomControls
         onZoomIn={() => useCameraStore.getState().stepZoom(1)}
         onZoomOut={() => useCameraStore.getState().stepZoom(-1)}
         onResetZoom={() => useCameraStore.getState().zoomTo100()}

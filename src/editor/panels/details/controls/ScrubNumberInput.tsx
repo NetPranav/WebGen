@@ -12,7 +12,7 @@
  * ============================================================================
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { Plus, Minus, MoveHorizontal } from "lucide-react";
 
 export interface ScrubNumberInputProps {

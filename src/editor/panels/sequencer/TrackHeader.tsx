@@ -53,7 +53,7 @@ export function getPropertyFamilyBadge(property: string): { label: string; color
 }
 
 export const TrackHeader: React.FC<TrackHeaderProps> = ({
-  id,
+  id: _id,
   property,
   isActive,
   isMuted = false,

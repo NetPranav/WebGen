@@ -134,9 +134,12 @@ function FrameTitle({ frame, index, count, active }: { frame: CanvasFrame; index
   );
 }
 
-/** The frames that are drawn: all of them when there are several, a lone frame once it has something in it. */
+/**
+ * The frames that are drawn: all of them. (A lone empty frame used to be hidden so a new project looked blank, but
+ * then no shape tool could draw anywhere: they need a frame under the pointer.)
+ */
 export function visibleFrames(frames: CanvasFrame[]): CanvasFrame[] {
-  return frames.length > 1 ? frames : frames.filter((f) => f.childCount > 0);
+  return frames;
 }
 
 export const CanvasFrames: React.FC<CanvasFramesProps> = ({ frames, toolCapturesPointer, onElementClick }) => {

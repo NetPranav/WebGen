@@ -103,35 +103,19 @@ export const useCollabStore = create<CollabStoreState>((set, get) => {
       }));
     },
 
-    updateLocalCursor: (coords) => {
-      const { isConnected, localUser, presenceEngine } = get();
+    updateLocalCursor: (_coords) => {
+      const { isConnected, localUser: _localUser, presenceEngine } = get();
       if (!isConnected) return;
 
-      const cursor: RemoteCursor = {
-        userId: localUser.id,
-        user: localUser,
-        x: coords.x,
-        y: coords.y,
-        canvasX: coords.canvasX,
-        canvasY: coords.canvasY,
-        targetElementId: coords.targetElementId,
-        timestamp: Date.now(),
-      };
 
       presenceEngine.incrementClock();
       // In a real network, this sends cursor_move over WebSocket / WebRTC
     },
 
-    updateLocalSelection: (elementIds, bounds) => {
-      const { isConnected, localUser, presenceEngine } = get();
+    updateLocalSelection: (_elementIds, _bounds) => {
+      const { isConnected, localUser: _localUser, presenceEngine } = get();
       if (!isConnected) return;
 
-      const selection: RemoteSelection = {
-        userId: localUser.id,
-        user: localUser,
-        elementIds,
-        bounds,
-      };
 
       presenceEngine.incrementClock();
       // In a real network, this sends selection_change over WebSocket / WebRTC

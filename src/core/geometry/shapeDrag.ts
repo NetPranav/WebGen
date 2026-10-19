@@ -54,6 +54,9 @@ function round(n: number): number {
 }
 
 export function dragBox(kind: DragKind, start: Point, current: Point, mods: DragModifiers, defaults: DragDefaults, clickSlop = CLICK_SLOP_DOC): DragBox {
+  // A pointer that reports no position (NaN, Infinity) is a press that didn't move: the default-size click.
+  if (![start.x, start.y, current.x, current.y].every(Number.isFinite)) current = start;
+  if (!Number.isFinite(start.x) || !Number.isFinite(start.y)) start = current = { x: 0, y: 0 };
   const dx = current.x - start.x;
   const dy = current.y - start.y;
 

@@ -6,12 +6,14 @@
  * File / View / Edit commands the menus run (Phase 13).
  */
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { defineCommand, defineTypedCommand, installGlobalCommands } from "@/core/commands";
 import { edition } from "@/core/flags";
 import { PRESET_IDS, presetsFor } from "@/core/workspace/layout";
 import { useWorkspaceStore } from "@/core/workspace/useWorkspaceStore";
 import { useCameraStore } from "@/core/store/useCameraStore";
+import { projectSession } from "@/core/storage/ProjectSession";
 import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
 import { useSnapStore } from "@/core/store/useSnapStore";
 import { registerFrameCommands } from "@/core/frames/frameCommands";
@@ -33,6 +35,7 @@ export interface ShellCommandActions {
 }
 
 export function useShellCommands(actions: ShellCommandActions) {
+  const router = useRouter();
   const {
     toggleCommandPalette,
     toggleGlobalSearch,
@@ -176,11 +179,20 @@ export function useShellCommands(actions: ShellCommandActions) {
       defineCommand({ id: "view.zoomOut", title: "Zoom Out", category: "View", run: () => useCameraStore.getState().stepZoom(-1) }),
       defineCommand({ id: "view.zoomReset", title: "Reset Zoom (100%)", category: "View", run: () => useCameraStore.getState().zoomTo100() }),
       defineCommand({ id: "app.preferences", title: "Preferences...", category: "Edit", run: () => openSettings() }),
+      // The project hub is the start page: saving first means leaving never loses an edit.
+      defineCommand({ id: "file.newProject", title: "New Project...", category: "File", run: () => void projectSession.flush().finally(() => router.push("/")) }),
+      defineCommand({ id: "file.closeProject", title: "Close Project", category: "File", run: () => void projectSession.flush().finally(() => router.push("/")) }),
+      defineCommand({
+        id: "view.toggleFullscreen",
+        title: "Toggle Fullscreen",
+        category: "View",
+        run: () => void (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => undefined),
+      }),
     ];
     return () => {
       for (const unregister of unregisters) unregister();
     };
-  }, [exportProjectFile, openImportPicker, openSettings]);
+  }, [exportProjectFile, openImportPicker, openSettings, router]);
 
   // Phase 28: snapping and rulers.
   useEffect(() => {

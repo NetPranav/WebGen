@@ -25,8 +25,6 @@ import {
   Download,
   Upload,
   ExternalLink,
-  Code2,
-  RefreshCw,
 } from "lucide-react";
 import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import { ASTManager, BlueprintValidationIssue } from "@/core/ast/ASTManager";

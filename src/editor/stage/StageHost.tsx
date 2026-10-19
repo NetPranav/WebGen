@@ -67,14 +67,11 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
 
   // Keep the plan in step with the document: a structural change (ids, children, visibility, roots) updates it; a property edit doesn't.
   useLayoutEffect(() => {
-    if (plan.refresh(getDocument().layers, rootIds)) performance.mark("stage-plan");
+    plan.refresh(getDocument().layers, rootIds);
     return documentStore.subscribe((state) => {
-      if (plan.refresh(state.document.layers, rootIds)) performance.mark("stage-plan");
+      plan.refresh(state.document.layers, rootIds);
     });
   }, [plan, rootIds]);
-  useLayoutEffect(() => {
-    performance.mark("stage-commit");
-  });
 
   const handleFrame = useCallback(
     (frame: FrameMount | null) => {

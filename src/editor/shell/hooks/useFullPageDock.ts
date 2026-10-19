@@ -179,7 +179,7 @@ export function useFullPageDock(ws: Workspace, handleZoneClick: (zone: "left" | 
 
   /** Restores dragged tab back to full-page tabs on snap-back cancellation */
   const handleCancelDrag = useCallback(
-    (panelId: string, panelTitle: string, dragSource: TearOffDragSource) => {
+    (_panelId: string, _panelTitle: string, dragSource: TearOffDragSource) => {
       if (dragSource === "fullpage-tab" && draggedFullPageTabRef.current) {
         const saved = draggedFullPageTabRef.current;
         setFullPagePanels(saved.originalPanels);
@@ -234,7 +234,7 @@ export function useFullPageDock(ws: Workspace, handleZoneClick: (zone: "left" | 
   );
 
   const handleOpenNewTab = useCallback(
-    (panelId: string, panelTitle: string, dragSource?: TearOffDragSource) => {
+    (panelId: string, _panelTitle: string, dragSource?: TearOffDragSource) => {
       draggedFullPageTabRef.current = null;
       setFullPagePanels((prev) => prev.filter((p) => p.panelId !== panelId));
 

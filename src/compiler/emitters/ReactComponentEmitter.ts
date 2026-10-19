@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import { PageDefinition, StateVariable } from "@/core/store/useProjectStore";
+import { PageDefinition } from "@/core/store/useProjectStore";
 import { ComponentEmitterOptions, EmittedFile } from "@/core/types/compiler";
 import { StyleEmitter } from "./StyleEmitter";
 import type { Layer } from "@/core/document/schema";
