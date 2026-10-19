@@ -19,6 +19,7 @@ import { ZoomControls } from "./ZoomControls";
 import { CanvasOverlay, SelectionRect } from "./CanvasOverlay";
 import { CanvasFrames, FrameBar, visibleFrames } from "./CanvasFrames";
 import { CanvasHitTester, type FrameSurface } from "@/core/hit/CanvasHitTester";
+import { frameScheduler } from "@/core/time/scheduler";
 import { useHoverStore } from "@/core/store/useHoverStore";
 import { screenToDoc } from "@/core/viewport/camera";
 import { useFrames } from "./useFrames";
@@ -169,7 +170,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     const w = window as unknown as { __LL_TEST__?: boolean; __LL_HIT__?: CanvasHitTester };
     if (w.__LL_TEST__) w.__LL_HIT__ = hitTester;
   }, [hitTester]);
-  const hoverFrameRef = useRef<number | null>(null);
+  const hoverFrameRef = useRef<number | null>(null); // non-null while a lookup is queued
   const pointerWorld = (e: { clientX: number; clientY: number }) => {
     const rect = containerRef.current!.getBoundingClientRect();
     return screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -586,12 +587,14 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         if (activeTool !== "select" || isSpacePressed || isPanning || isPlayMode) return;
         const { clientX, clientY, metaKey, ctrlKey } = e;
         if (hoverFrameRef.current !== null) return; // one lookup per frame
-        hoverFrameRef.current = requestAnimationFrame(() => {
+        const off = frameScheduler.register("input", () => {
+          off();
           hoverFrameRef.current = null;
           if (!containerRef.current) return;
           const hit = hitTester.pickAt(pointerWorld({ clientX, clientY }), { deep: metaKey || ctrlKey });
           useHoverStore.getState().set(hit?.id ?? null, hit?.rect ?? null);
         });
+        hoverFrameRef.current = 1; // a lookup is queued for the next frame
       }}
       onMouseLeave={() => useHoverStore.getState().set(null, null)}
       onClick={(e) => {
