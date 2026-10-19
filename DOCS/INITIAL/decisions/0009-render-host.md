@@ -39,7 +39,7 @@ Play mode on the canvas uses `SandboxHost` in the full edition and the same `Sta
 
 ## 5. Measured
 
-On an Apple-silicon laptop under heavy unrelated load, in Chromium: an undo or redo of a drawn shape reaches the frame's DOM within one frame (the browser test attaches each timing to its run). Firefox and WebKit are held to a 50 ms ceiling until their numbers on the CI runner are known; Phase 18's roadmap entry records the numbers CI reports.
+On an Apple-silicon laptop with nothing else running, an undo or redo of a drawn shape reaches the frame's DOM in **2–5 ms in Chromium, 3–5 ms in Firefox and 3–7 ms in WebKit** (the gate is 16 ms; each run attaches its timings). The browser test holds Chromium to 16 ms and Firefox and WebKit to 50 ms until their numbers on the CI runner are known; on the same laptop under heavy unrelated load Firefox measured 21–43 ms, which is why the ceiling is explicit rather than quietly widened. Phase 19 adds per-layer rendering, a node registry and `renderer.measure`.
 
 ## 6. Alternatives considered
 
