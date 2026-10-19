@@ -14,8 +14,9 @@ const LABELS: Record<string, string> = {
  * (3: effects, 4: 3D). Until then they draw a labelled, dashed box, so a layer
  * of that kind is visible and selectable instead of vanishing.
  */
-export const Placeholder: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, children }) => (
+export const Placeholder: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, children, nodeRef }) => (
   <div
+    ref={nodeRef}
     data-element-id={layer.id}
     data-archetype={layer.archetype}
     data-placeholder="true"

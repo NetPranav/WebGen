@@ -4,7 +4,7 @@ import type { ArchetypeRenderProps } from "../types";
 
 const SIZES = { sm: { w: 36, h: 20 }, md: { w: 44, h: 24 }, lg: { w: 56, h: 30 } } as const;
 
-export const Toggle: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Toggle: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const key = resolved.str("toggle.size", "md");
   const { w, h } = SIZES[key === "sm" || key === "lg" ? key : "md"];
   const checked = resolved.bool("toggle.checked", false);
@@ -12,6 +12,7 @@ export const Toggle: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx })
   const pad = 2;
   return (
     <span
+      ref={nodeRef}
       role="switch"
       aria-checked={checked}
       aria-disabled={disabled || undefined}

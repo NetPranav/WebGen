@@ -6,11 +6,12 @@ import type { ArchetypeRenderProps } from "../types";
 const TYPES = new Set(["text", "email", "password", "number", "search", "tel", "url"]);
 
 /** A text field. Read-only on the stage: typing into the canvas edits the document through the inspector, not the DOM. */
-export const Input: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Input: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const interpolate = ctx.interpolate ?? ((s: string) => s);
   const type = resolved.str("input.type", "text");
   return (
     <input
+      ref={nodeRef}
       data-element-id={layer.id}
       data-archetype="input"
       type={TYPES.has(type) ? type : "text"}

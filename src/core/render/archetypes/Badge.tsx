@@ -3,13 +3,14 @@ import { layerBoxStyle, px } from "../geometry";
 import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
 
-export const Badge: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Badge: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const raw = resolved.str("content.label", layer.name);
   const label = clampText(ctx.interpolate ? ctx.interpolate(raw) : raw);
   const outlined = resolved.str("appearance.variant", "filled") === "outline";
   const color = resolved.str("typography.color", "#206859");
   return (
     <span
+      ref={nodeRef}
       data-element-id={layer.id}
       data-archetype="badge"
       style={{

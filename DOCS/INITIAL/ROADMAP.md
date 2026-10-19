@@ -552,12 +552,13 @@ The document and World Environment have their own stores, After-track actions mo
 
 ### Phase 19 · Incremental updates & measurement API
 **Needs:** 18 · **Was:** v3 48.3, 48.4 · **Status:** 📋
-- [ ] Document patches re-render only the layers they touch (per-entity selectors from Phase 12).
-- [ ] `LayerNodeRegistry` (layer id → element), so per-frame values can be written without React (Law 9; used from Phase 57).
-- [ ] `renderer.measure(layerIds)` returns document-space rectangles, batched and backed by `ResizeObserver`.
+- [x] Document patches re-render only the layers they touch. Every layer is a `StoreRenderLayer`: it subscribes to its own object (`useLayer`, which Immer's structural sharing keeps identical for every untouched layer) and to its own list of drawn children in a plan store that returns the same array while a layer's children are unchanged. `StageHost` re-renders only when the top-level ids change. Editing one layer's property re-renders that layer and nothing else; adding or removing a layer re-renders its parent and the new layer; both are tested in the browser by counting renders.
+- [x] `LayerNodeRegistry` (layer id → element, with subscriptions and a late-cleanup guard), filled by a `nodeRef` every render definition now receives, and held by the stage's `StageRenderer`, which `getStageRenderer()` returns (Phase 57 writes per-frame values through it).
+- [x] `renderer.measure(layerIds)` returns document-space rectangles (the frame's scroll is added, so they don't change when the frame scrolls), answered from one read pass per animation frame however many callers ask, and cached until a `ResizeObserver` on every drawn element, a `MutationObserver` on the stage root or a window resize says something may have moved. `measureNow` is the synchronous form.
 
 **You'll see:** a 500-layer document stays responsive while you edit it.
 **Done when:** 500 layers mount in < 500 ms; editing one layer re-renders no other layer (subscription test); `measure()` matches the DOM within 0.5 px.
+**Evidence (2026-10-19):** `/editor/stage-lab` loads 500 layers into the real stage and edits them through the real document commands; `tests/e2e/stage-incremental.spec.ts` (6 tests, Chromium, Firefox and WebKit) measured, on a quiet laptop, **500 layers mounting in 15 ms (Chromium), 42 ms (Firefox) and 34 ms (WebKit)**; one property edit → exactly one layer rendered once; add → the new layer and its parent only; remove → the parent only; `measure()` within 0.5 px of the DOM for the root, first, middle and last layers, unchanged by scrolling the frame, correct after a layout shift, and 100 simultaneous callers costing one read pass. Unit tests cover the plan store, the registry, the batching and the cache (`src/core/render/__tests__/incremental.test.ts`). Edits reach the frame's DOM in 2–7 ms in all three engines. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 20 · Viewport camera
 **Needs:** 19 · **Was:** v3 49.1 · **Closes:** — (World Environment properties 1–6) · **Status:** 📋

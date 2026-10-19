@@ -4,12 +4,13 @@ import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
 
 /** A `button`. Hover and press looks come from states (Phase 78), not inline handlers. */
-export const Button: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Button: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const raw = resolved.str("content.label", layer.name);
   const label = clampText(ctx.interpolate ? ctx.interpolate(raw) : raw);
   const disabled = resolved.bool("interaction.disabled", false);
   return (
     <button
+      ref={nodeRef}
       type="button"
       data-element-id={layer.id}
       data-archetype="button"

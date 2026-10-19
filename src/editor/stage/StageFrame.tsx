@@ -15,7 +15,7 @@ import { bindFocusScope, installCommandDispatcher, type FocusScope } from "@/cor
 
 export const STAGE_FRAME_SRC = "/stage-frame.html";
 
-interface FrameMount {
+export interface FrameMount {
   document: Document;
   window: Window;
   root: HTMLElement;
@@ -29,6 +29,8 @@ export interface StageFrameProps {
   style?: React.CSSProperties;
   /** The focus region the frame belongs to: while the pointer is over the frame it holds this scope, so scoped shortcuts keep working inside it. */
   focusScope?: FocusScope;
+  /** Called with the frame once its document is ready, and with null when it goes. */
+  onFrame?: (frame: FrameMount | null) => void;
   children: React.ReactNode;
 }
 
@@ -77,7 +79,7 @@ function readMount(iframe: HTMLIFrameElement): FrameMount | null {
   return root ? { document: frameDocument, window: frameWindow, root } : null;
 }
 
-export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ title, width = "100%", height = "100%", className, style, focusScope, children }, ref) => {
+export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ title, width = "100%", height = "100%", className, style, focusScope, onFrame, children }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [mount, setMount] = useState<FrameMount | null>(null);
   useImperativeHandle(ref, () => iframeRef.current as HTMLIFrameElement);
@@ -93,6 +95,13 @@ export const StageFrame = forwardRef<HTMLIFrameElement, StageFrameProps>(({ titl
 
   // The frame may already have loaded before React attached `onLoad` (hydration).
   useEffect(() => attach(), [attach]);
+
+  // Tell the owner when the frame is ready (and when it goes), so it can measure and register nodes in it.
+  useEffect(() => {
+    if (!mount) return undefined;
+    onFrame?.(mount);
+    return () => onFrame?.(null);
+  }, [mount, onFrame]);
 
   // The pointer over the frame holds the region's focus scope. Some engines (WebKit) report the pointer leaving the
   // parent's element the moment it enters the frame, so the frame's own document claims the scope back.

@@ -3,7 +3,7 @@ import { layerBoxStyle } from "../geometry";
 import { clampNumber } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
 
-export const Divider: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Divider: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const vertical = resolved.str("divider.orientation", "horizontal") === "vertical";
   const length = clampNumber(resolved.num("divider.length", 100), 1, 20_000, 100);
   const thickness = clampNumber(resolved.num("divider.thickness", 1), 0, 200, 1);
@@ -12,6 +12,7 @@ export const Divider: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }
   const line = `${thickness}px ${style === "dashed" || style === "dotted" ? style : "solid"} ${color}`;
   return (
     <div
+      ref={nodeRef}
       role="separator"
       aria-orientation={vertical ? "vertical" : "horizontal"}
       data-element-id={layer.id}

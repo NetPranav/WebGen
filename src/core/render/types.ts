@@ -24,4 +24,6 @@ export interface ArchetypeRenderProps {
   resolved: ResolvedProps;
   ctx: RenderContext;
   children?: ReactNode;
+  /** Receives the element the layer is drawn into (and null when it goes), for the `LayerNodeRegistry` (Phase 19). */
+  nodeRef?: (element: Element | null) => void;
 }

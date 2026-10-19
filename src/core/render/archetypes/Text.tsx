@@ -3,12 +3,13 @@ import { layerBoxStyle, px } from "../geometry";
 import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
 
-export const Text: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Text: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const raw = resolved.str("content.text", layer.name);
   const text = clampText(ctx.interpolate ? ctx.interpolate(raw) : raw);
   const align = resolved.str("typography.textAlign", "left");
   return (
     <div
+      ref={nodeRef}
       data-element-id={layer.id}
       data-archetype="text"
       style={{

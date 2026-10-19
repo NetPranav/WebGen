@@ -3,12 +3,13 @@ import { layerBoxStyle, px } from "../geometry";
 import type { ArchetypeRenderProps } from "../types";
 
 /** `container` and `form`: a flex box that lays out its children. */
-export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, children }) => {
+export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, children, nodeRef }) => {
   const display = resolved.str("layout.display", "flex") === "grid" ? "grid" : "flex";
   const direction = resolved.str("layout.flexDirection", "column") === "row" ? "row" : "column";
   const padding = resolved.num("layout.padding", 0);
   return (
     <div
+      ref={nodeRef}
       data-element-id={layer.id}
       data-archetype={layer.archetype}
       role={layer.archetype === "form" ? "form" : undefined}

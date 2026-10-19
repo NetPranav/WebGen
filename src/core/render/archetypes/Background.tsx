@@ -22,7 +22,7 @@ function stops(value: unknown): Stop[] {
 }
 
 /** A `background` layer: a flat colour or a linear gradient. */
-export const Background: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Background: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const kind = resolved.str("background.type", "color");
   const color = resolved.str("background.color", "#0f172a");
   const list = stops(resolved.get("background.gradient.stops"));
@@ -31,6 +31,7 @@ export const Background: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ct
   const blend = resolved.str("background.blendMode", "normal");
   return (
     <div
+      ref={nodeRef}
       data-element-id={layer.id}
       data-archetype="background"
       style={{

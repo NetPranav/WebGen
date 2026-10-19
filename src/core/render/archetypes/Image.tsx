@@ -6,7 +6,7 @@ import type { ArchetypeRenderProps } from "../types";
 const FITS = new Set(["cover", "contain", "fill", "none", "scale-down"]);
 
 /** An `image`. A source that isn't a safe image URL is not loaded; the alt text shows instead. */
-export const Image: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Image: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const src = safeImageSrc(resolved.str("media.src", ""));
   const alt = resolved.str("media.alt", layer.name);
   const fit = resolved.str("media.objectFit", "cover");
@@ -21,6 +21,7 @@ export const Image: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) 
   const box = layerBoxStyle(layer, resolved, ctx);
   return (
     <div
+      ref={nodeRef}
       data-element-id={layer.id}
       data-archetype="image"
       style={{ ...box, overflow: "hidden", borderRadius: px(resolved.num("appearance.radius", 0)), display: "inline-block", lineHeight: 0 }}

@@ -11,12 +11,13 @@ const ICONS: Record<string, string> = {
 };
 
 /** A circular floating action button with a small built-in icon set. */
-export const Fab: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx }) => {
+export const Fab: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const size = clampNumber(resolved.num("button.size", 56), 16, 200, 56);
   const icon = ICONS[resolved.str("content.icon", "plus")] ?? ICONS.plus;
   const elevated = resolved.str("appearance.elevation", "lg") !== "none";
   return (
     <button
+      ref={nodeRef}
       type="button"
       data-element-id={layer.id}
       data-archetype="fab"

@@ -28,8 +28,9 @@ interface FrameProps extends ArchetypeRenderProps {
 }
 
 /** The `<svg>` every parametric shape draws into, sized to its frame. */
-const ShapeSvg: React.FC<FrameProps> = ({ layer, resolved, ctx, width, height, children }) => (
+const ShapeSvg: React.FC<FrameProps> = ({ layer, resolved, ctx, width, height, children, nodeRef }) => (
   <svg
+    ref={nodeRef}
     data-element-id={layer.id}
     data-archetype={layer.archetype}
     width={width}
