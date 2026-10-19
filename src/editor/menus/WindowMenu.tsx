@@ -13,6 +13,8 @@
  */
 
 import React from "react";
+import { edition } from "@/core/flags";
+import { presetsFor } from "@/core/workspace/layout";
 import {
   Layers,
   Sliders,
@@ -66,7 +68,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
   isAIOpen = false,
   onOpenPanel,
   onSelectWorkspace,
-  activeWorkspace = "full-studio",
+  activeWorkspace = "design",
   onResetLayout,
 }) => {
   if (!isOpen) return null;
@@ -122,7 +124,7 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
       <button
         type="button"
         className="menu-item"
-        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("right", "details") : onToggleRight?.())}
+        onClick={() => handleAction(() => onOpenPanel ? onOpenPanel("right", "design") : onToggleRight?.())}
       >
         <span className="menu-item__left">
           <span className="menu-item__icon"><Sliders size={13} /></span>
@@ -312,77 +314,20 @@ export const WindowMenu: React.FC<WindowMenuProps> = ({
       <div className="menu-separator" />
       <span className="menu-header-label">Workspace Presets</span>
 
-      <button
-        type="button"
-        className="menu-item"
-        onClick={() => handleAction(() => onSelectWorkspace && onSelectWorkspace("full-studio"))}
-      >
-        <span className="menu-item__left">
-          <span className="menu-item__icon"><LayoutTemplate size={13} /></span>
-          <span>Full Studio (Default)</span>
-        </span>
-        {activeWorkspace === "full-studio" && <Check size={13} className="menu-item__check" />}
-      </button>
-
-      <button
-        type="button"
-        className="menu-item"
-        onClick={() => handleAction(() => onSelectWorkspace && onSelectWorkspace("design"))}
-      >
-        <span className="menu-item__left">
-          <span className="menu-item__icon"><LayoutTemplate size={13} /></span>
-          <span>Design Workspace</span>
-        </span>
-        {activeWorkspace === "design" && <Check size={13} className="menu-item__check" />}
-      </button>
-
-      <button
-        type="button"
-        className="menu-item"
-        onClick={() => handleAction(() => onSelectWorkspace && onSelectWorkspace("animate"))}
-      >
-        <span className="menu-item__left">
-          <span className="menu-item__icon"><Film size={13} /></span>
-          <span>Animation Workspace</span>
-        </span>
-        {activeWorkspace === "animate" && <Check size={13} className="menu-item__check" />}
-      </button>
-
-      <button
-        type="button"
-        className="menu-item"
-        onClick={() => handleAction(() => onSelectWorkspace && onSelectWorkspace("logic"))}
-      >
-        <span className="menu-item__left">
-          <span className="menu-item__icon"><LayoutTemplate size={13} /></span>
-          <span>Logic Workspace</span>
-        </span>
-        {activeWorkspace === "logic" && <Check size={13} className="menu-item__check" />}
-      </button>
-
-      <button
-        type="button"
-        className="menu-item"
-        onClick={() => handleAction(() => onSelectWorkspace && onSelectWorkspace("data"))}
-      >
-        <span className="menu-item__left">
-          <span className="menu-item__icon"><LayoutTemplate size={13} /></span>
-          <span>Data Workspace</span>
-        </span>
-        {activeWorkspace === "data" && <Check size={13} className="menu-item__check" />}
-      </button>
-
-      <button
-        type="button"
-        className="menu-item"
-        onClick={() => handleAction(() => onSelectWorkspace && onSelectWorkspace("debug"))}
-      >
-        <span className="menu-item__left">
-          <span className="menu-item__icon"><LayoutTemplate size={13} /></span>
-          <span>Debug Workspace</span>
-        </span>
-        {activeWorkspace === "debug" && <Check size={13} className="menu-item__check" />}
-      </button>
+      {presetsFor(edition).map((id) => (
+        <button
+          key={id}
+          type="button"
+          className="menu-item"
+          onClick={() => handleAction(() => onSelectWorkspace && onSelectWorkspace(id))}
+        >
+          <span className="menu-item__left">
+            <span className="menu-item__icon"><LayoutTemplate size={13} /></span>
+            <span>{id.charAt(0).toUpperCase() + id.slice(1)} Workspace</span>
+          </span>
+          {activeWorkspace === id && <Check size={13} className="menu-item__check" />}
+        </button>
+      ))}
 
       <div className="menu-separator" />
 

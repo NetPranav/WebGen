@@ -22,6 +22,7 @@ import {
 } from "@/core/types/deployment";
 import { DeploymentEngine } from "@/runtime/DeploymentEngine";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useProjectMetaStore } from "@/core/store/useProjectMetaStore";
 import { type FullEditionProjectStoreState } from "@/core/store/fullEditionTypes";
 import { ProviderSelector } from "./ProviderSelector";
 import { DomainManager } from "./DomainManager";
@@ -61,7 +62,7 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
   className,
   style,
 }) => {
-  const projectName = useProjectStore((s) => s.projectName);
+  const projectName = useProjectMetaStore((s) => s.projectName);
   const pages = useProjectStore((s) => s.pages);
   const databaseSchemas = useProjectStore((s) => s.databaseSchemas);
   // After-track action (Sub-Phase 41.1): undefined unless `edition === "full"`.

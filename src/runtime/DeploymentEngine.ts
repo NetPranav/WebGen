@@ -21,6 +21,7 @@ import {
   PipelineStepId,
 } from "../core/types/deployment";
 import { useProjectStore } from "../core/store/useProjectStore";
+import { useProjectMetaStore } from "../core/store/useProjectMetaStore";
 import { getFullEditionState, type FullEditionProjectStoreState } from "../core/store/fullEditionTypes";
 import { getDocument } from "../core/store/useDocumentStore";
 import { DiagnosticBus } from "../core/engine/DiagnosticBus";
@@ -176,9 +177,10 @@ class DeploymentEngineManager {
 
     this.isExecuting = true;
     const storeState = useProjectStore.getState();
+    const projectName = useProjectMetaStore.getState().projectName;
     const deployId = `dep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const randomHash = Math.random().toString(16).substring(2, 9);
-    const domain = config.productionDomain || `${storeState.projectName.toLowerCase().replace(/[^a-z0-9]/g, "-")}.${config.target === "vercel" ? "vercel.app" : "pages.dev"}`;
+    const domain = config.productionDomain || `${projectName.toLowerCase().replace(/[^a-z0-9]/g, "-")}.${config.target === "vercel" ? "vercel.app" : "pages.dev"}`;
     const url = `https://${domain}`;
 
     // Initialize clean steps
@@ -190,7 +192,7 @@ class DeploymentEngineManager {
 
     const record: DeploymentRecord = {
       id: deployId,
-      projectName: storeState.projectName || "Visual Web App",
+      projectName: projectName || "Visual Web App",
       target: config.target,
       environment: config.environment,
       status: "queued",

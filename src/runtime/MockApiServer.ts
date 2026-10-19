@@ -589,7 +589,7 @@ export class MockApiServer {
               };
 
               try {
-                window.parent.postMessage(payload, "*");
+                window.parent.postMessage(payload, window.origin);
               } catch(e) {
                 console.error("[Sandbox] Failed to forward mock API request:", e);
               }

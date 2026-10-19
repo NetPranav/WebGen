@@ -63,11 +63,15 @@ export const DockZone = React.forwardRef<HTMLElement, DockZoneProps>(function Do
   const currentSize = isCollapsed ? collapsedSize : size;
   const isHorizontalZone = zoneId === "left" || zoneId === "right";
 
-  const sizeStyle: React.CSSProperties = isHorizontalZone
-    ? { width: `${currentSize}px`, minWidth: `${currentSize}px` }
-    : zoneId === "bottom"
-    ? { height: `${currentSize}px`, minHeight: `${currentSize}px`, width: "100%" }
-    : {};
+  // The size lives in one custom property so a splitter drag can change it
+  // without touching width/height (and without a React render).
+  const sizeStyle = (
+    isHorizontalZone
+      ? { "--zone-size": `${currentSize}px`, width: "var(--zone-size)", minWidth: "var(--zone-size)" }
+      : zoneId === "bottom"
+      ? { "--zone-size": `${currentSize}px`, height: "var(--zone-size)", minHeight: "var(--zone-size)", width: "100%" }
+      : {}
+  ) as React.CSSProperties;
 
   const getCollapsedIcon = () => {
     if (zoneId === "left") return <PanelLeft size={16} />;

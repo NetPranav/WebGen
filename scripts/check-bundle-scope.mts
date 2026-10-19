@@ -48,6 +48,8 @@ const GATED_PANELS: GatedPanel[] = [
   { name: "PagesManager", sourceFile: "src/editor/panels/pages-manager/PagesManager.tsx" },
   { name: "DeploymentDashboard", sourceFile: "src/editor/panels/deployment/DeploymentDashboard.tsx" },
   { name: "PluginManager", sourceFile: "src/editor/panels/plugins/PluginManager.tsx" },
+  // Phase 18: the logic sandbox is full-edition only; the design stage is StageHost.
+  { name: "SandboxHost", sourceFile: "src/editor/runtime/SandboxHost.tsx" },
   { name: "VersionControlPanel", sourceFile: "src/editor/panels/versioning/VersionControlPanel.tsx" },
   // Sub-Phase 41.1: the After-track *store action* modules, gated the same way
   // (imported only via `import()` behind `edition === "full"` in

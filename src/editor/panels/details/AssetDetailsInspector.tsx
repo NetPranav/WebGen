@@ -70,6 +70,7 @@ import { JsonObjectEditor } from "./controls/JsonObjectEditor";
 import { AssetReferencePicker } from "./controls/AssetReferencePicker";
 import { AssetLayoutSchema, AssetTypographySchema } from "@/core/types/details";
 import { createId } from "@/core/ids";
+import { useCommand } from "@/core/commands";
 
 export interface AssetDetailsInspectorProps {
   panelId: string;
@@ -544,20 +545,19 @@ export const AssetDetailsInspector: React.FC<AssetDetailsInspectorProps> = ({
     panelTitle.replace(/\.[^/.]+$/, ""),
   ];
 
-  // Global keyboard shortcut to open +Add Palette (Cmd+A / Ctrl+A)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
-        const target = e.target as HTMLElement;
-        if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
-          e.preventDefault();
-          setIsAddPaletteOpen((prev) => !prev);
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  // Phase 13: Ctrl/Cmd+A toggles the +Add palette through the command bus
+  // (it was a raw window keydown listener). Phase 29 gives Ctrl+A to Select All.
+  useCommand(
+    {
+      id: "inspector.addPalette",
+      title: "Toggle +Add Palette",
+      category: "Details",
+      keybinding: "Ctrl+A",
+      when: (ctx) => !ctx.textEditing,
+      run: () => setIsAddPaletteOpen((prev) => !prev),
+    },
+    [],
+  );
 
   // Palette item selection handler
   const handlePaletteSelectItem = (item: AddPaletteItem) => {

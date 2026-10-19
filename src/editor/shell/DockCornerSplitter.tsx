@@ -75,13 +75,11 @@ export const DockCornerSplitter: React.FC<DockCornerSplitterProps> = ({
       const applyLive = () => {
         const rightEl = rightRef.current;
         if (rightEl) {
-          rightEl.style.width = `${latestRight}px`;
-          rightEl.style.minWidth = `${latestRight}px`;
+          rightEl.style.setProperty("--zone-size", `${latestRight}px`);
         }
         const bottomEl = bottomRef.current;
         if (bottomEl) {
-          bottomEl.style.height = `${latestBottom}px`;
-          bottomEl.style.minHeight = `${latestBottom}px`;
+          bottomEl.style.setProperty("--zone-size", `${latestBottom}px`);
         }
       };
 

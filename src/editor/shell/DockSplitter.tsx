@@ -21,7 +21,7 @@ import React, { useState, useCallback } from "react";
 
 interface DockSplitterProps {
   orientation: "vertical" | "horizontal";
-  /** DOM node of the zone this splitter resizes. Its width/height (and matching min-width/min-height) are written to directly while dragging. */
+  /** DOM node of the zone this splitter resizes. Its `--zone-size` custom property is written to directly while dragging. */
   targetRef: React.RefObject<HTMLElement | null>;
   /** Current committed size (px) of the target zone; used as the drag's starting value. */
   value: number;
@@ -69,13 +69,7 @@ export const DockSplitter: React.FC<DockSplitterProps> = ({
       const applyLive = (v: number) => {
         const el = targetRef.current;
         if (!el) return;
-        if (orientation === "vertical") {
-          el.style.width = `${v}px`;
-          el.style.minWidth = `${v}px`;
-        } else {
-          el.style.height = `${v}px`;
-          el.style.minHeight = `${v}px`;
-        }
+        el.style.setProperty("--zone-size", `${v}px`);
       };
 
       const handleMouseMove = (moveEvent: MouseEvent) => {

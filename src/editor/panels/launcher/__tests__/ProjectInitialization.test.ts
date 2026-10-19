@@ -24,6 +24,7 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import React from "react";
 import { useProjectStore } from "@/core/store/useProjectStore";
+import { useProjectMetaStore } from "@/core/store/useProjectMetaStore";
 import { getDocument } from "@/core/store/useDocumentStore";
 import { ALL_ARCHETYPE_IDS, getArchetypeDefinition } from "../archetypeData";
 import type { ArchetypeId, InitialArchetypeId } from "@/core/document/registry";
@@ -49,9 +50,9 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
       });
 
       const state = useProjectStore.getState();
-      assert.strictEqual(state.projectName, "AnimatedHeroImage");
-      assert.strictEqual(state.scope, "element");
-      assert.strictEqual(state.rootArchetype, "image");
+      assert.strictEqual(useProjectMetaStore.getState().projectName, "AnimatedHeroImage");
+      assert.strictEqual(useProjectMetaStore.getState().scope, "element");
+      assert.strictEqual(useProjectMetaStore.getState().rootArchetype, "image");
       assert.deepStrictEqual(getDocument().exportSettings, {
         framework: "nextjs-app",
         styling: "tailwind",
@@ -259,9 +260,9 @@ describe("Sub-Phase 2.4: Project Initialization & Workspace Tailoring", () => {
 
       // 2. Assert store state
       const state = useProjectStore.getState();
-      assert.strictEqual(state.projectName, projectName);
-      assert.strictEqual(state.rootArchetype, "image");
-      assert.strictEqual(state.scope, "element");
+      assert.strictEqual(useProjectMetaStore.getState().projectName, projectName);
+      assert.strictEqual(useProjectMetaStore.getState().rootArchetype, "image");
+      assert.strictEqual(useProjectMetaStore.getState().scope, "element");
       assert.strictEqual(getDocument().exportSettings.framework, "nextjs-app");
       assert.strictEqual(getDocument().exportSettings.styling, "tailwind");
       assert.strictEqual(getDocument().exportSettings.animation, "gsap");

@@ -29,6 +29,7 @@ import { RedirectRule } from "../types/routing";
 import type { AfterTrackActionSignatures } from "./afterTrackActionSignatures";
 import { WorldEnvironmentSettings, DEFAULT_ENVIRONMENT_SETTINGS } from "../types/environment";
 import { getEnvironment, setEnvironment } from "./useEnvironmentStore";
+import { useProjectMetaStore, getProjectMeta, splitProjectMeta, INITIAL_PROJECT_META } from "./useProjectMetaStore";
 import {
   createShowcaseSnapshot,
   createBlankCanvasSnapshot,
@@ -131,7 +132,7 @@ export function recordProjectChange(label: string, before: ProjectStateSnapshot,
  * actions used in every edition are declared directly below.
  */
 export interface ProjectStoreState
-  extends Omit<ProjectStateSnapshot, "document" | "environment">,
+  extends Omit<ProjectStateSnapshot, "document" | "environment" | "projectId" | "projectName" | "scope" | "rootArchetype">,
     Partial<AfterTrackActionSignatures> {
   // Actions: Project Identity & Management
   setProjectId: (projectId: string) => void;
@@ -171,10 +172,7 @@ export interface ProjectStoreState
   restoreSnapshot: (snapshot: ProjectStateSnapshot | LegacyProjectSnapshot) => void;
 }
 
-const INITIAL_PROJECT_STATE: Omit<ProjectStateSnapshot, "document"> = {
-  projectName: "Visual Web App",
-  scope: "element",
-  rootArchetype: "button",
+const INITIAL_PROJECT_STATE: Omit<ProjectStateSnapshot, "document" | "environment" | "projectId" | "projectName" | "scope" | "rootArchetype"> = {
   activePageId: "page_home",
   pages: {
     page_home: {
@@ -221,10 +219,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   getSnapshot: (): ProjectStateSnapshot => {
     const s = get();
     return {
-      projectId: s.projectId,
-      projectName: s.projectName,
-      scope: s.scope || "element",
-      rootArchetype: s.rootArchetype || "button",
+      ...getProjectMeta(),
       activePageId: s.activePageId,
       pages: s.pages,
       document: getDocument(),
@@ -243,9 +238,11 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
 
   restoreSnapshot: (snapshot) => {
     // Accepts snapshots of any schema version: v1 `elements` are migrated to the v2 document.
-    const { document, environment, ...rest } = upgradeSnapshot(snapshot as LegacyProjectSnapshot);
+    const { document, environment, ...withMeta } = upgradeSnapshot(snapshot as LegacyProjectSnapshot);
+    const { meta, rest } = splitProjectMeta(withMeta);
     setDocument(document);
     setEnvironment(environment || DEFAULT_ENVIRONMENT_SETTINGS);
+    useProjectMetaStore.setState({ ...INITIAL_PROJECT_META, ...meta });
     set(rest);
     // Sync connection pipeline
     ConnectionPipeline.clear();
@@ -254,8 +251,8 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     });
   },
 
-  setProjectId: (projectId: string) => set({ projectId }),
-  setProjectName: (name: string) => set({ projectName: name }),
+  setProjectId: (projectId: string) => useProjectMetaStore.getState().setProjectId(projectId),
+  setProjectName: (name: string) => useProjectMetaStore.getState().setProjectName(name),
 
   initElementProject: (params) => {
     const arch = isArchetypeId(params.archetype) ? params.archetype : "button";
@@ -286,11 +283,13 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     };
 
     setDocument(document);
-    set({
-      projectId: params.projectId || get().projectId,
+    useProjectMetaStore.getState().setProjectMeta({
+      projectId: params.projectId || useProjectMetaStore.getState().projectId,
       projectName: params.projectName || "MyElementProject",
       scope: "element",
       rootArchetype: arch,
+    });
+    set({
       activePageId: "page_stage",
       pages: {
         page_stage: newPage,

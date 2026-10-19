@@ -41,6 +41,7 @@ import { edition } from "@/core/flags";
 import type { PagesManagerProps } from "@/editor/panels/pages-manager/PagesManager";
 import type { DeploymentDashboardProps } from "@/editor/panels/deployment/DeploymentDashboard";
 import type { PluginManagerProps } from "@/editor/panels/plugins/PluginManager";
+import type { SandboxHostProps } from "@/editor/runtime/SandboxHost";
 
 export interface BlueprintCanvasProps {
   onBackToViewport?: () => void;
@@ -121,6 +122,16 @@ export const PluginManager: React.ComponentType<PluginManagerProps> =
     ? dynamic(() =>
         import("@/editor/panels/plugins").then((m) => m.PluginManager)
       )
+    : notInThisEdition;
+
+/**
+ * The logic sandbox (Phase 18): a script-running iframe with the mock database and API, the execution
+ * tracer and hot reload. It belongs to the full edition. The design stage is `StageHost` and does not
+ * import this, so the initial edition's bundle carries none of it (`npm run check:bundle-scope`).
+ */
+export const SandboxHost: React.ComponentType<SandboxHostProps> =
+  edition === "full"
+    ? dynamic(() => import("@/editor/runtime/SandboxHost").then((m) => m.SandboxHost))
     : notInThisEdition;
 
 export const VersionControlPanel: React.ComponentType<Record<string, never>> =

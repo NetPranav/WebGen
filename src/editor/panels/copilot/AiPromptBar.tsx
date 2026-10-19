@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import { escapeHtml } from "@/editor/runtime/escapeHtml";
 import "@/editor/styles/ai-copilot.css";
 import {
   Sparkles,
@@ -254,7 +255,8 @@ export const AiPromptBar: React.FC<AiPromptBarProps> = ({
               >
                 <div
                   dangerouslySetInnerHTML={{
-                    __html: msg.content
+                    // Escaped first: `msg.content` is user and model text, never trusted HTML (decision record 0008, F2).
+                    __html: escapeHtml(msg.content)
                       .replace(/^### (.*$)/gim, '<div style="font-weight:700;font-size:13px;color:#206859;margin-bottom:6px;">$1</div>')
                       .replace(/^#### (.*$)/gim, '<div style="font-weight:700;font-size:12px;color:#28806E;margin-top:6px;margin-bottom:4px;">$1</div>')
                       .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#0F172A;">$1</strong>')

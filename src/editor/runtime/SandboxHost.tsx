@@ -51,6 +51,8 @@ import { hotReloadEngine } from "@/runtime/HotReloadEngine";
 import { ExecutionRun } from "@/core/types/trace";
 import type { Layer } from "@/core/document/schema";
 import { propReader } from "@/core/document/properties";
+import { escapeHtml } from "./escapeHtml";
+import { listenToFrame, postToFrame, type FrameMessage } from "./frameBridge";
 import { useLayers } from "@/core/store/useDocumentStore";
 
 export interface SandboxHostProps {
@@ -85,7 +87,14 @@ export function generateElementMarkup(
   const el = elements[elementId];
   if (!el) return "";
 
-  const get = propReader(el.properties);
+  const rawGet = propReader(el.properties);
+  // Property values are document data (possibly imported): escape every string before it reaches the markup.
+  const get: typeof rawGet = (path) => {
+    const value = rawGet(path);
+    return (typeof value === "string" ? escapeHtml(value) : value) as ReturnType<typeof rawGet>;
+  };
+  const elId = escapeHtml(el.id);
+  const elArchetype = escapeHtml(el.archetype);
   const childrenHtml = (el.children || [])
     .map((childId) => generateElementMarkup(childId, elements, stateVars))
     .join("\n");
@@ -95,7 +104,7 @@ export function generateElementMarkup(
     if (typeof str !== "string") return String(str ?? "");
     return str.replace(/\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g, (_, varName) => {
       const v = stateVars[varName];
-      return v !== undefined ? String(v.value ?? v.defaultValue ?? "") : `{{${varName}}}`;
+      return v !== undefined ? escapeHtml(v.value ?? v.defaultValue ?? "") : `{{${varName}}}`;
     });
   };
 
@@ -119,9 +128,9 @@ export function generateElementMarkup(
 
       return `
         <div
-          id="${el.id}"
-          data-element-id="${el.id}"
-          data-archetype="${el.archetype}"
+          id="${elId}"
+          data-element-id="${elId}"
+          data-archetype="${elArchetype}"
           style="
             display: ${display};
             flex-direction: ${flexDirection};
@@ -141,7 +150,7 @@ export function generateElementMarkup(
     }
 
     case "text": {
-      const text = interpolate(get("content.text") || el.name || "Text Content");
+      const text = interpolate(get("content.text") || escapeHtml(el.name) || "Text Content");
       const fontSize = get("typography.fontSize") ? `${get("typography.fontSize")}px` : "15px";
       const fontWeight = get("typography.fontWeight") || 500;
       const color = get("typography.color") || "#0F172A";
@@ -149,9 +158,9 @@ export function generateElementMarkup(
 
       return `
         <div
-          id="${el.id}"
-          data-element-id="${el.id}"
-          data-archetype="${el.archetype}"
+          id="${elId}"
+          data-element-id="${elId}"
+          data-archetype="${elArchetype}"
           style="
             font-size: ${fontSize};
             font-weight: ${fontWeight};
@@ -168,15 +177,15 @@ export function generateElementMarkup(
     }
 
     case "button": {
-      const label = interpolate(get("content.label") || el.name || "Button");
+      const label = interpolate(get("content.label") || escapeHtml(el.name) || "Button");
       const bg = get("appearance.background.color") || "#206859";
       const color = get("typography.color") || "#FFFFFF";
       const disabled = Boolean(get("interaction.disabled"));
 
       return `
         <button
-          id="${el.id}"
-          data-element-id="${el.id}"
+          id="${elId}"
+          data-element-id="${elId}"
           data-archetype="button"
           ${disabled ? "disabled" : ""}
           style="
@@ -212,14 +221,14 @@ export function generateElementMarkup(
 
       return `
         <div
-          id="${el.id}"
-          data-element-id="${el.id}"
+          id="${elId}"
+          data-element-id="${elId}"
           data-archetype="input"
           style="display: flex; flex-direction: column; gap: 4px; width: 100%; box-sizing: border-box;"
         >
           <input
             type="text"
-            data-input-element-id="${el.id}"
+            data-input-element-id="${elId}"
             placeholder="${placeholder}"
             value="${value}"
             style="
@@ -248,8 +257,8 @@ export function generateElementMarkup(
 
       return `
         <img
-          id="${el.id}"
-          data-element-id="${el.id}"
+          id="${elId}"
+          data-element-id="${elId}"
           data-archetype="image"
           src="${src}"
           alt="${alt}"
@@ -281,8 +290,8 @@ export function generateElementMarkup(
       const radius = get("shape.cornerRadius") ? `${get("shape.cornerRadius")}px` : "0px";
       return `
         <div
-          id="${el.id}"
-          data-element-id="${el.id}"
+          id="${elId}"
+          data-element-id="${elId}"
           data-archetype="rectangle"
           style="
             width: ${width};
@@ -305,8 +314,8 @@ export function generateElementMarkup(
       const strokeWidth = get("svg.strokeWidth") ? `${get("svg.strokeWidth")}px` : "0px";
       return `
         <div
-          id="${el.id}"
-          data-element-id="${el.id}"
+          id="${elId}"
+          data-element-id="${elId}"
           data-archetype="ellipse"
           style="
             width: ${width};
@@ -328,7 +337,7 @@ export function generateElementMarkup(
       const stroke = get("svg.stroke") || "#0f172a";
       const linecap = get("svg.strokeLinecap") || "round";
       return `
-        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="line" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
+        <svg id="${elId}" data-element-id="${elId}" data-archetype="line" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
           <line x1="0" y1="${height / 2}" x2="${width}" y2="${height / 2}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${linecap}" />
         </svg>
       `;
@@ -348,7 +357,7 @@ export function generateElementMarkup(
         return `${(cx + cx * Math.cos(angle)).toFixed(2)},${(cy + cy * Math.sin(angle)).toFixed(2)}`;
       }).join(" ");
       return `
-        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="polygon" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
+        <svg id="${elId}" data-element-id="${elId}" data-archetype="polygon" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
           <polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />
         </svg>
       `;
@@ -373,7 +382,7 @@ export function generateElementMarkup(
         vertices.push(`${(cx + rx * Math.cos(angle)).toFixed(2)},${(cy + ry * Math.sin(angle)).toFixed(2)}`);
       }
       return `
-        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="star" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
+        <svg id="${elId}" data-element-id="${elId}" data-archetype="star" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
           <polygon points="${vertices.join(" ")}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />
         </svg>
       `;
@@ -394,7 +403,7 @@ export function generateElementMarkup(
       const headBottom = cy + headWidth / 2;
       const path = `M0,${shaftTop} L${shaftEnd},${shaftTop} L${shaftEnd},${headTop} L${width},${cy} L${shaftEnd},${headBottom} L${shaftEnd},${shaftBottom} L0,${shaftBottom} Z`;
       return `
-        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="arrow" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
+        <svg id="${elId}" data-element-id="${elId}" data-archetype="arrow" width="${width}" height="${height}" style="display: block; flex-shrink: 0;">
           <path d="${path}" fill="${fill}" />
         </svg>
       `;
@@ -406,7 +415,7 @@ export function generateElementMarkup(
       const strokeWidth = get("svg.strokeWidth") ? `${get("svg.strokeWidth")}` : "2";
       const fill = get("svg.fill") || "none";
       return `
-        <svg id="${el.id}" data-element-id="${el.id}" data-archetype="svgPath" width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="none" style="display: block; overflow: visible;">
+        <svg id="${elId}" data-element-id="${elId}" data-archetype="svgPath" width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="none" style="display: block; overflow: visible;">
           <path d="${d}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="${fill}" />
         </svg>
       `;
@@ -414,7 +423,7 @@ export function generateElementMarkup(
 
     default:
       return `
-        <div id="${el.id}" data-element-id="${el.id}" style="box-sizing: border-box;">
+        <div id="${elId}" data-element-id="${elId}" style="box-sizing: border-box;">
           ${childrenHtml}
         </div>
       `;
@@ -490,6 +499,14 @@ export function buildSandboxDocument(
   <!-- Fail-Safe Exception Trapping Script -->
   <script>
     (function() {
+      // Messages to the editor name its origin (this srcdoc frame is same-origin with it), never "*".
+      // The editor accepts them only from this frame's window, only from that origin, and only in the
+      // shapes frameBridge.ts defines.
+      window.__PARENT_ORIGIN = window.origin;
+      function __post(message) {
+        try { window.parent.postMessage(message, window.__PARENT_ORIGIN); } catch (e) {}
+      }
+
       // 1. Trap global runtime script errors
       window.onerror = function(message, source, lineno, colno, error) {
         var errorData = {
@@ -504,7 +521,7 @@ export function buildSandboxDocument(
           }
         };
         try {
-          window.parent.postMessage(errorData, "*");
+          __post(errorData);
         } catch(e) {}
         return true;
       };
@@ -521,7 +538,7 @@ export function buildSandboxDocument(
           }
         };
         try {
-          window.parent.postMessage(errorData, "*");
+          __post(errorData);
         } catch(e) {}
       });
 
@@ -533,10 +550,10 @@ export function buildSandboxDocument(
           return typeof a === "object" ? JSON.stringify(a) : String(a);
         }).join(" ");
         try {
-          window.parent.postMessage({
+          __post({
             type: "SANDBOX_CONSOLE_ERROR",
             payload: { message: msg, timestamp: Date.now() }
-          }, "*");
+          });
         } catch(e) {}
         _origError.apply(console, arguments);
       };
@@ -547,14 +564,14 @@ export function buildSandboxDocument(
         if (target) {
           var elId = target.getAttribute("data-element-id");
           try {
-            window.parent.postMessage({
+            __post({
               type: "SANDBOX_ELEMENT_CLICK",
               payload: {
                 elementId: elId,
                 clientX: e.clientX,
                 clientY: e.clientY
               }
-            }, "*");
+            });
           } catch(err) {}
 
           var rect = target.getBoundingClientRect();
@@ -572,7 +589,7 @@ export function buildSandboxDocument(
       // 5. Signal to parent that sandbox has mounted and is ready
       window.addEventListener("DOMContentLoaded", function() {
         try {
-          window.parent.postMessage({ type: "SANDBOX_READY", timestamp: Date.now() }, "*");
+          __post({ type: "SANDBOX_READY", timestamp: Date.now() });
         } catch(e) {}
       });
 
@@ -849,16 +866,16 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
     }
   }, [databaseSchemas, selectedCollection, newRecordForm]);
 
-  // Window postMessage listener: bridges sandbox exceptions, element clicks, & API requests
+  // Messages from the sandbox frame: exceptions, element clicks and API requests. Accepted only from this
+  // frame's window, from the editor's origin, and in the shapes `frameBridge.ts` defines (rule R3).
   useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (!event.data || typeof event.data !== "object") return;
-      const { type, payload } = event.data;
+    const handleMessage = async (message: FrameMessage) => {
+      const { type } = message;
 
       // Handle in-sandbox /api/* fetch requests intercepted inside iframe
-      if (type === "MOCK_API_REQUEST") {
-        const { requestId, url, options } = event.data;
-        const res = await mockApiServer.handleRequest(url, options || {});
+      if (message.type === "MOCK_API_REQUEST") {
+        const { requestId, url, options } = message;
+        const res = await mockApiServer.handleRequest(url, (options || {}) as RequestInit);
         let data: unknown = null;
         try {
           data = await res.json();
@@ -866,18 +883,15 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
           data = null;
         }
 
-        iframeRef.current?.contentWindow?.postMessage(
-          {
-            type: "MOCK_API_RESPONSE",
-            requestId,
-            response: {
-              status: res.status,
-              statusText: res.statusText,
-              data,
-            },
+        postToFrame(iframeRef.current, {
+          type: "MOCK_API_RESPONSE",
+          requestId,
+          response: {
+            status: res.status,
+            statusText: res.statusText,
+            data,
           },
-          "*"
-        );
+        });
         return;
       }
 
@@ -897,7 +911,8 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
           },
           message: "Sandbox iframe runtime successfully initialized and DOM reconciled.",
         });
-      } else if (type === "SANDBOX_RUNTIME_ERROR" || type === "SANDBOX_CONSOLE_ERROR") {
+      } else if (message.type === "SANDBOX_RUNTIME_ERROR" || message.type === "SANDBOX_CONSOLE_ERROR") {
+        const payload = message.payload;
         const err: TrappedError = {
           id: `err_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
           message: payload.message || "Runtime Error",
@@ -922,8 +937,8 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
           suggestion: "Inspect element properties or blueprint wire connections in the Logic Blueprint editor.",
           isFixable: false,
         });
-      } else if (type === "SANDBOX_ELEMENT_CLICK") {
-        const elId = payload.elementId;
+      } else if (message.type === "SANDBOX_ELEMENT_CLICK") {
+        const elId = message.payload.elementId;
         setLastClickedElement(elId);
         if (onElementClick) {
           onElementClick(elId);
@@ -950,10 +965,7 @@ export const SandboxHost: React.FC<SandboxHostProps> = ({
       }
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
+    return listenToFrame({ getFrame: () => iframeRef.current, onMessage: (m) => void handleMessage(m) });
   }, [elements, onElementClick, activeBlueprintGraphId, blueprintGraphs]);
 
   // Derived DB stats

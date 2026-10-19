@@ -31,6 +31,7 @@ import { applyPatches, enablePatches, produceWithPatches, type Draft, type Patch
 import { captureProjectState, useProjectStore } from "./useProjectStore";
 import { documentStore, getDocument, setDocument } from "./documentState";
 import { setEnvironment } from "./useEnvironmentStore";
+import { useProjectMetaStore, splitProjectMeta } from "./useProjectMetaStore";
 import type { WorldEnvironmentSettings } from "../types/environment";
 import { useHistoryStore } from "./useHistoryStore";
 import { DiagnosticBus } from "../engine/DiagnosticBus";
@@ -320,11 +321,13 @@ function applyEntry(entry: HistoryTransaction, direction: "undo" | "redo"): Hist
   }
 
   // Project entries swap: the stored state goes live, the live state is stored.
-  const { document: storedDocument, environment: storedEnvironment, ...rest } = change.state as Record<string, unknown> & {
+  const { document: storedDocument, environment: storedEnvironment, ...withMeta } = change.state as Record<string, unknown> & {
     document?: MotionDocument;
     environment?: WorldEnvironmentSettings;
   };
+  const { meta, rest } = splitProjectMeta(withMeta);
   const current = captureProjectState(storedDocument !== undefined);
+  useProjectMetaStore.getState().setProjectMeta(meta);
   useProjectStore.setState(rest as Partial<ReturnType<typeof useProjectStore.getState>>);
   if (storedDocument) setDocumentFromHistory(storedDocument, entry.actionLabel, direction);
   if (storedEnvironment) setEnvironment(storedEnvironment);

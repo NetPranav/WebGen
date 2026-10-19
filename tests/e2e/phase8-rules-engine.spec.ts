@@ -20,7 +20,8 @@ test("Phase 8: an illegal animation shows as disabled, with a reason, and can't 
   await page.mouse.click(650, 145);
   await page.waitForTimeout(300);
 
-  await page.getByText("Content Browser", { exact: true }).first().click();
+  // The Design workspace folds the drawer away; the Presets tool opens the Content Browser.
+  await page.getByRole("button", { name: "Presets tool" }).click();
   await page.waitForTimeout(300);
 
   await page.locator(".eas-add-btn").first().click();

@@ -1,6 +1,7 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { GlobalSearchEngine } from "../../../../runtime/GlobalSearchEngine";
+import { useProjectMetaStore } from "../../../../core/store/useProjectMetaStore";
 import { useProjectStore } from "../../../../core/store/useProjectStore";
 import { useSelectionStore } from "../../../../core/store/useSelectionStore";
 import { setDocument } from "../../../../core/store/documentState";
@@ -9,8 +10,8 @@ import { loadDocument } from "@/core/document/migrations";
 describe("Sub-Phase 7.2: Global Search Engine / Find in Blueprints (Panel 25)", () => {
   beforeEach(() => {
     // Populate store with rich cross-domain entities for indexing
+    useProjectMetaStore.setState({ projectName: "Search Studio App" });
     useProjectStore.setState({
-      projectName: "Search Studio App",
       activePageId: "page_home",
       pages: {
         page_home: {

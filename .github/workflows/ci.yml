@@ -53,6 +53,9 @@ jobs:
       - name: No ad-hoc compatibility logic in the editor (Phase 8.4)
         run: npm run check:no-adhoc-compat
 
+      - name: Roadmap order (Phase 13, Law 18)
+        run: npm run check:roadmap-order
+
   # ROADMAP Phase 4.1 — the Phase 3 and Phase 4 browser gates, in CI, on
   # every push/PR, on Chromium, Firefox and WebKit (playwright.config.ts).
   e2e:

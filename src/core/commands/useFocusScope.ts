@@ -23,6 +23,28 @@ const FOCUS_KEY_FOR_SCOPE = {
 } as const;
 
 /**
+ * Makes `scope` the focused region while the pointer is over `el`, and clears it when the pointer leaves
+ * (only if it is still ours). `el` can be in another document: a stage frame's document, where some engines
+ * report the pointer leaving the parent's element as soon as it enters the frame, so the frame must claim the
+ * scope itself. Returns the cleanup.
+ */
+export function bindFocusScope(el: EventTarget, scope: FocusScope): () => void {
+  // Adjacent panels' pointerenter/pointerleave aren't guaranteed to fire leave-before-enter, so only clear the
+  // scope if it's still ours (see the longer note in `useFocusScope`).
+  const clearIfStillActive = () => {
+    if (useContextKeysStore.getState()[FOCUS_KEY_FOR_SCOPE[scope]]) setFocusScope(null);
+  };
+  const onEnter = () => setFocusScope(scope);
+  el.addEventListener("pointerenter", onEnter);
+  el.addEventListener("pointerleave", clearIfStillActive);
+  return () => {
+    el.removeEventListener("pointerenter", onEnter);
+    el.removeEventListener("pointerleave", clearIfStillActive);
+    clearIfStillActive();
+  };
+}
+
+/**
  * Declares `scope` as focused for as long as the pointer is over `existingRef`'s
  * element. Takes the panel's own ref (rather than returning a new one) since a
  * DOM element can only take one `ref` prop, and every one of this phase's
@@ -33,27 +55,10 @@ export function useFocusScope<T extends HTMLElement>(scope: FocusScope, existing
     const el = existingRef.current;
     if (!el) return;
 
-    // Adjacent panels' pointerenter/pointerleave aren't guaranteed to fire
-    // leave-before-enter, so only clear the scope if it's still ours —
-    // otherwise a late `leave` could stomp on a `pointerenter` that already
-    // moved focus to the panel the pointer is now actually over. The same
-    // check is reused on unmount below: a removed element never fires its
-    // own `pointerleave`, so without this a panel that unmounts while still
-    // hovered (a full-page swap, a detached tab closing) would leave its
-    // scope stuck — and global commands like `file.save` now read
-    // `blueprintFocus`, so a stuck scope isn't just cosmetic.
-    const clearIfStillActive = () => {
-      if (useContextKeysStore.getState()[FOCUS_KEY_FOR_SCOPE[scope]]) setFocusScope(null);
-    };
-
-    const onEnter = () => setFocusScope(scope);
-    el.addEventListener("pointerenter", onEnter);
-    el.addEventListener("pointerleave", clearIfStillActive);
-    return () => {
-      el.removeEventListener("pointerenter", onEnter);
-      el.removeEventListener("pointerleave", clearIfStillActive);
-      clearIfStillActive();
-    };
+    // Adjacent panels' pointerenter/pointerleave aren't guaranteed to fire leave-before-enter, so `bindFocusScope`
+    // only clears the scope if it's still ours, on leave and on unmount alike: a removed element never fires its own
+    // `pointerleave`, and without that a panel that unmounts while still hovered would leave its scope stuck.
+    return bindFocusScope(el, scope);
   }, [scope, existingRef]);
 }
 

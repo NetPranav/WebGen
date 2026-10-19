@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stage frame</title>
+  <meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <!--
+    The document every stage frame loads (ROADMAP Phase 18, decision record 0009). It is static: a reset, a
+    root element and no scripts. The editor mounts the layers into #stage-root from its own React tree, so
+    nothing a document contains is ever written into this file as markup or run inside it. The policy below
+    (also sent as a response header, where it cannot be edited away) forbids script execution in this document.
+  -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    button, input, textarea, select { font: inherit; }
+    #stage-root { position: relative; width: 100%; min-height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="stage-root"></div>
+</body>
+</html>

@@ -216,3 +216,34 @@ describe("Sub-Phase 5.1: In-Memory Runtime Sandbox Host", () => {
     assert.ok(infoEvents[0].message.includes("initialized"));
   });
 });
+
+describe("Phase 16 (decision record 0008): layer data is escaped before it reaches the stage markup", () => {
+  const layerWith = (id: string, name: string, properties: Record<string, unknown>) =>
+    ({
+      [id]: { id, name, archetype: "text", parentId: null, children: [], properties },
+    }) as unknown as Record<string, import("@/core/document/schema").Layer>;
+
+  it("text and names containing HTML are shown as text, not parsed", () => {
+    const hostile = '<img src=x onerror="alert(1)"><script>alert(2)</script>';
+    const markup = generateElementMarkup("t", layerWith("t", hostile, { "content.text": hostile }));
+    assert.ok(!markup.includes("<img"), markup);
+    assert.ok(!markup.includes("<script"), markup);
+    assert.ok(markup.includes("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;"));
+  });
+
+  it("a hostile id or style value cannot break out of its attribute", () => {
+    const id = 'a" onmouseover="alert(1)';
+    const markup = generateElementMarkup(id, layerWith(id, "n", { "appearance.background.color": 'red;" onfocus="x' }));
+    assert.ok(!/ onmouseover="/.test(markup), "id attribute stayed closed");
+    assert.ok(!/ onfocus="/.test(markup), "style attribute stayed closed");
+    assert.ok(markup.includes("a&quot; onmouseover=&quot;alert(1)"));
+  });
+
+  it("state-variable values are escaped when interpolated", () => {
+    const layers = layerWith("t", "n", { "content.text": "Hi {{who}}" });
+    const stateVars = { who: { id: "v", name: "who", type: "string", value: "<b>x</b>", defaultValue: "", scope: "global" } } as never;
+    const markup = generateElementMarkup("t", layers, stateVars);
+    assert.ok(markup.includes("Hi &lt;b&gt;x&lt;/b&gt;"), markup);
+  });
+});
+

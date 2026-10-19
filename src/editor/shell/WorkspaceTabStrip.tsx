@@ -16,8 +16,10 @@
  */
 
 import React from "react";
+import { edition } from "@/core/flags";
+import { presetsFor } from "@/core/workspace/layout";
+import { LayoutsMenu } from "./LayoutsMenu";
 import {
-  LayoutTemplate,
   PenTool,
   Film,
   Network,
@@ -36,14 +38,17 @@ export interface WorkspacePreset {
   icon: React.ReactNode;
 }
 
-const PRESETS: WorkspacePreset[] = [
-  { id: "full-studio", label: "Full Studio", icon: <LayoutTemplate size={13} /> },
-  { id: "design", label: "Design", icon: <PenTool size={13} /> },
-  { id: "animate", label: "Animate", icon: <Film size={13} /> },
-  { id: "logic", label: "Logic", icon: <Network size={13} /> },
-  { id: "data", label: "Data", icon: <Database size={13} /> },
-  { id: "debug", label: "Debug", icon: <Bug size={13} /> },
-];
+const PRESET_META: Record<string, WorkspacePreset> = {
+  design: { id: "design", label: "Design", icon: <PenTool size={13} /> },
+  animate: { id: "animate", label: "Animate", icon: <Film size={13} /> },
+  code: { id: "code", label: "Code", icon: <FileCode2 size={13} /> },
+  logic: { id: "logic", label: "Logic", icon: <Network size={13} /> },
+  data: { id: "data", label: "Data", icon: <Database size={13} /> },
+  debug: { id: "debug", label: "Debug", icon: <Bug size={13} /> },
+};
+
+/** The presets this edition ships: Design, Animate and Code always; Logic, Data and Debug in the full edition. */
+const PRESETS: WorkspacePreset[] = presetsFor(edition).map((id) => PRESET_META[id]);
 
 /** Motion helpers — each opens a bottom-drawer tab. */
 const MOTION_TOOLS: { tabId: string; label: string; hint: string; icon: React.ReactNode }[] = [
@@ -108,6 +113,7 @@ export const WorkspaceTabStrip: React.FC<WorkspaceTabStripProps> = ({
           <span className="studio-header-workspaces__label">{preset.label}</span>
         </button>
       ))}
+      <LayoutsMenu activeWorkspace={activeWorkspace} />
     </div>
 
     {onOpenBottomTab && (
