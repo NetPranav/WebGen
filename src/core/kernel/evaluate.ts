@@ -56,7 +56,6 @@ export interface KernelGap {
 export const KERNEL_GAPS: KernelGap[] = [
   { area: "behaviours", note: "Only `loop` is evaluated (a pure function of t). follow-pointer, magnet, tilt, proximity's spring, spring-to, inertia and noise all need pointer/scroll *history* (springs respond to a path, not a single sample) — that's the Deterministic Replay Law's territory (Phase 64) and Phase 12's behaviour runtime, not this kernel." },
   { area: "signal bindings", note: "The v3.0 amendment slots signal bindings in after behaviours and before STA synthesis. Phase 60 (Signal Bindings) doesn't exist yet, so `doc.bindings` are not evaluated here." },
-  { area: "stateful clip categories", note: "Clip-authored motion only reaches the 6 ClipTypes AUD-59 already names (no Exit/Focus/Stagger/LayoutTransition clips); those categories can't be sourced from `doc.clips` regardless of composition order." },
 ];
 
 function findActiveState(doc: MotionDocument, layerId: string, stateName: string | undefined) {

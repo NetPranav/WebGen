@@ -155,3 +155,37 @@ describe("Archetype registry", () => {
     assert.ok(!RESERVED_GRAMMAR_TYPES.includes("Button"));
   });
 });
+
+describe("Phase 53: migration v5 → v6", () => {
+  const v5 = () => {
+    const doc = structuredClone(createDocumentFromLayers([createLayer({ id: "box", archetype: "container" })])) as unknown as Record<string, unknown>;
+    doc.schemaVersion = 5;
+    return doc;
+  };
+
+  it("only moves schemaVersion; every v5 entity is kept exactly", () => {
+    const before = v5();
+    const loaded = loadDocument({ document: structuredClone(before) });
+    assert.equal(loaded.schemaVersion, 6);
+    const { schemaVersion: _a, ...rest } = loaded as unknown as Record<string, unknown>;
+    const { schemaVersion: _b, ...restBefore } = before;
+    void _a;
+    void _b;
+    assert.deepEqual(rest, restBefore);
+  });
+
+  it("accepts the new clip types and triggers, and a `stagger` clip needs its stagger", () => {
+    const layer = createLayer({ id: "box", archetype: "container" });
+    const doc = (type: string, trigger: string, extra: Record<string, unknown> = {}) =>
+      createDocumentFromLayers([layer], [
+        { id: "c", layerId: "box", name: "c", type, trigger, duration: 1, easing: "linear", enabled: true, tracks: [], ...extra } as never,
+      ]);
+    for (const [type, trigger] of [["exit", "unmount"], ["focus", "focus"], ["layout", "layoutChange"]]) {
+      const check = validateMotionDocument(doc(type, trigger));
+      assert.ok(check.ok, check.ok ? "" : JSON.stringify(check.issues.slice(0, 3)));
+    }
+    assert.ok(!validateMotionDocument(doc("stagger", "mount")).ok, "a stagger clip without `stagger` is rejected");
+    const staggered = validateMotionDocument(doc("stagger", "mount", { stagger: { each: 0.1, from: "start" } }));
+    assert.ok(staggered.ok, staggered.ok ? "" : JSON.stringify(staggered.issues.slice(0, 3)));
+  });
+});

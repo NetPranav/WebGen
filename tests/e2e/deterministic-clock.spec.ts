@@ -22,10 +22,9 @@
  * gated on `isPlaying`, and captures a *real* `performance.now()` before
  * the fake clock can be installed cleanly. Measured: the same 400ms
  * `runFor` produced playhead deltas from 400ms to 1300ms run to run. This
- * is recorded as AUD-41, closed by Phase 45 (Transport & Frame Scheduler),
- * which is what replaces this loop with the shared clock. Case 3 below
- * demonstrates the instability so the finding stays falsifiable, not just
- * asserted in prose.
+ * is recorded as AUD-41, closed by Phases 54-56 (transport, frame scheduler,
+ * playback on the clock). Case 3 below is the former falsifier, now asserting
+ * that playback on the new clock is deterministic.
  */
 import { test, expect } from "@playwright/test";
 import { installDeterministicClock } from "./support/clock";
@@ -65,30 +64,46 @@ test("2. seekRuler reaches an exact playhead time, repeatably", async ({ page })
 
   for (const seconds of [0, 0.5, 1] as const) {
     await seekRuler(page, seconds);
-    const title = await page.locator(".sequencer-playhead-head").getAttribute("title");
-    const readback = parseFloat(title?.match(/Playhead:\s*([\d.]+)s/)?.[1] ?? "NaN");
-    expect(readback, `seek to ${seconds}s`).toBeCloseTo(seconds, 2);
+    // The needle is painted by a scheduler task on the next frame, so the readback is polled, not read at once.
+    await expect
+      .poll(async () => {
+        const title = await page.locator(".sequencer-playhead-head").getAttribute("title");
+        return parseFloat(title?.match(/Playhead:\s*([\d.]+)s/)?.[1] ?? "NaN");
+      }, { message: `seek to ${seconds}s` })
+      .toBeCloseTo(seconds, 2);
   }
 });
 
-test("3. AUD-41: clock-driven playback is NOT yet deterministic (documents the gap Phase 45 closes)", async ({
-  page,
-}) => {
+test("3. AUD-41: transport playback on the frame scheduler is deterministic under the test clock", async ({ page }) => {
   await openEditor(page);
-  await openSequencer(page); // mounts the always-on rAF loop before the clock can be installed cleanly
   await installDeterministicClock(page, 0);
+  await page.clock.pauseAt(100); // virtual time now moves only through runFor, not while Playwright clicks
+  const bar = page.getByRole("group", { name: "Transport" });
+  const timecode = bar.getByLabel("Timecode");
 
-  const samples: number[] = [];
+  // Phase 55: the transport advances from the scheduler's own frame times (dt clamped, never negative),
+  // so identical scripts give identical deltas. The old Sequencer loop, which this case used to show
+  // wandering by hundreds of ms, is retired in Phase 56.
+  const seconds = async () => {
+    const [, mm, ss, ff] = ((await timecode.textContent()) ?? "").match(/^(\d\d):(\d\d):(\d\d)/) ?? [];
+    return Number(mm) * 60 + Number(ss) + Number(ff) / 60;
+  };
+
+  // `runFor` lands on the next due frame, so each run covers a little more than 400 ms. What must hold is that
+  // the transport covers exactly what the clock covered: frames advanced = elapsed virtual ms × fps, to a frame.
+  const clockNow = () => page.evaluate(() => performance.now());
+  let before = 0;
+  const errors: number[] = [];
   for (let i = 0; i < 3; i++) {
-    await page.evaluate(() => (document.querySelector('[aria-label="Play"]') as HTMLElement)?.click());
+    await bar.getByRole("button", { name: "Play", exact: true }).click();
+    const started = await clockNow();
     await page.clock.runFor(400);
-    const title = await page.locator(".sequencer-playhead-head").getAttribute("title");
-    samples.push(parseFloat(title?.match(/Playhead:\s*([\d.]+)s/)?.[1] ?? "NaN"));
-    await page.evaluate(() => (document.querySelector('[aria-label="Pause"]') as HTMLElement)?.click());
+    const elapsed = (await clockNow()) - started;
+    await bar.getByRole("button", { name: "Pause", exact: true }).click();
+    await page.clock.runFor(150); // lets the 10 Hz timecode readout catch up to the final frame
+    const position = await seconds();
+    errors.push(Math.abs((position - before) * 60 - (elapsed / 1000) * 60));
+    before = position;
   }
-
-  // If this ever starts holding, the entangled loop has been fixed (Phase
-  // 45) and AUD-41 should be closed — this assertion is the falsifier.
-  const spread = Math.max(...samples) - Math.min(...samples);
-  expect(spread, `playhead deltas for identical 400ms runs: ${samples.join(", ")}`).toBeGreaterThan(0.05);
+  expect(Math.max(...errors), `frames of error per run vs the virtual clock: ${errors.map((e) => e.toFixed(2)).join(", ")}`).toBeLessThanOrEqual(2);
 });

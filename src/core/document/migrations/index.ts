@@ -9,6 +9,7 @@ import { migrateElementsToDocument, repairTree } from "./v1-to-v2";
 import { migrateV2ToV3 } from "./v2-to-v3";
 import { migrateV3ToV4 } from "./v3-to-v4";
 import { migrateV4ToV5 } from "./v4-to-v5";
+import { migrateV5ToV6 } from "./v5-to-v6";
 import { syncCompositions } from "../compositions";
 import { coercePropertyValue, getPropertyDefinition, isCanonicalPath, isPropertyLegalFor, validateGeometryValues, validatePropertyValues } from "../properties";
 import { isEasing } from "../motion";
@@ -18,6 +19,7 @@ export { migrateAttachedAnimation, migrateTrigger, LEGACY_TRIGGER_MAP, toPropVal
 export { migrateV2ToV3, type MigrationReportEntry, type V3Document } from "./v2-to-v3";
 export { migrateV3ToV4, DEFAULT_BEHAVIOUR_PARAMS, type V4Document } from "./v3-to-v4";
 export { migrateV4ToV5 } from "./v4-to-v5";
+export { migrateV5ToV6 } from "./v5-to-v6";
 
 /** The parts of a stored project snapshot that can hold document data, in any version. */
 export interface DocumentSource {
@@ -31,8 +33,8 @@ export interface DocumentSource {
 export class DocumentVersionError extends Error {}
 
 /**
- * Returns a valid current-version document from v1–v5 data. Older data is
- * migrated forward one version at a time (v1 → v2 → v3 → v4 → v5); v5 data with
+ * Returns a valid current-version document from v1–v6 data. Older data is
+ * migrated forward one version at a time (v1 → v2 → … → v6); v6 data with
  * broken tree links or invalid props is repaired. Throws only for documents
  * from a newer schema version or data that cannot be repaired.
  */
@@ -47,18 +49,21 @@ export function loadDocument(source: DocumentSource): MotionDocument {
       );
     }
     if (version === SCHEMA_VERSION) return validateOrRepair(raw);
-    if (version === 4) return validateOrRepair(migrateV4ToV5(raw as Record<string, unknown>).document);
-    if (version === 3) return validateOrRepair(migrateV4ToV5(migrateV3ToV4(raw as Record<string, unknown>).document).document);
-    if (version === 2) return validateOrRepair(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(raw).document).document).document);
+    if (version === 5) return validateOrRepair(migrateV5ToV6(raw as Record<string, unknown>).document);
+    if (version === 4) return validateOrRepair(toV6(migrateV4ToV5(raw as Record<string, unknown>).document));
+    if (version === 3) return validateOrRepair(toV6(migrateV4ToV5(migrateV3ToV4(raw as Record<string, unknown>).document).document));
+    if (version === 2) return validateOrRepair(toV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(raw).document).document).document));
   }
 
   const target = source.target && typeof source.target === "object" ? (source.target as Partial<ExportSettings>) : undefined;
   const exportSettings = target ? stripUndefined(target) : undefined;
   // v1 → v2 builds the document with v2 prop names; v2 → v3 renames them.
   return validateOrRepair(
-    migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateElementsToDocument(source.elements, exportSettings)).document).document).document
+    toV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateElementsToDocument(source.elements, exportSettings)).document).document).document)
   );
 }
+
+const toV6 = (v5: unknown) => migrateV5ToV6(v5 as Record<string, unknown>).document;
 
 function validateOrRepair(data: unknown): MotionDocument {
   const first = validateMotionDocument(data);

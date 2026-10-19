@@ -28,7 +28,7 @@ import {
   syncCompositions,
   type NestedComposition,
 } from "../compositions";
-import { loadDocument, migrateV4ToV5 } from "../migrations";
+import { loadDocument, migrateV4ToV5, migrateV5ToV6 } from "../migrations";
 import { attachClip, hydrateClip } from "../factories";
 import { ALL_PRESETS } from "../../motion/presets";
 import { introSequence } from "./fixtures/intro-sequence";
@@ -283,7 +283,7 @@ describe("Phase 46: migration v4 → v5", () => {
     const file = JSON.parse(readFileSync("tests/e2e/fixtures/showcase-v4.lazy.json", "utf8"));
     const v4 = file.snapshot.document;
     const v5 = loadDocument({ document: structuredClone(v4) });
-    assert.equal(v5.schemaVersion, 5);
+    assert.equal(v5.schemaVersion, 6);
     assert.ok(v5.compositions[MAIN_COMPOSITION_ID]);
     const { compositions: _c, schemaVersion: _s, ...rest } = v5;
     const { schemaVersion: _s4, ...restV4 } = v4;
@@ -300,7 +300,7 @@ describe("Phase 46: migration v4 → v5", () => {
     const v4: Record<string, unknown> = { ...structuredClone(doc), schemaVersion: 4, clips: Object.fromEntries(clips.map((c) => [c.id, c])) };
     delete v4.compositions;
     const { document, report } = migrateV4ToV5(v4);
-    const check = validateMotionDocument(document);
+    const check = validateMotionDocument(migrateV5ToV6(document as unknown as Record<string, unknown>).document); // v6 only moves the version (Phase 53)
     assert.ok(check.ok, check.ok ? "" : JSON.stringify(check.issues.slice(0, 3)));
     assert.equal(report.length, clips.length);
     for (const c of clips) {

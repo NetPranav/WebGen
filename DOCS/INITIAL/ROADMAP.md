@@ -229,10 +229,10 @@ One row per phase, in execution order. Update the Status column together with th
 
 | # | Phase | Needs | Was (v3) | Stage | Status |
 |---|---|---|---|---|---|
-| 53 | Animation grammar: close the schema gaps | 10, 11 | — (AUD-59, found by v3 8) | 2 | 📋 |
-| 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | 📋 |
-| 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | 📋 |
-| 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | 📋 |
+| 53 | Animation grammar: close the schema gaps | 10, 11 | — (AUD-59, found by v3 8) | 2 | ✅ |
+| 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | ✅ |
+| 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | ✅ |
+| 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | ✅ |
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | 📋 |
 | 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | 📋 |
 | 59 | Scrub vs play | 58 | v3 10.2 | 2 | 📋 |
@@ -817,35 +817,35 @@ The document and World Environment have their own stores, After-track actions mo
 > Order inside the stage: grammar completeness (53) → time (54–56) → the live preview runtime (57–60) → the After Effects timeline (61–68) → motion on the canvas (69–71) → compositing (72–75) → expressions (76–77) → states (78–80) → scroll (81–82) → text (83–84) → SVG (85–86) → the Motion engine (87) → responsive and page motion (88–89) → Playground, library and accessibility (90–93) → export and output (94–101) → the gate (102).
 
 ### Phase 53 · Animation grammar: close the schema gaps
-**Needs:** 10, 11 · **Was:** — (AUD-59, found by v3 8) · **Closes:** AUD-59 · **Status:** 📋
+**Needs:** 10, 11 · **Was:** — (AUD-59, found by v3 8) · **Closes:** AUD-59 · **Status:** ✅
 **Goal:** Every animation category in the grammar has a lossless form in the document before any UI is built on it (Law 1).
-- [ ] A schema version bump with migration: **Exit** (a leave trigger distinct from entering), **Focus** as a clip category, **Stagger** as a first-class category over the existing modifier, **LayoutTransition** (FLIP-style layout changes); lossless `pointerMove`, `drag` and `time` triggers.
-- [ ] `clip-adapter.ts` maps all 10 grammar categories with no named gaps; `PHASE8_SCHEMA_GAPS` becomes empty.
-- [ ] The kernel evaluates Exit and LayoutTransition clips (golden tests).
+- [x] A schema version bump with migration (v6, `migrations/v5-to-v6.ts`): **Exit** (a leave trigger distinct from entering), **Focus** as a clip category, **Stagger** as a first-class category over the existing modifier, **LayoutTransition** (FLIP-style layout changes); lossless `pointerMove`, `drag` and `time` triggers.
+- [x] `clip-adapter.ts` maps all 10 grammar categories with no named gaps; `PHASE8_SCHEMA_GAPS` becomes empty.
+- [x] The kernel evaluates Exit and LayoutTransition clips (golden tests).
 
 **You'll see:** nothing new yet; the animation menus offer Exit, Focus and Layout categories once the timeline lands (61).
 **Done when:** the rule table, kernel and migration tests pass with no schema gaps listed.
 
 ### Phase 54 · Transport & one clock
-**Needs:** 11, 12 · **Was:** v3 45.1 · **Closes:** AUD-30 · **Status:** 📋
-- [ ] `src/core/time/transport.ts`: time, playing, rate, loop (off / loop / ping-pong), work area, fps, composition. Commands: play, pause, seek, step frame, shuttle (J/K/L), set work area.
-- [ ] An observable store outside React. Text reads it through `useTransportTime({ maxHz: 10 })`.
+**Needs:** 11, 12 · **Was:** v3 45.1 · **Closes:** AUD-30 · **Status:** ✅
+- [x] `src/core/time/transport.ts`: time, playing, rate, loop (off / loop / ping-pong), work area, fps, composition. Commands: play, pause, seek, step frame, shuttle (J/K/L), set work area.
+- [x] An observable store outside React. Text reads it through `useTransportTime({ maxHz: 10 })`.
 
 **You'll see:** a transport bar (play, pause, timecode, loop) that controls the whole studio.
 **Done when:** frame stepping lands on exact frame times at 24, 30 and 60 fps (golden tests).
 
 ### Phase 55 · Frame scheduler
-**Needs:** 54 · **Was:** v3 45.2, 45.3 · **Closes:** AUD-41 · **Status:** 📋
-- [ ] One `requestAnimationFrame` loop with ordered phases: input → evaluate → apply → render → overlay → stats. Panels register tasks in a phase. The overlay (Phase 23) moves onto it.
-- [ ] A lint rule bans `requestAnimationFrame` outside `src/core/time/**` (short allowlist).
-- [ ] Deterministic mode: the Phase 4 test clock plugs in, and the render queue (100) drives it one frame at a time.
+**Needs:** 54 · **Was:** v3 45.2, 45.3 · **Closes:** AUD-41 · **Status:** ✅
+- [x] One `requestAnimationFrame` loop with ordered phases: input → evaluate → apply → render → overlay → stats (`src/core/time/scheduler.ts`). Panels register tasks in a phase. The transport advances in `evaluate`. *(The overlay moves onto it when Phase 23 builds it.)*
+- [x] A lint rule bans `requestAnimationFrame` outside `src/core/time/**` (short allowlist in `eslint.config.mjs`; `MotionSequencer.tsx` leaves it in Phase 56).
+- [x] Deterministic mode (`setDeterministic` + `step(dt)`): the Phase 4 test clock plugs in, and the render queue (100) drives it one frame at a time.
 
 **You'll see:** playback and overlay redraws stay smooth together.
 **Done when:** `deterministic-clock.spec.ts` case 3 (the AUD-41 falsifier) flips to deterministic; the lint rule passes.
 
 ### Phase 56 · Move playback onto the clock; retire the old Sequencer clock
-**Needs:** 55 · **Was:** v3 45.4 · **Closes:** AUD-38 · **Status:** 📋
-- [ ] The Sequencer, playhead controls and canvas play button use the transport. Delete `MotionSequencer`'s local `currentTime`, its rAF loop, `interpolateTrackValue` and the `SANDBOX_HOT_PATCH` broadcast.
+**Needs:** 55 · **Was:** v3 45.4 · **Closes:** AUD-38 · **Status:** ✅
+- [x] The Sequencer and its playhead controls use the transport (the toolbar's Play is the live-app preview, a different thing, and is untouched). Deleted `MotionSequencer`'s local `currentTime`, its rAF loop, `interpolateTrackValue` (and `scrubPatch.ts`) and the `SANDBOX_HOT_PATCH` broadcast. Until Phase 57 puts the kernel on the stage, scrubbing and playing move the playhead but do not animate the stage.
 
 **You'll see:** the timeline playhead and the canvas always show the same time.
 **Done when:** during playback the timeline panel makes ≤ 10 React commits per second; canvas and timeline agree within 1 frame (Playwright).

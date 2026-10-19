@@ -243,6 +243,10 @@ export const TRIGGERS = [
   "drag",
   "time",
   "custom",
+  /** The layer is leaving (v6, Phase 53): what makes an Exit clip distinct from an Entrance. */
+  "unmount",
+  /** The layer's layout box changed (v6, Phase 53): what a LayoutTransition (FLIP) clip plays on. */
+  "layoutChange",
 ] as const;
 export const TriggerSchema = z.enum(TRIGGERS);
 export type Trigger = z.infer<typeof TriggerSchema>;
@@ -293,7 +297,7 @@ export const StaggerSchema = z
 // ---------------------------------------------------------------------------
 
 /** The motion category a clip belongs to; drives presets and the Sequencer UI. */
-export const CLIP_TYPES = ["entrance", "hover", "tap", "scroll", "loop", "morph"] as const;
+export const CLIP_TYPES = ["entrance", "hover", "tap", "scroll", "loop", "morph", "exit", "focus", "stagger", "layout"] as const;
 export const ClipTypeSchema = z.enum(CLIP_TYPES);
 
 export const ScrollTriggerSchema = z.object({
@@ -337,6 +341,9 @@ export const ClipSchema = z
     );
     if (clip.event !== undefined && clip.trigger !== "custom") {
       ctx.addIssue({ code: "custom", path: ["event"], message: "`event` is only used by `custom` triggers." });
+    }
+    if (clip.type === "stagger" && !clip.stagger) {
+      ctx.addIssue({ code: "custom", path: ["stagger"], message: "A `stagger` clip sets its `stagger`." });
     }
   });
 

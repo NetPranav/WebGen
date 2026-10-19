@@ -11,7 +11,7 @@
 
 ---
 
-## 0. Motion Document Model (MDM, schema v5), authoritative
+## 0. Motion Document Model (MDM, schema v6), authoritative
 
 **Source of truth:** `src/core/document/schema.ts` (Zod). One source produces three outputs:
 1. TypeScript types (`MotionDocument`, `Layer`, `Clip`, `Track`, `Keyframe`, `LayerState`, `Behaviour`, `Binding`, `Surface`, `InteractionGraph`, `Component`, `Generator`, …).
@@ -81,8 +81,8 @@ PropValue  = string | number | boolean | null | PropValue[] | { [key]: PropValue
 Phase 7's reasoning (strictness, the easing grammar, perceptual springs, bindings stored structured with a round-tripping text form, behaviours as binding presets, surfaces on `effectSurface` layers, graph pins, Track K types, the v3 → v4 migration) is in `decisions/0004-motion-primitives.md`. Binding text form: engine spec §3; `parseBinding` / `formatBinding` in `src/core/document/signals.ts`. Effect *definitions* (not stored in documents): `src/core/document/effect-definition.ts`, engine spec §11.
 
 - **Layer kind** (PRD §4: element, vector, text, image, group, mask, scene3d, shader, effect) is *derived* from `archetype` through the registry (`getLayerKind`); it is not stored, so it cannot disagree with the archetype.
-- **Clip `type`:** `entrance | hover | tap | scroll | loop | morph`.
-- **Triggers** (PRD §4): `mount | hover | press | focus | inView | scrollProgress | pointerMove | drag | time | custom`.
+- **Clip `type`:** `entrance | hover | tap | scroll | loop | morph | exit | focus | stagger | layout` (the last four are v6, Phase 53). A `stagger` clip must set `stagger`.
+- **Triggers** (PRD §4): `mount | hover | press | focus | inView | scrollProgress | pointerMove | drag | time | custom | unmount | layoutChange` (`unmount` drives Exit clips and `layoutChange` drives LayoutTransition clips; both are v6, Phase 53).
 - **Behaviour `type`:** `follow-pointer | magnet | tilt | proximity | spring-to | inertia | noise | loop | shader-uniform`. Each expands to bindings (or a body, or a looping clip) via `behaviourToBindings` (Phase 7.5).
 - **Easing:** a string in the grammar of `parseEasing` (`motion.ts`): GSAP names (`power2.out`, `back.out(1.7)`), CSS keywords, `cubic-bezier(…)`, `steps(n)`, Motion names, and `spring(bounce: b, time: t)` / `spring(stiffness: k, damping: c)`.
 - **Interpolation** (Phase 7.1): each registry path declares one: `numeric`, `color`, `path`, `clipPath`, `vector`, `slerp`, `gradient` or `discrete` (keyframes hold).
@@ -116,7 +116,7 @@ Phase 7's reasoning (strictness, the easing grammar, perceptual springs, binding
 New entities use `createId(prefix)` → `<prefix>_<8 hex>` from `crypto.getRandomValues` (`elem_btn_3f8a109c`, `clip_…`, `trk_…`, `kf_…`). Existing ids are kept as they are.
 
 ### 0.5 Versions & migration
-`loadDocument()` (`src/core/document/migrations`) accepts any version and migrates one step at a time (v1 → v2 → v3 → v4 → v5). **v4 → v5** (Phase 46) adds `comp_main` and places every clip (mount/time into main; others into an interaction composition with the playback their trigger implies), changing nothing else. **v3 → v4** (Phase 7) makes these changes and reports each one:
+`loadDocument()` (`src/core/document/migrations`) accepts any version and migrates one step at a time (v1 → v2 → v3 → v4 → v5 → v6). **v5 → v6** (Phase 53) adds the clip types `exit`, `focus`, `stagger`, `layout` and the triggers `unmount`, `layoutChange`; it is additive and only moves `schemaVersion`. **v4 → v5** (Phase 46) adds `comp_main` and places every clip (mount/time into main; others into an interaction composition with the playback their trigger implies), changing nothing else. **v3 → v4** (Phase 7) makes these changes and reports each one:
 - adds the nine new collections, empty;
 - gives behaviours typed params: defaults, plus any v3 param whose name and type match;
 - sorts keyframes (a stable sort, so equal times stay an instant jump), types keyframe and state values by their property (`"20px"` → 20; unreadable → the property default), and extends a clip to cover its last keyframe;

@@ -31,14 +31,15 @@ import {
 } from "../properties";
 import { ARCHETYPE_IDS, ARCHETYPE_REGISTRY, getDefaultProps, type ArchetypeId, type PropValue } from "../registry";
 import { SCHEMA_VERSION, validateMotionDocument, type Layer } from "../schema";
-import { loadDocument, migrateV2ToV3, migrateV3ToV4, migrateV4ToV5 } from "../migrations";
+import { loadDocument, migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6 } from "../migrations";
 import { ALL_PRESETS } from "../../motion/presets";
 import { createBlankCanvasSnapshot, createShowcaseSnapshot } from "../../storage/DemoProjectSnapshot";
 import { createDefaultBlankSnapshot } from "../../storage/ProjectDatabase";
 import { ComponentGenerator } from "../../../ai/component/ComponentGenerator";
 import { ProjectScaffolder } from "../../../ai/scaffold/ProjectScaffolder";
 import { PREBUILT_BLOCKS } from "../../../editor/panels/content-browser/ContentBlockShelf";
-import { interpolateTrackValue, scrubStylesForTracks } from "../../../editor/panels/sequencer/scrubPatch";
+import { evaluate } from "../../kernel/evaluate";
+import { MAIN_COMPOSITION_ID } from "../compositions";
 
 function assertCanonicalLayers(source: string, layers: Iterable<Layer>) {
   for (const layer of layers) {
@@ -226,9 +227,9 @@ describe("Phase 42 gate: v2 → v3 migration", () => {
   it("500 random v2 documents migrate to valid v3, keep every value, and round-trip unchanged", () => {
     fc.assert(
       fc.property(v2DocumentArb, (v2) => {
-        // v2 → v3 is this gate's subject; v3 → v4 → v5 (Phases 7, 46) only add collections, so the result is checked as current data.
+        // v2 → v3 is this gate's subject; v3 → v4 → v5 → v6 (Phases 7, 46, 53) only add collections, so the result is checked as current data.
         const { document: v3Only, report } = migrateV2ToV3(v2);
-        const v3 = migrateV4ToV5(migrateV3ToV4(v3Only).document).document;
+        const v3 = migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(v3Only).document).document as unknown as Record<string, unknown>).document;
         assert.deepEqual(report, [], "nothing legal is dropped");
         const check = validateMotionDocument(v3);
         assert.ok(check.ok, check.ok ? "" : JSON.stringify(check.issues.slice(0, 3)));
@@ -308,18 +309,13 @@ describe("Phase 42 gate: scrubbing a translateY preset moves the layer", () => {
     exportSettings: { framework: "nextjs-app", styling: "tailwind", animation: "gsap", language: "typescript" },
   };
 
-  it("was invisible before: the scrub patch ignores the unmigrated dialect", () => {
-    const styles = scrubStylesForTracks(v2.clips.rise.tracks as never, 0.5, interpolateTrackValue);
-    assert.equal(styles.transform, undefined);
-  });
-
-  it("migrates to transform.y, and the scrub patch now emits a transform", () => {
+  it("migrates to transform.y, and the kernel moves the layer when it is scrubbed", () => {
     const doc = loadDocument({ document: v2 });
     const [track] = doc.clips.rise.tracks;
     assert.equal(track.property, "transform.y");
-    const styles = scrubStylesForTracks(doc.clips.rise.tracks, 0.5, interpolateTrackValue);
-    assert.ok(styles.transform && styles.transform !== "none", JSON.stringify(styles));
-    assert.match(styles.transform, /20/, "halfway between 40 and 0");
+    const scrubbed = evaluate(doc, MAIN_COMPOSITION_ID, "btn", 0.5);
+    assert.equal(scrubbed["transform.y"], 20, "halfway between 40 and 0");
+    assert.match(String(scrubbed.transform), /20/);
   });
 });
 
