@@ -194,7 +194,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 20 | Viewport camera | 19 | v3 49.1 | 1 | 🚧 |
 | 21 | Multi-frame canvas | 20 | v3 49.2, 20.3 | 1 | 🚧 |
 | 22 | Hit-testing | 21 | v3 49.3 | 1 | 🚧 |
-| 23 | Overlay layer & Design / Preview modes | 22 | v3 49.4, 49.5 | 1 | 📋 |
+| 23 | Overlay layer & Design / Preview modes | 22 | v3 49.4, 49.5 | 1 | 🚧 |
 | 24 | Tool state machine | 13, 23 | v3 43.2 (infrastructure) | 1 | 📋 |
 | 25 | Creation tools: frames, shapes and text boxes | 24 | v3 43.2 (Tier A), 20.4 | 1 | 📋 |
 | 26 | Selection | 25 | v3 20.1 (selection) | 1 | 📋 |
@@ -592,12 +592,14 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence (2026-10-19):** `src/core/hit/__tests__/hitTest.test.ts` (the rules, the build from measured frames, and **p95 under 1 ms for a plain plus a deep pick with 1,001 layers**); `tests/e2e/hit-testing.spec.ts` in Chromium, Firefox and WebKit (the frames get `pointer-events: none`; 20 points chosen from the visible layers of `/editor/canvas-lab`, at three zoom levels, each clicked plainly and with the deep-select modifier and the exact selection asserted; a locked group is skipped and a hidden one is not there to hit; hovering shows the outline of what a click would select). **Rules decided here:** a plain click picks the frame's direct child (Figma's rule), Cmd/Ctrl picks the deepest layer, empty space inside a frame picks the frame, a locked layer hides its whole subtree from hits, and a layer is clipped to its frame. The index is rebuilt only when the document or a frame's layout version changes. **Deviation:** clicks no longer reach the frames' own click handlers in Design mode (record 0009 §2 said they did); `onElementClick` stays for Preview mode (Phase 23). A frame whose own content scrolls isn't handled yet. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 23 · Overlay layer & Design / Preview modes
-**Needs:** 22 · **Was:** v3 49.4, 49.5 · **Status:** 📋
-- [ ] One overlay layer above the frames draws hover outlines, selection, handles, guides and labels. Its redraw loop moves onto the frame scheduler in Phase 55.
-- [ ] A Design / Preview toggle: in Preview, pointer events reach the frames, so links and buttons work.
+**Needs:** 22 · **Was:** v3 49.4, 49.5 · **Status:** 🚧
+- [x] One overlay layer above the frames draws hover outlines, selection, handles, guides and labels. Its redraw loop moves onto the frame scheduler in Phase 55. (Hover and selection with its name and size are drawn; handles are Phase 27 and guides Phase 28. Phase 55 is already done, so the overlay redraws on the frame scheduler from the start.)
+- [x] A Design / Preview toggle: in Preview, pointer events reach the frames, so links and buttons work.
 
 **You'll see:** hover outlines, and a Preview button that makes the page clickable.
 **Done when:** the hover outline appears within 1 frame with 1,000 layers; a click in Preview reaches a button (test).
+
+**Evidence (2026-10-19):** `tests/e2e/overlay-modes.spec.ts` in Chromium, Firefox and WebKit on the 1,055-layer canvas lab: there is one overlay layer, after the frames in the same world, with `pointer-events: none`; **a dispatched mouse move has its outline on screen by the second animation frame** (the gate's "within 1 frame"; the annotation records the count); a selected layer gets an outline labelled with its name and size; in Design mode a click selects and never reaches the frame, in Preview mode the same click reaches a handler inside the frame, doesn't change the selection, and the overlay shows no selection. **Design:** `OverlayController` writes a few pooled DOM elements and redraws in the frame scheduler's `overlay` phase, asked for by pointer, selection, document, camera and mode changes (edits ask for two follow-up passes, since layout can land a frame later); no React renders per pointer move. **Deviation:** the deep-select modifier is read from mouse events, not from a key listener (Phase 13's coverage test forbids raw key listeners), so Cmd/Ctrl changes the hover on the next pointer move. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 24 · Tool state machine
 **Needs:** 13, 23 · **Was:** v3 43.2 (infrastructure) · **Status:** 📋

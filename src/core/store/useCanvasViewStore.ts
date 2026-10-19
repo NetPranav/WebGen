@@ -18,6 +18,9 @@ export type Backdrop = (typeof BACKDROPS)[number];
 
 const BACKDROP_KEY = "lazylayout:canvas-backdrop";
 
+/** Design: the canvas captures pointer events and picks layers. Preview: they reach the frames, so links and buttons work. */
+export type CanvasMode = "design" | "preview";
+
 export function isBackdrop(value: unknown): value is Backdrop {
   return typeof value === "string" && (BACKDROPS as readonly string[]).includes(value);
 }
@@ -35,6 +38,8 @@ interface CanvasViewState {
   backdrop: Backdrop;
   /** The frame (top-level layer id) new shapes go into; null until a frame is picked, then the first frame is used. */
   activeFrameId: string | null;
+  mode: CanvasMode;
+  setMode: (mode: CanvasMode) => void;
   setBackdrop: (backdrop: Backdrop) => void;
   setActiveFrame: (frameId: string | null) => void;
 }
@@ -42,6 +47,8 @@ interface CanvasViewState {
 export const useCanvasViewStore = create<CanvasViewState>((set) => ({
   backdrop: "light",
   activeFrameId: null,
+  mode: "design",
+  setMode: (mode) => set({ mode }),
   setBackdrop: (backdrop) => {
     set({ backdrop });
     try {

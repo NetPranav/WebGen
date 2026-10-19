@@ -1044,10 +1044,41 @@
   display: none;
 }
 
-/* The layer a click would select (Phase 22). */
-.canvas-hover-outline {
+/* The overlay layer (Phase 23): above the frames, in canvas space, never takes the pointer. The outlines are one
+ * screen pixel wide at any zoom. */
+.canvas-overlay {
   position: absolute;
+  inset: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 6;
+}
+
+.canvas-overlay__hover,
+.canvas-overlay__selection {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.canvas-overlay__hover {
   box-shadow: 0 0 0 calc(1.5px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+}
+
+.canvas-overlay__selection {
+  box-shadow: 0 0 0 calc(2px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+}
+
+.canvas-overlay__label {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: calc(4px / var(--canvas-zoom, 1));
+  transform: scale(calc(1 / var(--canvas-zoom, 1)));
+  transform-origin: left top;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--accent-primary, #6366f1);
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
 }

@@ -16,14 +16,12 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallba
 import "@/editor/styles/whiteboard.css";
 import { FloatingDock, CanvasTool } from "./FloatingDock";
 import { ZoomControls } from "./ZoomControls";
-import { CanvasOverlay, SelectionRect } from "./CanvasOverlay";
+import type { SelectionRect } from "./CanvasOverlay";
+import { OverlayLayer } from "./overlay/OverlayLayer";
 import { CanvasFrames, FrameBar, visibleFrames } from "./CanvasFrames";
 import { CanvasHitTester, type FrameSurface } from "@/core/hit/CanvasHitTester";
-import { frameScheduler } from "@/core/time/scheduler";
-import { useHoverStore } from "@/core/store/useHoverStore";
 import { screenToDoc } from "@/core/viewport/camera";
 import { useFrames } from "./useFrames";
-import { HoverOutline } from "./HoverOutline";
 import { useCanvasViewStore, restoreBackdrop } from "@/core/store/useCanvasViewStore";
 import { frameIdOf } from "@/core/frames/frames";
 import { setActiveStageFrame } from "@/core/render/StageRenderer";
@@ -149,6 +147,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   // The backdrop is a remembered preference; read it once the canvas is on the client.
   useEffect(() => restoreBackdrop(), []);
   const backdrop = useCanvasViewStore((state) => state.backdrop);
+  const mode = useCanvasViewStore((state) => state.mode);
   // `getStageRenderer()` answers for the active frame.
   useEffect(() => setActiveStageFrame(activeFrame?.id ?? null), [activeFrame?.id]);
 
@@ -170,7 +169,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     const w = window as unknown as { __LL_TEST__?: boolean; __LL_HIT__?: CanvasHitTester };
     if (w.__LL_TEST__) w.__LL_HIT__ = hitTester;
   }, [hitTester]);
-  const hoverFrameRef = useRef<number | null>(null); // non-null while a lookup is queued
   const pointerWorld = (e: { clientX: number; clientY: number }) => {
     const rect = containerRef.current!.getBoundingClientRect();
     return screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -583,20 +581,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       style={canvasStyle}
       data-backdrop={backdrop}
       onMouseDown={handleMouseDown}
-      onMouseMove={(e) => {
-        if (activeTool !== "select" || isSpacePressed || isPanning || isPlayMode) return;
-        const { clientX, clientY, metaKey, ctrlKey } = e;
-        if (hoverFrameRef.current !== null) return; // one lookup per frame
-        const off = frameScheduler.register("input", () => {
-          off();
-          hoverFrameRef.current = null;
-          if (!containerRef.current) return;
-          const hit = hitTester.pickAt(pointerWorld({ clientX, clientY }), { deep: metaKey || ctrlKey });
-          useHoverStore.getState().set(hit?.id ?? null, hit?.rect ?? null);
-        });
-        hoverFrameRef.current = 1; // a lookup is queued for the next frame
-      }}
-      onMouseLeave={() => useHoverStore.getState().set(null, null)}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest(".floating-dock-wrapper, .zoom-controls, .frame-bar, .canvas-frame__title")) return;
         // The browser still synthesizes a click after the mousedown+mouseup
@@ -608,7 +592,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
           return;
         }
         // Design mode: what is under the pointer is looked up in the hit index, never in the frames.
-        if (activeTool === "select" && !isPlayMode) {
+        if (activeTool === "select" && !isPlayMode && mode === "design") {
           const hit = hitTester.pickAt(pointerWorld(e), { deep: e.metaKey || e.ctrlKey });
           if (hit) {
             handleStageClick(hit.id);
@@ -616,6 +600,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
             return;
           }
         }
+        if (mode === "preview") return; // a click in Preview belongs to the page
         setSelectedElement(null);
         onSelectElement?.(null);
       }}
@@ -672,7 +657,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
             </div>
           </div>
         ) : (
-          <CanvasFrames frames={frames} toolCapturesPointer={!isPlayMode} onElementClick={handleStageClick} />
+          <CanvasFrames frames={frames} toolCapturesPointer={!isPlayMode && mode === "design"} onElementClick={mode === "design" ? handleStageClick : undefined} />
         )}
 
         {/* World-space Origin Marker — a fixed point of reference (Blender's 3D-cursor
@@ -693,10 +678,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
           </>
         )}
 
-        <HoverOutline />
-
         {/* Overlays when elements exist */}
-        {shownFrames.length > 0 && !isPlayMode && <CanvasOverlay selectedElement={selectedElement} />}
+        <OverlayLayer hitTester={hitTester} canvasRef={containerRef} />
       </div>
 
       {/* Sub-Phase 43.2: live dashed-rect preview while dragging a shape tool.

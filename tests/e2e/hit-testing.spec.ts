@@ -116,11 +116,11 @@ test("Phase 22: hovering shows the layer a click would select", async ({ page })
   await page.waitForTimeout(250);
   const p = (await visibleTexts(page))[40];
   await page.mouse.move(p.x, p.y);
-  await expect(page.locator(".canvas-hover-outline")).toHaveAttribute("data-hover-id", groupOf(p.id));
+  await expect(page.locator(".canvas-overlay__hover")).toHaveAttribute("data-hover-id", groupOf(p.id));
   await page.keyboard.down(DEEP);
   await page.mouse.move(p.x + 1, p.y);
-  await expect(page.locator(".canvas-hover-outline")).toHaveAttribute("data-hover-id", p.id);
+  await expect(page.locator(".canvas-overlay__hover")).toHaveAttribute("data-hover-id", p.id);
   await page.keyboard.up(DEEP);
   await page.mouse.move(2, 2); // off the canvas
-  await expect(page.locator(".canvas-hover-outline")).toHaveCount(0);
+  await expect(page.locator(".canvas-overlay__hover:not([hidden])")).toHaveCount(0);
 });

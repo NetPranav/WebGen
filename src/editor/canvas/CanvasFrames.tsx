@@ -25,7 +25,8 @@ interface CanvasFramesProps {
   frames: CanvasFrame[];
   /** While a shape or text tool owns the pointer the frames ignore it, so a drag can start anywhere. */
   toolCapturesPointer: boolean;
-  onElementClick: (layerId: string) => void;
+  /** Called with a clicked layer's id when the frames take clicks themselves (Preview mode passes none). */
+  onElementClick?: (layerId: string) => void;
 }
 
 function SizeField({ label, value, onCommit }: { label: string; value: number; onCommit: (n: number) => void }) {
@@ -172,6 +173,7 @@ const BACKDROP_LABEL: Record<Backdrop, string> = { light: "Light", dark: "Dark",
 
 /** Adds frames (device presets or a custom size) and picks the backdrop. */
 export const FrameBar: React.FC = () => {
+  const mode = useCanvasViewStore((s) => s.mode);
   const backdrop = useCanvasViewStore((s) => s.backdrop);
   const setBackdrop = useCanvasViewStore((s) => s.setBackdrop);
   const [open, setOpen] = useState(false);
@@ -208,6 +210,13 @@ export const FrameBar: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+      <div className="frame-bar__group" role="group" aria-label="Canvas mode">
+        {(["design", "preview"] as const).map((m) => (
+          <button key={m} type="button" className="frame-bar__btn" aria-pressed={mode === m} onClick={() => useCanvasViewStore.getState().setMode(m)}>
+            {m === "design" ? "Design" : "Preview"}
+          </button>
+        ))}
       </div>
       <div className="frame-bar__group" role="group" aria-label="Canvas backdrop">
         {BACKDROPS.map((b) => (

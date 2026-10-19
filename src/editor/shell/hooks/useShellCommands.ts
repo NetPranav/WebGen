@@ -12,6 +12,7 @@ import { edition } from "@/core/flags";
 import { PRESET_IDS, presetsFor } from "@/core/workspace/layout";
 import { useWorkspaceStore } from "@/core/workspace/useWorkspaceStore";
 import { useCameraStore } from "@/core/store/useCameraStore";
+import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
 import { registerFrameCommands } from "@/core/frames/frameCommands";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
@@ -175,6 +176,17 @@ export function useShellCommands(actions: ShellCommandActions) {
       for (const unregister of unregisters) unregister();
     };
   }, [exportProjectFile, openImportPicker, openSettings]);
+
+  // Phase 23: Design mode (the canvas picks layers) and Preview mode (the page is clickable).
+  useEffect(() => {
+    const view = () => useCanvasViewStore.getState();
+    const unregisters = [
+      defineCommand({ id: "view.designMode", title: "Design Mode", category: "View", run: () => view().setMode("design") }),
+      defineCommand({ id: "view.previewMode", title: "Preview Mode", category: "View", run: () => view().setMode("preview") }),
+      defineCommand({ id: "view.toggleMode", title: "Toggle Design / Preview", category: "View", run: () => view().setMode(view().mode === "design" ? "preview" : "design") }),
+    ];
+    return () => unregisters.forEach((off) => off());
+  }, []);
 
   // Phase 21: add, duplicate, rename, resize, reorder and delete frames, and focus one.
   useEffect(() => registerFrameCommands(), []);
