@@ -9,11 +9,23 @@ import { openEditor } from "./support/editor";
 const rightZone = (page: Page) => page.locator(".dock-zone--right");
 const loadedPanels = async (page: Page) => ((await page.locator(".dock-layout").getAttribute("data-loaded-panels")) ?? "").split(" ").filter(Boolean);
 
+/** Waits until an element stops moving (a dock animates to its new width after a preset switch). */
+async function settled(locator: ReturnType<Page["locator"]>) {
+  let last = "";
+  for (let i = 0; i < 40; i++) {
+    const box = await locator.boundingBox();
+    const now = JSON.stringify(box);
+    if (box && now === last) return box;
+    last = now;
+    await locator.page().waitForTimeout(100);
+  }
+  throw new Error("element never settled");
+}
+
 /** Drags the splitter in front of the right dock to the left by `dx` px (wider dock). */
 async function dragRightSplitter(page: Page, dx: number) {
   const splitter = page.locator(".dock-splitter--vertical").last();
-  const box = await splitter.boundingBox();
-  if (!box) throw new Error("right splitter not found");
+  const box = await settled(splitter);
   const x = box.x + box.width / 2;
   const y = box.y + 40; // near the top, clear of the bottom drawer that overlaps the lower part
   await page.mouse.move(x, y);
@@ -27,7 +39,7 @@ test("Phase 14: an arranged layout (preset, tab, dock width) survives a reload",
   await page.getByRole("tab", { name: /Animate/ }).click();
   await expect(page.getByRole("tab", { name: /Animate/ })).toHaveAttribute("aria-selected", "true");
 
-  const before = (await rightZone(page).boundingBox())!.width;
+  const before = (await settled(rightZone(page))).width;
   await dragRightSplitter(page, 60);
   const resized = (await rightZone(page).boundingBox())!.width;
   expect(resized, "dragging the splitter widened the right dock").toBeGreaterThan(before + 30);
