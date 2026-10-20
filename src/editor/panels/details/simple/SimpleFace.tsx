@@ -8,44 +8,14 @@
 
 import React, { useState } from "react";
 import { invokeCommand } from "@/core/commands";
-import { readSimple } from "@/core/inspector/simpleOps";
+import { readSimple, type SimpleReadout } from "@/core/inspector/simpleOps";
 import { useLayers } from "@/core/store/useDocumentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { NumberField } from "../controls/NumberField";
+import { ColorField } from "../controls/ColorField";
 import "@/editor/styles/simple-face.css";
 
 const run = (id: string, args: Record<string, unknown>) => void invokeCommand(id, args);
-
-/** A colour as the swatch needs it: `#rrggbb`, or black for anything else. */
-const swatchValue = (v: string | null | undefined): string => (typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v) ? v : typeof v === "string" && /^#[0-9a-fA-F]{3}$/.test(v) ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}` : "#000000");
-
-const ColorField: React.FC<{ label: string; value: string | null | undefined; onCommit: (color: string) => void }> = ({ label, value, onCommit }) => (
-  <ColorInput key={value === null ? "mixed" : String(value)} label={label} value={value} onCommit={onCommit} />
-);
-
-const ColorInput: React.FC<{ label: string; value: string | null | undefined; onCommit: (color: string) => void }> = ({ label, value, onCommit }) => {
-  const [text, setText] = useState(value === null || value === undefined ? "" : value);
-  const commit = () => {
-    const t = text.trim();
-    if (t !== "" && t !== value) onCommit(t);
-    else setText(value === null || value === undefined ? "" : value);
-  };
-  return (
-    <span className="simple-color">
-      <input type="color" aria-label={`${label} colour`} value={swatchValue(value)} onChange={(e) => onCommit(e.target.value)} />
-      <input
-        type="text"
-        aria-label={label}
-        placeholder={value === null ? "Mixed" : undefined}
-        value={text}
-        spellCheck={false}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-      />
-    </span>
-  );
-};
 
 const TextField: React.FC<{ value: string | null | undefined; onCommit: (text: string) => void }> = ({ value, onCommit }) => (
   <TextInput key={value === null ? "mixed" : String(value)} value={value} onCommit={onCommit} />
@@ -77,11 +47,16 @@ const Group: React.FC<{ title: string; children: React.ReactNode }> = ({ title, 
   </div>
 );
 
+/** The face for the selection: re-reads when the document or the selection changes. */
 export const SimpleFace: React.FC = () => {
-  const layers = useLayers(); // re-reads when the document changes
+  const layers = useLayers();
   const ids = useSelectionStore((s) => s.selectedIds);
   void layers;
-  const r = readSimple(ids);
+  return <SimpleFaceView readout={readSimple(ids)} />;
+};
+
+/** The face for what a selection shares: no store, so it renders the same on a server and in a test. */
+export const SimpleFaceView: React.FC<{ readout: SimpleReadout }> = ({ readout: r }) => {
   if (!Object.values(r.has).some(Boolean)) return <div className="simple-face simple-face--empty">Select a layer to change it.</div>;
   return (
     <div className="simple-face" role="form" aria-label="Design">
