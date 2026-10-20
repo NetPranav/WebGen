@@ -213,7 +213,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 39 | Pen & pencil | 24 | v3 35.1–35.4 | 1 | 🚧 |
 | 40 | Vector editing & boolean operations | 39 | v3 16.1 | 1 | 🚧 |
 | 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 🚧 |
-| 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 📋 |
+| 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 🚧 |
 | 43 | Breakpoints & overrides | 42 | v3 50.3 (properties half) | 1 | 📋 |
 | 44 | Breakpoint canvas | 21, 43 | v3 50.4 | 1 | 📋 |
 | 45 | Design tokens & styles | 35, 38 | v3 22.3 | 1 | 📋 |
@@ -773,11 +773,12 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence so far (2026-10-20):** `src/core/layout/stack.ts` is the layout as pure functions (`computeStack`, `hugSize`, `inferStack`, `insertionIndex`), 15 unit tests; `src/core/editing/__tests__/layoutOps.test.ts` (10: Shift+A reads a row or column, in reading order, from where layers are; wraps loose layers in a hugging frame; one undo step; Shift+Alt+A pins children; stack settings; sizing; reorder; nested). `tests/e2e/auto-layout.spec.ts` in 3 browsers: **a fixture of nested stacks (header with space-between and a hug nav row, a wrapping body, a footer with a fill child) is within 0.5 px of `computeStack` for every box at 320, 480, 768, 1024 and 1440 px**; Shift+A through the inspector; direction, gap, alignment and sizing controls; dragging a child shows an insertion line and reorders (one undo step) and keeps it in the flow. **Design:** a frame is auto layout when `layout.auto` is true; children are `flow` with fixed/hug/fill sizing; Container now renders `justifyContent`, `alignItems`, `flexWrap` (lines packed at the start) and four paddings; a fixed size in a stack never shrinks (`flex-shrink: 0`); a resize of a flow child writes size only. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 42 · Grid layout & constraints
-**Needs:** 41 · **Was:** v3 50.1 (grid), 50.2 · **Status:** 📋
-- [ ] Grid containers (columns, rows, gaps, spans) mapped to CSS grid, and layout-grid overlays. Constraints for absolutely positioned children: left, right, both, centre or scale, and the same vertically.
+**Needs:** 41 · **Was:** v3 50.1 (grid), 50.2 · **Status:** 🚧
+- [x] Grid containers (columns, rows, gaps, spans) mapped to CSS grid, and layout-grid overlays. Constraints for absolutely positioned children: left, right, both, centre or scale, and the same vertically.
 
 **You'll see:** resizing a frame moves and stretches its children the way you set.
 **Done when:** constraint and grid golden tests pass when frames are resized.
+**Evidence so far (2026-10-20):** `src/core/layout/constraints.ts` (one rule per axis: start, end, both, center, scale) and `grid.ts` (track lists, `trackSpans`, `inferGrid`, `gridInsertion`) with unit tests, including the document store applying constraints in the same undo step as the resize and passing the change down to nested frames (`constraints.test.ts`, 15) and the grid operations (`layoutOps.test.ts`, 5 more). `tests/e2e/grid-constraints.spec.ts` in 3 browsers: **each constraint lands within 0.5 px of `constrainBox` at four sizes, and when the frame is resized through the inspector (one undo per field); a grid with column spans, row starts, gaps, padding and px/fr tracks is within 0.5 px of `trackSpans` at 320, 480, 768, 1024 and 1440 px**; Add grid reads two columns and the gaps from loose layers and draws the layout grid (a band per column, a line per row); spans through the inspector; dragging inside a grid reorders with an insertion line. **Design:** constraints are applied by the editor when a frame's size is written (Figma's way), not by CSS, so a document that never sets one is untouched (`constraints.horizontal/vertical`, default left and top); grid cells are `layout.gridColumnStart/Span`, `gridRowStart/Span`; a hug child sits at its cell's start, a fill child stretches. Constraints on a frame resized by a drag are applied step by step (a stretch clamped at 0 doesn't recover). Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 43 · Breakpoints & overrides
 **Needs:** 42 · **Was:** v3 50.3 (properties half) · **Status:** 📋

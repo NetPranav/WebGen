@@ -332,6 +332,14 @@ const DEFS = {
   "layout.marginBottom": px(0, "margin-bottom", "layout", LAYOUT),
   "layout.alignSelf": oneOf(null, "auto", "align-self", "layout", LAYOUT),
   "layout.flex": str("", "flex", "layout", LAYOUT),
+  /** How a free layer follows its frame when the frame is resized (Phase 42); the editor applies it at the resize. */
+  "constraints.horizontal": typed(oneOf(["left", "right", "leftRight", "center", "scale"], "left", null, "layout", LAYOUT)),
+  "constraints.vertical": typed(oneOf(["top", "bottom", "topBottom", "center", "scale"], "top", null, "layout", LAYOUT)),
+  /** A child's cell in a grid container (Phase 42): 1-based start (0 = auto) and how many tracks it spans. */
+  "layout.gridColumnStart": ranged(num(0, "grid-column-start", "layout", LAYOUT, false), { min: 0, max: 200 }),
+  "layout.gridColumnSpan": ranged(num(1, null, "layout", LAYOUT, false), { min: 1, max: 200 }),
+  "layout.gridRowStart": ranged(num(0, "grid-row-start", "layout", LAYOUT, false), { min: 0, max: 200 }),
+  "layout.gridRowSpan": ranged(num(1, null, "layout", LAYOUT, false), { min: 1, max: 200 }),
   "layout.flexGrow": num(0, "flex-grow", "layout", LAYOUT, false),
   "layout.flexShrink": num(1, "flex-shrink", "layout", LAYOUT, false),
   "layout.position": oneOf(["static", "relative", "absolute", "fixed", "sticky"], "static", "position", "layout", LAYOUT),

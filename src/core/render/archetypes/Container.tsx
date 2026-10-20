@@ -14,6 +14,13 @@ export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx
   const justify = resolved.str("layout.justifyContent", "");
   const align = resolved.str("layout.alignItems", "");
   const wrap = resolved.str("layout.flexWrap", "nowrap") === "wrap" ? "wrap" : undefined;
+  // A grid container's tracks: the template when one is written, else equal columns; rows only when written.
+  const trackList = (value: string) => (/^[\w\s.,()%-]+$/.test(value) && value.length <= 200 ? value : "");
+  const columnsTemplate = trackList(resolved.str("layout.gridTemplateColumns", ""));
+  const rowsTemplate = trackList(resolved.str("layout.gridTemplateRows", ""));
+  const columnCount = Math.max(1, Math.min(200, Math.round(resolved.num("layout.gridColumns", 2))));
+  const rowGap = resolved.get("layout.rowGap") !== undefined ? px(resolved.num("layout.rowGap", 0)) : undefined;
+  const columnGap = resolved.get("layout.columnGap") !== undefined ? px(resolved.num("layout.columnGap", 0)) : undefined;
   // A border is drawn only with a width and a style (the inspector's Stroke writes both).
   const borderWidth = Math.min(200, resolved.num("appearance.border.width", 0));
   const borderStyle = resolved.str("appearance.border.style", "none");
@@ -36,8 +43,11 @@ export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx
         padding: px(padding),
         paddingInline: !sides && resolved.get("layout.paddingX") !== undefined ? px(resolved.num("layout.paddingX", padding)) : undefined,
         ...(sides ? { paddingTop: side("layout.paddingTop"), paddingRight: side("layout.paddingRight"), paddingBottom: side("layout.paddingBottom"), paddingLeft: side("layout.paddingLeft") } : {}),
+        ...(display === "grid"
+          ? { gridTemplateColumns: columnsTemplate || `repeat(${columnCount}, minmax(0, 1fr))`, gridTemplateRows: rowsTemplate || undefined, rowGap, columnGap, alignItems: align || undefined }
+          : {}),
         justifyContent: justify || undefined,
-        alignItems: align || undefined,
+        ...(display === "grid" ? {} : { alignItems: align || undefined }),
         flexWrap: wrap,
         alignContent: wrap ? "flex-start" : undefined,
         ...fill.style,

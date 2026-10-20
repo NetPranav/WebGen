@@ -15,6 +15,7 @@ import { useDraftPathStore } from "@/core/store/useDraftPathStore";
 import { nodesToPathData } from "@/core/paths/pathFit";
 import { penRubberBand } from "@/core/paths/penModel";
 import { useStackDropStore } from "@/core/store/useStackDropStore";
+import { GridOverlay } from "./GridOverlay";
 import { VectorEditLayer } from "../vector/VectorEditLayer";
 import type { TransformModel } from "../transformModel";
 
@@ -156,6 +157,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       <div ref={layerRef} className="canvas-overlay" aria-hidden="true" />
       <DraftPath />
       <VectorEditLayer />
+      <GridOverlay />
       <StackDropLine />
     </>
   );

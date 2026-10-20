@@ -29,11 +29,18 @@ export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: Render
   }
 
   const parentRow = ctx.parentDirection === "row";
+  const inGrid = g.positioning === "flow" && ctx.parentDirection === "grid";
   const axis = (kind: "horizontal" | "vertical") => {
     const sizing = g.sizing[kind];
     const isWidth = kind === "horizontal";
     const size = isWidth ? g.frame.width : g.frame.height;
     const unit = isWidth ? g.units.width : g.units.height;
+    if (inGrid) {
+      // in a grid cell: fixed is its size, fill stretches across the cell, hug is its content at the cell's start
+      if (sizing === "fixed") style[isWidth ? "width" : "height"] = px(size, unit);
+      if (sizing === "hug") style[isWidth ? "justifySelf" : "alignSelf"] = "start";
+      return;
+    }
     if (sizing === "fixed") {
       style[isWidth ? "width" : "height"] = px(size, unit);
       // a fixed size in a stack never shrinks to fit (Figma's fixed): the stack's overflow is the author's to see
@@ -51,6 +58,23 @@ export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: Render
   };
   axis("horizontal");
   axis("vertical");
+  if (inGrid) {
+    // the cell this layer sits in: a start (1-based) and how many tracks it spans
+    const span = (path: string) => {
+      const v = resolved.get(path);
+      return typeof v === "number" && Number.isFinite(v) && v >= 1 ? Math.min(200, Math.floor(v)) : 1;
+    };
+    const start = (path: string) => {
+      const v = resolved.get(path);
+      return typeof v === "number" && Number.isFinite(v) && v >= 1 ? Math.min(200, Math.floor(v)) : 0;
+    };
+    const cs = start("layout.gridColumnStart");
+    const rs = start("layout.gridRowStart");
+    const ce = span("layout.gridColumnSpan");
+    const re = span("layout.gridRowSpan");
+    if (cs > 0 || ce > 1) style.gridColumn = cs > 0 ? `${cs} / span ${ce}` : `span ${ce}`;
+    if (rs > 0 || re > 1) style.gridRow = rs > 0 ? `${rs} / span ${re}` : `span ${re}`;
+  }
 
   if (g.frame.rotation !== 0) style.transform = `rotate(${g.frame.rotation}deg)`;
   const opacity = resolved.get("appearance.opacity");

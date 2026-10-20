@@ -12,6 +12,8 @@
 
 import type { Layer } from "../document/schema";
 import type { PropValue } from "../document/registry";
+import { CONSTRAINTS, HORIZONTAL_NAMES, VERTICAL_NAMES, type Constraint } from "../layout/constraints";
+import { equalTracks, inferGrid } from "../layout/grid";
 import { DEFAULT_STACK, inferStack, uniformPadding, type AlignItems, type Direction, type Justify, type Padding, type SizingMode, type StackSpec } from "../layout/stack";
 import { moveLayers } from "../layers/reparent";
 import { getDocument } from "../store/documentState";
@@ -23,6 +25,12 @@ import { worldBox, writeBoxes } from "./layerBoxes";
 const num = (v: PropValue | undefined, d = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const str = (v: PropValue | undefined, d = ""): string => (typeof v === "string" ? v : d);
 const round = (n: number) => Math.round(n * 100) / 100;
+
+/** A grid container (Phase 42): its children sit in cells. */
+export const isGrid = (l: Layer | undefined): boolean => !!l && l.archetype === "container" && l.properties["layout.display"] === "grid";
+
+/** A frame whose layout places its children (a stack or a grid): they flow, and moving one is a reorder, not a free move. */
+export const placesChildren = (l: Layer | undefined): boolean => isAutoLayout(l) || isGrid(l);
 
 export const isAutoLayout = (l: Layer | undefined): boolean => !!l && l.archetype === "container" && l.properties["layout.auto"] === true;
 
@@ -228,4 +236,161 @@ export function reorderInStack(id: string, index: number): boolean {
   if (!layer || !layer.parentId || !isAutoLayout(getDocument().layers[layer.parentId])) return false;
   const res = moveLayers([id], layer.parentId, index);
   return res.ok === true;
+}
+
+// --- grids (Phase 42) -------------------------------------------------------------
+
+export interface GridPatch {
+  columns?: number;
+  rows?: number;
+  /** Written track lists (`1fr 200px`, `repeat(3, 1fr)`); an empty string goes back to equal columns / automatic rows. */
+  columnsTemplate?: string;
+  rowsTemplate?: string;
+  columnGap?: number;
+  rowGap?: number;
+  padding?: number;
+}
+
+/**
+ * Turns a container into a grid: columns and rows from the distinct edges of its children, gaps from the spacing
+ * between them, padding from the room around them; the children flow into cells, filling them across and hugging
+ * down. The frame keeps its size. Returns the container, selected.
+ */
+export function addGridLayout(ids: readonly string[]): string[] {
+  const roots = editableRoots(ids);
+  const solo = roots.length === 1 && getDocument().layers[roots[0]].archetype === "container" ? getDocument().layers[roots[0]] : null;
+  if (!solo) return [];
+  if (isGrid(solo)) return [solo.id];
+  let out: string[] = [];
+  transaction("Add grid", () => {
+    const box = worldBox(solo.id);
+    if (!box) return;
+    const origin = { x: box.cx - box.w / 2, y: box.cy - box.h / 2 };
+    const kids = solo.children.filter((id) => getDocument().layers[id]?.visible !== false);
+    const rects = kids.map((id) => rectIn(id, origin));
+    if (rects.some((r) => r === null)) return;
+    const list = rects as { x: number; y: number; w: number; h: number }[];
+    const inferred = inferGrid(list);
+    const minX = list.length ? Math.min(...list.map((r) => r.x)) : 8;
+    const minY = list.length ? Math.min(...list.map((r) => r.y)) : 8;
+    const maxR = list.length ? Math.max(...list.map((r) => r.x + r.w)) : box.w - 8;
+    const maxB = list.length ? Math.max(...list.map((r) => r.y + r.h)) : box.h - 8;
+    for (const id of kids) {
+      documentCommands.updateProps(id, { positioning: "flow", "sizing.horizontal": "fill", "sizing.vertical": "hug" });
+    }
+    // reading order: top to bottom, then left to right
+    const order = kids.map((_, i) => i).sort((a, b) => list[a].y - list[b].y || list[a].x - list[b].x);
+    order.forEach((k, i) => {
+      if (getDocument().layers[solo.id].children[i] !== kids[k]) documentCommands.moveLayer(kids[k], solo.id, i);
+    });
+    documentCommands.updateProps(solo.id, {
+      "layout.display": "grid",
+      "layout.gridColumns": Math.max(1, inferred.columns),
+      "layout.gridTemplateColumns": equalTracks(inferred.columns),
+      "layout.gridTemplateRows": undefined,
+      "layout.gap": 0,
+      "layout.columnGap": inferred.columnGap,
+      "layout.rowGap": inferred.rowGap,
+      "layout.padding": 0,
+      "layout.paddingTop": Math.max(0, Math.round(minY)),
+      "layout.paddingLeft": Math.max(0, Math.round(minX)),
+      "layout.paddingRight": Math.max(0, Math.round(box.w - maxR)),
+      "layout.paddingBottom": Math.max(0, Math.round(box.h - maxB)),
+      "sizing.horizontal": "fixed",
+      "sizing.vertical": "fixed",
+      "frame.width": round(box.w),
+      "frame.height": round(box.h),
+    });
+    useSelectionStore.getState().selectMultiple([solo.id], "element");
+    out = [solo.id];
+  });
+  return out;
+}
+
+/** Sets the grid of the selected grid containers. Returns how many changed. */
+export function setGrid(ids: readonly string[], patch: GridPatch): number {
+  const targets = editableRoots(ids).filter((id) => isGrid(getDocument().layers[id]));
+  if (targets.length === 0) return 0;
+  transaction("Change grid", () => {
+    for (const id of targets) {
+      const props: Record<string, PropValue | undefined> = {};
+      if (patch.columns !== undefined) {
+        props["layout.gridColumns"] = Math.max(1, Math.min(200, Math.round(patch.columns)));
+        if (patch.columnsTemplate === undefined) props["layout.gridTemplateColumns"] = equalTracks(patch.columns);
+      }
+      if (patch.columnsTemplate !== undefined) props["layout.gridTemplateColumns"] = patch.columnsTemplate === "" ? equalTracks(num(getDocument().layers[id].properties["layout.gridColumns"], 2)) : patch.columnsTemplate;
+      if (patch.rows !== undefined) {
+        props["layout.gridRows"] = Math.max(1, Math.min(200, Math.round(patch.rows)));
+        if (patch.rowsTemplate === undefined) props["layout.gridTemplateRows"] = `repeat(${props["layout.gridRows"]}, auto)`;
+      }
+      if (patch.rowsTemplate !== undefined) props["layout.gridTemplateRows"] = patch.rowsTemplate === "" ? undefined : patch.rowsTemplate;
+      if (patch.columnGap !== undefined) props["layout.columnGap"] = Math.max(0, round(patch.columnGap));
+      if (patch.rowGap !== undefined) props["layout.rowGap"] = Math.max(0, round(patch.rowGap));
+      if (patch.padding !== undefined) for (const k of ["Top", "Right", "Bottom", "Left"]) props[`layout.padding${k}`] = Math.max(0, round(patch.padding));
+      documentCommands.updateProps(id, props);
+    }
+  });
+  return targets.length;
+}
+
+/** Puts layers in a grid cell: a 1-based start (0 for automatic) and spans. Returns how many changed. */
+export function setGridCell(ids: readonly string[], patch: { columnStart?: number; columnSpan?: number; rowStart?: number; rowSpan?: number }): number {
+  const targets = ids.filter((id) => {
+    const l = getDocument().layers[id];
+    return l && l.locked !== true && l.parentId && isGrid(getDocument().layers[l.parentId]);
+  });
+  if (targets.length === 0) return 0;
+  const clamp = (n: number, lo: number) => Math.max(lo, Math.min(200, Math.round(n)));
+  transaction("Change grid cell", () => {
+    for (const id of targets) {
+      const props: Record<string, PropValue | undefined> = {};
+      if (patch.columnStart !== undefined) props["layout.gridColumnStart"] = clamp(patch.columnStart, 0);
+      if (patch.columnSpan !== undefined) props["layout.gridColumnSpan"] = clamp(patch.columnSpan, 1);
+      if (patch.rowStart !== undefined) props["layout.gridRowStart"] = clamp(patch.rowStart, 0);
+      if (patch.rowSpan !== undefined) props["layout.gridRowSpan"] = clamp(patch.rowSpan, 1);
+      documentCommands.updateProps(id, props);
+    }
+  });
+  return targets.length;
+}
+
+/** Takes the grid off a container: its children are pinned where they are drawn. */
+export function removeGridLayout(ids: readonly string[]): string[] {
+  const targets = editableRoots(ids).filter((id) => isGrid(getDocument().layers[id]));
+  const out: string[] = [];
+  transaction("Remove grid", () => {
+    for (const id of targets) {
+      const box = worldBox(id);
+      const layer = getDocument().layers[id];
+      if (!box || !layer) continue;
+      const origin = { x: box.cx - box.w / 2, y: box.cy - box.h / 2 };
+      const boxes = layer.children.map((k) => worldBox(k));
+      if (boxes.some((b) => b === null)) continue;
+      writeBoxes(layer.children, boxes as NonNullable<(typeof boxes)[number]>[], origin, { size: true });
+      for (const k of layer.children) documentCommands.updateProps(k, { "sizing.horizontal": "fixed", "sizing.vertical": "fixed" });
+      documentCommands.updateProps(id, { "layout.display": "flex" });
+      out.push(id);
+    }
+  });
+  return out;
+}
+
+// --- constraints (Phase 42) -------------------------------------------------------
+
+/** Sets how free layers follow their frame. Returns how many changed. */
+export function setConstraints(ids: readonly string[], patch: { horizontal?: Constraint; vertical?: Constraint }): number {
+  const targets = ids.filter((id) => {
+    const l = getDocument().layers[id];
+    return l && l.locked !== true && l.parentId !== null && l.properties.positioning === "absolute";
+  });
+  if (targets.length === 0) return 0;
+  transaction("Change constraints", () => {
+    for (const id of targets) {
+      const props: Record<string, PropValue | undefined> = {};
+      if (patch.horizontal && CONSTRAINTS.includes(patch.horizontal)) props["constraints.horizontal"] = patch.horizontal === "start" ? undefined : HORIZONTAL_NAMES[patch.horizontal];
+      if (patch.vertical && CONSTRAINTS.includes(patch.vertical)) props["constraints.vertical"] = patch.vertical === "start" ? undefined : VERTICAL_NAMES[patch.vertical];
+      documentCommands.updateProps(id, props);
+    }
+  });
+  return targets.length;
 }

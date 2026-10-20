@@ -55,7 +55,8 @@ import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import { useLayers, documentCommands } from "@/core/store/useDocumentStore";
 import { penControls } from "./tools/pathTools";
-import { isAutoLayout, readStack } from "@/core/editing/layoutOps";
+import { isGrid, placesChildren, readStack } from "@/core/editing/layoutOps";
+import { gridInsertion } from "@/core/layout/grid";
 import { worldBox } from "@/core/editing/layerBoxes";
 import { insertionIndex, insertionLine } from "@/core/layout/stack";
 import { moveLayers } from "@/core/layers/reparent";
@@ -293,7 +294,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
           if (box.rot !== 0 || typeof layer.properties["frame.rotation"] === "number") patch["frame.rotation"] = round(box.rot);
           // A layer placed by an auto-layout frame keeps its place in the flow: a resize changes only its size (fixed on that axis).
           const parentLayer = layer.parentId ? layers[layer.parentId] : undefined;
-          if (parentLayer && isAutoLayout(parentLayer) && layer.properties.positioning !== "absolute") {
+          if (parentLayer && placesChildren(parentLayer) && layer.properties.positioning !== "absolute") {
             const flow: Record<string, number | string> = {};
             if (was && Math.abs(was.w - box.w) > 0.01) {
               flow["frame.width"] = round(box.w);
@@ -409,7 +410,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         const layers = getDocument().layers;
         const first = ids[0] ? layers[ids[0]] : undefined;
         const parent = first?.parentId ? layers[first.parentId] : undefined;
-        if (!parent || !isAutoLayout(parent)) return null;
+        if (!parent || !placesChildren(parent)) return null;
         if (!ids.every((id) => layers[id]?.parentId === parent.id && layers[id].properties.positioning !== "absolute")) return null;
         const siblings = parent.children.filter((id) => !ids.includes(id));
         const rects: { x: number; y: number; w: number; h: number }[] = [];
@@ -418,6 +419,12 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
           if (b) rects.push({ x: b.cx - b.w / 2, y: b.cy - b.h / 2, w: b.w, h: b.h });
         }
         if (rects.length !== siblings.length) return null;
+        if (isGrid(parent)) {
+          const spot = gridInsertion(rects, world);
+          if (!spot) return null;
+          useStackDropStore.getState().set(spot.line);
+          return { parentId: parent.id, index: spot.index };
+        }
         const stack = readStack(parent);
         const index = insertionIndex(stack.direction, rects, world);
         useStackDropStore.getState().set(insertionLine(stack.direction, rects, index, stack.gap));

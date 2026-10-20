@@ -42,6 +42,7 @@ import { attachClip, createLayer, getLayerClips, getSubtreeIds, type NewLayerInp
 import { type ArchetypeId, type LayerProps, type PropValue } from "../document/registry";
 import { canonicalizeProps, canonicalizeTrackPath, coercePropertyValue, getPropertyDefinition, resolvePropertyPath } from "../document/properties";
 import { removeLayerDependents } from "../document/migrations";
+import { applyConstraintsToChildren } from "../layout/constrainChildren";
 import { syncCompositions } from "../document/compositions";
 import {
   validateMotionDocument,
@@ -582,7 +583,13 @@ export const documentCommands = {
         const res = resolvePropertyPath(key, layer.archetype);
         delete props[res.ok ? res.path : key];
       }
+      const before = { width: props["frame.width"], height: props["frame.height"] };
       Object.assign(props, canonicalProps(layer.archetype, defined, "updateProps"));
+      // a frame that changed size: the layers pinned to it follow, in this same change (Phase 42)
+      const after = { width: props["frame.width"], height: props["frame.height"] };
+      if (typeof before.width === "number" && typeof before.height === "number" && typeof after.width === "number" && typeof after.height === "number" && (before.width !== after.width || before.height !== after.height)) {
+        applyConstraintsToChildren(draft as MotionDocument, layerId, { width: before.width, height: before.height }, { width: after.width, height: after.height });
+      }
     });
   },
 

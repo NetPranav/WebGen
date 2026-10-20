@@ -144,3 +144,68 @@ describe("Phase 41: nested stacks", () => {
     assert.deepEqual(documentCommands && getDocument().layers.outer.children, ["inner", "x"]);
   });
 });
+
+describe("Phase 42: grids and constraints", () => {
+  const grid = () =>
+    createDocumentFromLayers([
+      createLayer({ id: "pg", archetype: "container", parentId: null, name: "Page", children: ["g"], properties: { "frame.width": 800, "frame.height": 600 } }) as Layer,
+      createLayer({ id: "g", archetype: "container", parentId: "pg", name: "G", children: ["a", "b", "c", "d"], properties: { positioning: "absolute", "frame.x": 0, "frame.y": 0, "frame.width": 400, "frame.height": 300 } }) as Layer,
+      rect("a", "g", 10, 10, 100, 50),
+      rect("b", "g", 130, 10, 100, 50),
+      rect("c", "g", 10, 80, 100, 50),
+      rect("d", "g", 130, 80, 100, 50),
+    ]);
+  beforeEach(() => {
+    setDocument(grid());
+    useSelectionStore.getState().clearSelection();
+  });
+
+  it("add grid reads two columns and two rows, the gaps and padding, and the children fill their cells", async () => {
+    const { addGridLayout, isGrid } = await import("../layoutOps");
+    assert.deepEqual(addGridLayout(["g"]), ["g"]);
+    const g = getDocument().layers.g;
+    assert.equal(isGrid(g), true);
+    assert.equal(g.properties["layout.gridColumns"], 2);
+    assert.equal(g.properties["layout.gridTemplateColumns"], "repeat(2, minmax(0, 1fr))");
+    assert.equal(g.properties["layout.columnGap"], 20);
+    assert.equal(g.properties["layout.rowGap"], 20);
+    assert.equal(g.properties["layout.paddingLeft"], 10);
+    assert.equal(props("a").positioning, "flow");
+    assert.equal(props("a")["sizing.horizontal"], "fill");
+    assert.deepEqual(getDocument().layers.g.children, ["a", "b", "c", "d"]);
+  });
+
+  it("columns, rows, gaps, templates and cell spans", async () => {
+    const { addGridLayout, setGrid, setGridCell } = await import("../layoutOps");
+    addGridLayout(["g"]);
+    assert.equal(setGrid(["g"], { columns: 4, columnGap: 8, rowGap: 6, rows: 3 }), 1);
+    assert.equal(props("g")["layout.gridColumns"], 4);
+    assert.equal(props("g")["layout.gridTemplateRows"], "repeat(3, auto)");
+    setGrid(["g"], { columnsTemplate: "100px 1fr" });
+    assert.equal(props("g")["layout.gridTemplateColumns"], "100px 1fr");
+    setGrid(["g"], { columnsTemplate: "" });
+    assert.equal(props("g")["layout.gridTemplateColumns"], "repeat(4, minmax(0, 1fr))");
+    assert.equal(setGridCell(["a"], { columnSpan: 2, rowStart: 2 }), 1);
+    assert.equal(props("a")["layout.gridColumnSpan"], 2);
+    assert.equal(props("a")["layout.gridRowStart"], 2);
+    assert.equal(setGridCell(["g"], { columnSpan: 2 }), 0); // not a child of a grid
+  });
+
+  it("remove grid pins the children again", async () => {
+    const { addGridLayout, removeGridLayout, isGrid } = await import("../layoutOps");
+    addGridLayout(["g"]);
+    removeGridLayout(["g"]);
+    assert.equal(isGrid(getDocument().layers.g), false);
+    assert.equal(props("a").positioning, "absolute");
+  });
+
+  it("constraints set on free layers (and cleared by choosing left/top)", async () => {
+    const { setConstraints } = await import("../layoutOps");
+    assert.equal(setConstraints(["a", "b"], { horizontal: "end", vertical: "both" }), 2);
+    assert.equal(props("a")["constraints.horizontal"], "right");
+    assert.equal(props("a")["constraints.vertical"], "topBottom");
+    setConstraints(["a"], { horizontal: "start" });
+    assert.equal(props("a")["constraints.horizontal"], undefined);
+    assert.equal(setConstraints(["pg"], { horizontal: "end" }), 0); // a top-level frame has no frame to follow
+  });
+});

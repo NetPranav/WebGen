@@ -8,7 +8,8 @@ import { defineCommand, defineTypedCommand, type ContextKeys } from "../commands
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
-import { addAutoLayout, removeAutoLayout, reorderInStack, setChildSizing, setStack } from "./layoutOps";
+import { CONSTRAINTS } from "../layout/constraints";
+import { addAutoLayout, addGridLayout, removeAutoLayout, removeGridLayout, reorderInStack, setChildSizing, setConstraints, setGrid, setGridCell, setStack } from "./layoutOps";
 
 const ids = () => useSelectionStore.getState().selectedIds;
 const onSelection = (ctx: ContextKeys) =>
@@ -43,6 +44,38 @@ export function registerLayoutCommands(): () => void {
       category,
       args: z.object({ horizontal: Sizing.optional(), vertical: Sizing.optional(), ids: z.array(z.string()).optional() }),
       run: ({ ids: only, ...patch }) => ({ changed: setChildSizing(only ?? ids(), patch) }),
+    }),
+    defineCommand({ id: "layout.addGrid", title: "Add Grid Layout", category, when: onSelection, run: () => void addGridLayout(ids()) }),
+    defineCommand({ id: "layout.removeGrid", title: "Remove Grid Layout", category, when: onSelection, run: () => void removeGridLayout(ids()) }),
+    defineTypedCommand({
+      id: "layout.setGrid",
+      title: "Set Grid",
+      category,
+      args: z.object({
+        columns: z.number().int().min(1).max(200).optional(),
+        rows: z.number().int().min(1).max(200).optional(),
+        columnsTemplate: z.string().max(200).regex(/^[\w\s.,()%-]*$/).optional(),
+        rowsTemplate: z.string().max(200).regex(/^[\w\s.,()%-]*$/).optional(),
+        columnGap: z.number().min(0).max(1000).optional(),
+        rowGap: z.number().min(0).max(1000).optional(),
+        padding: z.number().min(0).max(1000).optional(),
+        ids: z.array(z.string()).optional(),
+      }),
+      run: ({ ids: only, ...patch }) => ({ changed: setGrid(only ?? ids(), patch) }),
+    }),
+    defineTypedCommand({
+      id: "layout.setGridCell",
+      title: "Set Grid Cell",
+      category,
+      args: z.object({ columnStart: z.number().int().min(0).max(200).optional(), columnSpan: z.number().int().min(1).max(200).optional(), rowStart: z.number().int().min(0).max(200).optional(), rowSpan: z.number().int().min(1).max(200).optional(), ids: z.array(z.string()).optional() }),
+      run: ({ ids: only, ...patch }) => ({ changed: setGridCell(only ?? ids(), patch) }),
+    }),
+    defineTypedCommand({
+      id: "layout.setConstraints",
+      title: "Set Constraints",
+      category,
+      args: z.object({ horizontal: z.enum(CONSTRAINTS as unknown as [string, ...string[]]).optional(), vertical: z.enum(CONSTRAINTS as unknown as [string, ...string[]]).optional(), ids: z.array(z.string()).optional() }),
+      run: ({ ids: only, horizontal, vertical }) => ({ changed: setConstraints(only ?? ids(), { horizontal: horizontal as never, vertical: vertical as never }) }),
     }),
     defineTypedCommand({
       id: "layout.reorder",
