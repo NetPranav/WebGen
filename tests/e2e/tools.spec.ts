@@ -38,8 +38,8 @@ test("Phase 24: the dock shows only the tools that exist, and a button switches 
   await ready(page);
   const dock = page.getByRole("toolbar", { name: "Confluence Whiteboard Tools" });
   const names = await dock.getByRole("button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(names).toEqual(["Select Tool", "Hand Tool (Pan)", "Frame Tool", "Rectangle Tool", "Ellipse Tool", "Line Tool", "Arrow Tool", "Polygon Tool", "Star Tool", "Text Tool"]);
-  for (const hidden of ["Pen Tool", "Pencil Tool", "Comment", "Add Node / Asset"]) {
+  expect(names).toEqual(["Select Tool", "Hand Tool (Pan)", "Frame Tool", "Rectangle Tool", "Ellipse Tool", "Line Tool", "Arrow Tool", "Polygon Tool", "Star Tool", "Text Tool", "Pen Tool", "Pencil Tool"]);
+  for (const hidden of ["Comment", "Add Node / Asset"]) {
     await expect(dock.getByRole("button", { name: hidden }), `${hidden} isn't built yet, so it has no button`).toHaveCount(0);
   }
 
@@ -56,8 +56,11 @@ test("Phase 24: a shortcut switches the tool", async ({ page }) => {
     await page.keyboard.press(key);
     await expectTool(page, id, `key ${key}`);
   }
-  // a tool that isn't built has no shortcut: P (Pen) does nothing
   await page.keyboard.press("p");
+  await expectTool(page, "pen");
+  await page.keyboard.press("Shift+P");
+  await expectTool(page, "pencil");
+  await page.keyboard.press("v");
   await expectTool(page, "select");
 });
 

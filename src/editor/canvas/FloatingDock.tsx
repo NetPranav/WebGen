@@ -26,6 +26,8 @@ import {
   Frame as FrameIcon,
   Type,
   Plus,
+  PenTool,
+  Pencil,
 } from "lucide-react";
 
 // Sub-Phase 43.2 (2026-09-27): replaces the old select/pan/pencil/text/wire/
@@ -59,6 +61,8 @@ const ICONS: Partial<Record<ToolId, React.ComponentType<{ size?: number; classNa
   polygon: Hexagon,
   star: Star,
   text: Type,
+  pen: PenTool,
+  pencil: Pencil,
 };
 
 export const FloatingDock: React.FC<FloatingDockProps> = ({
