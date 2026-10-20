@@ -115,12 +115,14 @@ test("Phase 34: type, arrow keys, scrub (and Escape), reset, and each control ty
   // scrub: drag the label 40 px right = ten steps; one undo step for the whole drag
   await waitSaved(page);
   const label = row(page, "shape.cornerRadius").locator(".pro-number__label");
+  await label.scrollIntoViewIfNeeded(); // the row can be below the visible part of the inspector
   const box = (await label.boundingBox())!;
   const start = { x: box.x + 10, y: box.y + box.height / 2 };
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  await page.mouse.move(start.x + 20, start.y, { steps: 4 });
-  await page.mouse.move(start.x + 40, start.y, { steps: 4 });
+  await page.waitForTimeout(60); // let the press register before the pointer moves (WebKit drops moves that come with it)
+  await page.mouse.move(start.x + 20, start.y, { steps: 6 });
+  await page.mouse.move(start.x + 40, start.y, { steps: 6 });
   await page.mouse.up();
   await expect.poll(async () => Number((await view(page, id))?.rx)).toBeGreaterThan(28);
   const scrubbed = Number((await view(page, id))!.rx);
@@ -132,7 +134,8 @@ test("Phase 34: type, arrow keys, scrub (and Escape), reset, and each control ty
   // Escape during a scrub puts it back
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  await page.mouse.move(start.x + 60, start.y, { steps: 5 });
+  await page.waitForTimeout(60);
+  await page.mouse.move(start.x + 60, start.y, { steps: 8 });
   await expect.poll(async () => Number((await view(page, id))?.rx)).toBeGreaterThan(30);
   await page.keyboard.press("Escape");
   await page.mouse.up();
