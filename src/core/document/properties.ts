@@ -263,6 +263,8 @@ const DEFS = {
   "typography.fontSizeUnit": unitOf(TYPOGRAPHY),
   "typography.fontWeight": oneOf(null, "400", "font-weight", "layout", TYPOGRAPHY),
   "typography.fontFamily": str("Inter", "font-family", "layout", TYPOGRAPHY),
+  /** Variable-font axes as `tag value, tag value` (Phase 38), drawn as `font-variation-settings`. */
+  "typography.fontVariations": typed(str("", "font-variation-settings", "layout", TYPOGRAPHY)),
   "typography.fontStyle": oneOf(["normal", "italic"], "normal", "font-style", "layout", TYPOGRAPHY),
   "typography.letterSpacing": px(0, "letter-spacing", "layout", TYPOGRAPHY),
   "typography.letterSpacingUnit": unitOf(TYPOGRAPHY),

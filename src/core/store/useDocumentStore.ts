@@ -600,6 +600,14 @@ export const documentCommands = {
     });
   },
 
+  /** Sets how fonts show while loading (the project's `font-display`). */
+  setFontDisplay(display: "swap" | "block" | "fallback" | "optional" | "auto", label = "Font loading") {
+    commit(label, (draft) => {
+      if (display === "swap") delete draft.fontDisplay;
+      else draft.fontDisplay = display;
+    });
+  },
+
   /** Records an imported file in the document's asset manifest (Phase 36). The bytes are in the asset store. */
   addAsset(entry: AssetEntry, label = "Import asset") {
     commit(label, (draft) => {

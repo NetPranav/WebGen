@@ -17,6 +17,8 @@ import { createPlanStore } from "@/core/render/planStore";
 import { StageContext, StoreRenderLayer, type StageContextValue } from "@/core/render/StoreRenderLayer";
 import { StageRenderer, registerFrameRenderer, setStageRenderer } from "@/core/render/StageRenderer";
 import { StageFrame, type FrameMount } from "./StageFrame";
+import { useFontSync } from "../fonts/useFontSync";
+import { useFontsStore } from "@/core/store/useFontsStore";
 
 export interface StageHostProps {
   width?: number | string;
@@ -73,13 +75,19 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
     });
   }, [plan, rootIds]);
 
+  const [frameDoc, setFrameDoc] = useState<Document | null>(null);
   const handleFrame = useCallback(
     (frame: FrameMount | null) => {
       if (frame) renderer.attach({ window: frame.window, root: frame.root });
       else renderer.detach();
+      setFrameDoc(frame ? frame.document : null);
     },
     [renderer],
   );
+  // the document's fonts, in this frame's document; a loaded font makes the renderer measure again (Phase 38)
+  useFontSync(frameDoc, () => renderer.invalidate());
+  // a layer changing size (a font arriving, typing) makes the overlay measure again; engines differ in whether they say "font loaded"
+  useEffect(() => renderer.onLayout(() => useFontsStore.getState().bump()), [renderer]);
 
   useEffect(() => {
     const off = frameId ? registerFrameRenderer(frameId, renderer) : undefined;

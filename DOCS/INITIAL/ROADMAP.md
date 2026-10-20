@@ -209,7 +209,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 35 | Paint: colour, gradients, strokes, shadows & blur | 34 | v3 22.2 (paint) + new | 1 | 🚧 |
 | 36 | Asset store & storage safety | 3 | v3 54.1, 54.2 | 1 | 🚧 |
 | 37 | Image layers | 36 | — (new) | 1 | 🚧 |
-| 38 | Fonts | 36 | v3 17.3 | 1 | 📋 |
+| 38 | Fonts | 36 | v3 17.3 | 1 | 🚧 |
 | 39 | Pen & pencil | 24 | v3 35.1–35.4 | 1 | 📋 |
 | 40 | Vector editing & boolean operations | 39 | v3 16.1 | 1 | 📋 |
 | 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 📋 |
@@ -738,11 +738,14 @@ The document and World Environment have their own stores, After-track actions mo
 
 
 ### Phase 38 · Fonts
-**Needs:** 36 · **Was:** v3 17.3 · **Status:** 📋
-- [ ] A font picker (the Google Fonts list plus local uploads stored as assets), weights and variable axes, `font-display`, and layout that waits for fonts to load (no jump).
+**Needs:** 36 · **Was:** v3 17.3 · **Status:** 🚧
+- [x] A font picker (the Google Fonts list plus local uploads stored as assets), weights and variable axes, `font-display`, and layout that waits for fonts to load (no jump).
 
 **You'll see:** any Google font or your own font on the canvas.
 **Done when:** an uploaded font renders after a reload in 3 browsers.
+
+**Evidence (2026-10-20):** `src/core/fonts/__tests__/fonts.test.ts` (15 tests: the 42-family catalog is consistent (unique, safe names, axes only on variable fonts, sane ranges); family names are sanitised so nothing can break out of a URL or a stylesheet; the first family of a stack however it is quoted; a document's fonts are sorted into imported files, catalog fonts and system fonts with the weights asked, and an imported font wins over a catalog font of the same name; the plan key changes exactly when the stylesheets would; **the Google URL asks a variable font for its whole range and axes (sorted as the service requires) and a static one for the weights in use**; `@font-face` for imported files uses the blob URL, the right format and the chosen `font-display`, and skips unsafe URLs; variations parse and serialise); `tests/e2e/fonts.spec.ts` in Chromium, Firefox and WebKit with two generated test fonts (`fixtures/make-fonts.py`: in Probe.ttf the letter A is one em wide and everything else half an em, in Remote.ttf two ems and a quarter, so which font drew a text is readable from its width): **an uploaded font becomes the layer's font ("AAAA" at 40 px is exactly 160 px wide, an ordinary fallback is not), is listed under "In this project", and renders after a reload (the file comes from the asset store); a catalog font is requested only when a layer uses it (the mocked stylesheet is asked for `family=Lobster:wght@400&display=swap`, and for the demo's Inter `family=Inter:opsz,wght@14..32,100..900`), and when the file arrives three seconds late the text is drawn in the fallback with the selection outline matching it, then the text is 320 px wide and the outline follows it to 320 px (no stale box)**; a static family offers its own weights; a variable family offers its axes as sliders, the width axis writes `font-variation-settings: "wdth" 80` and choosing another family clears it; "Font loading" is a project setting that changes the stylesheet's `display=`; search narrows the list. **Design:** the picker lists the project's imported fonts, the Google catalog and the system fonts, and a font file imported from it becomes an asset (its file name is its family). Nothing is requested until a layer names a family: `useFontSync` keeps one stylesheet link (catalog fonts) and one `@font-face` style (imported files) in each document that draws text (every stage frame and the editor's own page, for the in-place text editor), and only restarts when the set of fonts to load changes. When a layer changes size the renderer tells the overlay to measure again (`StageRenderer.onLayout`, from its `ResizeObserver`, because WebKit never says "font loaded" for a stylesheet font), so selection boxes and hit areas follow the text. The document gets an optional `fontDisplay` (additive, no schema bump) and layers a `typography.fontVariations` property. **Changes elsewhere:** the old fixed family list in the text properties is the picker; "Size" and other labels are matched exactly in tests now that axes have labels. **Not built:** italic faces of catalog fonts, font subsetting, uploaded variable fonts' axes (an uploaded font offers weights only), and loading Google Fonts in the exported site (Phase 49). Status stays 🚧 until CI passes in 3 browsers.
+
 
 ### Phase 39 · Pen & pencil
 **Needs:** 24 · **Was:** v3 35.1–35.4 · **Closes:** AUD-19 · **Status:** 📋

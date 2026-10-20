@@ -14,6 +14,7 @@ import { setFill, setFrame, setOpacity, setRadius, setSimpleText, setStroke } fr
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
 import { getDocument } from "../store/documentState";
+import { documentCommands } from "../store/useDocumentStore";
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
@@ -157,6 +158,7 @@ export function registerEditingCommands(): () => void {
   add(defineTypedCommand({ id: "paint.setStrokeStyle", title: "Set Stroke Style", category: "Layer", args: z.object({ ids: targets, style: z.enum(["solid", "dashed", "dotted"]) }), run: ({ ids: t, style }) => ({ changed: setStrokeStyle(t ?? ids(), style) }) }));
   add(defineTypedCommand({ id: "paint.replaceImage", title: "Replace Image", category: "Layer", args: z.object({ ids: targets, src: z.string(), natural: z.object({ w: z.number().positive(), h: z.number().positive() }).optional(), index: z.number().int().min(0).optional() }), run: ({ ids: t, src, natural, index }) => ({ changed: replaceImage(t ?? ids(), src, natural, index) }) }));
   add(defineTypedCommand({ id: "paint.setBlur", title: "Set Blur", category: "Layer", args: z.object({ ids: targets, layer: z.number().optional(), background: z.number().optional() }), run: ({ ids: t, layer, background }) => ({ changed: setBlur(t ?? ids(), { layer, background }) }) }));
+  add(defineTypedCommand({ id: "fonts.setDisplay", title: "Set Font Loading", category: "Text", args: z.object({ display: z.enum(["swap", "block", "fallback", "optional", "auto"]) }), run: ({ display }) => { documentCommands.setFontDisplay(display); return { ok: true }; } }));
   add(registerTextCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());

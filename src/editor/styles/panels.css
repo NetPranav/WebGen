@@ -7456,3 +7456,82 @@
   color: var(--accent-primary);
   cursor: pointer;
 }
+
+/* Font picker (Phase 38) */
+.font-picker {
+  position: relative;
+}
+.font-picker__button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font: inherit;
+  color: inherit;
+  background: var(--surface-input, transparent);
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+  cursor: pointer;
+}
+.font-picker__panel {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 6px;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 6px;
+  background: var(--surface-panel-solid, #fff);
+}
+.font-picker__search {
+  padding: 4px 6px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+}
+.font-picker__list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+.font-picker__group {
+  padding: 6px 4px 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+.font-picker__option {
+  display: block;
+  width: 100%;
+  padding: 4px 6px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.font-picker__option:hover,
+.font-picker__option[aria-selected="true"] {
+  background: var(--surface-hover, rgba(99, 102, 241, 0.15));
+}
+.font-picker__empty {
+  padding: 8px;
+  opacity: 0.6;
+}
+.font-picker__upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.font-axis {
+  display: grid;
+  grid-template-columns: 90px 1fr 56px;
+  align-items: center;
+  gap: 6px;
+}

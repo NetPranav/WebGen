@@ -175,6 +175,8 @@ const MotionDocumentShape = z.object({
   exportSettings: ExportSettingsSchema,
   /** Imported files, by content hash (Phase 36). Absent in documents saved before assets: read it as empty. */
   assets: z.record(z.string(), AssetEntrySchema).optional(),
+  /** How fonts show while they load (the CSS `font-display`; Phase 38). Absent: `swap`. */
+  fontDisplay: z.enum(["swap", "block", "fallback", "optional", "auto"]).optional(),
 });
 
 /** Structural schema plus referential integrity (keys, tree links, owners). */

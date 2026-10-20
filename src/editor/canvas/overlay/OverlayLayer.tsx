@@ -10,6 +10,7 @@ import { useToolStore } from "@/core/store/useToolStore";
 import { screenToDoc, type Point } from "@/core/viewport/camera";
 import { OverlayController, type OverlayEnv } from "./OverlayController";
 import { useSnapStore } from "@/core/store/useSnapStore";
+import { useFontsStore } from "@/core/store/useFontsStore";
 import type { TransformModel } from "../transformModel";
 
 interface OverlayLayerProps {
@@ -90,6 +91,8 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       if (pointer && s.camera !== p.camera) controller.invalidate();
     });
     const offSnap = useSnapStore.subscribe(() => controller.invalidate());
+    const offFonts = useFontsStore.subscribe(() => controller.invalidate(true)); // a font loaded: text changed size
+
     const offTool = useToolStore.subscribe((s, p) => {
       if (s.current !== p.current) controller.invalidate();
     });
@@ -98,6 +101,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
     return () => {
       offTool();
       offSnap();
+      offFonts();
       canvas.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("mouseleave", onLeave);
       offSelection();

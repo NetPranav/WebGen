@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { px } from "../geometry";
 import type { ResolvedProps } from "../types";
+import { variationCss } from "../../fonts/families";
 
 /**
  * The typography of a text layer as CSS: family, size, weight, style, line height, letter spacing, alignment,
@@ -28,6 +29,7 @@ export function textTypography(resolved: ResolvedProps): CSSProperties {
     color: resolved.str("typography.color", "#0f172a"),
     textAlign: align === "center" || align === "right" || align === "justify" ? align : "left",
     lineHeight,
+    ...(variationCss(resolved.get("typography.fontVariations")) ? { fontVariationSettings: variationCss(resolved.get("typography.fontVariations")) } : {}),
     ...(typeof ls === "number" && Number.isFinite(ls) && ls !== 0 ? { letterSpacing: `${ls}${lsUnit === "em" || lsUnit === "rem" ? lsUnit : "px"}` } : {}),
     ...(decoration === "underline" || decoration === "line-through" || decoration === "overline" ? { textDecorationLine: decoration } : {}),
     ...(transform === "uppercase" || transform === "lowercase" || transform === "capitalize" ? { textTransform: transform } : {}),

@@ -77,7 +77,11 @@ export class StageRenderer {
     };
     const makeResize = this.env.createResizeObserver ?? (typeof ResizeObserver === "undefined" ? undefined : (cb: () => void) => new ResizeObserver(cb) as unknown as ObserverLike);
     const makeMutation = this.env.createMutationObserver ?? (typeof MutationObserver === "undefined" ? undefined : (cb: () => void) => new MutationObserver(cb) as unknown as ObserverLike);
-    this.resizeObserver = makeResize?.(bump) ?? null;
+    // A layer changed size (a font arrived, text was typed): measurements are stale, and whoever drew from them redraws.
+    this.resizeObserver = makeResize?.(() => {
+      bump();
+      for (const listener of this.layoutListeners) listener();
+    }) ?? null;
     this.mutationObserver = makeMutation?.(bump) ?? null;
     this.mutationObserver?.observe(frame.root, { attributes: true, childList: true, subtree: true, characterData: true });
     for (const id of this.registry.ids()) {
@@ -96,6 +100,19 @@ export class StageRenderer {
     this.mutationObserver = null;
     this.frame = null;
     this.cache.clear();
+    this.epoch++;
+  }
+
+  private readonly layoutListeners = new Set<() => void>();
+
+  /** Calls `listener` whenever a drawn layer changes size. Returns the unsubscribe function. */
+  onLayout(listener: () => void): () => void {
+    this.layoutListeners.add(listener);
+    return () => this.layoutListeners.delete(listener);
+  }
+
+  /** Something outside the frame's DOM changed what layers measure (a font loaded): drop the cache so the next read is fresh. */
+  invalidate(): void {
     this.epoch++;
   }
 
