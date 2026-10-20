@@ -1,237 +1,487 @@
-# Lane A manual test guide (Phases 13–19)
+# Lane A manual test guide (Phases 13–38)
 
-**For:** `@OVERxPOWERED`, testing `@NetPranav`'s work. **Covers:** everything Lane A has merged to `main` so far (PR #18 and PR #30, which landed the stack #24–#30).
+**For:** `@OVERxPOWERED`, testing `@NetPranav`'s work. **Covers:** everything Lane A has merged to `main` (Phases 13–38). Lane B's work is in `B_TEST_GUIDE.md`.
+**Updated:** when Lane A merges more phases. Last update covers up to Phase 38.
 
-| Phase | What it delivered | Where to look |
+| Phase | What you can do or see | Section |
 |---|---|---|
-| 13 | Command bus: typed commands, one menu model, Tier A canvas tools | File / Edit / View / Help menus, command palette, tool dock |
-| 14 | Workspace model and panel registry; `EditorShell.tsx` split (2,139 → 389 lines) | Panel layout that survives a reload; lazy panels |
-| 15 | Design / Animate / Code presets, inspector tabs, saved layouts | Header tabs, right-hand inspector, Layouts menu |
-| 16 | Threat model (decision 0008) and two XSS fixes | Hostile text on the stage and in AI chat |
-| 17 | Render definitions: one component per archetype | `/editor/render-gallery` |
-| 18 | Stage host v2: live DOM frame, no HTML strings (decision 0009) | The canvas stage |
-| 19 | Incremental stage updates, `LayerNodeRegistry`, `renderer.measure()` | `/editor/stage-lab` |
+| 13 | Menus run real commands; drawing tools; command palette | 3.1 |
+| 14 | Panel layout that survives a reload; panels load on demand | 3.2 |
+| 15 | Design / Animate / Code workspaces; inspector tabs; saved layouts | 3.3 |
+| 16 | Hostile text can't run code | 3.4 |
+| 17 | One drawing per layer type; render gallery | 3.5 |
+| 18 | The stage is a live frame, not an HTML string | 3.6 |
+| 19 | Only edited layers redraw; 500 layers stay fast | 3.7 |
+| 20 | One camera: pan and zoom 2%–6,400%, fit, zoom to selection | 3.8 |
+| 21 | Several frames side by side (Desktop / Tablet / Mobile) | 3.9 |
+| 22 | Hover outline and click selection go through a spatial index | 3.10 |
+| 23 | Overlay layer; Design / Preview switch | 3.11 |
+| 24 | Tools as a state machine; Space = Hand, Ctrl = deep select | 3.12 |
+| 25 | Draw Frame, Rectangle, Ellipse, Line, Arrow, Polygon, Star, Text | 3.13 |
+| 26 | Click, Shift-click, marquee, select all/none/inverse | 3.14 |
+| 27 | Move, resize, rotate handles; shape parameter handles | 3.15 |
+| 28 | Snapping, smart guides, rulers and guides | 3.16 |
+| 29 | Copy, paste, duplicate, delete, nudge, arrange, group, lock, hide, rename | 3.17 |
+| 30 | Align, distribute, tidy up | 3.18 |
+| 31 | Type directly on the canvas | 3.19 |
+| 32 | Layers panel | 3.20 |
+| 33 | Simple inspector | 3.21 |
+| 34 | Pro inspector | 3.22 |
+| 35 | Colour, gradients, strokes, shadows, blur | 3.23 |
+| 36 | Assets: drop pictures on the canvas | 3.24 |
+| 37 | Image fills and cropping | 3.25 |
+| 38 | Fonts: Google, system, your own | 3.26 |
 
-This guide has two halves. **Part 1 is the user's view** (what a person using the editor sees and feels). **Part 2 is the developer's view** (code, tests, DevTools checks). Do Part 1 first. Tick the boxes as you go and note any failure by its number.
+## How to use this guide
 
-> **Known gaps, not bugs.** Lane A's own changelog lists these as not done. Don't report them:
-> - Edit-menu Cut / Copy / Paste / Duplicate / Delete, Save As Template, Export Next.js + Prisma, New Project and Close Project are **disabled on purpose** and name the phase that builds them.
-> - The inspector's fields don't write to the document yet (Phases 33–34). The Motion inspector is read-only until Stage 2.
-> - The **Layers panel** in the Design workspace arrives in Phase 32.
-> - **Wheel and pinch over the stage frame** do not zoom the canvas yet (Phase 20).
-> - The stage does **not animate** during playback. That is Lane B's Phase 57.
-> - Direct-select, Pen, Pencil, the Polygon/Star/Arrow flyout and Tier B tools (Motion Path, Gradient, Anchor Point, Eyedropper) are not built.
-> - A drawn shape is selected but shows no highlight box (cosmetic, predates Phase 13).
+Every test has the shape **Do → Expect → Fails if**, and a tick box. Tick the box only when what you see is what **Expect** says; otherwise write the test number and what happened (section 6). Each phase has a **User test** (click around) and, where it makes sense, a **Developer test** (terminal, DevTools or code).
+
+> **Known gaps, not bugs** (Lane A's own changelogs list them as not done):
+> - Pen and Pencil tools, and Tier B tools (Motion Path, Gradient tool, Anchor Point, Eyedropper tool), don't exist yet. The dock only shows tools that work.
+> - **New Project** and **Close Project** in the File menu are disabled and name Phase 14. Save As Template names Phase 51, Export Next.js + Prisma Code names Phase 49.
+> - The Motion inspector (right dock, **Motion** tab) is read-only until the timeline phases.
 > - Hover and press looks wait for States (Phase 78). Effect surfaces and 3D layers draw a labelled placeholder.
+> - A whole-document animation of layers other than the root is not yet editable in the Sequencer (Lane B's timeline phases).
 
 ---
 
-## 0. Setup
+## 1. Setup
 
 ```bash
 cd ~/padhai_in_linux/Projects/lazylayouts
 git switch main && git pull
 npm ci                 # only if package-lock.json changed
-npm run dev            # http://localhost:3000/editor
+npm run dev            # open http://localhost:3000/editor
 ```
 
-- Main pass in **Chromium**. Repeat Part 1 sections 3, 5 and 6 in **Firefox** (and WebKit if you have it) at the end. Phase 19 fixed a WebKit-only bug, so WebKit matters.
-- Keep DevTools → Console open. **Any red error while you test is a failure.**
-- `http://localhost:3000/editor` redirects to `…/editor?projectId=…` and creates a project.
-- The editor now opens in the **Design** workspace, with the timeline folded away. Open the timeline with the **Timeline tool** button on the Motion shelf, or switch to the **Animate** tab.
-- To get something on the stage, click **Mount Showcase Demo**, or draw shapes with the tool dock.
+- Use **Chromium** for the main pass; section 5 repeats the key tests in **Firefox** and **Safari/WebKit** (Lane A fixed several WebKit-only bugs).
+- Open DevTools → **Console** and keep it open. **Any red error while you test is a failure.**
+- `/editor` redirects to `/editor?projectId=…` and creates a project.
+
+### 1.1 The map: where everything is
+
+| Thing | Where | Names you will see |
+|---|---|---|
+| Menus | Top header | **File**, **Edit**, **View**, **Window**, **Help** |
+| Canvas size buttons | Header | **Desktop Canvas (1440px)**, **Tablet Canvas (768px)**, **Mobile Canvas (375px)** |
+| Demo content | Header | **Mount Showcase Demo** (a heading and a button) |
+| Workspace tabs | Header, right side | **Design workspace**, **Animate workspace**, **Code workspace**; button **Saved layouts** |
+| Command palette | Header | **Open command palette** (or **Ctrl+P**) |
+| Save / Undo / Redo | Header | **Save Project (Ctrl+S)**, **Undo (Ctrl+Z)**, **Redo (Ctrl+Shift+Z)** |
+| Frame bar | Over the top of the stage | Frame title and size boxes, move/duplicate/delete buttons, **Frame** (add), **Design** / **Preview**, **Snap objects**, **Snap guides**, **Pixel grid**, **Rulers**, **Light** / **Dark** / **Checkerboard** |
+| Tool dock | Bottom of the stage | **Select Tool**, **Hand Tool (Pan)**, **Frame Tool**, **Rectangle Tool**, **Ellipse Tool**, **Line Tool**, **Arrow Tool**, **Polygon Tool**, **Star Tool**, **Text Tool**, then **Zoom Out**, **Current Zoom 100%. Click to reset.**, **Zoom In**, **Fit Viewport to Screen** |
+| Left dock | Left | Tabs **Layers** and **Assets** |
+| Right dock (inspector) | Right | Tabs **Design**, **Motion**, **Code**; inside Design a **Simple / Pro** switch |
+| Status bar | Very bottom | Layer count text, the transport bar (Lane B), zoom |
+
+### 1.2 Recipe B: get something to work on
+
+1. Open `/editor`.
+2. Click **Mount Showcase Demo**. A page with a heading and a button appears on the stage.
+3. Click the **Rectangle Tool** (dock) and drag a rectangle inside the page. Do the same with **Ellipse Tool** and **Text Tool** to have three more layers.
+
+"The demo" below means this page. "Draw a shape" means step 3.
 
 ---
 
-# PART 1: The user's view
+## 2. Quick smoke test (3 minutes)
 
-## 1. Smoke test (2 minutes)
+- [ ] **S1** Do: open `/editor`. Expect: the editor loads, no red console errors, the **Design workspace** tab is selected.
+- [ ] **S2** Do: click **Mount Showcase Demo**. Expect: a page appears on the stage.
+- [ ] **S3** Do: click **File**, **Edit**, **View**, **Window**, **Help** in turn. Expect: each opens a menu; click away to close.
+- [ ] **S4** Do: press **Ctrl+P**. Expect: the command palette opens. **Escape** closes it.
+- [ ] **S5** Do: draw a rectangle (Recipe B step 3), then **Ctrl+Z**. Expect: it appears, then disappears.
 
-- [ ] **1.1** The editor loads and the console shows no red errors.
-- [ ] **1.2** The header shows workspace tabs, with **Design** selected.
-- [ ] **1.3** Click **Mount Showcase Demo**. The demo appears on the stage.
-- [ ] **1.4** Click **File**, **Edit**, **View** and **Help**. Each opens a menu.
-- [ ] **1.5** Press **Ctrl+P**. The command palette opens. Press Escape to close it.
+---
 
-Stop and report if any of these fail.
+## 3. Tests by phase
 
-## 2. Phase 13: menus, commands and the tool dock
+### 3.1 Phase 13: command bus, menus and tools
 
-### 2.1 Menus run real commands
-- [ ] **2.1.1** Make an edit (draw a rectangle), then **Edit → Undo**. It disappears. **Edit → Redo** brings it back. The same happens with **Ctrl+Z** and **Ctrl+Shift+Z**.
-- [ ] **2.1.2** **File → Save Project** (or Ctrl+S). The Save button's dirty dot clears.
-- [ ] **2.1.3** **File → Export Project File (.lazy.json)** downloads a file. **File → Import Project File…** (and **Open Project…**) opens a file picker.
-- [ ] **2.1.4** **View → Zoom In / Zoom Out / Reset Zoom (100%)** change the canvas zoom. Ctrl++, Ctrl+- and Ctrl+0 do the same.
-- [ ] **2.1.5** **Edit → Preferences…** (Ctrl+,) opens preferences.
-- [ ] **2.1.6** **Help → Keyboard Shortcuts** (Ctrl+/) opens the command palette.
+**User test**
+- [ ] **T13.1** Do: draw a rectangle, then **Edit → Undo**. Expect: it disappears. **Edit → Redo** brings it back. Same with **Ctrl+Z** and **Ctrl+Shift+Z**.
+- [ ] **T13.2** Do: **File → Save Project** (or **Ctrl+S**). Expect: the Save button's small dot clears.
+- [ ] **T13.3** Do: **File → Export Project File (.lazy.json)**. Expect: a file downloads. **File → Import Project File…** (and **Open Project…**) opens a file picker.
+- [ ] **T13.4** Do: **View → Zoom In**, **Zoom Out**, **Reset Zoom (100%)** (or **Ctrl++**, **Ctrl+-**, **Ctrl+0**). Expect: the canvas zooms accordingly.
+- [ ] **T13.5** Do: **Edit → Preferences…** (**Ctrl+,**). Expect: preferences open.
+- [ ] **T13.6** Do: **Help → Keyboard Shortcuts** (**Ctrl+/**). Expect: the command palette opens.
+- [ ] **T13.7** Do: open **File**. Expect: **New Project…** and **Close Project** are greyed and say "Phase 14", **Save As Template…** says Phase 51, **Export Next.js + Prisma Code** says Phase 49. There are **no** fake recent-project entries.
+- [ ] **T13.8** Do: click a greyed item. Expect: nothing happens and there is no console error.
+- [ ] **T13.9** Do: **Ctrl+P**, type `zoom`, run **Zoom In**. Expect: the canvas zooms.
 
-### 2.2 Unbuilt items are honest
-- [ ] **2.2.1** Open **Edit**. Cut, Copy, Paste, Duplicate and Delete are **greyed out** and name **Phase 29**.
-- [ ] **2.2.2** In **File**, Save As Template names Phase 51, Export Next.js + Prisma Code names Phase 49, New Project and Close Project name Phase 14.
-- [ ] **2.2.3** In **View**, Fit to Stage and Show Dot Grid name Phase 20, Snap to Grid names Phase 28, Toggle Fullscreen names Phase 14.
-- [ ] **2.2.4** Clicking a greyed item does nothing, with no error. The File menu has **no fake recent-project entries**.
+**Developer test**
+- [ ] **T13.10** Do: open `src/editor/menus/menuModel.tsx`. Expect: every menu item has either a `command` or a `pending: "Phase N"`.
+- [ ] **T13.11** Do: `npx tsx --test "src/core/commands/__tests__/*.test.ts"`. Expect: pass, including the coverage test.
+- [ ] **T13.12** Do: `npx playwright test tests/e2e/command-bus.spec.ts --project=chromium`. Expect: pass.
 
-### 2.3 Tier A tools
-The tool dock holds Select, Hand, Frame, Rectangle, Ellipse, Line and Text.
-- [ ] **2.3.1** Pick **Rectangle**, drag on the stage. **Exactly one** rectangle appears (a past bug created two).
-- [ ] **2.3.2** Repeat with **Ellipse**, **Line** and **Frame**. Each creates one layer of the right shape.
-- [ ] **2.3.3** Pick **Text**, drag, and a text layer appears.
-- [ ] **2.3.4** Start the drag **on top of the device frame**. It still draws (the stage used to swallow drags).
-- [ ] **2.3.5** With a shape tool active, click a dock or zoom-control button. **No stray shape** is created.
-- [ ] **2.3.6** With a shape tool active, hold **Space** and drag, then middle-drag. The canvas pans.
-- [ ] **2.3.7** Hover the canvas and press **V**, **H**, **T**: Select, Hand, Text. **P** is Pen (not built); it must not switch to Pencil.
-- [ ] **2.3.8** Undo after each drawing step removes it.
+---
 
-### 2.4 Command palette
-- [ ] **2.4.1** Ctrl+P, type `workspace`. You see commands such as Design, Animate, Code, Save Layout, Apply Layout, Delete Layout, Reset Layout.
-- [ ] **2.4.2** Type `zoom`, run **Zoom In** from the palette. The canvas zooms.
-- [ ] **2.4.3** **Ctrl+A** opens the +Add palette (it now goes through the command bus).
+### 3.2 Phase 14: workspace model and panel registry
 
-## 3. Phases 14 and 15: workspaces, presets and layouts
+**User test**
+- [ ] **T14.1** Do: click **Animate workspace**, then drag the vertical splitter in front of the right dock to the left to widen it. Reload the page. Expect: the Animate workspace and the dock's width come back as you left them.
+- [ ] **T14.2** Do: press **Ctrl+P**, type `reset layout`, run it. Expect: back to the Design workspace default.
 
-### 3.1 Presets
-- [ ] **3.1.1** The **Design** tab is selected on a fresh load. The stage is in the middle and the inspector is on the right. The timeline drawer is folded away, but the transport bar stays in the status bar.
-- [ ] **3.1.2** The inspector has tabs **Design · Motion · Code**.
-- [ ] **3.1.3** Click **Animate**. The timeline opens at roughly 40% of the window height and the **Motion** inspector shows.
-- [ ] **3.1.4** Click **Code**. The right dock widens and shows the Live Code inspector.
-- [ ] **3.1.5** Click **Design** again. The layout returns to the default.
-- [ ] **3.1.6** Each switch feels instant (under 100 ms), and **the stage does not flicker or reload**. Anything you drew stays.
-- [ ] **3.1.7** In the default (not full) edition, there are **no** Logic, Data or Debug tabs.
-- [ ] **3.1.8** If your build still has a Window or workspace list anywhere, it matches the header tabs. "Full Studio" and the right dock's "Tokens" and "Errors" tabs are gone.
+**Developer test**
+- [ ] **T14.3** Do: `wc -l src/editor/shell/EditorShell.tsx`. Expect: about 390 lines (it was 2,139).
+- [ ] **T14.4** Do: open DevTools → Network, filter "JS", reload on the **Design workspace**. Expect: the Sequencer, Curve Editor, Export Preview, Output Log, Live Code and History chunks are **not** fetched. Click **Animate workspace**: the Sequencer chunk appears.
+- [ ] **T14.5** Do: in the Console run `document.querySelector('.dock-layout').dataset.loadedPanels`. Expect: a list that grows only as you show panels.
+- [ ] **T14.6** Do: in the Console run `document.querySelector('.dock-zone--center').__m = 1`, switch between the three workspace tabs and resize splitters, then run `document.querySelector('.dock-zone--center').__m`. Expect: `1` (the stage element was never replaced).
+- [ ] **T14.7** Do: DevTools → Application → Local Storage: find the workspace entry, corrupt its JSON by hand, reload. Expect: the editor falls back to the default layout and doesn't crash.
+- [ ] **T14.8** Do: `npx playwright test tests/e2e/workspace.spec.ts --project=chromium`. Expect: pass.
 
-### 3.2 Layout persistence
-- [ ] **3.2.1** Pick **Animate**, drag the splitter in front of the right dock to make it wider, then reload. The preset, tab and dock width come back as you left them.
-- [ ] **3.2.2** `workspace.resetLayout` (Ctrl+P → "Reset Layout") returns to the Design default.
+---
 
-### 3.3 Saved layouts
-- [ ] **3.3.1** Arrange a layout, open the **Layouts** menu, **save** it under a name.
-- [ ] **3.3.2** Switch preset, then apply your saved layout from the menu. It comes back.
-- [ ] **3.3.3** Reload. The saved layout is still listed.
-- [ ] **3.3.4** Delete it. It is gone, also after a reload.
-- [ ] **3.3.5** Save more than 20. The 21st is refused or the oldest dropped; either way there's no crash.
+### 3.3 Phase 15: Design / Animate / Code workspaces
 
-### 3.4 Motion inspector
-- [ ] **3.4.1** In **Animate**, select a layer that has animation. The Motion inspector lists its clips and tracks. It is read-only. Clicking opens the timeline.
-- [ ] **3.4.2** With nothing selected it shows a sensible empty state.
+**User test**
+- [ ] **T15.1** Do: open a fresh `/editor`. Expect: **Design workspace** selected, the stage in the middle, the inspector on the right with tabs **Design / Motion / Code**, and no timeline panel (the transport bar stays in the status bar).
+- [ ] **T15.2** Do: click **Animate workspace**. Expect: a timeline panel opens at the bottom (about 40% of the window) and the **Motion** inspector shows ("Select a layer to see what moves on it").
+- [ ] **T15.3** Do: click **Code workspace**. Expect: the right dock widens and shows the Live Code inspector.
+- [ ] **T15.4** Do: click **Design workspace** again. Expect: the default layout returns, and a rectangle you drew earlier is still there (the stage doesn't reload or flicker).
+- [ ] **T15.5** Do: switch workspaces rapidly 20 times. Expect: each switch looks instant and nothing breaks.
+- [ ] **T15.6** Do: you should **not** see tabs named Logic, Data or Debug (full edition only), "Full Studio", or right-dock tabs "Tokens" / "Errors".
+- [ ] **T15.7** Do: arrange a layout (open **Animate workspace**, widen the right dock), then click **Saved layouts** and save it under a name. Switch to another workspace, open **Saved layouts**, pick your name. Expect: your layout returns.
+- [ ] **T15.8** Do: reload. Expect: the saved layout is still listed. Delete it from the same menu: it disappears, also after a reload.
 
-## 4. Phase 16: hostile content (user-facing check)
+**Developer test**
+- [ ] **T15.9** Do: `npx playwright test tests/e2e/presets.spec.ts --project=chromium`. Expect: pass (three tests, including the "under 100 ms and the stage is not replaced" check).
+
+---
+
+### 3.4 Phase 16: hostile content
 
 Use a throwaway project.
-- [ ] **4.1** Create a Text layer and set its text to `<img src=x onerror=alert(1)>` (type it in the layer's text, or import a file where the text is that string). **No alert appears.** The stage shows the literal text.
-- [ ] **4.2** Give a layer the name `<script>alert(2)</script>`. No alert, and the layer name shows as plain text in any panel that lists it.
-- [ ] **4.3** In the AI chat, send a message containing `<b onmouseover=alert(3)>hi</b>`. It shows as text, not bold, and hovering does nothing.
-
-## 5. Phases 17 and 18: what the stage draws
-
-### 5.1 The render gallery
-Open `http://localhost:3000/editor/render-gallery`.
-- [ ] **5.1.1** The page lists **53 cases** with no console errors.
-- [ ] **5.1.2** Every archetype draws something visible, including toggle, badge, fab, icon, divider, background, SVG group and text (the old stage drew these as invisible boxes).
-- [ ] **5.1.3** The shapes (rectangle, ellipse, line, polygon, star, arrow, svgPath) look right.
-- [ ] **5.1.4** Hostile and edge cases (huge sizes, bad image sources, bad path data, deep nesting) stay **inside their cell**, never overflow and never run script.
-- [ ] **5.1.5** Effect surfaces and 3D layers draw a labelled placeholder.
-
-### 5.2 The live stage
-- [ ] **5.2.1** Mount the showcase demo. It looks like the demo, apart from having no body padding or default container styles (Lane A says that change is deliberate).
-- [ ] **5.2.2** Click a layer on the stage. It is picked (the id is reported).
-- [ ] **5.2.3** Edit a layer (drag a keyframe or change a property in the Sequencer). The stage updates **without flashing or reloading**.
-- [ ] **5.2.4** With the pointer over the stage, press **Ctrl+Z**, **V**, **H**. They work as shortcuts.
-- [ ] **5.2.5** Click into the stage, then type. Keys are not eaten by the frame (the WebKit bug).
-
-## 6. Phase 19: speed on a big document
-
-Open `http://localhost:3000/editor/stage-lab`.
-- [ ] **6.1** Click **Load 500 layers**. They appear quickly and the page shows a mount time well under 500 ms.
-- [ ] **6.2** Click **Edit one layer**. The `edits:` counter goes up and layer 250's text changes to `Edited …`. With React DevTools → "Highlight updates", only that layer flashes. (The exact render counts are only recorded in the automated test, which sets `window.__LL_TEST__`; to read them yourself, run `window.__LL_TEST__ = true; window.__LL_RENDER_STATS__ = {}` in the console **before** loading the layers.)
-- [ ] **6.3** Click **Add one layer** and **Remove one layer**. Only the parent and the new layer flash. Click **Reset render counts** between tries.
-- [ ] **6.4** The page stays responsive while you do all of this.
-
-## 7. Regression checks
-
-- [ ] **7.1** Reload mid-edit. Your work is saved and comes back.
-- [ ] **7.2** Import `tests/e2e/fixtures/showcase-v4.lazy.json`. It opens, with no error.
-- [ ] **7.3** The timeline still works from the **Animate** tab (Lane B's transport, scrubbing and keyboard shortcuts; see `B_TEST_GUIDE.md`).
-- [ ] **7.4** Hover the timeline and press **Space**: it plays. Hover the canvas and press **Space**: it pans and does not play.
-- [ ] **7.5** Delete a keyframe in the timeline with **Delete**: exactly **one** keyframe goes.
+- [ ] **T16.1** Do: draw a **Text Tool** box and type `<img src=x onerror=alert(1)>`. Expect: **no alert box**; the stage shows the text literally.
+- [ ] **T16.2** Do: rename a layer to `<script>alert(2)</script>` (double-click its row in the **Layers** panel). Expect: no alert; the name shows as plain text.
+- [ ] **T16.3** Do: open the AI panel and send `<b onmouseover=alert(3)>hi</b>`. Expect: shown as text, not bold; hovering does nothing.
+- [ ] **T16.4** (Developer) Do: open `DOCS/INITIAL/decisions/0008-threat-model.md`. Expect: nine trust boundaries, seven findings, rules R1–R10.
 
 ---
 
-# PART 2: The developer's view
+### 3.5 Phase 17: render definitions
 
-## 8. Run the automated suites
+- [ ] **T17.1** Do: open `http://localhost:3000/editor/render-gallery`. Expect: 53 cases, no console errors.
+- [ ] **T17.2** Do: scroll through them. Expect: every layer type draws something visible (including toggle, badge, floating button, icon, divider, background, SVG group and text, which used to draw nothing).
+- [ ] **T17.3** Do: look at the shapes (rectangle, ellipse, line, polygon, star, arrow, path). Expect: they look like what their names say.
+- [ ] **T17.4** Do: look at the hostile and edge cases (huge sizes, bad image sources, odd path data, deep nesting). Expect: each stays inside its box, nothing runs, nothing overflows.
+- [ ] **T17.5** Do: look at effect surfaces and 3D layers. Expect: a labelled placeholder.
+- [ ] **T17.6** (Developer) Do: `npx playwright test tests/e2e/render-gallery.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.6 Phase 18: the live stage frame
+
+**User test**
+- [ ] **T18.1** Do: **Mount Showcase Demo**, then click the heading on the stage. Expect: it is selected (an outline appears).
+- [ ] **T18.2** Do: with the pointer over the stage press **Ctrl+Z**, **V**, **H**. Expect: they work as shortcuts (undo, Select, Hand).
+- [ ] **T18.3** Do: draw a rectangle and watch the stage. Expect: it appears without the whole page flashing or reloading.
+
+**Developer test**
+- [ ] **T18.4** Do: DevTools → Elements, find `iframe[title="Stage"]`. Expect: `src="/stage-frame.html"`, no `srcdoc`, no `sandbox`.
+- [ ] **T18.5** Do: DevTools → Network → `stage-frame.html` → Response headers. Expect: a `Content-Security-Policy` header containing `script-src 'none'`.
+- [ ] **T18.6** Do: in the Console run `const d=document.querySelector('iframe[title="Stage"]').contentDocument; const s=d.createElement('script'); s.textContent='top.__x=1'; d.body.appendChild(s); top.__x`. Expect: `undefined` (the frame can't run scripts).
+- [ ] **T18.7** Do: `grep -rn 'postMessage(.*"\*"' src/`. Expect: no results.
+- [ ] **T18.8** Do: `npx playwright test tests/e2e/stage-host.spec.ts --project=chromium`. Expect: pass. (One test has a 16 ms budget and can fail on a busy machine; run it alone before reporting.)
+
+---
+
+### 3.7 Phase 19: incremental updates and measurement
+
+- [ ] **T19.1** Do: open `http://localhost:3000/editor/stage-lab` and click **Load 500 layers**. Expect: 500 lines appear, and the page reports `mounted in … ms` (under 500).
+- [ ] **T19.2** Do: click **Edit one layer**. Expect: the `edits:` counter goes up and layer 250's text changes to `Edited …`.
+- [ ] **T19.3** Do: click **Add one layer** and **Remove one layer**. Expect: a layer appears at the end / one disappears; the page stays responsive.
+- [ ] **T19.4** (Developer) Do: install React DevTools, turn on "Highlight updates", click **Edit one layer**. Expect: only that one layer flashes.
+- [ ] **T19.5** (Developer) Do: `npx playwright test tests/e2e/stage-incremental.spec.ts --project=chromium`. Expect: pass (500 layers mount < 500 ms; `measure()` within 0.5 px of the DOM).
+
+---
+
+### 3.8 Phase 20: viewport camera
+
+- [ ] **T20.1** Do: hold **Space** and drag on the canvas. Expect: the canvas pans.
+- [ ] **T20.2** Do: **Ctrl+scroll** (or pinch on a trackpad) over the stage. Expect: it zooms around the pointer, not around the centre.
+- [ ] **T20.3** Do: click **Zoom In** repeatedly until it stops, then **Zoom Out** repeatedly. Expect: the range is 2% to 6,400%, with steps by 1.25×, and 100% snaps.
+- [ ] **T20.4** Do: press **Shift+1**. Expect: zoom to fit everything. Select a layer, press **Shift+2**: zoom to it. Press **Shift+0**: 100%.
+- [ ] **T20.5** Do: pan and zoom, then reload. Expect: the same view is restored (it is remembered per project).
+- [ ] **T20.6** (Developer) Do: `npx playwright test tests/e2e/viewport-camera.spec.ts --project=chromium`. Expect: pass. (The 60 fps test can fail under load; run it alone.)
+
+---
+
+### 3.9 Phase 21: several frames on the canvas
+
+- [ ] **T21.1** Do: click **Tablet Canvas (768px)** in the header. Expect: a Tablet-sized frame is created next to the first and focused; the canvas shows both side by side.
+- [ ] **T21.2** Do: click **Mobile Canvas (375px)**. Expect: a Mobile frame appears. Clicking **Desktop Canvas (1440px)** focuses the Desktop one.
+- [ ] **T21.3** Do: double-click a frame's title. Expect: you can rename it. Press Enter.
+- [ ] **T21.4** Do: use a frame's size boxes (width and height). Expect: the frame resizes.
+- [ ] **T21.5** Do: use a frame's move-left / move-right buttons. Expect: the frame swaps places with its neighbour.
+- [ ] **T21.6** Do: use a frame's duplicate and delete buttons. Expect: a copy appears / the frame goes away; each is one **Ctrl+Z** step.
+- [ ] **T21.7** Do: click **Frame** in the frame bar. Expect: a menu of presets (Desktop, Laptop, Tablet, Mobile, custom).
+- [ ] **T21.8** Do: click **Light**, **Dark**, **Checkerboard**. Expect: the stage backdrop changes.
+- [ ] **T21.9** Do: draw a rectangle in one frame, then click inside another and draw. Expect: each shape lands in the frame you last clicked.
+- [ ] **T21.10** (Developer) Do: open `http://localhost:3000/editor/canvas-lab` (5 frames × 200 layers). Pan and zoom. Expect: smooth.
+- [ ] **T21.11** (Developer) Do: `npx playwright test tests/e2e/frames.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.10 Phase 22: hit-testing
+
+- [ ] **T22.1** Do: mount the demo, move the pointer over the heading. Expect: an outline appears around it within a frame.
+- [ ] **T22.2** Do: click once on a layer inside a container. Expect: the **direct child of the frame** is selected. **Ctrl-click** (Cmd on Mac): the **deepest** layer under the pointer is selected.
+- [ ] **T22.3** Do: lock a layer (padlock on its row in **Layers**), then click on it. Expect: it isn't selected; what is inside it isn't either.
+- [ ] **T22.4** Do: hide a layer (eye on its row). Expect: clicking where it was selects whatever is under it.
+- [ ] **T22.5** (Developer) Do: open `/editor/canvas-lab`, use its **Lock** / **Hide** buttons and click around. Expect: the same rules.
+- [ ] **T22.6** (Developer) Do: `npx playwright test tests/e2e/hit-testing.spec.ts --project=chromium`. Expect: pass (slow: about a minute).
+
+---
+
+### 3.11 Phase 23: overlay layer and Design / Preview
+
+- [ ] **T23.1** Do: select a layer. Expect: an outline with a label showing its name and size.
+- [ ] **T23.2** Do: click **Preview** in the frame bar. Expect: nothing is outlined or selectable; the demo's button and links react to clicks like a real page.
+- [ ] **T23.3** Do: click **Design**. Expect: selection and outlines work again. (**View → Design Mode / Preview Mode** do the same.)
+- [ ] **T23.4** (Developer) Do: `npx playwright test tests/e2e/overlay-modes.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.12 Phase 24: tool state machine
+
+- [ ] **T24.1** Do: hover the canvas, press **V**, **H**, **F**, **R**, **O**, **L**, **T** (single letters). Expect: Select, Hand, Frame, Rectangle, Ellipse, Line, Text become active (the dock highlights each).
+- [ ] **T24.2** Do: pick the Rectangle tool, hold **Space**. Expect: the Hand tool while held; release returns to Rectangle.
+- [ ] **T24.3** Do: pick Select, hold **Ctrl** (Cmd) and hover layers. Expect: deep select while held.
+- [ ] **T24.4** Do: hold **Space**, click the **Ellipse Tool** button, release **Space**. Expect: the Ellipse tool is active.
+- [ ] **T24.5** Do: hold **Space**, then switch to another window and back. Expect: the hold has ended (no stuck Hand tool).
+- [ ] **T24.6** Do: look at the dock. Expect: **no** Pen, Pencil, Comment or Quick Insert buttons.
+- [ ] **T24.7** (Developer) Do: `npx playwright test tests/e2e/tools.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.13 Phase 25: creation tools
+
+- [ ] **T25.1** Do: pick **Rectangle Tool**, drag on the demo page. Expect: **one** rectangle is created where you dragged, inside the page.
+- [ ] **T25.2** Do: repeat with **Ellipse Tool**, **Line Tool**, **Arrow Tool** (Shift+L), **Polygon Tool** (Y), **Star Tool** (Shift+Y), **Text Tool**. Expect: one layer of the right type each.
+- [ ] **T25.3** Do: hold **Shift** while dragging a rectangle. Expect: a square. Shift with Line: snaps to 45°.
+- [ ] **T25.4** Do: hold **Alt** while dragging. Expect: it draws from the centre.
+- [ ] **T25.5** Do: click (don't drag) with a shape tool. Expect: a default-sized shape is placed.
+- [ ] **T25.6** Do: pick **Frame Tool** and drag on empty canvas (outside every frame). Expect: a new top-level frame. Try the **Rectangle Tool** on empty canvas: nothing is created.
+- [ ] **T25.7** Do: **Ctrl+Z** after each drawing. Expect: each creation is one undo step.
+- [ ] **T25.8** (Developer) Do: `npx playwright test tests/e2e/creation-tools.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.14 Phase 26: selection
+
+- [ ] **T26.1** Do: click a layer, then **Shift-click** another. Expect: both selected; the status bar says "2 layers selected". Shift-click again on one: it leaves the selection.
+- [ ] **T26.2** Do: with the Select tool drag on empty canvas, or on a frame's background. Expect: a marquee; layers it touches are selected.
+- [ ] **T26.3** Do: press **Ctrl+A** with the pointer over the canvas. Expect: all layers of the frame are selected. **Escape**: none. **Ctrl+Shift+A**: inverse.
+- [ ] **T26.4** Do: select a container and press **Enter**. Expect: its children are selected. **Shift+Enter**: its parent.
+- [ ] **T26.5** Do: select on the canvas, then look at the **Layers** panel and the inspector. Expect: all agree.
+- [ ] **T26.6** Do: lock or hide a layer and try to select it by marquee. Expect: it isn't selected.
+- [ ] **T26.7** (Developer) Do: `npx playwright test tests/e2e/selection.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.15 Phase 27: transform handles
+
+- [ ] **T27.1** Do: select a rectangle. Expect: a box with 8 handles (corners and edges) and rotate zones just outside each corner.
+- [ ] **T27.2** Do: drag the rectangle's body. Expect: it moves. Hold **Shift**: locked to one axis.
+- [ ] **T27.3** Do: drag a corner handle. Expect: it resizes. **Shift** keeps the ratio; **Alt** resizes about the centre.
+- [ ] **T27.4** Do: drag just outside a corner. Expect: it rotates. **Shift** snaps to 15°.
+- [ ] **T27.5** Do: select two layers and move, resize, rotate. Expect: they transform together.
+- [ ] **T27.6** Do: start dragging and press **Escape**. Expect: the gesture is cancelled; nothing changed.
+- [ ] **T27.7** Do: **Ctrl+Z** after a drag. Expect: one gesture = one undo step.
+- [ ] **T27.8** Do: select a rectangle, find the corner-radius handle and drag it. Select a star: drag the inner-radius and points handles. Select a polygon: drag the sides handle. Expect: each shape changes accordingly.
+- [ ] **T27.9** (Developer) Do: `npx playwright test tests/e2e/transform.spec.ts --project=chromium`. Expect: pass (30 gestures are exactly 30 undo steps).
+
+---
+
+### 3.16 Phase 28: snapping, guides and rulers
+
+- [ ] **T28.1** Do: drag one rectangle near another's edge or centre. Expect: red guide lines appear and it snaps; spacing marks show when gaps are equal.
+- [ ] **T28.2** Do: drag with **Ctrl** (Cmd) held. Expect: no snapping.
+- [ ] **T28.3** Do: hold **Alt** with a layer selected. Expect: distances to the nearest neighbours show.
+- [ ] **T28.4** Do: click **Rulers** (or **Shift+R**). Expect: rulers appear along the top and left, in px from the active frame.
+- [ ] **T28.5** Do: drag out of a ruler. Expect: a guide line. Drag it to move it; drag it back onto the ruler to delete it. Reload: guides are still there.
+- [ ] **T28.6** Do: toggle **Snap objects**, **Snap guides**, **Pixel grid**. Expect: the matching snapping turns on and off.
+- [ ] **T28.7** (Developer) Do: `npx playwright test tests/e2e/snapping.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.17 Phase 29: editing operations
+
+Select a rectangle first for each.
+- [ ] **T29.1** Do: **Ctrl+C**, then **Ctrl+V**. Expect: a copy appears, with its own name. Paste in a second browser tab of the same project: it pastes there too.
+- [ ] **T29.2** Do: **Ctrl+X**. Expect: it disappears; **Ctrl+V** brings it back.
+- [ ] **T29.3** Do: **Ctrl+D**, move the copy, press **Ctrl+D** again. Expect: the second copy repeats the offset you used.
+- [ ] **T29.4** Do: **Delete**. Expect: removed. **Ctrl+Z** brings it back.
+- [ ] **T29.5** Do: arrow keys nudge by 1 px; **Shift+arrow** by 10 px.
+- [ ] **T29.6** Do: **Ctrl+]** forward, **Ctrl+[** backward, **Ctrl+Shift+]** to front, **Ctrl+Shift+[** to back (check in the **Layers** panel).
+- [ ] **T29.7** Do: select two layers, **Ctrl+G**. Expect: a group. **Ctrl+Shift+G**: ungroup. **Ctrl+Alt+G**: wrap in a frame.
+- [ ] **T29.8** Do: **Ctrl+Shift+L** locks, **Ctrl+Shift+H** hides. **F2** renames. In **Edit** menu use "Unlock All" and "Show All".
+- [ ] **T29.9** Do: right-click a layer on the canvas. Expect: a context menu; it stays on screen near the window's edges.
+- [ ] **T29.10** Do: **Edit** menu. Expect: Cut, Copy, Paste, Duplicate, Delete are now live (not greyed).
+- [ ] **T29.11** (Developer) Do: `npx playwright test tests/e2e/editing.spec.ts --project=chromium`. Expect: pass (a 25-step journey and cross-tab paste).
+
+---
+
+### 3.18 Phase 30: align, distribute, tidy
+
+- [ ] **T30.1** Do: draw three rectangles at different places, select all three (**Ctrl+A**). Press **Alt+A** (align left), **Alt+H** (horizontal centres), **Alt+D** (right), **Alt+W** (top), **Alt+V** (vertical centres), **Alt+S** (bottom). Expect: they align to each other each time.
+- [ ] **T30.2** Do: select one layer inside a frame and press **Alt+A**. Expect: it aligns to its parent.
+- [ ] **T30.3** Do: select three and press **Ctrl+Alt+H**, then **Ctrl+Alt+V**. Expect: equal spacing horizontally / vertically; the outer two don't move.
+- [ ] **T30.4** Do: select several scattered layers and press **Ctrl+Alt+T**. Expect: they are tidied onto a grid using the gaps they already have.
+- [ ] **T30.5** Do: look for the align bar at the top of the inspector and the entries in the **Edit** menu. Expect: the same actions are there.
+- [ ] **T30.6** Do: drag a spacing handle between neighbouring selected layers. Expect: every gap becomes equal.
+- [ ] **T30.7** (Developer) Do: `npx playwright test tests/e2e/align.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.19 Phase 31: text on the canvas
+
+- [ ] **T31.1** Do: **Text Tool**, drag a box, and type immediately. Expect: text appears as you type.
+- [ ] **T31.2** Do: double-click a text layer (or select it and press **Enter**). Expect: you edit it in place.
+- [ ] **T31.3** Do: select words and press **Ctrl+B**, **Ctrl+I**, **Ctrl+U**, **Ctrl+Shift+X**. Expect: bold, italic, underline, strikethrough on the selected words only.
+- [ ] **T31.4** Do: press **Enter** in a text box. Expect: a new line. Paste formatted text from a web page: it pastes as plain text.
+- [ ] **T31.5** Do: press **Escape** (or **Ctrl+Enter**, or click away). Expect: you leave editing; **Ctrl+Z** undoes the whole edit in one step.
+- [ ] **T31.6** Do: create a text box, type nothing, click away. Expect: it is discarded.
+- [ ] **T31.7** Do: in the inspector set family, size, weight, line height, letter spacing, alignment, decoration, case and sizing mode. Expect: the text changes. Select two texts that disagree on a value: the field reads "Mixed".
+- [ ] **T31.8** (Developer) Do: `npx playwright test tests/e2e/text-editing.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.20 Phase 32: Layers panel
+
+- [ ] **T32.1** Do: click the **Layers** tab in the left dock. Expect: a tree of every layer, front-most first.
+- [ ] **T32.2** Do: select on the canvas, then in the panel (and the other way round). Expect: each follows the other, opening the layers above it.
+- [ ] **T32.3** Do: **Shift-click** a range of rows, **Ctrl-click** to add. Expect: range / add selection.
+- [ ] **T32.4** Do: drag a row up or down. Expect: it reorders (and the canvas stacking changes).
+- [ ] **T32.5** Do: drag a row onto a frame or group. Expect: it moves in and stays where it was on the canvas.
+- [ ] **T32.6** Do: try to drag a frame into itself, a layer into a text, or move a locked layer. Expect: refused, with a reason.
+- [ ] **T32.7** Do: double-click a row's name, rename, press Enter. Expect: renamed.
+- [ ] **T32.8** Do: use the lock and eye buttons on a row. Expect: locked / hidden.
+- [ ] **T32.9** Do: type in **Search layers**. Expect: matches are highlighted.
+- [ ] **T32.10** Do: right-click a row. Expect: the same menu as the canvas.
+- [ ] **T32.11** (Developer) Do: `npx playwright test tests/e2e/layers.spec.ts --project=chromium`. Expect: pass. (The 1,500-layer scroll test can fail under load; run it alone.)
+
+---
+
+### 3.21 Phase 33: Simple inspector
+
+Select a rectangle first. Open the right dock's **Design** tab; make sure the switch at the top says **Simple**.
+- [ ] **T33.1** Do: look at what is shown. Expect: Position, Size, Fill, Stroke, Corner radius, Opacity (Text appears only for text layers), and nothing technical.
+- [ ] **T33.2** Do: type a new X in Position. Expect: the rectangle moves on the canvas at once.
+- [ ] **T33.3** Do: change Size, Opacity, Corner radius. Expect: the canvas updates live.
+- [ ] **T33.4** Do: click the Fill swatch. Expect: the colour picker opens (Phase 35).
+- [ ] **T33.5** Do: select a text layer. Expect: words and colour, no Stroke control.
+- [ ] **T33.6** Do: select two layers with different opacity. Expect: Opacity reads "Mixed"; typing a value sets both in one undo step.
+- [ ] **T33.7** Do: move a layer that its parent's layout positions, by typing X. Expect: only that coordinate changes (it becomes absolute where it was).
+- [ ] **T33.8** (Developer) Do: `npx playwright test tests/e2e/inspector-simple.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.22 Phase 34: Pro inspector
+
+- [ ] **T34.1** Do: switch the inspector to **Pro**. Expect: groups of every property of the selected layer (hundreds in total), each with a suitable control.
+- [ ] **T34.2** Do: click into a number and press **↑**; with **Shift** it steps ten times as much, with **Alt** a tenth.
+- [ ] **T34.3** Do: drag a number's **label** left and right. Expect: the value scrubs; **Escape** during the drag cancels; one drag = one undo step.
+- [ ] **T34.4** Do: change a colour (swatch), a choice (menu), a toggle. Expect: each applies.
+- [ ] **T34.5** Do: switch back to **Simple**. Expect: the choice is remembered after a reload.
+- [ ] **T34.6** (Developer) Do: `npx tsx --test "src/core/inspector/__tests__/*.test.ts"` and `npx playwright test tests/e2e/inspector-pro.spec.ts --project=chromium`. Expect: pass, including the coverage test (every legal property has a control) and the "no technical words in the Simple face" test.
+
+---
+
+### 3.23 Phase 35: paint
+
+- [ ] **T35.1** Do: open a rectangle's Fill. Expect: a list of fills; add a solid colour, a linear, a radial and a conic gradient. Each can be hidden, reordered and removed, with its own opacity.
+- [ ] **T35.2** Do: in the colour picker drag the square, hue and alpha sliders; type a hex; switch HSB / OKLCH. Expect: the layer's colour follows.
+- [ ] **T35.3** Do: while editing a gradient, drag the handles on the canvas (ends, centre, radii, angle; **Shift** steps 15°). Expect: the gradient changes; one drag = one undo step.
+- [ ] **T35.4** Do: in the stop bar add, drag, recolour and remove stops. Expect: the gradient updates.
+- [ ] **T35.5** Do: give a stroke a dashed or dotted style and round caps and joins. Expect: they draw.
+- [ ] **T35.6** Do: add a drop shadow and an inner shadow (several), layer blur and background blur. Expect: they draw.
+- [ ] **T35.7** (Developer) Do: `npx playwright test tests/e2e/paint.spec.ts --project=chromium`. Expect: pass (16 paint cases compared).
+
+---
+
+### 3.24 Phase 36: assets
+
+- [ ] **T36.1** Do: drag a picture file from your computer onto the canvas. Expect: an image layer appears.
+- [ ] **T36.2** Do: click the **Assets** tab in the left dock. Expect: previews, sizes, usage counts, an import button.
+- [ ] **T36.3** Do: drop the same file twice. Expect: one asset, used twice.
+- [ ] **T36.4** Do: drop a file with the wrong extension but picture bytes, and a `.png` that isn't a picture. Expect: the first is recognised, the second is refused.
+- [ ] **T36.5** Do: import an SVG that contains `<script>`. Expect: it imports and the script is removed.
+- [ ] **T36.6** Do: export the project file and import it elsewhere. Expect: the pictures come along.
+- [ ] **T36.7** Do: open the same project in a second browser tab. Expect: it opens read-only with an "Edit here instead" button.
+- [ ] **T36.8** (Developer) Do: `npx playwright test tests/e2e/assets.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.25 Phase 37: image layers
+
+- [ ] **T37.1** Do: on a rectangle's Fill choose **Image** and pick an imported file. Expect: the picture fills it; it stacks with colour and gradient fills.
+- [ ] **T37.2** Do: try **Fill**, **Fit**, **Crop**, **Tile**. Expect: covers, contains, crops, repeats.
+- [ ] **T37.3** Do: in Crop mode drag the picture's corner handles (zoom) and middle handle (move) on the canvas. Expect: the picture always still covers the box.
+- [ ] **T37.4** Do: change brightness, contrast, saturation. Expect: the picture changes.
+- [ ] **T37.5** Do: choose another file for the same fill. Expect: the fit, crop and colours stay.
+- [ ] **T37.6** (Developer) Do: open `/editor/render-gallery` (the eight picture cases draw) and run `npx playwright test tests/e2e/images.spec.ts --project=chromium`. Expect: pass.
+
+---
+
+### 3.26 Phase 38: fonts
+
+- [ ] **T38.1** Do: select a text layer and open the font picker. Expect: search over Google families, project fonts and system fonts.
+- [ ] **T38.2** Do: choose a Google font that isn't loaded yet. Expect: the text changes to it and the selection box follows the new size.
+- [ ] **T38.3** Do: **Upload a font…** and pick a `.ttf`, `.otf`, `.woff` or `.woff2`. Expect: it is used at once.
+- [ ] **T38.4** Do: pick a variable font. Expect: sliders for width, optical size, slant.
+- [ ] **T38.5** Do: in DevTools → Network, choose a font from the list. Expect: the font file is fetched only when a layer uses it.
+- [ ] **T38.6** Do: change the project's font-display setting. Expect: it saves.
+- [ ] **T38.7** (Developer) Do: `npx playwright test tests/e2e/fonts.spec.ts --project=chromium`. Expect: pass (needs internet).
+
+---
+
+## 4. Regression checks
+
+- [ ] **R1** Do: edit, reload. Expect: your work is saved and returns.
+- [ ] **R2** Do: import `tests/e2e/fixtures/showcase-v4.lazy.json`. Expect: it opens with no error.
+- [ ] **R3** Do: after Lane B's timeline work, open **Animate workspace** and press **Play** (see `B_TEST_GUIDE.md` Recipe A). Expect: the timeline and transport still work in Lane A's shell.
+- [ ] **R4** Do: hover the timeline and press **Space**: it plays. Hover the canvas and press **Space**: it pans.
+- [ ] **R5** Do: delete a keyframe with **Delete** while hovering the timeline. Expect: exactly one keyframe goes.
+
+## 5. Cross-browser pass (about 10 minutes)
+
+Repeat in **Firefox** and **Safari/WebKit**:
+- [ ] **X1** Section 2 (smoke).
+- [ ] **X2** T25.1–T25.2 (draw one of each shape).
+- [ ] **X3** T18.1–T18.2 (stage clicks and keys).
+- [ ] **X4** T15.1–T15.4 (workspace switching).
+- [ ] **X5** T17.1 and T19.1 (gallery and stage lab).
+- [ ] **X6** T27.2–T27.4 (move, resize, rotate).
+
+## 6. Run the automated suites and compare
 
 ```bash
-npm test                  # typecheck + unit tests (default and full edition)
-npm run lint              # must exit 0; warning budget is 463
+npm test                 # typecheck + unit tests
+npm run lint             # must exit 0
 npm run build
 npm run check:bundle-scope && npm run check:doc-links && npm run check:no-adhoc-compat
 npx playwright test --project=chromium
-rm -rf test-results playwright-report   # lint scans these if you leave them
+rm -rf test-results playwright-report
 ```
 
-- [ ] **8.1** Everything passes. If the unit suite fails once on a timing test (`evaluate.test.ts` 200 tracks, or `WasmCableCanvas`'s frame budget), rerun it before reporting. Those are load-sensitive.
-- [ ] **8.2** Lane A's e2e specs pass in Chromium, Firefox and WebKit: `command-bus`, `workspace`, `presets`, `render-gallery`, `stage-host`, `stage-incremental`.
+Several of Lane A's specs measure time and can fail once when the machine is busy. Re-run a failure alone (`npx playwright test <file> --workers=1`) before reporting it.
 
-## 9. Read the code against the claims
+## 7. Things worth trying to break
 
-### 9.1 Phase 13
-- [ ] **9.1.1** `src/editor/menus/menuModel.tsx` is the single source for the four menus. Every item has either a `command` or a `pending: "Phase N"`. `src/core/commands/__tests__` contains the coverage test that enforces this.
-- [ ] **9.1.2** A command can declare zod `args`/`result`. `tryRunCommand(id, args)` returns a reason instead of throwing when validation fails. `defineTypedCommand` exists for typed `run` arguments.
-- [ ] **9.1.3** In the palette, run `workspace.setPreset` with bad input if you can (or read its test). It reports why nothing ran.
-
-### 9.2 Phase 14
-- [ ] **9.2.1** `wc -l src/editor/shell/EditorShell.tsx` is about 389. A test pins its size and imports.
-- [ ] **9.2.2** `src/core/workspace/` holds the zod `WorkspaceLayout`, `applyPreset`, and `useWorkspaceStore` (saved to `localStorage`).
-- [ ] **9.2.3** Panels are registered through `registerPanel` in `panels/builtins.tsx`. New panels must go there or into a hook, not into `EditorShell.tsx`.
-- [ ] **9.2.4** In DevTools → Network (JS filter), reload in **Design**. The Sequencer, Curve Editor, Export Preview, Output Log, Live Code, History and similar chunks are **not** fetched. Switch to **Animate** and the Sequencer chunk appears.
-- [ ] **9.2.5** In the console, `document.querySelector('.dock-layout').dataset.loadedPanels` lists the panels loaded so far; it grows only as you show panels.
-- [ ] **9.2.6** **Stage identity.** In the console run `$0 = document.querySelector('.dock-zone--center'); $0.__m = 1`, switch presets and resize splitters, then check `document.querySelector('.dock-zone--center').__m`. It is still `1` (the node was never replaced).
-- [ ] **9.2.7** `localStorage` (Application tab) holds the workspace layout and the saved layouts. Corrupt the JSON by hand and reload: the editor falls back to the default layout and does not crash.
-
-### 9.3 Phase 16
-- [ ] **9.3.1** `DOCS/INITIAL/decisions/0008-threat-model.md` exists with nine boundaries, seven findings and rules R1–R10.
-- [ ] **9.3.2** `escapeHtml` is covered in `SandboxHost.test.ts`.
-
-### 9.4 Phases 17 and 18
-- [ ] **9.4.1** `src/core/render/` has `RENDER_DEFINITIONS` as a complete record over the archetype registry. A unit test fails if you add an archetype without a definition.
-- [ ] **9.4.2** Limits: 5,000 layers and 64 levels per tree, cycles cut, unsafe image sources and path data dropped.
-- [ ] **9.4.3** `public/stage-frame.html` is static and has a `script-src 'none'` policy. In DevTools → Network → `stage-frame.html` → Response Headers, the **Content-Security-Policy** header is there too.
-- [ ] **9.4.4** The stage iframe has `src="/stage-frame.html"`, no `srcdoc`, and **no `sandbox` attribute** (WebKit needs this; CSP is the guard instead).
-- [ ] **9.4.5** In the console, with the stage showing, try to run code in the frame:
-  `const d=document.querySelector('iframe[title="Stage"]').contentDocument; const s=d.createElement('script'); s.textContent='top.__x=1'; d.body.appendChild(s); top.__x`
-  It is `undefined`. Repeat in Firefox and WebKit.
-- [ ] **9.4.6** `grep -rn 'postMessage(.*"\*"' src/` finds nothing (a test scans `src/` for wildcard targets).
-- [ ] **9.4.7** `SandboxHost` loads only in the full edition (`NEXT_PUBLIC_EDITION=full`). `npm run check:bundle-scope` passes.
-- [ ] **9.4.8** `decisions/0009-render-host.md` exists.
-
-### 9.5 Phase 19
-- [ ] **9.5.1** Each layer renders through `StoreRenderLayer`, which subscribes to its own layer and child list. React DevTools → "Highlight updates": editing one layer flashes that layer only.
-- [ ] **9.5.2** `LayerNodeRegistry` maps layer id → element via `nodeRef` on each render definition. `getStageRenderer()` returns the `StageRenderer`. These are the interfaces **Lane B's Phase 57 builds on**.
-- [ ] **9.5.3** `measure(layerIds)` returns document-space rectangles, batches many callers into one read per animation frame, and caches until a `ResizeObserver`, `MutationObserver` or window resize. `measureNow` is the synchronous form.
-- [ ] **9.5.4** Read `stage-incremental.spec.ts` for the numbers it asserts: 500 layers under 500 ms, `measure()` within 0.5 px of the DOM.
-- [ ] **9.5.5** Lane A reports 500 layers mounting in 15 / 42 / 34 ms and edits reaching the DOM in 2–7 ms (Chromium / Firefox / WebKit). On your machine the lab's mount time should be the same order of magnitude.
-
-## 10. Cross-browser pass (about 10 minutes)
-
-Repeat in Firefox (and WebKit):
-- [ ] **10.1** Section 1 (smoke).
-- [ ] **10.2** 2.3 (draw one shape of each kind) and 5.2.4–5.2.5 (keys reach the stage).
-- [ ] **10.3** 3.1 (preset switching) and 3.2.1 (persistence).
-- [ ] **10.4** 5.1 (render gallery) and 6 (stage lab).
-
-## 11. Things worth trying to break
-
-- Switch presets 20 times as fast as you can.
+- Switch workspaces 20 times as fast as you can.
 - Save 25 layouts with long and odd names (emoji, `<b>`, empty).
-- Draw a shape, switch preset, undo.
+- Draw a shape, switch workspace, undo.
 - Reload while a splitter drag is in progress.
-- Import a project with 5,000+ layers or very deep nesting (the limits should cut it, not freeze the tab).
+- Import a project with thousands of layers or very deep nesting.
 - Paste an `svgPath` with `javascript:` or enormous path data.
-- Load 500 layers in the lab, then press Ctrl+Z repeatedly.
+- Load 500 layers in the stage lab and press **Ctrl+Z** repeatedly.
 - Open two editor tabs on the same project and edit in both.
-- Resize the window to phone width and back.
-- Put `localStorage` in a private window (it may be blocked): the editor must still start.
+- Resize to phone width and back.
+- Use a private window (storage may be blocked): the editor must still start.
+- Drag a very large image onto the canvas, and a 0-byte file.
 
-## 12. Reporting a problem
+## 8. Reporting a problem
 
-For each failure write down: the test number (for example `3.1.6`), what you did, what you expected, what happened, the browser and whether it was `npm run dev` or a production build, any console error text, and a screenshot or screen recording. Hand it to your Claude saying it belongs to **Lane A, Phase NN**. Lane A bugs go to `@NetPranav`. If the fix is small and in a Lane A file, COLLABORATION §3 lets you make it yourself on a `b/` branch, but tell them in the PR.
+For each failure write: the test number (for example `T27.4`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or screen recording. Hand it to your Claude saying it belongs to **Lane A, Phase NN**. Lane A bugs go to `@NetPranav`; if the fix is small and in a Lane A file, COLLABORATION §3 lets you make it yourself on a `b/` branch, but say so in the PR.

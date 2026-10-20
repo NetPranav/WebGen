@@ -1,329 +1,347 @@
-# Lane B manual test guide (Phases 53–57)
+# Lane B manual test guide (Phases 53–59)
 
-**For:** `@OVERxPOWERED`. **Covers:** everything Lane B has merged to `main` so far, tested on top of Lane A's Phases 13–19 (updated 2026-10-19 after Lane A's stack landed). Lane A's own features are in `A_TEST_GUIDE.md`.
+**For:** `@OVERxPOWERED`. **Covers:** everything Lane B has merged to `main`, tested together with Lane A's work (`A_TEST_GUIDE.md`).
+**Updated:** after every phase. The newest phase is at the end of section 3 (look for "NEW" in the table below).
 
-**How the guide is organised:** sections 1–8 are the **user's view** (what you see and do in the editor). Section 9 onwards is the **developer's view** (automated suites, code and DevTools checks). Section 11 checks that the two lanes still work together.
+| Phase | What you can now do or see | PR | Section |
+|---|---|---|---|
+| 53 | Projects use schema v6 (new clip types and triggers) | #19 | 3.1 |
+| 54 | One clock: a transport bar in the status bar | #20 | 3.2 |
+| 55 | One frame loop for the whole editor (no UI of its own) | #21 | 3.3 |
+| 56 | The Sequencer plays on that clock | #22 | 3.4 |
+| 57 | Pressing play animates the real layers on the stage | #36 | 3.5 |
+| 58 | Simple animations run as Web Animations | #44 | 3.6 |
+| 59 | Scrubbing is exact, playing hands over smoothly | this PR (NEW) | 3.7 |
 
-| Phase | What it delivered | PR |
-|---|---|---|
-| 53 | Schema v6: new clip types and triggers, grammar gaps closed (AUD-59) | #19 |
-| 54 | The transport (one clock) and the transport bar | #20 |
-| 55 | The frame scheduler and a lint ban on `requestAnimationFrame` | #21 |
-| 56 | Sequencer playback moved onto the transport; old Sequencer clock removed | #22 |
-| 57 | Engine adapters; the kernel animates the real layers on the stage | #36 |
-| 58 | Web Animations adapter: routed layers run as Web Animations | `b/phase-58-waapi-adapter`, PR pending |
+## How to use this guide
 
-Automated tests already cover most of this. This guide is for the things a person sees and feels, and for poking at edges the tests don't reach. Each test says what to do, what you should see, and what a failure looks like. Tick the boxes as you go, and note any failure with the test number.
+Every test has the same shape:
+
+- **Do:** exactly what to click, press or type.
+- **Expect:** what you should see.
+- **Fails if:** what a bug looks like, so you know when to write it down.
+
+Tick the box when the result is what **Expect** says. If it isn't, don't tick it: write the test number and what happened (section 6 says how to report it).
+
+Each phase has a **User test** (click around, no tools needed) and a **Developer test** (terminal, DevTools or code).
 
 > **Known behaviour, not bugs.** Don't report these:
-> - **Only some things animate on the stage.** Since Phase 57 the stage shows the kernel's value for every property a layer animates. A layer with no clip does nothing. Behaviours other than `loop`, signal bindings and states are still not shown (see `KERNEL_GAPS`). Since Phase 58, layers the rules route to CSS run as Web Animations (same values, baked from the kernel); the rest use the kernel adapter. The scrub/play hand-over is Phase 59.
-> - **Playing runs the whole composition** (5 s by default), not just the clip, and the Sequencer's Loop button toggles the transport's loop.
-> - **The Sequencer's Step Backward button** moves the head back 0.1 s. It is not a frame step. The transport bar's step buttons are the frame steps.
-> - **The toolbar's Play button** (top of the editor, "Play Live Application Preview") is a different feature. It is not the transport.
+> - **A project with no animation does nothing when you press Play.** Only the playhead and timecode move. Make an animation with Recipe A below.
+> - **The Sequencer works on the page's root container**, not on whichever layer you click. Layer-by-layer animation arrives with the timeline phases (61 onward).
+> - **The toolbar's "Play Live Application Preview"** is a different feature from the transport.
+> - **The Sequencer's Step Backward button** moves 0.1 s, not one frame. The status bar's step buttons move one frame.
+> - **Only animation of numbers, lengths, angles and colours is drawn on the stage.** Behaviours other than `loop`, signal bindings, states and path morphs are not shown yet (`KERNEL_GAPS` in `src/core/kernel/evaluate.ts`).
 
 ---
 
-## 0. Setup
+## 1. Setup
 
 ```bash
 cd ~/padhai_in_linux/Projects/lazylayouts
 git switch main && git pull
 npm ci                 # only if package-lock.json changed
-npm run dev            # editor at http://localhost:3000/editor
+npm run dev            # then open http://localhost:3000/editor
 ```
 
-- Use **Chromium** for the main pass. Repeat sections 2 and 3 in **Firefox** (and WebKit if you have it) at the end, since CI runs all three.
-- Open DevTools → Console and keep it open. **Any red error that appears while you test is a failure**, even if the UI looks fine.
-- Open `http://localhost:3000/editor`. It redirects to `…/editor?projectId=…` and creates a project.
-- The editor opens in the **Design** workspace (Lane A, Phase 15), with the timeline folded away. The transport bar is still visible in the **status bar at the bottom**, in the centre: Stop · Step back · Play/Pause · Step forward · Loop · timecode.
-- **Open the Sequencer** with the **Animate** tab in the header (timeline at about 40% of the window), or with the **Timeline tool** button on the Motion shelf. Its code loads the first time you open it, so give it a second. Its transport buttons are at the top of that panel.
-- Sections 2.1–2.4 and 2.6 work in any workspace. The keyboard checks in 2.5 need the pointer over the open timeline or the canvas.
+- Use **Chromium** (Chrome, Brave, Edge) for the main pass. Section 5 repeats the quick checks in **Firefox** and **Safari/WebKit**.
+- Open DevTools → **Console** and keep it open. **Any red error that appears while you test is a failure**, even if the screen looks fine.
+- `/editor` redirects to `/editor?projectId=…` and creates a project.
 
-The timecode format everywhere is `MM:SS:FF` (frames, counted from 0 within the second). At the default 60 fps the frame counter runs 00–59.
+### 1.1 Where things are (the map you need for every test)
 
----
+| Thing | Where | What it is called |
+|---|---|---|
+| Workspace switch | Top header | Three tabs: **Design workspace**, **Animate workspace**, **Code workspace** |
+| Transport bar | **Status bar**, very bottom, centre | Buttons **Stop and return to start**, **Step back one frame**, **Play** (becomes **Pause**), **Step forward one frame**, **Loop: off** (cycles), then a timecode like `00:00:00 / 00:05:00` |
+| Sequencer (the timeline panel) | Bottom of the screen in the **Animate** tab | Tab **Motion Sequencer** (next to Content Browser and Export Preview). Has its own **Play**, **Stop and Reset**, **Step Backward**, **Toggle Loop**, speed pills, **+ Keyframe**, and a ruler across the top |
+| Demo content | Header, right of the canvas-size buttons | Button **Mount Showcase Demo** |
+| Stage | Centre | The canvas with the frames |
+| Layers panel | Left dock | Button **Layers** |
 
-## 1. Smoke test (2 minutes)
+The status bar's timecode is `MM:SS:FF` (frames, 00–59 at the default 60 fps). The Sequencer's timecode is `MM:SS.mmm` (milliseconds). Both show the same moment.
 
-- [ ] **1.1** The editor loads and the console shows no red errors.
-- [ ] **1.2** The status bar shows the transport bar (also in the Design workspace, where the timeline is folded): five icon buttons and `00:00:00 / 00:05:00`.
-- [ ] **1.3** Click **Play** in the transport bar. The timecode counts up and the button turns into **Pause**.
-- [ ] **1.4** Click **Pause**. The timecode stops.
-- [ ] **1.5** Click **Stop** (leftmost). The timecode returns to `00:00:00`.
+### 1.2 Recipe A: make something animate (used by most tests below)
 
-If any of these fail, stop and report it. The rest depends on them.
+1. Open `http://localhost:3000/editor`.
+2. Click the **Animate workspace** tab. Wait a second: the Sequencer loads.
+3. Click **Mount Showcase Demo** (header). A page with a heading and a button appears on the stage.
+4. In the Sequencer, click on the **ruler** (the strip of seconds at the top of the timeline) about 0.4 s from its left end. The needle jumps there.
+5. Click **+ Keyframe**. The panel now lists two tracks: `appearance.opacity` and `transform.y`.
+6. Click **Stop and return to start** (status bar).
+7. Click **Play** (status bar).
 
----
+**Expect:** the whole demo page **fades in and slides up a little** over well under a second, then stays put.
+**Fails if:** nothing moves, or the page jumps to its final look at once.
 
-## 2. Phase 54: the transport bar
-
-### 2.1 Play, pause, stop
-- [ ] **2.1.1** Press Play. After about 2 s the timecode reads close to `00:02:00` (the seconds field is 02, ± a frame or two of display lag).
-- [ ] **2.1.2** The Play button is highlighted while playing, and its tooltip says **Pause**.
-- [ ] **2.1.3** Press Pause, wait 1 s. The timecode does **not** change.
-- [ ] **2.1.4** Press Play again. It continues from where it stopped, not from 0.
-- [ ] **2.1.5** Press Stop while playing. It stops **and** returns to `00:00:00`.
-
-### 2.2 Playing to the end
-- [ ] **2.2.1** With Loop **off** (default), press Play and wait about 5 s. The head stops at `00:05:00` and the button goes back to Play.
-- [ ] **2.2.2** Press Play again at the end. It **restarts from 00:00:00** and plays.
-
-### 2.3 Frame stepping
-- [ ] **2.3.1** Press Stop. Click **Step forward** once. The timecode reads `00:00:01`.
-- [ ] **2.3.2** Click it 59 more times (or hold the click quickly). It reaches `00:01:00` exactly, i.e. 60 steps equal one second. No skipped or repeated values.
-- [ ] **2.3.3** Click **Step back** until `00:00:00`. Once there, another click stays at `00:00:00` (no negative time).
-- [ ] **2.3.4** Press Play, then click Step forward. Playback **pauses** and moves one frame.
-
-### 2.4 Loop modes
-The Loop button cycles **off → loop → ping-pong → off**. Its tooltip names the current mode (`Loop: off`, `Loop: on`, `Loop: ping-pong`).
-- [ ] **2.4.1** Click once: tooltip `Loop: on`, button highlighted. Press Play and wait past 5 s. The timecode **wraps to 00:00:00** and keeps playing.
-- [ ] **2.4.2** Click again: `Loop: ping-pong` (different icon). Press Play and watch past 5 s. The timecode counts up to 5 s, then **counts down** toward 0, then up again.
-- [ ] **2.4.3** Click again: back to `Loop: off`, not highlighted.
-
-### 2.5 Keyboard (J / K / L and arrows)
-Keyboard commands apply only when the **pointer is over the timeline (Sequencer) or the canvas**, and never while typing in a text field. This is how focus scopes work in this editor.
-- [ ] **2.5.1** Hover over the **Sequencer panel**. Press **→**: one frame forward. Press **←**: one frame back.
-- [ ] **2.5.2** Hover over the Sequencer. Press **L**: it plays forward at 1×. Press **L** again: faster. Each press steps 1× → 2× → 4× → 8× (hard to see exactly; the timecode visibly speeds up). A fifth press stays at 8×.
-- [ ] **2.5.3** While playing at 4× or 8×, press **J**: it slows one rung. Keep pressing **J** until it stops (slowing past 1× **stops**, it does not jump into reverse).
-- [ ] **2.5.4** From a stop with the head at about 3 s, press **J**: it plays **backwards** at 1×. Press **J** again for 2× backwards.
-- [ ] **2.5.5** Press **K** while shuttling: it stops and resets to 1× (a following **Play** goes forward at normal speed).
-- [ ] **2.5.6** **Typing guard:** click into any text input in the editor (for example a layer name or a property field), then press **J**, **K**, **L**, **→**. The transport must **not** move.
-- [ ] **2.5.7** Move the pointer over the **Inspector or Outliner** (not canvas or timeline) and press **L**. Nothing should happen.
-- [ ] **2.5.8** Open the command palette (**Ctrl+P**) and search `transport`. You should see: Play / Pause, Go to Start, Play, Pause, Stop and Return to Start, Step Forward/Back One Frame, Shuttle Reverse (J), Stop Shuttle (K), Shuttle Forward (L), Cycle Loop Mode. Run a few; each works.
-
-### 2.6 Timecode readout
-- [ ] **2.6.1** The timecode updates in visible ~10 Hz steps during playback (not a blur). That is by design.
-- [ ] **2.6.2** After pausing, the timecode settles on the final frame within about 0.1 s. It must not stay one step behind.
-- [ ] **2.6.3** The total after the slash is `00:05:00` for a fresh project.
+This animates the root container (the Sequencer's current layer). From here, "the demo" means this animated page.
 
 ---
 
-## 3. Phase 56: the Sequencer on the same clock
+## 2. Quick smoke test (2 minutes)
 
-Switch to the **Animate** tab (or use the Timeline tool). If the project has a layer with a clip, you will see tracks and keyframes. If it has none, use the default fallback tracks shown.
+- [ ] **S1** Do: open `/editor`. Expect: the editor loads, the console has no red errors.
+- [ ] **S2** Do: look at the status bar. Expect: five transport buttons and `00:00:00 / 00:05:00`.
+- [ ] **S3** Do: click **Play**. Expect: the timecode counts up and the button becomes **Pause**.
+- [ ] **S4** Do: click **Pause**. Expect: the count stops.
+- [ ] **S5** Do: click **Stop and return to start**. Expect: back to `00:00:00`.
 
-### 3.1 One clock, two controls
-- [ ] **3.1.1** Press **Play in the Sequencer** (its own toolbar). The **status-bar transport bar** also switches to Pause and counts up.
-- [ ] **3.1.2** Press **Pause in the transport bar**. The Sequencer's button also flips back to Play.
-- [ ] **3.1.3** While paused, compare the Sequencer's timecode (`MM:SS.mmm` format) with the bar's. They must be the same moment, within one frame (about 17 ms). For example, `00:01.250` and `00:01:15` agree.
-- [ ] **3.1.4** Hover the playhead head (the small handle on the needle). The tooltip says `Playhead: x.xxxs` and matches the timecode.
-
-### 3.2 Seeking
-- [ ] **3.2.1** Click on the Sequencer **ruler** at about 0.5 s. The needle jumps there and the **transport bar** timecode follows (about `00:00:30`).
-- [ ] **3.2.2** Click inside a **keyframe lane** (empty space). Same result.
-- [ ] **3.2.3** **Drag the playhead head** left and right. The needle follows the mouse, the bar's timecode follows the needle, and nothing lags badly.
-- [ ] **3.2.4** Drag beyond the ends. The needle stops at 0 and at the clip's end.
-- [ ] **3.2.5** Click **Stop & Reset** (Sequencer). Both go to zero.
-- [ ] **3.2.6** Click **Step Backward** (Sequencer). Head moves back about 0.1 s, never below 0.
-
-### 3.3 Needle smoothness
-- [ ] **3.3.1** Press Play. The needle moves **smoothly**, with no stutter or jumping, while the timecode text updates in coarser steps. Both must show the same moment.
-- [ ] **3.3.2** Let it run for 30 s while interacting elsewhere (scroll the panel, hover things). It never freezes or drifts away from the bar.
-- [ ] **3.3.3** Switch to another browser tab for 10 s during playback and come back. The head has advanced a sensible amount (at most about 0.25 s per frame gap is counted, so it may have **less** than 10 s elapsed, which is by design) and does **not** jump to the end.
-
-### 3.4 Loop and rate from the Sequencer
-- [ ] **3.4.1** Click the Sequencer's **Loop** button. The status-bar loop button switches to `Loop: on` too (and the reverse).
-- [ ] **3.4.2** Click the speed pills (`0.25x`, `0.5x`, `1x`, `2x`). Playback speed changes accordingly; the pill for the current rate is highlighted.
-- [ ] **3.4.3** After pressing **L** for a faster shuttle (such as 4×), none of the pills are highlighted. That is expected, since 4× isn't a pill.
-
-### 3.5 Keyboard on the timeline
-- [ ] **3.5.1** Hover over the Sequencer and press **Space**: toggles play/pause. Press it twice quickly: no stuck state.
-- [ ] **3.5.2** Hover over the Sequencer and press **Home**: head returns to 0 (play state unchanged).
-- [ ] **3.5.3** Hover over the **canvas** and press **Space**: it must **not** play the transport. Space is the hand/pan tool there (hold Space and drag to pan).
-- [ ] **3.5.4** Hover over the Sequencer, select a keyframe, press **Delete**: the keyframe is deleted (this command was kept). **Ctrl+D** duplicates it. **Ctrl+Z** undoes.
-- [ ] **3.5.5** Click into a text field, press **Space**: it types a space and does not toggle playback.
-
-### 3.6 Keyframe tools that use the playhead
-- [ ] **3.6.1** Move the head to a time (say 0.8 s), click **Add keyframe at current playhead position**. A keyframe appears on the selected track at the head's time (rounded to 1/120 s).
-- [ ] **3.6.2** Scroll simulator: if the ScrollTrigger bar is visible, moving its simulated scroll progress moves the head proportionally.
-- [ ] **3.6.3** **Undo** (Ctrl+Z) after adding a keyframe removes it, and the head does not move.
-
-### 3.7 Panel behaviour
-- [ ] **3.7.1** While playing, switch the Sequencer's view between **Tracks** and **Curves**. Playback continues; the needle is still in the right place in tracks view.
-- [ ] **3.7.2** Close and reopen the Sequencer during playback. The transport keeps playing (it isn't owned by the panel), and the reopened needle is at the right time immediately, with no jump from 0.
-- [ ] **3.7.3** Dock/undock or tear off the Sequencer panel if your build allows it. The needle still follows.
+If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
-## 3A. Phase 57: the kernel on the stage
+## 3. Tests by phase
 
-You need a layer with an animation. Draw a **Rectangle** on the stage, select it, open the timeline (**Animate** tab) and use the Sequencer's add-animation menu to give it an entrance or fade (anything that changes opacity, position or size). If you have a project with animated layers, use that instead.
+### 3.1 Phase 53: schema v6
 
-- [ ] **3A.1** Press **Play** (status bar). The rectangle visibly animates on the stage while the playhead moves.
-- [ ] **3A.2** Press **Pause**. The rectangle stops where it is, and does not snap back.
-- [ ] **3A.3** **Drag the playhead** back and forth along the ruler. The rectangle follows your hand, forwards and backwards, without lag or flicker.
-- [ ] **3A.4** Click the ruler at 0 s. The rectangle is at its first keyframe. Click at the clip's end: it is at its last keyframe.
-- [ ] **3A.5** The animation's **easing** is visible: a slow-in clip starts slowly, a slow-out clip ends slowly. Compare with the curve in the Curves view.
-- [ ] **3A.6** Step with **→** / **←** over the timeline. The rectangle moves one frame at a time.
-- [ ] **3A.7** With Loop on, play past the end: the rectangle jumps back to its start and repeats. With ping-pong it runs backwards.
-- [ ] **3A.8** **Edit while paused.** Drag a keyframe in the Sequencer, or change its value. The stage updates at once, at the same playhead time.
-- [ ] **3A.9** **Delete the clip** (or its track). The rectangle returns to its normal, un-animated look and no longer moves with the playhead.
-- [ ] **3A.10** **Undo** that deletion (Ctrl+Z). The animation is back.
-- [ ] **3A.11** Switch presets (**Design / Animate / Code**) while the rectangle is at a mid-animation time. It stays there and the stage is not redrawn from scratch.
-- [ ] **3A.12** Animate **position** (transform x or y) on a layer that is rotated (set its rotation in a project file or the inspector if available). The layer keeps its rotation while it moves.
-- [ ] **3A.13** Draw a second shape while the first one is playing. The new shape appears and the first keeps animating.
-- [ ] **3A.14** Console stays free of red errors through all of the above.
+**What changed:** the project file format moved from version 5 to 6. New clip types (`exit`, `focus`, `stagger`, `layout`) and triggers (`unmount`, `layoutChange`) exist in the file format. There is no screen for them yet, so you test through files.
 
-### 3A.b Phase 58: Web Animations
-- [ ] **3A.15** In DevTools → More tools → **Animations**, press Play with an animated rectangle. An animation named `ll:<layer id>` appears and runs. (A layer animating something the rules don't route to CSS won't show one; that is correct.)
-- [ ] **3A.16** Pause. The animation pauses. Drag the playhead: its `currentTime` follows.
-- [ ] **3A.17** Click the ruler during playback, or let a Loop wrap. The animation jumps to the new time at once and keeps playing.
-- [ ] **3A.18** Change playback speed (the `0.5x` / `2x` pills or **L**). The animation's playback rate follows.
-- [ ] **3A.19** With the Performance panel, block the main thread (a long task) while playing a transform or opacity animation: it continues smoothly on the stage.
-- [ ] **3A.20** Edit a keyframe while playing. The stage picks up the change without restarting from 0.
-- [ ] **3A.21** The look at any paused time is the same as before Phase 58 (compare with a screenshot from `main` before the change if you have one).
+**User test: old projects still open**
 
-Developer check: `/editor/stage-lab` has a **Load 10 animations** button. It is used by `tests/e2e/stage-engine.spec.ts`, which seeks ten reference animations to five times each and compares the stage with the kernel to within 0.5 px.
+- [ ] **T53.1** Do: in the editor choose **File → Import Project File…** and pick `tests/e2e/fixtures/showcase-v4.lazy.json` from the repo. Expect: the project opens, with no error message and no console errors.
+- [ ] **T53.2** Do: repeat with `tests/e2e/fixtures/showcase-v2.lazy.json` (an older format). Expect: the same.
+- [ ] **T53.3** Do: after each import, choose **File → Export Project File (.lazy.json)**. Open the downloaded file in a text editor and search for `"schemaVersion"`. Expect: it says `6`.
+- [ ] **T53.4** Do: make a few edits (draw a rectangle with **Rectangle Tool**, add a keyframe with Recipe A), export, reload the page, then import that file. Expect: it reopens identically and `schemaVersion` is still `6`.
+
+**Developer test: the file format**
+
+- [ ] **T53.5** Do: take an exported file, change `"schemaVersion": 6` to `7` (everywhere it appears) and import it. Expect: the editor refuses with a readable message and doesn't crash or open a broken project.
+- [ ] **T53.6** Do: in an exported file find a clip under `snapshot.document.clips` and set its `"type"` to `"exit"` and its trigger to `"unmount"`, then import. Expect: it imports. In the re-exported file the clip sits in its own composition (`compositions` contains `comp_<clipId>` with `"trigger": { "on": "unmount" }`), not in `comp_main`.
+- [ ] **T53.7** Do: repeat T53.6 with type `"focus"` + trigger `"focus"`, and `"layout"` + `"layoutChange"`. Expect: each imports.
+- [ ] **T53.8** Do: set a clip's type to `"stagger"` without a `stagger` object. Expect: rejected or repaired with a message that mentions the stagger, not silently accepted. With `"stagger": { "each": 0.1, "from": "start" }` it imports.
+- [ ] **T53.9** Do: set a trigger to `"whenever"`. Expect: rejected or repaired with a message. No crash.
+- [ ] **T53.10** Do: `npx tsx --test src/core/document/__tests__/migrations.test.ts`. Expect: all pass (v5 → v6 changes only the version).
 
 ---
 
-## 4. Phase 55: the frame scheduler (indirect checks)
+### 3.2 Phase 54: the transport (one clock)
 
-The scheduler has no UI. You can still see its effects.
+**What changed:** a single clock owns the time, frame rate, loop mode and playback speed. Its controls are in the status bar.
 
-- [ ] **4.1** **One loop.** Open DevTools → Performance, record 3 s of playback, and stop. In the flame chart you should see one `requestAnimationFrame` callback per frame (from the scheduler), not several separate ones from the transport and the Sequencer. (Other panels, such as the dock splitters, may add their own while dragging; that is allowed.)
-- [ ] **4.2** **Idle is idle.** With playback stopped, record 3 s in the Performance panel. The scheduler's loop is still registered while the Sequencer or bar is mounted, but there must be no long tasks or growing memory.
-- [ ] **4.3** **React commits stay low.** Install React DevTools if you have it, enable "Highlight updates when components render", and play. The status-bar timecode and Sequencer timecode flash about 10 times a second; **the rest of the Sequencer panel does not flash every frame** (tracks, lanes and headers stay quiet).
-- [ ] **4.4** **Lint ban.** In a scratch file under `src/editor/`, write `requestAnimationFrame(() => {});` and run `npx eslint <file>`. It must report an error pointing to `frameScheduler`. Delete the file after. (Files in `src/core/time/` and the six allowlisted ones, such as the dock splitters, are exempt.)
-- [ ] **4.5** **Hidden tab.** Start playback, switch tab for ~20 s, return. The head did not leap by 20 s (gap is clamped), and the console has no errors.
-- [ ] **4.6** **Low-power sanity.** In DevTools → Performance, set **CPU: 6× slowdown**, then play. Playback gets choppier but the timecode and needle stay in sync, and nothing errors.
+**User test**
 
----
+*Play, pause, stop*
+- [ ] **T54.1** Do: click **Play**, wait 2 seconds, look at the timecode. Expect: about `00:02:00` (the seconds field is 02, give or take a few frames).
+- [ ] **T54.2** Do: look at the Play button while playing. Expect: it is highlighted and its tooltip says **Pause**.
+- [ ] **T54.3** Do: click **Pause**, wait 1 second. Expect: the timecode does not change.
+- [ ] **T54.4** Do: click **Play** again. Expect: it continues from where it stopped, not from 0.
+- [ ] **T54.5** Do: while playing, click **Stop and return to start**. Expect: it stops and the timecode is `00:00:00`.
 
-## 5. Phase 54/55: staying in step with the document
+*Playing to the end*
+- [ ] **T54.6** Do: with **Loop: off**, click **Play** and wait about 5 seconds. Expect: the head stops at `00:05:00` and the button returns to Play.
+- [ ] **T54.7** Do: click **Play** again at the end. Expect: it restarts from `00:00:00` and plays.
 
-The transport follows the active composition's fps, duration and work area.
+*Frame stepping*
+- [ ] **T54.8** Do: click **Stop and return to start**, then **Step forward one frame** once. Expect: `00:00:01`.
+- [ ] **T54.9** Do: click Step forward 59 more times. Expect: exactly `00:01:00` (60 frames = 1 second). No skipped or repeated numbers.
+- [ ] **T54.10** Do: click **Step back one frame** until `00:00:00`, then once more. Expect: it stays at `00:00:00`.
+- [ ] **T54.11** Do: click **Play**, then **Step forward one frame**. Expect: playback pauses and moves one frame.
 
-- [ ] **5.1** A fresh project's total reads `00:05:00` (5 s at 60 fps).
-- [ ] **5.2** Add or edit a clip so the main composition grows beyond 5 s (a clip with a long duration or delay). The total after the slash updates after the document change, without a reload, and playing runs to the new end.
-- [ ] **5.3** **Undo** that edit. The total returns to `00:05:00`.
-- [ ] **5.4** Seek to 4.5 s, then undo a change that shortens the composition below that. The head clamps inside the new length. It is never past the end.
-- [ ] **5.5** Reload the page. The transport starts at `00:00:00`, paused. Transport state is not saved in the project; the document is.
+*Loop modes* (the Loop button cycles off → on → ping-pong → off)
+- [ ] **T54.12** Do: click Loop once. Expect: tooltip **Loop: on**, button highlighted. Click **Play** and wait past 5 s: the timecode wraps to `00:00:00` and keeps playing.
+- [ ] **T54.13** Do: click Loop again. Expect: **Loop: ping-pong**. Play past 5 s: the timecode counts up to 5 s, then **down** towards 0, then up again.
+- [ ] **T54.14** Do: click Loop again. Expect: **Loop: off**, not highlighted.
 
----
+*Keyboard* (shortcuts work only while the mouse pointer is **over the Sequencer or over the canvas**, and never while typing in a text field)
+- [ ] **T54.15** Do: open the **Animate** tab, hover the Sequencer, press **→** then **←**. Expect: one frame forward, then one frame back.
+- [ ] **T54.16** Do: hover the Sequencer and press **L**. Expect: plays forward. Press **L** again: faster (2×), again 4×, again 8×. A fifth press stays at 8×.
+- [ ] **T54.17** Do: while playing at 4× or 8×, press **J**. Expect: it slows one step per press, and slowing past 1× **stops** (it does not reverse).
+- [ ] **T54.18** Do: stop, move the head to about 3 s (click the Sequencer ruler), hover the Sequencer, press **J**. Expect: plays **backwards** at 1×. Press **J** again: 2× backwards.
+- [ ] **T54.19** Do: while shuttling, press **K**. Expect: it stops and resets to 1× (a following **Play** goes forward at normal speed).
+- [ ] **T54.20** Do: click into any text box in the editor (for example rename a layer, double-click its name in the Layers panel), then press **J**, **K**, **L**, **→**. Expect: the transport does **not** move.
+- [ ] **T54.21** Do: hover the Layers panel (not the canvas, not the Sequencer) and press **L**. Expect: nothing happens.
+- [ ] **T54.22** Do: press **Ctrl+P** (command palette), type `transport`. Expect: Play / Pause, Go to Start, Play, Pause, Stop and Return to Start, Step Forward/Back One Frame, Shuttle Reverse (J), Stop Shuttle (K), Shuttle Forward (L), Cycle Loop Mode. Run three of them: each works.
 
-## 6. Phase 53: schema v6
+*Timecode*
+- [ ] **T54.23** Do: watch the timecode while playing. Expect: it updates about 10 times a second (visible steps, not a blur). This is by design.
+- [ ] **T54.24** Do: click Pause. Expect: the timecode settles on the final frame within 0.1 s and doesn't stay one step behind.
 
-### 6.1 Old projects still open
-These fixtures are real exports from older schemas.
-
-- [ ] **6.1.1** In the editor choose **File → Import Project File…** and pick `tests/e2e/fixtures/showcase-v4.lazy.json`. It opens with no error toast and no console errors. The stage shows the showcase.
-- [ ] **6.1.2** Repeat with `tests/e2e/fixtures/showcase-v2.lazy.json` (an even older schema). Same expectation.
-- [ ] **6.1.3** For each, choose **File → Export Project File (.lazy.json)**, then open the exported file in a text editor and search for `"schemaVersion"`. It reads **6**.
-- [ ] **6.1.4** Compare an exported file from the v4 import with one exported from **Mount Showcase Demo** (the native demo): apart from IDs and timestamps they should describe the same document. (The automated test `composition-migration.spec.ts` checks this precisely; here you are only sanity-checking.)
-
-### 6.2 New file, round trip
-- [ ] **6.2.1** Make a few edits (add a layer, add a keyframe), export, then **import that file into a fresh project** (or after a hard reload). It reopens identically and `schemaVersion` is still 6.
-- [ ] **6.2.2** Make 20 edits, then undo all 20. The document returns to blank. This was an older gate; schema changes must not have broken it.
-
-### 6.3 A file from "the future"
-- [ ] **6.3.1** Copy an exported `.lazy.json`, edit `"schemaVersion": 6` to `7` (in both the file header and the snapshot document if present), and import it. The editor must refuse with a readable message (something like "saved by a newer LazyLayout"), and must **not** crash or open a corrupt project.
-
-### 6.4 New vocabulary validates
-There is no UI for the new categories yet (the timeline in Phase 61 adds them), so test through the exported file.
-
-1. Export a project that has at least one clip. Open the JSON and find a clip under `snapshot.document.clips`.
-2. Make a copy and change that clip's `"type"` to each of `"exit"`, `"focus"`, `"layout"` (and the trigger to `"unmount"` for exit, `"focus"` for focus, `"layoutChange"` for layout). Change `"schemaVersion"` as needed (keep it 6).
-3. Import each copy.
-
-- [ ] **6.4.1** `exit` + `unmount`, `focus` + `focus`, `layout` + `layoutChange`: each imports without error.
-- [ ] **6.4.2** `"type": "stagger"` **without** a `stagger` object: the import should be **repaired or rejected with a message that mentions the stagger**, not silently accepted.
-- [ ] **6.4.3** `"type": "stagger"` **with** `"stagger": { "each": 0.1, "from": "start" }`: imports.
-- [ ] **6.4.4** A bogus trigger such as `"trigger": "whenever"`: rejected or repaired with a message. No crash.
-
-After a successful import of an `exit`/`unmount` clip, look at the document: the clip should sit in its **own interaction composition** (`compositions` has a `comp_<clipId>` with `"trigger": { "on": "unmount", … }`), not in `comp_main`. The transport bar keeps playing `comp_main` and the layer is not affected by the exit clip. This is correct.
+**Developer test**
+- [ ] **T54.25** Do: `npx tsx --test src/core/time/__tests__/transport.test.ts`. Expect: all pass.
+- [ ] **T54.26** Do: open `src/core/time/transport.ts` and check that `timeToFrame` is `Math.round(time * fps)` and that nothing in the file owns a timer (no `setInterval`, no `requestAnimationFrame`).
+- [ ] **T54.27** Do: `npx playwright test tests/e2e/transport-bar.spec.ts --project=chromium`. Expect: pass.
 
 ---
 
-## 7. Regression checks (things that must still work)
+### 3.3 Phase 55: the frame scheduler
 
-- [ ] **7.1** **Save and persistence:** edit, reload, and your edit is still there. The Save button's dirty dot clears.
-- [ ] **7.2** **Undo/redo** (Ctrl+Z / Ctrl+Shift+Z) across keyframe edits works. Dragging a keyframe is **one** undo step.
-- [ ] **7.3** **Canvas:** tool shortcuts (V, H, P, T, S…) work when hovering the canvas, and none of them is stolen by the new J/K/L bindings (J, K and L are not tools).
-- [ ] **7.3b** **Presets keep time.** Press Play, then click **Design**, **Animate**, **Code** and back. Playback is not interrupted and the timecode never jumps to 0. The status-bar transport survives each switch.
-- [ ] **7.4** **Command palette** (Ctrl+P / Ctrl+K) opens, and shortcuts displayed for transport commands are correct.
-- [ ] **7.5** **Rules engine:** in the Sequencer's add-animation menu, an animation that isn't legal for the selected layer is **disabled with a reason** (Phase 8 behaviour).
-- [ ] **7.6** **Export:** *File → Export* paths still run. The generated code is unaffected by the transport.
-- [ ] **7.7** **Production build:** `npm run build && npm run start`, then repeat section 1 on `http://localhost:3000/editor`. Dev and production builds behave differently with timers; both must work.
+**What changed:** one animation-frame loop runs everything per frame, in the order input → evaluate → apply → render → overlay → stats. It has no screen. You check its effects.
 
----
+**User test**
+- [ ] **T55.1** Do: Recipe A, then press **Play** and use the editor normally (hover panels, scroll the Sequencer) for 30 seconds. Expect: playback never freezes or stutters.
+- [ ] **T55.2** Do: Play, switch to another browser tab for 10 seconds, come back. Expect: the head advanced a little but did **not** leap by 10 seconds, and the console has no errors. (The scheduler counts at most 0.25 s per frame gap.)
 
-## 8. Cross-browser pass (about 10 minutes)
-
-Repeat in **Firefox** (and **WebKit/Safari** if available):
-- [ ] **8.1** Section 1 (smoke).
-- [ ] **8.2** 2.1–2.4 (transport bar).
-- [ ] **8.3** 3.1, 3.2, 3.5.1 (Sequencer on the same clock).
-- [ ] **8.4** 6.1.1 and 6.1.3 (import and schema version).
-- [ ] **8.5** 3A.1–3A.4 (the stage animates), then 11.1 and 11.2 (Lane A and Lane B together).
+**Developer test**
+- [ ] **T55.3** Do: DevTools → Performance, record 3 seconds of playback, stop. Expect: one `requestAnimationFrame` callback per frame, not several competing ones. (The dock splitters have their own while you drag them; that is allowed.)
+- [ ] **T55.4** Do: record 3 seconds with playback **stopped**. Expect: no long tasks, no growing memory.
+- [ ] **T55.5** Do: install React DevTools, turn on "Highlight updates when components render", and play. Expect: the status bar timecode and the Sequencer timecode flash about 10 times a second; the rest of the Sequencer (tracks, lanes, headers) stays quiet.
+- [ ] **T55.6** Do: create `src/editor/tmp.ts` containing `requestAnimationFrame(() => {});` and run `npx eslint src/editor/tmp.ts`. Expect: an error telling you to use the frame scheduler. Delete the file afterwards.
+- [ ] **T55.7** Do: `npx tsx --test src/core/time/__tests__/scheduler.test.ts`. Expect: all pass.
 
 ---
 
-# Developer's view
+### 3.4 Phase 56: the Sequencer on the same clock
 
-## 9. Run the automated suite and compare
+**What changed:** the Sequencer has no clock of its own. Its play, pause, loop, speed and playhead all use the transport.
 
-Run these so you can tell whether what you see manually matches what CI says.
+**User test** (open the **Animate workspace** tab and the **Motion Sequencer** tab first)
+
+*One clock, two sets of controls*
+- [ ] **T56.1** Do: click **Play** in the **Sequencer's** toolbar. Expect: the **status bar** button also becomes Pause and its timecode counts up.
+- [ ] **T56.2** Do: click **Pause** in the **status bar**. Expect: the Sequencer's button flips back to Play.
+- [ ] **T56.3** Do: while paused compare the Sequencer's timecode (`MM:SS.mmm`) with the status bar's (`MM:SS:FF`). Expect: the same moment within one frame (for example `00:01.250` and `00:01:15`).
+
+*Seeking*
+- [ ] **T56.4** Do: click on the Sequencer **ruler** about 0.5 s from the left. Expect: the needle jumps there and the status bar timecode follows (about `00:00:30`).
+- [ ] **T56.5** Do: click in an empty part of a keyframe lane. Expect: the same.
+- [ ] **T56.6** Do: drag the playhead's head (the small handle on top of the needle) left and right. Expect: the needle follows the mouse, the status bar timecode follows the needle, no big lag.
+- [ ] **T56.7** Do: drag past both ends. Expect: it stops at 0 and at the end.
+- [ ] **T56.8** Do: click **Stop and Reset** (Sequencer). Expect: both go to zero.
+- [ ] **T56.9** Do: click **Step Backward** (Sequencer). Expect: the head moves back about 0.1 s and never below 0.
+
+*Needle smoothness*
+- [ ] **T56.10** Do: click Play and watch the needle. Expect: it moves smoothly with no stutter while the timecode text changes in coarser steps. Both show the same moment.
+- [ ] **T56.11** Do: let it run for 30 s while you hover and scroll the panel. Expect: it never freezes or drifts from the status bar.
+
+*Loop and speed from the Sequencer*
+- [ ] **T56.12** Do: click the Sequencer's **Toggle Loop**. Expect: the status bar Loop button changes to **Loop: on** too, and the other way round.
+- [ ] **T56.13** Do: click the speed pills `0.25x`, `0.5x`, `1x`, `2x` while playing. Expect: playback speed changes and the current pill is highlighted.
+- [ ] **T56.14** Do: hover the Sequencer and press **L** until 4×. Expect: no pill is highlighted (4× has no pill).
+
+*Keyboard over the timeline*
+- [ ] **T56.15** Do: hover the Sequencer and press **Space**. Expect: play, then pause on the second press. Press it twice quickly: no stuck state.
+- [ ] **T56.16** Do: hover the Sequencer and press **Home**. Expect: the head returns to 0 (play state unchanged).
+- [ ] **T56.17** Do: hover the **canvas** and press **Space**. Expect: the transport does **not** play (Space is the Hand tool there; hold Space and drag to pan).
+- [ ] **T56.18** Do: click into a text box and press **Space**. Expect: it types a space and does not toggle playback.
+- [ ] **T56.19** Do: hover the Sequencer, click a keyframe diamond, press **Delete**. Expect: exactly that one keyframe goes. **Ctrl+Z** brings it back.
+
+*Keyframes at the playhead*
+- [ ] **T56.20** Do: move the head to about 0.8 s and click **+ Keyframe**. Expect: a keyframe appears on the selected track at the head's time.
+- [ ] **T56.21** Do: press **Ctrl+Z**. Expect: that keyframe is gone and the head did not move.
+
+*Panel behaviour*
+- [ ] **T56.22** Do: while playing, click **Graph View** then **Tracks**. Expect: playback continues and the needle is in the right place in Tracks view.
+- [ ] **T56.23** Do: while playing, click the **Content Browser** tab and then **Motion Sequencer** again. Expect: the transport kept playing, and the needle is at the right time at once (no jump from 0).
+
+**Developer test**
+- [ ] **T56.24** Do: `npx playwright test tests/e2e/playback-on-clock.spec.ts tests/e2e/deterministic-clock.spec.ts --project=chromium`. Expect: pass.
+- [ ] **T56.25** Do: `grep -rn "currentTime" src/editor/panels/sequencer/MotionSequencer.tsx`. Expect: no React state called `currentTime` (the playhead is painted by a scheduler task).
+
+---
+
+### 3.5 Phase 57: the kernel on the stage
+
+**What changed:** the evaluation kernel's output is now drawn on the real layers. Playing and scrubbing animate the stage.
+
+**User test** (do Recipe A first so the demo has an animation)
+
+- [ ] **T57.1** Do: click **Stop and return to start**, then **Play**. Expect: the demo fades in and slides up; it ends fully visible and in place.
+- [ ] **T57.2** Do: click **Stop and return to start**. Expect: the demo goes back to its **first look** (invisible and 20 px low).
+- [ ] **T57.3** Do: drag the playhead along the ruler from 0 to 1 s and back. Expect: the demo fades in and out and moves as you drag, in both directions, without flicker.
+- [ ] **T57.4** Do: click the ruler at 0 s, then at the right-hand end of the animation. Expect: first look, then final look.
+- [ ] **T57.5** Do: hover the Sequencer and press **→** repeatedly. Expect: the demo changes a tiny bit per frame; **←** reverses.
+- [ ] **T57.6** Do: turn on Loop and play past the end. Expect: the animation repeats. With ping-pong it runs backwards.
+- [ ] **T57.7** Do: pause in the middle of the animation. Expect: the demo stays exactly in that in-between look and doesn't snap anywhere.
+- [ ] **T57.8** Do: while paused, drag a keyframe to a different time or value in the Sequencer. Expect: the stage updates at once, at the same playhead time.
+- [ ] **T57.9** Do: delete every track of the animation (click the trash icon on each track row). Expect: the demo returns to its normal look and no longer moves with the playhead.
+- [ ] **T57.10** Do: press **Ctrl+Z** until the tracks are back. Expect: the animation works again.
+- [ ] **T57.11** Do: switch between **Design workspace**, **Animate workspace** and **Code workspace** while paused mid-animation. Expect: the demo stays in that look, and the stage doesn't blink.
+- [ ] **T57.12** Do: while playing, draw a rectangle with **Rectangle Tool** on the canvas. Expect: the rectangle appears and the demo keeps animating.
+- [ ] **T57.13** Do: during all of the above watch the console. Expect: no red errors.
+
+**Developer test**
+- [ ] **T57.14** Do: `npx tsx --test src/core/engine/stage/__tests__/stageEngine.test.ts`. Expect: pass (14 tests, including ten reference animations at five times each).
+- [ ] **T57.15** Do: `npx playwright test tests/e2e/stage-engine.spec.ts --project=chromium`. Expect: three tests pass: ten animations × five times match the kernel within 0.5 px, play moves a layer and pause holds it, scrubbing back to 0 restores the first keyframe.
+- [ ] **T57.16** Do: open `http://localhost:3000/editor/stage-lab`, click **Load 10 animations**. Expect: ten rectangles appear (this page has no transport buttons; it is for the automated tests).
+- [ ] **T57.17** Do: `grep -rn "requestAnimationFrame\|postMessage" src/core/engine/stage`. Expect: nothing. Per-frame writes go through the scheduler and the layer registry.
+- [ ] **T57.18** Do: open `src/core/engine/stage/StageEngine.ts`. Expect: it registers one task in the scheduler's `apply` phase and returns an uninstall function that disposes the adapter.
+
+---
+
+### 3.6 Phase 58: Web Animations
+
+**What changed:** layers whose animation is simple (numbers, lengths, angles, colours) run as browser Web Animations while playing, so they keep moving even if the page is busy. The curve is baked from the kernel, so it looks the same.
+
+**User test** (Recipe A first)
+- [ ] **T58.1** Do: click **Play**. Expect: the same fade-and-slide as before. Nothing looks different from Phase 57.
+- [ ] **T58.2** Do: play and, while playing, click the ruler at 0.3 s. Expect: the demo jumps to that point and keeps going from there.
+- [ ] **T58.3** Do: play with the speed pill `0.25x`. Expect: the animation runs four times slower. Switch to `2x` while playing: it speeds up without restarting.
+- [ ] **T58.4** Do: let Loop wrap at the end (Loop on). Expect: the animation restarts smoothly.
+- [ ] **T58.5** Do: edit a keyframe while playing. Expect: the stage picks up the change; the playhead does not jump back to 0.
+
+**Developer test**
+- [ ] **T58.6** Do: open DevTools → three-dot menu → More tools → **Animations**. Click **Play** in the editor. Expect: an animation group appears, listing an animation named `ll:<layer id>`. Pause: it pauses.
+- [ ] **T58.7** Do: open DevTools → Performance → record while you click **Play**, and in the Console run `const end = performance.now() + 400; while (performance.now() < end);` to block the page. Expect: the animation still advances on screen after the block (its clock lives in the browser).
+- [ ] **T58.8** Do: `npx tsx --test src/core/engine/stage/__tests__/waapiAdapter.test.ts`. Expect: pass.
+- [ ] **T58.9** Do: `npx playwright test tests/e2e/stage-waapi.spec.ts --project=chromium`. Expect: pass.
+- [ ] **T58.10** Do: read `src/core/engine/stage/waapiEligibility.ts`. Expect: a layer qualifies only if the rules route it to `css` and every property it animates is a number, length, angle or colour with a CSS name.
+
+---
+
+### 3.7 Phase 59: scrub vs play (NEW)
+
+**What changed:** there is now a rule for who draws what. **Scrubbing or paused: the kernel draws every layer** (exact, at any time, in any order). **Playing: each layer hands over to its routed engine** (Web Animations for simple ones, the kernel for the rest) at the current time and speed. **Pausing hands it back.** The hand-over must not change a single pixel.
+
+**User test** (Recipe A first)
+- [ ] **T59.1** Do: click **Stop and return to start**, then click **Play**, and click **Pause** at a moment when the demo is half-faded. Expect: the demo does **not** jump when you press Pause; it stays in that in-between look.
+- [ ] **T59.2** Do: right after T59.1, click **Step forward one frame** and then **Step back one frame**. Expect: tiny, smooth changes, no jumps.
+- [ ] **T59.3** Do: drag the playhead through the animation, press **Play** from the middle, press **Pause** after a moment, drag again. Expect: at every point the look matches what you saw when scrubbing there before; scrubbing and playing look the same.
+- [ ] **T59.4** Do: press **Play**, and while it plays press **L** to 4× and then **K**. Expect: the speed change doesn't restart the animation, and **K** stops it in place.
+- [ ] **T59.5** Do: press **Play** and click the ruler at 0.2 s, then 0.4 s, quickly several times. Expect: the demo follows each click and keeps playing from there.
+- [ ] **T59.6** Do: press **Play** and **Pause** ten times quickly. Expect: no flicker, no stuck half-state; the final state matches the transport (playing or paused).
+- [ ] **T59.7** Do: after pausing, press **Ctrl+Z** once. Expect: the last edit undoes and the demo is still drawn correctly at the paused time.
+
+**Developer test**
+- [ ] **T59.8** Do: open DevTools → **Animations** (as in T58.6). Scrub the playhead while paused. Expect: **no** `ll:` animation in the panel (the kernel is drawing). Press **Play**. Expect: one appears and runs. Press **Pause**. Expect: it disappears.
+- [ ] **T59.9** Do: while paused, in DevTools → Elements select the demo root layer inside the stage frame (`iframe[title="Stage"]` → `[data-element-id="el_root_container"]`). Expect: the animated values are in its inline `style` (opacity, transform). While playing, they are gone from inline style because the animation owns them.
+- [ ] **T59.10** Do: `npx tsx --test src/core/engine/stage/__tests__/waapiAdapter.test.ts`. Expect: the "Phase 59: scrub vs play" group of five tests passes.
+- [ ] **T59.11** Do: `npx playwright test tests/e2e/stage-waapi.spec.ts --project=chromium`. Expect: pass, including "paused after really playing, the stage matches the kernel's (≤ 0.5%) at five times".
+
+---
+
+## 4. Regression checks (things that must still work)
+
+- [ ] **R1** Do: edit something, reload the page. Expect: your edit is still there and the Save button's dirty dot clears.
+- [ ] **R2** Do: change a few keyframes, undo and redo with **Ctrl+Z** / **Ctrl+Shift+Z**. Expect: each keyframe drag is **one** undo step.
+- [ ] **R3** Do: hover the canvas and press the tool keys (V, H, T, R…). Expect: they switch tools; none is taken by **J/K/L** (those belong to the timeline).
+- [ ] **R4** Do: open the command palette (**Ctrl+P**). Expect: it opens, and transport shortcuts show correct keys.
+- [ ] **R5** Do: in the Sequencer open the add-property menu (**Add property track for current archetype**). Expect: properties that aren't legal for the layer are disabled with a reason.
+- [ ] **R6** Do: **File → Export Project File** and open the file. Expect: valid JSON, `schemaVersion` 6.
+- [ ] **R7** Do: `npm run build && npm run start`, open `http://localhost:3000/editor`, repeat section 2 (smoke) and Recipe A. Expect: it all works in the production build too.
+
+## 5. Cross-browser pass (about 10 minutes)
+
+Repeat in **Firefox** and **Safari/WebKit** (CI runs all three):
+- [ ] **X1** Section 2 (smoke).
+- [ ] **X2** Recipe A, then T57.1–T57.4.
+- [ ] **X3** T54.1–T54.14 (transport bar).
+- [ ] **X4** T59.1, T59.3, T59.6 (hand-over).
+- [ ] **X5** T53.1 and T53.3 (import and schema version).
+
+## 6. Run the automated suites and compare
 
 ```bash
-npm test                 # typecheck + unit tests
-npm run lint             # must exit 0 (warning budget is enforced)
+npm test                 # typecheck + unit tests (default and full edition)
+npm run lint             # must exit 0
 npm run build
 npm run check:bundle-scope && npm run check:doc-links && npm run check:no-adhoc-compat
-npx playwright test --project=chromium     # 20 tests, about 25 s
+npx playwright test --project=chromium
 rm -rf test-results playwright-report      # lint scans these if you leave them
 ```
 
-The Lane B specs are `tests/e2e/transport-bar.spec.ts`, `tests/e2e/playback-on-clock.spec.ts`, `tests/e2e/deterministic-clock.spec.ts` and the two migration specs. Unit tests live in `src/core/time/__tests__/` (transport, scheduler) and `src/core/document/__tests__/migrations.test.ts` (v5 → v6).
+Several timing-based tests can fail once on a busy machine and pass when run alone (`npx playwright test <file> --workers=1`). Re-run a failure by itself before reporting it.
 
----
+## 7. Things worth trying to break
 
-## 10. Things worth trying to break
-
-These have no pass/fail line, but a finding here is worth reporting.
-
-- Mash **L** and **J** alternately very fast while hovering the Sequencer.
-- Press **Play** and **Stop** ten times a second.
-- Set Loop to ping-pong and **seek** by clicking the ruler during playback.
+- Mash **L** and **J** alternately, very fast, with the pointer over the Sequencer.
+- Press Play and Stop ten times a second.
+- Set ping-pong, then click the ruler during playback.
 - Drag the playhead while playing.
 - Step forward 300 times at the end of the composition (it must stop at the end).
-- Switch the Sequencer's selected layer or clip during playback.
-- Delete the clip the Sequencer is showing while playing.
-- Open the editor in **two tabs** of the same project: each tab has its own transport and neither should affect the other.
-- Resize the browser window and zoom (Ctrl +/-) during playback. The needle and the ruler should stay aligned.
-- Leave playback looping for **10 minutes** and watch the browser's memory (DevTools → Memory). It should stay flat.
+- Delete the clip or its tracks while playing.
+- Open the editor in **two tabs** of the same project: each has its own transport; neither affects the other.
+- Resize the window and zoom with Ctrl +/- during playback. The needle and ruler stay aligned.
+- Leave looping playback running for **10 minutes** and watch memory in DevTools → Memory. It should stay flat.
 
----
+## 8. Reporting a problem
 
-## 11. Lane A and Lane B together
-
-Lane A's Phases 13–19 rewrote the shell and the stage around Lane B's work. These checks confirm the join is sound and that the ground for Phase 57 is ready.
-
-### 11.1 The user's view
-- [ ] **11.1.1** The **Animate** preset shows the Sequencer and the transport bar together. Play from either, and both move.
-- [ ] **11.1.2** In **Design**, with the timeline folded, press Play in the status bar. The timecode runs. Open the timeline (Animate): the needle is already at the right time.
-- [ ] **11.1.3** Hover the **stage** and press **Space**: it pans (does not play). Hover the **timeline** and press **Space**: it plays. Hover the stage and press **L**: shuttle works there too (the stage frame now holds the canvas focus scope while the pointer is over it).
-- [ ] **11.1.4** Click into the stage, then press **J / K / L / ← / →**. The transport responds. Click into a text field and they do not.
-- [ ] **11.1.5** Draw a rectangle with the tool dock while the transport is playing. Playback continues, the shape appears and Ctrl+Z removes it.
-- [ ] **11.1.6** Reload in **Animate**. The layout returns and the transport starts at `00:00:00`.
-
-### 11.2 The developer's view
-- [ ] **11.2.1** `src/core/time/` is untouched by Lane A. Check with `git log --oneline -- src/core/time`: only Lane B commits.
-- [ ] **11.2.2** The transport is bound to the document in the new shell: `TransportBar` is still mounted by `StatusBar.tsx`, and `transportBinding.ts` follows the active composition. Edit a composition's length and the total after the slash changes (test 5.2).
-- [ ] **11.2.3** `grep -rn "requestAnimationFrame" src/ | grep -v "src/core/time"` lists only the allowlisted files. Lane A's `StageRenderer.measure()` batching runs in the scheduler's `overlay` phase (`runOnNextFrame`), so the lint ban holds for Lane A's code too.
-- [ ] **11.2.4** Phase 57 uses Lane A's interfaces: `StageHost` calls `installStageEngine(renderer)`, which reads elements from `renderer.registry` (the `LayerNodeRegistry`). Nothing writes to the stage through React state or `postMessage`.
-- [ ] **11.2.5** Per-frame writes happen in the scheduler's `apply` phase (`src/core/engine/stage/StageEngine.ts`), not in a new animation-frame loop. `grep -rn requestAnimationFrame src/core/engine/stage` finds nothing.
-
----
-
-## 12. Reporting a problem
-
-For each failure write down:
-
-1. The test number (for example `3.5.3`).
-2. What you did, what you expected and what happened.
-3. Browser, and whether it was `npm run dev` or a production build.
-4. Any console error text.
-5. A screenshot or a short screen recording for timing problems.
-
-Hand that to your Claude, saying which phase it belongs to (53–56). Fixes go on a `b/phase-NN-…` branch and through a PR, as usual.
+For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–59). Fixes go on a `b/phase-NN-…` branch and through a pull request.
