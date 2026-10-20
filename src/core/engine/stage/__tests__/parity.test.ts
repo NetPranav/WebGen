@@ -5,7 +5,7 @@ import { MAIN_COMPOSITION_ID } from "../../../document/compositions";
 import type { Clip } from "../../../document/schema";
 import { evaluate } from "../../../kernel/evaluate";
 import { FrameScheduler } from "../../../time/scheduler";
-import { ParityMonitor, parityStore, sameValue, type MatrixParser } from "../parity";
+import { ParityMonitor, inBand, parityStore, sameValue, type MatrixParser } from "../parity";
 import { styleWrites } from "../styleWrites";
 import type { RunningLayer } from "../WaapiAdapter";
 
@@ -66,6 +66,21 @@ describe("sameValue", () => {
   });
 });
 
+describe("inBand", () => {
+  it("accepts a value anywhere in the band the kernel spans nearby, plus the tolerance", () => {
+    assert.equal(inBand("left", ["100px", "104px", "96px"], "103px"), true);
+    assert.equal(inBand("left", ["100px", "104px", "96px"], "104.4px"), true);
+    assert.equal(inBand("left", ["100px", "104px", "96px"], "105px"), false);
+    assert.equal(inBand("opacity", ["0.5", "0.52", "0.48"], "0.53"), true);
+    assert.equal(inBand("opacity", ["0.5", "0.52", "0.48"], "0.6"), false);
+  });
+  it("does the same for each entry of a transform", () => {
+    const t = (x: number) => `translate3d(${x}px, 0px, 0px)`;
+    assert.equal(inBand("transform", [t(10), t(12), t(8)], t(11.9), parseMatrix), true);
+    assert.equal(inBand("transform", [t(10), t(12), t(8)], t(15), parseMatrix), false);
+  });
+});
+
 describe("ParityMonitor", () => {
   it("stays green while the engine shows what the kernel says", () => {
     const { monitor, warnings } = setup("power2.inOut", (expected) => expected);
@@ -89,6 +104,33 @@ describe("ParityMonitor", () => {
     wrong = true;
     monitor.sample();
     assert.equal(warnings.length, 4, "a new drift after recovering is reported");
+  });
+
+  it("tolerates the style lagging the engine's clock by a frame (WebKit), but not by a lot", () => {
+    const lag = (frames: number) => {
+      const b = new DocBuilder();
+      const id = b.layer("rectangle", "Box", null);
+      b.clip(id, { name: "A", type: "entrance", trigger: "mount", duration: 1, easing: "linear", tracks: [track("transform.x", 0, 600, "linear")] });
+      const doc = b.build();
+      const monitor = new ParityMonitor({
+        scheduler: new FrameScheduler(null),
+        getDocument: () => doc,
+        compositionId: () => MAIN_COMPOSITION_ID,
+        fps: () => 60,
+        transportTime: () => 0.5,
+        isPlaying: () => true,
+        running: (): RunningLayer[] => [{ layerId: id, element: {} as Element, paths: new Set(["transform.x"]), time: 0.5 }],
+        // The browser reports the value of an earlier frame: 600 px/s is 10 px per frame.
+        read: () => styleWrites(["transform.x"], evaluate(doc, MAIN_COMPOSITION_ID, id, 0.5 - frames / 60)).transform,
+        parseMatrix,
+        warn: () => undefined,
+      });
+      return monitor.sample().status;
+    };
+    assert.equal(lag(0), "ok");
+    assert.equal(lag(1), "ok", "one frame behind is a skew, not a drift");
+    assert.equal(lag(2), "ok", "two frames is the edge of the allowance");
+    assert.equal(lag(5), "drift", "five frames behind is real");
   });
 
   it("is idle when nothing is playing", () => {
