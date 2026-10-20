@@ -84,6 +84,14 @@ test("Phase 57: pressing play moves the layers, and pausing holds them", async (
   await page.evaluate(() => window.__LL_ENGINE__!.play());
   await expect.poll(x, { message: "the layer moves while the transport plays", timeout: 15_000 }).toBeGreaterThan(20);
   await page.evaluate(() => window.__LL_ENGINE__!.pause());
+  // The engine stops the layer in the next frame's apply phase; wait for it to settle before reading where it stopped.
+  await expect
+    .poll(async () => {
+      const first = await x();
+      await page.waitForTimeout(120);
+      return Math.abs((await x()) - first);
+    }, { timeout: 15_000 })
+    .toBeLessThan(0.01);
   const held = await x();
   await page.waitForTimeout(300);
   expect(await x(), "paused: the layer stays where it is").toBe(held);
