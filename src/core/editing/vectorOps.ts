@@ -317,15 +317,15 @@ export function readSvgShapes(svgText: string): { shapes: ImportedShape[]; width
 
 /**
  * Imports an SVG as editable vector layers: one path layer for each shape, each straight into `parent` with the
- * picture's top-left at `at` (canvas space), in one undo step. Returns the ids.
+ * picture's top-left at `at` (canvas space) and everything scaled by `scale`, in one undo step. Returns the ids.
  */
-export function importSvgAsVectors(svgText: string, parent: { id: string; origin: Vec } | null, at: Vec): string[] {
+export function importSvgAsVectors(svgText: string, parent: { id: string; origin: Vec } | null, at: Vec, scale = 1): string[] {
   const read = readSvgShapes(svgText);
   if (!read || !parent) return [];
   const ids: string[] = [];
   transaction("Import SVG", () => {
     for (const s of read.shapes) {
-      const nodes = s.sub.nodes.map((n) => mapNode(n, (v) => ({ x: v.x + at.x, y: v.y + at.y })));
+      const nodes = s.sub.nodes.map((n) => mapNode(n, (v) => ({ x: v.x * scale + at.x, y: v.y * scale + at.y })));
       const props: Record<string, PropValue> = {
         positioning: "absolute",
         "svg.fill": s.sub.closed ? s.fill : s.fill === "#000000" ? "none" : s.fill,

@@ -14,6 +14,7 @@ import { useFontsStore } from "@/core/store/useFontsStore";
 import { useDraftPathStore } from "@/core/store/useDraftPathStore";
 import { nodesToPathData } from "@/core/paths/pathFit";
 import { penRubberBand } from "@/core/paths/penModel";
+import { VectorEditLayer } from "../vector/VectorEditLayer";
 import type { TransformModel } from "../transformModel";
 
 /** The path being drawn (Phase 39): the pencil's stroke so far, or the pen's nodes with the rubber band to the pointer. */
@@ -141,6 +142,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
     <>
       <div ref={layerRef} className="canvas-overlay" aria-hidden="true" />
       <DraftPath />
+      <VectorEditLayer />
     </>
   );
 };

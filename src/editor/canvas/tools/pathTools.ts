@@ -79,13 +79,15 @@ export function createPencilTool(): Tool {
   };
 }
 
+// The pen's draft is one thing for the whole editor (more than one tool object may be made, e.g. when React renders twice).
+let state: PenState = EMPTY_PEN;
+let parent: Parent = null;
+let t0 = 0;
+let down: ToolPointer | null = null;
+let dragged = false;
+let lastCtx: ToolContext | null = null;
+
 export function createPenTool(): Tool {
-  let state: PenState = EMPTY_PEN;
-  let parent: Parent = null;
-  let t0 = 0;
-  let down: ToolPointer | null = null;
-  let dragged = false;
-  let lastCtx: ToolContext | null = null;
 
   const show = (cursor: Point | null) => useDraftPathStore.getState().setPen(state.nodes, state.closed, cursor);
   const reset = () => {

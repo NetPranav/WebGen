@@ -55,6 +55,7 @@ import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import { useLayers, documentCommands } from "@/core/store/useDocumentStore";
 import { penControls } from "./tools/pathTools";
+import { useVectorEdit } from "./vector/useVectorEdit";
 import { useFocusScope, useCommand, type ContextKeys } from "@/core/commands";
 import { useCameraStore } from "@/core/store/useCameraStore";
 import { gridSpacing, wheelZoomFactor } from "@/core/viewport/camera";
@@ -543,6 +544,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     return () => offs.forEach((off) => off());
   }, [canvasCommandWhen]);
   useToolKeys();
+  const { enterEdit } = useVectorEdit(containerRef, hitTester, canvasCommandWhen);
 
   // the pen's keys: Enter finishes the path, Backspace takes the last node back
   useCommand({ id: "pen.finish", title: "Finish Path", category: "Canvas", keybinding: "Enter", when: (ctx) => canvasCommandWhen(ctx) && !!penControls()?.active(), run: () => penControls()?.finish() }, [canvasCommandWhen]);
@@ -745,6 +747,10 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - r.left, y: e.clientY - r.top });
     const hit = hitTester.pickAt(world, { deep: true });
     const layer = hit ? getDocument().layers[hit.id] : undefined;
+    if (hit && layer && layer.archetype === "svgPath" && layer.locked !== true) {
+      enterEdit(hit.id);
+      return;
+    }
     if (!hit || !layer || layer.archetype !== "text" || layer.locked === true) return;
     useSelectionStore.getState().select(hit.id, "element");
     useCanvasViewStore.getState().startTextEdit(hit.id);

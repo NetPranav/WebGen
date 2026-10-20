@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs -- third-party component (React Bits), kept as installed */
 'use client';
 
 import { isValidElement, useLayoutEffect, useRef, useState } from 'react';

@@ -211,7 +211,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 37 | Image layers | 36 | — (new) | 1 | 🚧 |
 | 38 | Fonts | 36 | v3 17.3 | 1 | 🚧 |
 | 39 | Pen & pencil | 24 | v3 35.1–35.4 | 1 | 🚧 |
-| 40 | Vector editing & boolean operations | 39 | v3 16.1 | 1 | 📋 |
+| 40 | Vector editing & boolean operations | 39 | v3 16.1 | 1 | 🚧 |
 | 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 📋 |
 | 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 📋 |
 | 43 | Breakpoints & overrides | 42 | v3 50.3 (properties half) | 1 | 📋 |
@@ -757,11 +757,12 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence so far:** the scribble gate is a unit test (`pathFit.test.ts`, 360 samples over 3 s). `tests/e2e/pen.spec.ts` covers the pencil, the pen (clicks, dragged handles, close, Backspace, Enter, Escape) and undo in 3 browsers. The 120 Hz / 60 fps check is not written yet, so the phase stays 🚧.
 
 ### Phase 40 · Vector editing & boolean operations
-**Needs:** 39 · **Was:** v3 16.1 · **Status:** 📋
-- [ ] Path edit mode (Enter or double-click): move nodes, drag bezier handles, add and remove nodes, close and open paths, mirrored handles. Boolean union, subtract, intersect and exclude; flatten. SVG import (sanitised) as editable vectors.
+**Needs:** 39 · **Was:** v3 16.1 · **Status:** 🚧
+- [x] Path edit mode (Enter or double-click): move nodes, drag bezier handles, add and remove nodes, close and open paths, mirrored handles. Boolean union, subtract, intersect and exclude; flatten. SVG import (sanitised) as editable vectors.
 
 **You'll see:** you can reshape any vector point by point.
 **Done when:** a 500-node imported SVG stays editable at 60 fps; boolean golden tests pass.
+**Evidence so far (2026-10-20):** boolean golden tests in `src/core/paths/__tests__/booleans.test.ts` (exact areas for union, subtract, intersect and exclude of squares, circles with holes, three-shape subtract, even-odd rings); path data and node-editing unit tests (`pathData.test.ts`, `pathEdit.test.ts`); `tests/e2e/vector.spec.ts` in 3 browsers: move, add, delete, close, smooth and handle drags (one undo step each), the four booleans and flatten through the inspector buttons, and a 500-node SVG placed as vectors (script removed by the sanitiser) edited with the 90th-percentile frame under 34 ms (50 ms on CI). **Design:** `svg.fillRule` (additive) for compound results; a boolean result with one outline is an editable path, with holes or several outlines a compound path (not node-editable); curves are flattened in the answer (corner nodes). Group transforms and gradients in imported SVGs are not applied. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 41 · Auto-layout: stacks
 **Needs:** 27, 32 · **Was:** v3 50.1 (stacks) · **Status:** 📋
