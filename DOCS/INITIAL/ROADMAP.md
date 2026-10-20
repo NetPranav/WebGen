@@ -235,11 +235,11 @@ One row per phase, in execution order. Update the Status column together with th
 | 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | ✅ |
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | ✅ |
 | 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | ✅ |
-| 59 | Scrub vs play | 58 | v3 10.2 | 2 | 🚧 |
-| 60 | Parity overlay | 59 | v3 10.3 | 2 | 🚧 |
-| 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 🚧 |
-| 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | 🚧 |
-| 63 | Timeline navigation | 62 | v3 52.3 | 2 | 🚧 |
+| 59 | Scrub vs play | 58 | v3 10.2 | 2 | ✅ |
+| 60 | Parity overlay | 59 | v3 10.3 | 2 | ✅ |
+| 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | ✅ |
+| 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | ✅ |
+| 63 | Timeline navigation | 62 | v3 52.3 | 2 | ✅ |
 | 64 | Timeline at scale | 63 | v3 52.4 | 2 | 📋 |
 | 65 | Nested & interaction composition tabs | 64 | v3 52.5 | 2 | 📋 |
 | 66 | Keyframing | 65 | v3 23.2 | 2 | 📋 |
