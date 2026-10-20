@@ -29,7 +29,7 @@
 import { useMemo } from "react";
 import { applyPatches, enablePatches, produceWithPatches, type Draft, type Patch } from "immer";
 import { captureProjectState, useProjectStore } from "./useProjectStore";
-import { documentStore, getDocument, setDocument } from "./documentState";
+import { documentStore, getDocument, isDocumentReadOnly, setDocument } from "./documentState";
 import { setEnvironment } from "./useEnvironmentStore";
 import { useProjectMetaStore, splitProjectMeta } from "./useProjectMetaStore";
 import type { WorldEnvironmentSettings } from "../types/environment";
@@ -50,6 +50,7 @@ import {
   type Composition,
   type ExportSettings,
   type Keyframe,
+  type AssetEntry,
   type Layer,
   type LayerState,
   type MotionDocument,
@@ -184,6 +185,7 @@ function recordCommandChange(label: string, before: MotionDocument, after: Motio
  * it is applied and emitted as transient.
  */
 function commit(label: string | undefined, recipe: (draft: Draft<MotionDocument>) => void): DocumentChange {
+  if (isDocumentReadOnly()) return { label: label ?? DEFAULT_LABEL, patches: [], inversePatches: [] }; // another tab has this project
   const before = getDocument();
   // Phase 46: every write leaves clips placed in compositions (the legacy editor writes clips only).
   const [next, patches, inversePatches] = produceWithPatches(before, (draft) => {
@@ -301,6 +303,7 @@ export const gestureCoalescing = {
 // ---------------------------------------------------------------------------
 
 function applyDocumentPatches(patches: Patch[], inversePatches: Patch[], label: string, source: DocumentChangeSource) {
+  if (isDocumentReadOnly()) return;
   setDocument(applyPatches(getDocument(), patches));
   emit({ label, patches, inversePatches, source });
 }
@@ -594,6 +597,28 @@ export const documentCommands = {
   setLayerFlags(layerId: string, flags: Partial<Pick<Layer, "visible" | "locked">>, label?: string) {
     commit(label, (draft) => {
       Object.assign(requireLayer(draft, layerId), flags);
+    });
+  },
+
+  /** Sets how fonts show while loading (the project's `font-display`). */
+  setFontDisplay(display: "swap" | "block" | "fallback" | "optional" | "auto", label = "Font loading") {
+    commit(label, (draft) => {
+      if (display === "swap") delete draft.fontDisplay;
+      else draft.fontDisplay = display;
+    });
+  },
+
+  /** Records an imported file in the document's asset manifest (Phase 36). The bytes are in the asset store. */
+  addAsset(entry: AssetEntry, label = "Import asset") {
+    commit(label, (draft) => {
+      (draft.assets ??= {})[entry.id] = entry;
+    });
+  },
+
+  /** Removes a file from the manifest (the bytes stay in the store until nothing refers to them). */
+  removeAsset(id: string, label = "Remove asset") {
+    commit(label, (draft) => {
+      if (draft.assets) delete draft.assets[id];
     });
   },
 

@@ -8,10 +8,13 @@
 import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
 import { moveLayers } from "../layers/reparent";
+import { importAndPlace } from "../assets/assetImport";
+import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage } from "../paint/paintOps";
 import { setFill, setFrame, setOpacity, setRadius, setSimpleText, setStroke } from "../inspector/simpleOps";
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
 import { getDocument } from "../store/documentState";
+import { documentCommands } from "../store/useDocumentStore";
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
@@ -134,6 +137,28 @@ export function registerEditingCommands(): () => void {
   add(defineTypedCommand({ id: "layer.setOpacity", title: "Set Opacity", category: "Layer", args: z.object({ ids: targets, opacity: z.number() }), run: ({ ids: t, opacity }) => ({ changed: setOpacity(t ?? ids(), opacity) }) }));
   add(defineTypedCommand({ id: "layer.setText", title: "Set Words", category: "Layer", args: z.object({ ids: targets, text: z.string() }), run: ({ ids: t, text }) => ({ changed: setSimpleText(t ?? ids(), text) }) }));
   add(defineTypedCommand({ id: "layer.setFrame", title: "Set Position and Size", category: "Layer", args: z.object({ ids: targets, x: z.number().optional(), y: z.number().optional(), width: z.number().optional(), height: z.number().optional() }), run: ({ ids: t, ...patch }) => ({ changed: setFrame(t ?? ids(), patch) }) }));
+  // Phase 35: paint and effects as typed commands (agents get the same list the panels edit).
+  const stop = z.object({ at: z.number(), color: z.string() });
+  const pt = z.object({ x: z.number(), y: z.number() });
+  const paintBase = { opacity: z.number().min(0).max(1).default(1), visible: z.boolean().default(true) };
+  const paintSchema = z.discriminatedUnion("type", [
+    z.object({ type: z.literal("solid"), color: z.string(), ...paintBase }),
+    z.object({ type: z.literal("linear"), stops: z.array(stop).min(2).max(32), from: pt, to: pt, ...paintBase }),
+    z.object({ type: z.literal("radial"), stops: z.array(stop).min(2).max(32), center: pt, radius: pt, ...paintBase }),
+    z.object({ type: z.literal("conic"), stops: z.array(stop).min(2).max(32), center: pt, angle: z.number(), ...paintBase }),
+    z.object({
+      type: z.literal("image"), src: z.string().max(200_000), mode: z.enum(["fill", "fit", "crop", "tile"]).default("fill"),
+      crop: z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }).default({ x: 0, y: 0, w: 1, h: 1 }), scale: z.number().default(1),
+      natural: z.object({ w: z.number(), h: z.number() }).optional(), brightness: z.number().default(1), contrast: z.number().default(1), saturation: z.number().default(1), ...paintBase,
+    }),
+  ]);
+  add(defineTypedCommand({ id: "paint.setFills", title: "Set Fills", category: "Layer", args: z.object({ ids: targets, fills: z.array(paintSchema).max(16) }), run: ({ ids: t, fills }) => ({ changed: setFills(t ?? ids(), fills) }) }));
+  const shadowSchema = z.object({ kind: z.enum(["drop", "inner"]), x: z.number(), y: z.number(), blur: z.number().min(0), spread: z.number(), color: z.string(), visible: z.boolean().default(true) });
+  add(defineTypedCommand({ id: "paint.setShadows", title: "Set Shadows", category: "Layer", args: z.object({ ids: targets, shadows: z.array(shadowSchema).max(16) }), run: ({ ids: t, shadows }) => ({ changed: setShadows(t ?? ids(), shadows) }) }));
+  add(defineTypedCommand({ id: "paint.setStrokeStyle", title: "Set Stroke Style", category: "Layer", args: z.object({ ids: targets, style: z.enum(["solid", "dashed", "dotted"]) }), run: ({ ids: t, style }) => ({ changed: setStrokeStyle(t ?? ids(), style) }) }));
+  add(defineTypedCommand({ id: "paint.replaceImage", title: "Replace Image", category: "Layer", args: z.object({ ids: targets, src: z.string(), natural: z.object({ w: z.number().positive(), h: z.number().positive() }).optional(), index: z.number().int().min(0).optional() }), run: ({ ids: t, src, natural, index }) => ({ changed: replaceImage(t ?? ids(), src, natural, index) }) }));
+  add(defineTypedCommand({ id: "paint.setBlur", title: "Set Blur", category: "Layer", args: z.object({ ids: targets, layer: z.number().optional(), background: z.number().optional() }), run: ({ ids: t, layer, background }) => ({ changed: setBlur(t ?? ids(), { layer, background }) }) }));
+  add(defineTypedCommand({ id: "fonts.setDisplay", title: "Set Font Loading", category: "Text", args: z.object({ display: z.enum(["swap", "block", "fallback", "optional", "auto"]) }), run: ({ display }) => { documentCommands.setFontDisplay(display); return { ok: true }; } }));
   add(registerTextCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());
@@ -156,6 +181,13 @@ export function installClipboardEvents(target: Window): () => void {
   const paste = (e: Event) => {
     const ev = e as ClipboardEvent;
     if (!canvas()) return;
+    // a picture copied from elsewhere pastes as an image layer (Phase 36)
+    const pictures = Array.from(ev.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (pictures.length > 0) {
+      ev.preventDefault();
+      void importAndPlace(pictures);
+      return;
+    }
     const system = ev.clipboardData?.getData("text/plain") ?? "";
     // our payload from the system clipboard; or, when the page was given none, the mirror every tab of this origin shares
     const text = parseClip(system) ? system : system === "" ? mirrorRead() : null;

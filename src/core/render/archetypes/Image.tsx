@@ -2,12 +2,14 @@ import React from "react";
 import { layerBoxStyle, px } from "../geometry";
 import { clampNumber, safeImageSrc } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
+import { useAssetUrl } from "../../assets/useAssetUrl";
 
 const FITS = new Set(["cover", "contain", "fill", "none", "scale-down"]);
 
 /** An `image`. A source that isn't a safe image URL is not loaded; the alt text shows instead. */
 export const Image: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
-  const src = safeImageSrc(resolved.str("media.src", ""));
+  const wanted = safeImageSrc(resolved.str("media.src", ""));
+  const src = useAssetUrl(wanted); // an imported file loads from the asset store
   const alt = resolved.str("media.alt", layer.name);
   const fit = resolved.str("media.objectFit", "cover");
   const filters = [

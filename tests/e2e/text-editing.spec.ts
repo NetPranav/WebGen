@@ -202,8 +202,8 @@ test("Phase 31: the inspector's text properties change the layer, one undo step 
   await expect(text).toBeVisible();
   const before = (await view(page, id))!;
 
-  await text.getByLabel("Size").fill("40");
-  await text.getByLabel("Size").press("Enter");
+  await text.getByLabel("Size", { exact: true }).fill("40");
+  await text.getByLabel("Size", { exact: true }).press("Enter");
   await expect.poll(async () => (await view(page, id))?.fontSize).toBe("40px");
   await text.getByLabel("Weight").selectOption("700");
   await text.getByRole("button", { name: "Align text centre" }).click();
@@ -213,7 +213,9 @@ test("Phase 31: the inspector's text properties change the layer, one undo step 
   await text.getByLabel("Letter spacing").press("Enter");
   await text.getByLabel("Line height").fill("2");
   await text.getByLabel("Line height").press("Enter");
-  await text.getByLabel("Font family").selectOption("Georgia");
+  await text.getByRole("button", { name: "Font family" }).click();
+  await page.getByRole("searchbox", { name: "Search fonts" }).fill("Georgia");
+  await page.getByRole("option", { name: "Georgia", exact: true }).click();
   await expect.poll(async () => (await view(page, id))?.letterSpacing).toBe("2px");
   const after = (await view(page, id))!;
   expect(after.textAlign).toBe("center");
@@ -263,16 +265,16 @@ test("Phase 31: auto width, auto height and fixed size", async ({ page }) => {
   await expect.poll(async () => (await view(page, id))?.whiteSpace).toBe("pre-wrap");
   const wrapped = (await view(page, id))!;
   expect(Math.abs(wrapped.width - grown.width)).toBeLessThanOrEqual(2);
-  await page.getByRole("group", { name: "Text", exact: true }).getByLabel("Size").fill("80");
-  await page.getByRole("group", { name: "Text", exact: true }).getByLabel("Size").press("Enter");
+  await page.getByRole("group", { name: "Text", exact: true }).getByLabel("Size", { exact: true }).fill("80");
+  await page.getByRole("group", { name: "Text", exact: true }).getByLabel("Size", { exact: true }).press("Enter");
   await expect.poll(async () => (await view(page, id))?.height).toBeGreaterThan(wrapped.height * 1.5);
 
   // fixed size freezes both
   await sizing.getByRole("button", { name: "Fixed size" }).click();
   await expect(sizing.getByRole("button", { name: "Fixed size" })).toHaveAttribute("aria-pressed", "true");
   const fixed = (await view(page, id))!;
-  await page.getByRole("group", { name: "Text", exact: true }).getByLabel("Size").fill("20");
-  await page.getByRole("group", { name: "Text", exact: true }).getByLabel("Size").press("Enter");
+  await page.getByRole("group", { name: "Text", exact: true }).getByLabel("Size", { exact: true }).fill("20");
+  await page.getByRole("group", { name: "Text", exact: true }).getByLabel("Size", { exact: true }).press("Enter");
   await expect.poll(async () => (await view(page, id))?.fontSize).toBe("20px");
   expect((await view(page, id))!.height, "a fixed box doesn't follow its text").toBe(fixed.height);
 });

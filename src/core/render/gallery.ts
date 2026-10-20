@@ -6,6 +6,7 @@
 import type { Layer } from "../document/schema";
 import { createLayer } from "../document/factories";
 import { ARCHETYPE_IDS, getDefaultProps, type ArchetypeId, type PropValue } from "../document/registry";
+import { serializeFills, serializeShadows, type ImagePaint, type Paint } from "../paint/paints";
 
 export interface GalleryCase {
   id: string;
@@ -123,6 +124,8 @@ export const GALLERY_CASES: GalleryCase[] = [
   { id: "star-sharp", archetype: "star", label: "Star, 8 points, sharp", properties: { "shape.points": 8, "shape.innerRadius": 0.2 }, expectSize: { width: 120, height: 120 } },
   { id: "arrow", archetype: "arrow", label: "Arrow", expectSize: { width: 160, height: 32 } },
   { id: "arrow-big-head", archetype: "arrow", label: "Arrow, head larger than the box", properties: { "shape.headLength": 400, "shape.headWidth": 400 }, expectSize: { width: 160, height: 32 } },
+  // ---- paint and effects (Phase 35): the cases the screenshot gate compares across browsers ----
+  ...paintCases(),
   // ---- no 2D drawing yet: a labelled placeholder ----
   { id: "effect-surface", archetype: "effectSurface", label: "Effect surface (placeholder)" },
   { id: "object-3d", archetype: "object3D", label: "3D object (placeholder)" },
@@ -166,4 +169,54 @@ export function archetypesMissingFromGallery(): ArchetypeId[] {
   };
   GALLERY_CASES.forEach(walk);
   return ARCHETYPE_IDS.filter((id) => !covered.has(id));
+}
+
+
+function paintCases(): GalleryCase[] {
+const BOX = { "frame.width": 120, "frame.height": 80 } as const;
+const stops2 = [{ at: 0, color: "#206859" }, { at: 1, color: "#f59e0b" }];
+const wedge = (n: number) => Array.from({ length: n * 2 }, (_, i) => ({ at: i / (n * 2), color: i % 2 === 0 ? "#e2e8f0" : "#94a3b8" }));
+  const fills = (paints: Paint[]) => serializeFills(paints);
+  // an asymmetric picture (four colours, a diagonal, a dot in one corner), so fit, crop and tile each look different
+  const PIC = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120" viewBox="0 0 240 120"><rect width="120" height="60" fill="#ef4444"/><rect x="120" width="120" height="60" fill="#22c55e"/><rect y="60" width="120" height="60" fill="#3b82f6"/><rect x="120" y="60" width="120" height="60" fill="#f59e0b"/><path d="M0 0L240 120" stroke="#fff" stroke-width="6"/><circle cx="30" cy="30" r="14" fill="#0f172a"/></svg>')}`;
+  const pic = (over: Partial<ImagePaint>): Paint => ({ type: "image", opacity: 1, visible: true, src: PIC, mode: "fill", crop: { x: 0, y: 0, w: 1, h: 1 }, scale: 1, brightness: 1, contrast: 1, saturation: 1, natural: { w: 240, h: 120 }, ...over });
+  const lin: Paint = { type: "linear", opacity: 1, visible: true, stops: stops2, from: { x: 0, y: 0 }, to: { x: 1, y: 1 } };
+  const rad: Paint = { type: "radial", opacity: 1, visible: true, stops: [{ at: 0, color: "#ffffff" }, { at: 1, color: "#206859" }], center: { x: 0.35, y: 0.4 }, radius: { x: 0.6, y: 0.7 } };
+  const con: Paint = { type: "conic", opacity: 1, visible: true, stops: [{ at: 0, color: "#ef4444" }, { at: 0.33, color: "#22c55e" }, { at: 0.66, color: "#3b82f6" }, { at: 1, color: "#ef4444" }], center: { x: 0.5, y: 0.5 }, angle: 20 };
+  const shape = (id: string, label: string, properties: Record<string, PropValue>, archetype: ArchetypeId = "rectangle"): GalleryCase => ({ id: `paint-${id}`, archetype, label: `Paint: ${label}`, properties: { ...BOX, ...properties }, expectSize: { width: Number(properties["frame.width"] ?? 120), height: Number(properties["frame.height"] ?? 80) } });
+  return [
+    shape("solid", "solid with opacity", { "paint.fills": fills([{ type: "solid", color: "#206859", opacity: 0.8, visible: true }]) }),
+    shape("linear", "linear, corner to corner", { "paint.fills": fills([lin]) }),
+    shape("radial", "radial, off centre", { "paint.fills": fills([rad]) }),
+    shape("conic", "conic, three colours", { "paint.fills": fills([con]) }),
+    shape("multi", "three fills stacked", { "paint.fills": fills([{ type: "solid", color: "#000000", opacity: 0.25, visible: true }, { ...rad, opacity: 0.7 }, con]) }),
+    shape("ellipse", "linear on an ellipse", { "paint.fills": fills([lin]) }, "ellipse"),
+    shape("star", "conic on a star", { "paint.fills": fills([con]) }, "star"),
+    shape("linear-box", "linear on a frame", { "paint.fills": fills([lin]), "appearance.radius": 12 }, "container"),
+    shape("conic-box", "conic on a frame", { "paint.fills": fills([con]), "appearance.radius": 12 }, "container"),
+    shape("dashed", "dashed stroke, rounded corners", { "svg.fill": "none", "svg.stroke": "#0f172a", "svg.strokeWidth": 4, "svg.strokeDasharray": "10 6", "shape.cornerRadius": 14 }),
+    shape("dotted", "dotted round-cap stroke on an ellipse", { "svg.fill": "#f1f5f9", "svg.stroke": "#206859", "svg.strokeWidth": 5, "svg.strokeDasharray": "1 10", "svg.strokeLinecap": "round" }, "ellipse"),
+    shape("shadow-drop", "drop shadow on a shape", { "svg.fill": "#ffffff", "shape.cornerRadius": 10, "paint.shadows": serializeShadows([{ kind: "drop", x: 6, y: 8, blur: 10, spread: 0, color: "#000000", visible: true }]) }),
+    shape("shadow-inner", "inner shadow on a shape", { "svg.fill": "#f8fafc", "shape.cornerRadius": 10, "paint.shadows": serializeShadows([{ kind: "inner", x: 4, y: 6, blur: 8, spread: 0, color: "#000000", visible: true }]) }),
+    shape("shadow-box", "drop and inner shadows on a frame", { "appearance.background.color": "#ffffff", "appearance.radius": 10, "paint.shadows": serializeShadows([{ kind: "drop", x: 6, y: 8, blur: 10, spread: 0, color: "#000000", visible: true }, { kind: "inner", x: 4, y: 6, blur: 8, spread: 0, color: "#206859", visible: true }]) }, "container"),
+    shape("image-fill", "picture fill on a rectangle", { "paint.fills": fills([pic({})]) }),
+    shape("image-fit", "picture fit in an ellipse", { "paint.fills": fills([pic({ mode: "fit" }), { type: "solid", color: "#e2e8f0", opacity: 1, visible: true }]) }, "ellipse"),
+    shape("image-crop", "picture crop (the right-hand middle)", { "paint.fills": fills([pic({ mode: "crop", crop: { x: 0.5, y: 0.25, w: 0.5, h: 0.5 } })]) }),
+    shape("image-tile", "picture tiled at a fifth", { "paint.fills": fills([pic({ mode: "tile", scale: 0.2 })]) }),
+    shape("image-star", "picture fill on a star", { "paint.fills": fills([pic({})]) }, "star"),
+    shape("image-frame", "picture fill on a frame", { "paint.fills": fills([pic({})]), "appearance.radius": 12 }, "container"),
+    shape("image-frame-filtered", "picture on a frame, desaturated and brighter", { "paint.fills": fills([pic({ saturation: 0, brightness: 1.3 })]), "appearance.radius": 12 }, "container"),
+    shape("image-shape-filtered", "picture on a shape, high contrast", { "paint.fills": fills([pic({ contrast: 1.8 })]) }),
+    shape("blur-layer", "layer blur", { "paint.fills": fills([con]), "filter.blur": 4 }),
+    {
+      id: "paint-blur-background",
+      archetype: "container",
+      label: "Paint: background blur over stripes",
+      properties: { "frame.width": 160, "frame.height": 100, "layout.padding": 0, "paint.fills": fills([{ type: "conic", opacity: 1, visible: true, stops: wedge(8), center: { x: 0.5, y: 0.5 }, angle: 0 }]) },
+      children: [
+        { id: "paint-blur-background-glass", archetype: "container", label: "Glass", properties: { positioning: "absolute", "frame.x": 30, "frame.y": 20, "frame.width": 100, "frame.height": 60, "appearance.radius": 8, "paint.fills": fills([{ type: "solid", color: "#ffffff", opacity: 0.25, visible: true }]), "paint.backgroundBlur": 8 } },
+      ],
+      expectSize: { width: 160, height: 100 },
+    },
+  ];
 }

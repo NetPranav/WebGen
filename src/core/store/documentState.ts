@@ -62,3 +62,18 @@ export function getDocument(): MotionDocument {
 export function setDocument(next: MotionDocument): void {
   documentStore.setState({ document: next });
 }
+
+
+let readOnly = false;
+
+/**
+ * Whether this tab may change the document. A tab that opened a project another tab already has edits nothing
+ * (Phase 36): every write, undo and redo is ignored while this is set.
+ */
+export function isDocumentReadOnly(): boolean {
+  return readOnly;
+}
+
+export function setDocumentReadOnly(value: boolean): void {
+  readOnly = value;
+}

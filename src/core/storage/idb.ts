@@ -8,12 +8,14 @@
  *   - `summaries`  small records for the project list, keyed by id
  *   - `history`    the saved undo/redo stacks per project, keyed by projectId
  *   - `meta`       one-off flags (e.g. the localStorage migration), keyed by key
+ *   - `assets`     imported files (Phase 36, version 2): their descriptions, keyed by content hash
+ *   - `assetData`  the same files' bytes and thumbnails, in their own store so listing assets never reads them
  * ============================================================================
  */
 
 export const DB_NAME = "lazylayout";
-export const DB_VERSION = 1;
-export const STORES = ["projects", "summaries", "history", "meta"] as const;
+export const DB_VERSION = 2;
+export const STORES = ["projects", "summaries", "history", "meta", "assets", "assetData"] as const;
 export type StoreName = (typeof STORES)[number];
 
 const KEY_PATHS: Record<StoreName, string> = {
@@ -21,6 +23,8 @@ const KEY_PATHS: Record<StoreName, string> = {
   summaries: "id",
   history: "projectId",
   meta: "key",
+  assets: "id",
+  assetData: "id",
 };
 
 /** Thrown when the browser refuses a write because storage is full. */

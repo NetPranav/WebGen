@@ -13,6 +13,7 @@ import { useLayers } from "@/core/store/useDocumentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { NumberField } from "../controls/NumberField";
 import { ColorField } from "../controls/ColorField";
+import { PaintEditor } from "../paint/PaintEditor";
 import "@/editor/styles/simple-face.css";
 
 const run = (id: string, args: Record<string, unknown>) => void invokeCommand(id, args);
@@ -74,7 +75,7 @@ export const SimpleFaceView: React.FC<{ readout: SimpleReadout }> = ({ readout: 
       )}
       {r.has.fill && (
         <Group title="Fill">
-          <ColorField label="Fill" value={r.fill} onCommit={(color) => run("layer.setFill", { color })} />
+          <ColorField label="Fill" value={r.fill} onCommit={(color) => run("layer.setFill", { color })} popover={r.paintList ? <PaintEditor /> : undefined} />
         </Group>
       )}
       {r.has.stroke && (

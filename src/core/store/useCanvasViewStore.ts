@@ -45,6 +45,9 @@ interface CanvasViewState {
   stopRename: () => void;
   /** The text layer being edited in place (double-click, Enter, or just drawn with the Text tool), or null (Phase 31). */
   editingTextId: string | null;
+  /** The gradient fill whose handles are on the canvas: a layer and the index of its fill (Phase 35), or null. */
+  editingPaint: { layerId: string; index: number } | null;
+  setEditingPaint: (p: { layerId: string; index: number } | null) => void;
   startTextEdit: (id: string) => void;
   stopTextEdit: () => void;
   setMode: (mode: CanvasMode) => void;
@@ -60,6 +63,8 @@ export const useCanvasViewStore = create<CanvasViewState>((set) => ({
   startRename: (renamingId) => set({ renamingId }),
   stopRename: () => set({ renamingId: null }),
   editingTextId: null,
+  editingPaint: null,
+  setEditingPaint: (editingPaint) => set({ editingPaint }),
   startTextEdit: (editingTextId) => set({ editingTextId }),
   stopTextEdit: () => set({ editingTextId: null }),
   setMode: (mode) => set({ mode }),

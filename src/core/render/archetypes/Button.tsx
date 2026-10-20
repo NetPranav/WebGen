@@ -2,12 +2,14 @@ import React from "react";
 import { layerBoxStyle, px } from "../geometry";
 import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
+import { useFillStyle } from "../paintStyle";
 
 /** A `button`. Hover and press looks come from states (Phase 78), not inline handlers. */
 export const Button: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const raw = resolved.str("content.label", layer.name);
   const label = clampText(ctx.interpolate ? ctx.interpolate(raw) : raw);
   const disabled = resolved.bool("interaction.disabled", false);
+  const fill = useFillStyle(layer, resolved, resolved.str("appearance.background.color", "#206859"));
   return (
     <button
       ref={nodeRef}
@@ -26,7 +28,7 @@ export const Button: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, n
         fontSize: px(resolved.num("typography.fontSize", 14)),
         fontWeight: resolved.str("typography.fontWeight", "600"),
         color: resolved.str("typography.color", "#ffffff"),
-        backgroundColor: resolved.str("appearance.background.color", "#206859"),
+        ...fill.style,
         border: "none",
         borderRadius: px(resolved.num("appearance.radius", 8)),
         cursor: disabled ? "not-allowed" : "pointer",
@@ -35,6 +37,7 @@ export const Button: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, n
         fontFamily: "inherit",
       }}
     >
+      {fill.overlay}
       <span>{label}</span>
     </button>
   );

@@ -11,6 +11,8 @@ import { useProjectMetaStore } from "@/core/store/useProjectMetaStore";
 import { ProjectDatabase, generateProjectId, createDefaultBlankSnapshot } from "@/core/storage/ProjectDatabase";
 import { projectSession, type PendingRecovery } from "@/core/storage/ProjectSession";
 import { installGestureCoalescing } from "@/core/store/useDocumentStore";
+import { embedAssets, restoreAssets } from "@/core/assets/embed";
+import { getAssetStore } from "@/core/assets/AssetStore";
 import { LazyFileError, MAX_LAZY_FILE_CHARS, isLazyFileName, lazyFileName, parseLazyFile, serializeLazyFile } from "@/core/storage/lazyFile";
 
 export function useProjectFiles() {
@@ -82,7 +84,9 @@ export function useProjectFiles() {
     const state = useProjectStore.getState();
     const meta = useProjectMetaStore.getState();
     const record = meta.projectId ? await ProjectDatabase.getProject(meta.projectId) : null;
-    const blob = new Blob([serializeLazyFile(state.getSnapshot(), record?.settings)], { type: "application/json" });
+    const snapshot = state.getSnapshot();
+    const embed = await embedAssets(snapshot.document, getAssetStore()).catch(() => undefined); // the project file carries its pictures
+    const blob = new Blob([serializeLazyFile(snapshot, record?.settings, embed)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -99,6 +103,7 @@ export function useProjectFiles() {
       // check the size before reading: a huge file shouldn't be pulled into memory just to be refused
       if (file.size > MAX_LAZY_FILE_CHARS) throw new LazyFileError(`This file is larger than the ${Math.round(MAX_LAZY_FILE_CHARS / 1_000_000)} MB a project import accepts.`);
       const parsed = parseLazyFile(await file.text());
+      await restoreAssets(parsed.assets.embedded, getAssetStore()); // each one is looked at again, never trusted
       await projectSession.flush();
       const id = generateProjectId();
       await ProjectDatabase.registerProject({

@@ -23,6 +23,8 @@
  * ============================================================================
  */
 
+import { requestPersistence } from "./persistence";
+import { isDocumentReadOnly } from "../store/documentState";
 import { create } from "zustand";
 import type { Patch } from "immer";
 import { useProjectStore, type ProjectStateSnapshot } from "../store/useProjectStore";
@@ -300,6 +302,10 @@ export class ProjectSession {
     }
     const projectId = this.projectId;
     if (!projectId) return;
+    if (isDocumentReadOnly()) {
+      useSaveStatus.setState({ state: "saved" }); // another tab has this project: nothing here is saved over it
+      return;
+    }
 
     const snapshot = useProjectStore.getState().getSnapshot();
     const { past, future } = useHistoryStore.getState();
@@ -315,6 +321,7 @@ export class ProjectSession {
         }
         this.retryDelay = 0;
         useSaveStatus.setState({ state: "saved", lastSavedAt: Date.now(), error: null });
+        void requestPersistence(); // after the first good save, ask the browser not to evict it (once per browser)
       } catch (error) {
         this.scheduleRetry(projectId);
         const quota = isQuotaError(error);

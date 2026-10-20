@@ -20,6 +20,8 @@ import { getDefaultProps, type ArchetypeId, type PropValue } from "@/core/docume
 import { dragBox, type DragBox, type DragKind } from "@/core/geometry/shapeDrag";
 import { listFrames, uniqueFrameName } from "@/core/frames/frames";
 import { setUniformGap } from "@/core/geometry/align";
+import { dragHandle, worldToNorm } from "@/core/paint/gradientHandles";
+import type { Paint } from "@/core/paint/paints";
 import { moveBoxes, paramValue, resizeBoxes, rotateBoxes, rotationDelta, unionBox, type Box } from "@/core/geometry/transform";
 import { frameContains, type HandleHit, type TransformModel } from "../transformModel";
 
@@ -73,6 +75,8 @@ export interface ToolContext {
   beginTransform: (label: string) => void;
   applyBoxes: (ids: readonly string[], boxes: readonly Box[]) => void;
   setParam: (layerId: string, prop: string, value: number) => void;
+  /** Replaces one fill of a layer (a gradient being shaped with its handles). */
+  setPaint: (layerId: string, index: number, paint: Paint) => void;
   commitTransform: () => void;
   cancelTransform: () => void;
   /** Snaps the selection's bounds `rect` while it moves; returns the nudge. `off` (a modifier) skips snapping but still shows the HUD. */
@@ -176,7 +180,7 @@ const HANDLE_DIRS: Record<string, { sx: -1 | 0 | 1; sy: -1 | 0 | 1 }> = {
  */
 export function createSelectTool(id: "select" | "deepSelect"): Tool {
   const pan = panGesture();
-  type Mode = "idle" | "click" | "marquee" | "pan" | "pending-move" | "move" | "resize" | "rotate" | "param" | "gap" | "guide" | "cancelled";
+  type Mode = "idle" | "click" | "marquee" | "pan" | "pending-move" | "move" | "resize" | "rotate" | "param" | "gap" | "gradient" | "guide" | "cancelled";
   let guide: { frameId: string; index: number; axis: "x" | "y" } | null = null;
   let mode: Mode = "idle";
   let down: ToolPointer | null = null;
@@ -184,7 +188,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
   let hit: PickedLayer | null = null;
   let marqueeFrame: string | null = null;
   let began = false;
-  let start: { ids: string[]; boxes: Box[]; frame: Box; handle?: HandleHit; startValue?: number; gap?: { axis: "h" | "v"; size: number } } | null = null;
+  let start: { ids: string[]; boxes: Box[]; frame: Box; handle?: HandleHit; startValue?: number; gap?: { axis: "h" | "v"; size: number }; gradient?: { layerId: string; paintIndex: number; paint: Paint; box: Box; kind: string; stopIndex?: number } } | null = null;
 
   const moved = (p: ToolPointer, from: ToolPointer | null) => from !== null && Math.hypot(p.screen.x - from.screen.x, p.screen.y - from.screen.y) >= CLICK_SLOP;
   const reset = () => {
@@ -199,6 +203,11 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
   const snapshot = (model: TransformModel, handle?: HandleHit) => {
     start = { ids: model.ids, boxes: model.boxes, frame: model.frame, handle };
     if (handle?.kind === "param") start.startValue = model.params[handle.index].value;
+    if (handle?.kind === "gradient" && model.gradient) {
+      const g = model.gradient;
+      const h = g.handles[handle.index].handle;
+      start.gradient = { layerId: g.layerId, paintIndex: g.paintIndex, paint: g.paint, box: g.box, kind: h.kind, stopIndex: h.stopIndex };
+    }
     if (handle?.kind === "gap") start.gap = { axis: model.gaps[handle.index].axis, size: model.gaps[handle.index].size };
   };
   const begin = (ctx: ToolContext, label: string) => {
@@ -300,6 +309,11 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
         begin(ctx, "Rotate");
         const pivot = { x: start.frame.cx, y: start.frame.cy };
         ctx.applyBoxes(start.ids, rotateBoxes(start.boxes, pivot, rotationDelta(pivot, down.world, p.world), p.shiftKey));
+      } else if (mode === "gradient" && start.gradient && moved(p, down)) {
+        // Dragging a gradient handle reshapes that fill (Shift keeps a linear angle or a conic angle to 15 degree steps).
+        begin(ctx, "Edit gradient");
+        const g = start.gradient;
+        ctx.setPaint(g.layerId, g.paintIndex, dragHandle(g.paint, { kind: g.kind as never, stopIndex: g.stopIndex }, worldToNorm(g.box, p.world), { w: g.box.w, h: g.box.h }, { shift: p.shiftKey }));
       } else if (mode === "gap" && start.gap && moved(p, down)) {
         // Dragging a spacing handle gives every gap along its axis the same size: the first layer stays put.
         begin(ctx, "Change spacing");

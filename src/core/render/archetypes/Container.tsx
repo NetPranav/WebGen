@@ -1,6 +1,7 @@
 import React from "react";
 import { layerBoxStyle, px } from "../geometry";
 import type { ArchetypeRenderProps } from "../types";
+import { useFillStyle } from "../paintStyle";
 
 /** `container` and `form`: a flex box that lays out its children. */
 export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, children, nodeRef }) => {
@@ -14,6 +15,7 @@ export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx
     borderWidth > 0 && (borderStyle === "solid" || borderStyle === "dashed" || borderStyle === "dotted")
       ? { borderStyle, borderWidth: px(borderWidth), borderColor: resolved.str("appearance.border.color", "currentColor") }
       : {};
+  const fill = useFillStyle(layer, resolved, resolved.str("appearance.background.color", "transparent"));
   return (
     <div
       ref={nodeRef}
@@ -27,11 +29,12 @@ export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx
         gap: px(resolved.num("layout.gap", 0)),
         padding: px(padding),
         paddingInline: resolved.get("layout.paddingX") !== undefined ? px(resolved.num("layout.paddingX", padding)) : undefined,
-        backgroundColor: resolved.str("appearance.background.color", "transparent"),
+        ...fill.style,
         borderRadius: px(resolved.num("appearance.radius", 0)),
         ...border,
       }}
     >
+      {fill.overlay}
       {children}
     </div>
   );

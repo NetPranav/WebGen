@@ -224,6 +224,13 @@ const DEFS = {
 
   // --- Appearance (CONVENTIONS §4.1 / §4.2) ---------------------------------
   "appearance.opacity": num(1, "opacity", "gpu", VISUAL),
+  // --- Paint and effects (Phase 35): lists stored as JSON text, first entry on top; see `core/paint/paints.ts` ---
+  /** The layer's fills: solid colours and linear, radial and conic gradients. When set it replaces the plain colour. */
+  "paint.fills": typed(str("", null, "paint", only("container", "form", "generic", "button", "badge", "fab", "rectangle", "ellipse", "polygon", "star", "arrow"))),
+  /** Drop and inner shadows. */
+  "paint.shadows": typed(str("", "box-shadow", "paint", VISUAL)),
+  /** Blur of what shows through the layer, in px. */
+  "paint.backgroundBlur": ranged(px(0, "backdrop-filter", "paint", VISUAL), { min: 0, max: 200 }),
   "appearance.radius": px(0, "border-radius", "paint", VISUAL),
   "appearance.background.color": color("transparent", "background-color", "paint", VISUAL),
   "appearance.border.color": color("transparent", "border-color", "paint", VISUAL),
@@ -256,6 +263,8 @@ const DEFS = {
   "typography.fontSizeUnit": unitOf(TYPOGRAPHY),
   "typography.fontWeight": oneOf(null, "400", "font-weight", "layout", TYPOGRAPHY),
   "typography.fontFamily": str("Inter", "font-family", "layout", TYPOGRAPHY),
+  /** Variable-font axes as `tag value, tag value` (Phase 38), drawn as `font-variation-settings`. */
+  "typography.fontVariations": typed(str("", "font-variation-settings", "layout", TYPOGRAPHY)),
   "typography.fontStyle": oneOf(["normal", "italic"], "normal", "font-style", "layout", TYPOGRAPHY),
   "typography.letterSpacing": px(0, "letter-spacing", "layout", TYPOGRAPHY),
   "typography.letterSpacingUnit": unitOf(TYPOGRAPHY),

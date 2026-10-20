@@ -18,6 +18,9 @@ import { proValue, type ProValue } from "@/core/inspector/proRead";
 import { useLayers } from "@/core/store/useDocumentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { ColorField } from "../controls/ColorField";
+import { PaintEditor } from "../paint/PaintEditor";
+import { EffectsEditor, StrokeStyleEditor } from "../paint/EffectsEditor";
+import { ImageSourcePicker } from "../paint/ImageSourcePicker";
 import { ScrubNumber } from "../controls/ScrubNumber";
 import "@/editor/styles/pro-face.css";
 
@@ -147,6 +150,14 @@ export const ProFace: React.FC = () => {
   if (groups.length === 0) return <div className="pro-face pro-face--empty">Select a layer to see its properties.</div>;
   return (
     <div className="pro-face" role="form" aria-label="Properties">
+      {q === "" && (
+        <>
+          <ImageSourcePicker />
+          <PaintEditor />
+          <StrokeStyleEditor />
+          <EffectsEditor />
+        </>
+      )}
       <input type="search" className="pro-face__filter" aria-label="Filter properties" placeholder="Filter properties" value={filter} onChange={(e) => setFilter(e.target.value)} onKeyDown={(e) => e.stopPropagation()} />
       {groups.map((group, gi) => {
         const rows = group.properties.filter((p) => !q || p.label.toLowerCase().includes(q) || p.path.toLowerCase().includes(q));

@@ -907,3 +907,24 @@ body.is-resizing .dock-corner-splitter {
   }
 }
 
+
+/* A project another tab has open (Phase 36) */
+.read-only-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: #92400e;
+  color: #fff;
+  font-size: 12px;
+}
+.read-only-banner button {
+  padding: 3px 10px;
+  font: inherit;
+  color: #92400e;
+  background: #fff;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}

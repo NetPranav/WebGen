@@ -18,7 +18,7 @@ import { OutputLogDrawer } from "./OutputLogDrawer";
 import { PanelHost } from "./panels/PanelHost";
 import { rightTabsFor } from "./dockTabs";
 import { edition } from "@/core/flags";
-import { normalizeInspectorTab } from "@/core/workspace/layout";
+import { LEFT_TABS, normalizeInspectorTab, normalizeLeftTab } from "@/core/workspace/layout";
 import { ZONE_LIMITS } from "@/core/workspace/layout";
 import type { PanelContext } from "./panels/context";
 import type { Workspace } from "./hooks/useWorkspace";
@@ -87,7 +87,8 @@ export const DockTree: React.FC<DockTreeProps> = ({
 
   const rightTabs = useMemo(() => rightTabsFor(edition), []);
   const leftZoneRef = React.useRef<HTMLElement | null>(null);
-  const leftTabs = useMemo(() => [{ id: "layers", title: "Layers", closable: false }], []);
+  const leftTabs = useMemo(() => LEFT_TABS.map((t) => ({ id: t.id, title: t.title, closable: false })), []);
+  const leftId = normalizeLeftTab(ws.leftActiveTab);
   const rightId = normalizeInspectorTab(rightActiveTab, edition);
   const bottomIds = ["content-browser", "export-code", "trace", "blueprint", "curves"];
   const bottomId = bottomIds.includes(bottomActiveTab) ? bottomActiveTab : "sequencer";
@@ -190,15 +191,18 @@ export const DockTree: React.FC<DockTreeProps> = ({
             size={ws.leftWidth}
             isCollapsed={ws.leftCollapsed}
             tabs={leftTabs}
-            activeTabId="layers"
-            onSelectTab={() => handleZoneClick("left")}
+            activeTabId={leftId}
+            onSelectTab={(tabId) => {
+              ws.setLeftActiveTab(tabId);
+              handleZoneClick("left");
+            }}
             onToggleCollapse={() => ws.setLeftCollapsed((c) => !c)}
             onMouseEnter={() => handleZoneMouseEnter("left")}
             onMouseLeave={() => handleZoneMouseLeave("left")}
             onClick={() => handleZoneClick("left")}
             className={activeLayer === "left" ? "dock-zone--elevated" : ""}
           >
-            <PanelHost zone="left" panelId="layers" context={context} />
+            <PanelHost zone="left" panelId={leftId} context={context} />
           </DockZone>
           {!ws.leftCollapsed && (
             <DockSplitter

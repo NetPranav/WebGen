@@ -1,0 +1,108 @@
+/* Assets panel (Phase 36) */
+.assets-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: 12px;
+}
+.assets-panel__head {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+}
+.assets-panel__import {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+  cursor: pointer;
+}
+.assets-panel__empty {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  padding: 16px;
+  text-align: center;
+  opacity: 0.6;
+}
+.assets-panel__empty p {
+  margin: 0;
+}
+.assets-panel__grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+}
+.asset-tile {
+  position: relative;
+  display: grid;
+  gap: 2px;
+}
+.asset-tile__thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 6px;
+  background: repeating-conic-gradient(rgba(128, 128, 128, 0.15) 0 25%, transparent 0 50%) 0 0 / 12px 12px;
+  color: inherit;
+  cursor: pointer;
+}
+.asset-tile__thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.asset-tile__font {
+  font-size: 28px;
+}
+.asset-tile__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asset-tile__meta {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.asset-tile__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  padding: 3px;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  opacity: 0;
+  cursor: pointer;
+}
+.asset-tile:hover .asset-tile__remove,
+.asset-tile__remove:focus-visible {
+  opacity: 1;
+}
+.asset-tile__remove:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.assets-panel__foot {
+  padding: 6px 8px;
+  font-size: 11px;
+  opacity: 0.75;
+  border-top: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+}

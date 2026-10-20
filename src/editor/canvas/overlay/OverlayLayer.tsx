@@ -10,6 +10,7 @@ import { useToolStore } from "@/core/store/useToolStore";
 import { screenToDoc, type Point } from "@/core/viewport/camera";
 import { OverlayController, type OverlayEnv } from "./OverlayController";
 import { useSnapStore } from "@/core/store/useSnapStore";
+import { useFontsStore } from "@/core/store/useFontsStore";
 import type { TransformModel } from "../transformModel";
 
 interface OverlayLayerProps {
@@ -83,13 +84,15 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       if (s.document !== p.document) controller.invalidate(true);
     });
     const offView = useCanvasViewStore.subscribe((s, p) => {
-      if (s.mode !== p.mode) controller.invalidate();
+      if (s.mode !== p.mode || s.editingPaint !== p.editingPaint) controller.invalidate(true);
     });
     const offCamera = useCameraStore.subscribe((s, p) => {
       // the pointer's place in canvas space moves when the camera does under a still pointer
       if (pointer && s.camera !== p.camera) controller.invalidate();
     });
     const offSnap = useSnapStore.subscribe(() => controller.invalidate());
+    const offFonts = useFontsStore.subscribe(() => controller.invalidate(true)); // a font loaded: text changed size
+
     const offTool = useToolStore.subscribe((s, p) => {
       if (s.current !== p.current) controller.invalidate();
     });
@@ -98,6 +101,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
     return () => {
       offTool();
       offSnap();
+      offFonts();
       canvas.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("mouseleave", onLeave);
       offSelection();

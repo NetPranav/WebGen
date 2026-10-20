@@ -45,6 +45,8 @@ export class OverlayController {
   private readonly transform: HTMLDivElement;
   private readonly params: HTMLDivElement[] = [];
   private readonly gapHandles: { root: HTMLDivElement; label: HTMLSpanElement }[] = [];
+  private readonly gradientHandles: HTMLDivElement[] = [];
+  private readonly gradientLines: HTMLDivElement[] = [];
   private readonly snapLines: HTMLDivElement[] = [];
   private readonly marks: { root: HTMLDivElement; label: HTMLSpanElement }[] = [];
   private readonly guideLines: HTMLDivElement[] = [];
@@ -192,6 +194,49 @@ export class OverlayController {
       g.label.textContent = String(Math.round(gap.size));
     });
 
+    // Gradient handles (Phase 35): the points and lines that shape the fill being edited
+    const gm = model?.gradient ?? null;
+    const gHandles = gm?.handles ?? [];
+    this.fill(this.gradientHandles, gHandles.length, "canvas-overlay__ghandle");
+    this.gradientHandles.forEach((el, i) => {
+      const h = gHandles[i];
+      el.hidden = !h;
+      if (!h || !gm) return;
+      el.style.left = `${h.world.x}px`;
+      el.style.top = `${h.world.y}px`;
+      el.dataset.kind = h.handle.kind;
+      if (h.handle.stopIndex !== undefined && "stops" in gm.paint) {
+        el.dataset.stopIndex = String(h.handle.stopIndex);
+        el.style.background = gm.paint.stops[h.handle.stopIndex]?.color ?? "";
+      } else {
+        delete el.dataset.stopIndex;
+        el.style.background = "";
+      }
+    });
+    const links: [Point, Point][] = [];
+    if (gm) {
+      const at = (kind: string) => gHandles.find((h) => h.handle.kind === kind)?.world;
+      const [from, to, center, rx, ry, angle] = [at("from"), at("to"), at("center"), at("radiusX"), at("radiusY"), at("angle")];
+      if (from && to) links.push([from, to]);
+      if (center && rx) links.push([center, rx]);
+      if (center && ry) links.push([center, ry]);
+      if (center && angle) links.push([center, angle]);
+      const [nw, ne, se, sw] = [at("imgNW"), at("imgNE"), at("imgSE"), at("imgSW")];
+      if (nw && ne && se && sw) links.push([nw, ne], [ne, se], [se, sw], [sw, nw]);
+    }
+    this.fill(this.gradientLines, links.length, "canvas-overlay__gline");
+    this.gradientLines.forEach((el, i) => {
+      const l = links[i];
+      el.hidden = !l;
+      if (!l) return;
+      const dx = l[1].x - l[0].x;
+      const dy = l[1].y - l[0].y;
+      el.style.left = `${l[0].x}px`;
+      el.style.top = `${l[0].y}px`;
+      el.style.width = `${Math.hypot(dx, dy)}px`;
+      el.style.transform = `rotate(${(Math.atan2(dy, dx) * 180) / Math.PI}deg)`;
+    });
+
     // Snap lines, spacing marks and ruler guides
     const fb = this.env.snapFeedback();
     this.fill(this.snapLines, fb.lines.length, "canvas-overlay__snapline");
@@ -294,6 +339,8 @@ export class OverlayController {
     this.transform.remove();
     this.params.forEach((d) => d.remove());
     this.gapHandles.forEach((g) => g.root.remove());
+    this.gradientHandles.forEach((d) => d.remove());
+    this.gradientLines.forEach((d) => d.remove());
     this.snapLines.forEach((d) => d.remove());
     this.marks.forEach((m) => m.root.remove());
     this.guideLines.forEach((d) => d.remove());

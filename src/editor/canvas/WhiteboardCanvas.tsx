@@ -26,6 +26,10 @@ import { frameIdOf } from "@/core/frames/frames";
 import { combineSelection, marqueeCandidates, rootIds } from "@/core/selection/selectionOps";
 import { buildTransformModel, handleAtScreen, layerBox } from "./transformModel";
 import { TextEditor } from "./text/TextEditor";
+import { importAndPlace, placeImage } from "@/core/assets/assetImport";
+import { AssetNotice } from "./AssetNotice";
+import { fillsOf } from "@/core/paint/paintOps";
+import { serializeFills, type Paint } from "@/core/paint/paints";
 import { snapEnvironment, guideLines } from "./snapEnv";
 import { moveGuide, removeGuide } from "./guides";
 import { CanvasRulers, RULER_SIZE } from "./CanvasRulers";
@@ -188,12 +192,29 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const parentIdRef = useLatestRef(activeFrame?.id ?? rootContainer?.id ?? null);
 
   /** The handles' target for the overlay: the selection's box, in Design mode with a selecting tool. */
+  // the gradient handles belong to one selection: they go when it changes
+  useEffect(
+    () =>
+      useSelectionStore.subscribe((s, p) => {
+        if (s.selectedIds !== p.selectedIds && useCanvasViewStore.getState().editingPaint) useCanvasViewStore.getState().setEditingPaint(null);
+      }),
+    [],
+  );
+
+  /** The gradient fill being edited in the inspector, if the canvas should show its handles. */
+  const activeGradient = (): { layerId: string; index: number; paint: Paint } | null => {
+    const e = useCanvasViewStore.getState().editingPaint;
+    if (!e) return null;
+    const paint = fillsOf(e.layerId)[e.index];
+    return paint ? { ...e, paint } : null;
+  };
+
   const overlayTransformModel = useCallback(() => {
     if (useCanvasViewStore.getState().mode !== "design") return null;
     const tool = useToolStore.getState().current;
     if (tool !== "select" && tool !== "deepSelect") return null;
     const zoom = useCameraStore.getState().camera.zoom;
-    return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / zoom);
+    return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / zoom, activeGradient());
   }, [hitTester]);
   /** Every frame's ruler guides as lines in canvas space. */
   const overlayGuides = useCallback(() => guideLines(hitTester.ensure(), getDocument().layers), [hitTester]);
@@ -229,11 +250,11 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       },
       transformModel: () => {
         const camera = useCameraStore.getState().camera;
-        return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom);
+        return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom, activeGradient());
       },
       handleAt: (screen) => {
         const camera = useCameraStore.getState().camera;
-        const model = buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom);
+        const model = buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom, activeGradient());
         return model ? handleAtScreen(model, camera, screen) : null;
       },
       isSelected: (id) => useSelectionStore.getState().selectedIds.includes(id),
@@ -313,6 +334,10 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       removeGuide: (ref) => removeGuide(ref.frameId, ref.index),
       overRuler: (screen) => useSnapStore.getState().rulers && (screen.x < RULER_SIZE || screen.y < RULER_SIZE),
       setParam: (layerId, prop, value) => documentCommands.updateProps(layerId, { [prop]: value }),
+      setPaint: (layerId, index, paint) => {
+        const next = fillsOf(layerId).map((p, i) => (i === index ? paint : p));
+        documentCommands.updateProps(layerId, { "paint.fills": serializeFills(next) });
+      },
       commitTransform: () => {
         transformTxRef.current?.commit();
         transformTxRef.current = null;
@@ -733,6 +758,26 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       }}
       onDrop={(e) => {
         e.preventDefault();
+        // files dragged in from the desktop become assets, and pictures become image layers where they land (Phase 36)
+        if (e.dataTransfer.files.length > 0 && mode === "design") {
+          const rect = containerRef.current!.getBoundingClientRect();
+          const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+          const container = hitTester.containerAt(world);
+          void importAndPlace(Array.from(e.dataTransfer.files), { x: world.x, y: world.y, parentId: container?.id ?? null, parentOrigin: container?.origin });
+          return;
+        }
+        // a tile dragged out of the Assets panel
+        const tile = e.dataTransfer.getData("application/x-lazylayout-asset");
+        if (tile && mode === "design") {
+          const entry = getDocument().assets?.[tile];
+          if (entry) {
+            const rect = containerRef.current!.getBoundingClientRect();
+            const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+            const container = hitTester.containerAt(world);
+            placeImage(entry, { x: world.x, y: world.y, parentId: container?.id ?? null, parentOrigin: container?.origin });
+          }
+          return;
+        }
         const rawData = e.dataTransfer.getData("application/json");
         if (!rawData) return;
         try {
@@ -821,6 +866,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
       <CanvasRulers hitTester={hitTester} containerRef={containerRef} />
       <CanvasContextMenu menu={contextMenu} onClose={closeContextMenu} />
+      <AssetNotice />
       <RenameBox currentName={(id) => getDocument().layers[id]?.name ?? id} />
       <FrameBar />
 

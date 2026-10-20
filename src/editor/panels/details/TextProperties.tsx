@@ -14,9 +14,11 @@ import { resolveProps } from "@/core/render/resolve";
 import { useLayers } from "@/core/store/useDocumentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import type { PropValue } from "@/core/document/registry";
+import { FontPicker } from "./FontPicker";
+import { axesFor, parseVariations, primaryFamily, serializeVariations, weightsFor, assetFamily } from "@/core/fonts/families";
+import { FONT_DISPLAYS, type FontDisplay } from "@/core/fonts/catalog";
+import { useDocument } from "@/core/store/useDocumentStore";
 
-const FAMILIES = ["Inter", "Outfit", "Roboto", "Roboto Mono", "JetBrains Mono", "Playfair Display", "Georgia", "system-ui"];
-const WEIGHTS = ["100", "200", "300", "400", "500", "600", "700", "800", "900"];
 const ALIGNS = [
   { value: "left", label: "Align text left", Icon: AlignLeft },
   { value: "center", label: "Align text centre", Icon: AlignCenter },
@@ -31,8 +33,27 @@ const SIZINGS = [
 
 const set = (props: Record<string, PropValue | null>) => void invokeCommand("layer.setProps", { props, label: "Text properties" });
 
+/** A variable-font axis: a slider and a number, written when you let go (one undo step, not one per pixel). */
+const AxisControl: React.FC<{ axis: { tag: string; name: string; min: number; max: number }; value: number; onCommit: (n: number) => void }> = ({ axis, value, onCommit }) => {
+  const [draft, setDraft] = React.useState<number | null>(null);
+  const shown = draft ?? value;
+  const done = () => {
+    if (draft !== null && draft !== value) onCommit(draft);
+    setDraft(null);
+  };
+  return (
+    <div className="font-axis" role="group" aria-label={`${axis.name} axis`}>
+      <span>{axis.name}</span>
+      <input type="range" aria-label={axis.name} min={axis.min} max={axis.max} step={(axis.max - axis.min) / 100} value={shown} onChange={(e) => setDraft(Number(e.target.value))} onPointerUp={done} onKeyUp={done} onBlur={done} />
+      <input type="number" aria-label={`${axis.name} value`} min={axis.min} max={axis.max} value={Number(shown.toFixed(2))} onChange={(e) => Number.isFinite(Number(e.target.value)) && setDraft(Math.min(axis.max, Math.max(axis.min, Number(e.target.value))))} onBlur={done} onKeyDown={(e) => e.key === "Enter" && done()} />
+    </div>
+  );
+};
+
 export const TextProperties: React.FC = () => {
   const layers = useLayers();
+  const assets = useDocument((d) => d.assets);
+  const fontDisplay = useDocument((d) => d.fontDisplay) ?? "swap";
   const ids = useSelectionStore((s) => s.selectedIds);
   const texts = ids.map((id) => layers[id]).filter((l) => l && l.archetype === "text");
   if (texts.length === 0) return null;
@@ -51,25 +72,27 @@ export const TextProperties: React.FC = () => {
   const decoration = shared("typography.textDecoration", "none");
   const textCase = shared("typography.textTransform", "none");
   const sizing = shared("text.sizing", "fixed");
+  const variations = shared("typography.fontVariations", "");
+  const primary = family === null ? null : primaryFamily(String(family));
+  const uploaded = primary !== null && Object.values(assets ?? {}).some((a) => a.kind === "font" && assetFamily(a)?.toLowerCase() === primary.toLowerCase());
+  const weights = weightsFor(primary, uploaded);
+  const axes = uploaded ? [] : axesFor(primary);
+  const current = parseVariations(variations ?? "");
 
   return (
     <div className="text-props" role="group" aria-label="Text" style={{ display: "grid", gap: 6, padding: "8px" , borderBottom: "1px solid var(--border-subtle, rgba(128,128,128,0.2))" }}>
-      <label className="text-props__field">
+      <div className="text-props__field">
         <span>Font</span>
-        <select aria-label="Font family" value={family ?? ""} onChange={(e) => set({ "typography.fontFamily": e.target.value })}>
-          {family === null && <option value="">Mixed</option>}
-          {family !== null && !FAMILIES.includes(String(family)) && <option value={String(family)}>{String(family)}</option>}
-          {FAMILIES.map((f) => <option key={f} value={f}>{f}</option>)}
-        </select>
-      </label>
+        <FontPicker value={family as string | null} onChoose={(css) => set({ "typography.fontFamily": css, "typography.fontVariations": null })} />
+      </div>
       <div style={{ display: "flex", gap: 6 }}>
         <NumberField label="Size" value={size as number | null} min={1} onCommit={(n) => set({ "typography.fontSize": n })} />
         <label className="text-props__field">
           <span>Weight</span>
           <select aria-label="Weight" value={weight ?? ""} onChange={(e) => set({ "typography.fontWeight": e.target.value })}>
             {weight === null && <option value="">Mixed</option>}
-            {weight !== null && !WEIGHTS.includes(String(weight)) && <option value={String(weight)}>{String(weight)}</option>}
-            {WEIGHTS.map((w) => <option key={w} value={w}>{w}</option>)}
+            {weight !== null && !weights.includes(Number(weight)) && <option value={String(weight)}>{String(weight)}</option>}
+            {weights.map((w) => <option key={w} value={String(w)}>{w}</option>)}
           </select>
         </label>
       </div>
@@ -105,6 +128,23 @@ export const TextProperties: React.FC = () => {
           </select>
         </label>
       </div>
+      {axes.map((a) => {
+        const v = current.find((x) => x.tag === a.tag)?.value ?? a.default;
+        return (
+          <AxisControl
+            key={a.tag}
+            axis={a}
+            value={v}
+            onCommit={(n) => set({ "typography.fontVariations": serializeVariations([...current.filter((x) => x.tag !== a.tag), { tag: a.tag, value: n }].sort((p, q) => p.tag.localeCompare(q.tag))) })}
+          />
+        );
+      })}
+      <label className="text-props__field">
+        <span>Font loading</span>
+        <select aria-label="Font loading" value={fontDisplay} onChange={(e) => void invokeCommand("fonts.setDisplay", { display: e.target.value as FontDisplay })}>
+          {FONT_DISPLAYS.map((d) => <option key={d} value={d}>{d === "swap" ? "Show text at once (swap)" : d === "block" ? "Wait for the font (block)" : d === "fallback" ? "Short wait (fallback)" : d === "optional" ? "Only if quick (optional)" : "Browser default (auto)"}</option>)}
+        </select>
+      </label>
       <div role="group" aria-label="Text box sizing" style={{ display: "flex", gap: 2 }}>
         {SIZINGS.map(({ value, label }) => (
           <button key={value} type="button" className={`panel-icon-btn ${sizing === value ? "panel-icon-btn--active" : ""}`} style={{ width: "auto", padding: "0 6px", fontSize: 11 }} aria-pressed={sizing === value} onClick={() => void invokeCommand("text.setSizing", { mode: value })}>
