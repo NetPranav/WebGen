@@ -4,6 +4,7 @@ import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
 import { textTypography } from "./textStyle";
 import { runsOf, type TextRun } from "../../text/runs";
+import { parseShadows, textShadowCss } from "../../paint/paints";
 
 /** The inline style of one run. */
 export function runStyle(run: TextRun): React.CSSProperties | undefined {
@@ -24,7 +25,8 @@ export const Text: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nod
   const runs = interpolated === raw && text === raw ? runsOf(raw, resolved.get("content.runs")) : null;
   const styled = runs !== null && runs.some((r) => runStyle(r) !== undefined);
   const sizing = resolved.str("text.sizing", "fixed");
-  const box = layerBoxStyle(layer, resolved, ctx);
+  const box = layerBoxStyle(layer, resolved, ctx, { shadow: "none" }); // text has text-shadow, not a box shadow
+  const textShadow = textShadowCss(parseShadows(resolved.get("paint.shadows")));
   if (sizing === "autoWidth") {
     delete box.width;
     delete box.height;
@@ -40,6 +42,7 @@ export const Text: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nod
         ...box,
         margin: 0,
         ...textTypography(resolved),
+        ...(textShadow ? { textShadow } : {}),
         whiteSpace: sizing === "autoWidth" ? "pre" : "pre-wrap",
         overflowWrap: sizing === "autoWidth" ? "normal" : "anywhere",
         ...(sizing === "autoWidth" ? { width: "max-content" } : {}),

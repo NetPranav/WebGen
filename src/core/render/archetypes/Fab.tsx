@@ -2,6 +2,7 @@ import React from "react";
 import { layerBoxStyle } from "../geometry";
 import { clampNumber } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
+import { fillStyle } from "../paintStyle";
 
 const ICONS: Record<string, string> = {
   plus: "M12 5v14M5 12h14",
@@ -32,7 +33,7 @@ export const Fab: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, node
         borderRadius: "50%",
         border: "none",
         color: resolved.str("typography.color", "#ffffff"),
-        backgroundColor: resolved.str("appearance.background.color", "#206859"),
+        ...fillStyle(layer, resolved, resolved.str("appearance.background.color", "#206859")),
         boxShadow: elevated ? "0 8px 24px rgba(15, 23, 42, 0.25)" : undefined,
         cursor: "pointer",
       }}

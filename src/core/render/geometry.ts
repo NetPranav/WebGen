@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Layer } from "../document/schema";
 import { getLayerGeometry } from "../document/properties";
+import { boxShadowCss, parseShadows } from "../paint/paints";
 import type { RenderContext, ResolvedProps } from "./types";
 
 /** Largest frame dimension the renderer will draw; a larger stored value is clamped. */
@@ -12,7 +13,7 @@ export const MAX_FRAME_PX = 20_000;
  * parent's layout and take their size from `sizing` (fixed: the frame size, hug: their content,
  * fill: grow along the parent's main axis or stretch across it). Rotation applies to both.
  */
-export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: RenderContext): CSSProperties {
+export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: RenderContext, options: { shadow?: "box" | "none" } = {}): CSSProperties {
   const g = getLayerGeometry(layer);
   const style: CSSProperties = { boxSizing: "border-box" };
   const px = (n: number, unit: string) => `${Math.min(MAX_FRAME_PX, Math.max(0, n))}${unit}`;
@@ -52,6 +53,18 @@ export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: Render
   if (g.frame.rotation !== 0) style.transform = `rotate(${g.frame.rotation}deg)`;
   const opacity = resolved.get("appearance.opacity");
   if (typeof opacity === "number" && opacity >= 0 && opacity <= 1) style.opacity = opacity;
+  // Effects (Phase 35): drop and inner shadows (a shape draws its own, inside its SVG), layer blur and background blur.
+  if (options.shadow !== "none") {
+    const shadow = boxShadowCss(parseShadows(resolved.get("paint.shadows")));
+    if (shadow) style.boxShadow = shadow;
+  }
+  const blur = resolved.get("filter.blur");
+  if (typeof blur === "number" && blur > 0) style.filter = `blur(${Math.min(blur, 200)}px)`;
+  const backdrop = resolved.get("paint.backgroundBlur");
+  if (typeof backdrop === "number" && backdrop > 0) {
+    style.backdropFilter = `blur(${Math.min(backdrop, 200)}px)`;
+    (style as Record<string, unknown>).WebkitBackdropFilter = `blur(${Math.min(backdrop, 200)}px)`;
+  }
   return style;
 }
 

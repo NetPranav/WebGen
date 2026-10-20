@@ -83,7 +83,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       if (s.document !== p.document) controller.invalidate(true);
     });
     const offView = useCanvasViewStore.subscribe((s, p) => {
-      if (s.mode !== p.mode) controller.invalidate();
+      if (s.mode !== p.mode || s.editingPaint !== p.editingPaint) controller.invalidate(true);
     });
     const offCamera = useCameraStore.subscribe((s, p) => {
       // the pointer's place in canvas space moves when the camera does under a still pointer

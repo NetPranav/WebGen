@@ -21,7 +21,7 @@ const SvgShell: React.FC<ArchetypeRenderProps & { inner: (nodeRef: ArchetypeRend
       data-archetype={layer.archetype}
       viewBox={space === "unit" ? "0 0 200 200" : `0 0 ${width} ${height}`}
       preserveAspectRatio="none"
-      style={{ ...layerBoxStyle(layer, resolved, ctx), width, height, display: "block", overflow: "visible" }}
+      style={{ ...layerBoxStyle(layer, resolved, ctx, { shadow: "none" }), width, height, display: "block", overflow: "visible" }}
     >
       {inner(undefined)}
     </svg>

@@ -1,6 +1,7 @@
 import React from "react";
 import { layerBoxStyle, px } from "../geometry";
 import type { ArchetypeRenderProps } from "../types";
+import { fillStyle } from "../paintStyle";
 
 /** `container` and `form`: a flex box that lays out its children. */
 export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, children, nodeRef }) => {
@@ -27,7 +28,7 @@ export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx
         gap: px(resolved.num("layout.gap", 0)),
         padding: px(padding),
         paddingInline: resolved.get("layout.paddingX") !== undefined ? px(resolved.num("layout.paddingX", padding)) : undefined,
-        backgroundColor: resolved.str("appearance.background.color", "transparent"),
+        ...fillStyle(layer, resolved, resolved.str("appearance.background.color", "transparent")),
         borderRadius: px(resolved.num("appearance.radius", 0)),
         ...border,
       }}

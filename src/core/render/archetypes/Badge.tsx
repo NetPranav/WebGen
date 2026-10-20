@@ -2,6 +2,7 @@ import React from "react";
 import { layerBoxStyle, px } from "../geometry";
 import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
+import { fillStyle } from "../paintStyle";
 
 export const Badge: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
   const raw = resolved.str("content.label", layer.name);
@@ -22,7 +23,7 @@ export const Badge: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, no
         fontSize: px(resolved.num("typography.fontSize", 12)),
         fontWeight: 600,
         color,
-        backgroundColor: outlined ? "transparent" : resolved.str("appearance.background.color", "#e6f4f1"),
+        ...fillStyle(layer, resolved, outlined ? "transparent" : resolved.str("appearance.background.color", "#e6f4f1")),
         border: outlined ? `1px solid ${color}` : undefined,
         borderRadius: px(resolved.num("appearance.radius", 16)),
         whiteSpace: "nowrap",

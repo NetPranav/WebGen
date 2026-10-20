@@ -1,0 +1,310 @@
+/* Colour picker, paint editor and effects (Phase 35) */
+.color-picker {
+  display: grid;
+  gap: 8px;
+  width: 236px;
+  padding: 10px;
+  font-size: 12px;
+  color: var(--text-primary, inherit);
+}
+.cp-square {
+  position: relative;
+  height: 130px;
+  border-radius: 6px;
+  cursor: crosshair;
+  touch-action: none;
+}
+.cp-square__handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.cp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cp-swatch {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+}
+.cp-sliders {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+.cp-slider {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  touch-action: none;
+}
+.cp-slider--hue {
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+.cp-slider__thumb {
+  position: absolute;
+  top: -2px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.cp-eyedropper {
+  flex: none;
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.cp-tabs {
+  display: flex;
+}
+.cp-tabs button {
+  flex: 1;
+  padding: 3px 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  cursor: pointer;
+}
+.cp-tabs button[aria-selected="true"] {
+  background: var(--accent-primary, #6366f1);
+  border-color: var(--accent-primary, #6366f1);
+  color: #fff;
+}
+.cp-nums {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.cp-num {
+  display: grid;
+  gap: 2px;
+  font-size: 10px;
+  opacity: 0.9;
+}
+.cp-num input,
+.cp-hex input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 3px 4px;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: var(--surface-input, transparent);
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+}
+.cp-hex {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.swatch-button {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.4));
+  border-radius: 4px;
+  cursor: pointer;
+}
+.swatch-popover {
+  position: fixed;
+  z-index: 100000;
+  background: var(--surface-panel-solid, #fff);
+  color: var(--text-primary, #0f172a);
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.35));
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+}
+
+/* fills editor */
+.paint-editor {
+  display: grid;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.paint-editor__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+.paint-editor__empty {
+  opacity: 0.6;
+}
+.paint-row {
+  display: grid;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.paint-row--active {
+  border-color: var(--accent-primary, #6366f1);
+}
+.paint-row__main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.paint-row__btn {
+  display: inline-flex;
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.paint-row__btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.paint-row__btn--text {
+  padding: 0 6px;
+  font: inherit;
+  font-size: 11px;
+}
+.paint-row__type {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 4px;
+  font: inherit;
+  color: inherit;
+  background: var(--surface-input, transparent);
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+}
+.paint-row__opacity {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.paint-row__opacity input,
+.paint-row__stopline input {
+  width: 44px;
+  padding: 3px 4px;
+  font: inherit;
+  color: inherit;
+  background: var(--surface-input, transparent);
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+}
+.paint-row__stops {
+  display: grid;
+  gap: 6px;
+  padding-left: 24px;
+}
+.paint-row__stopline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.paint-row__stopline label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.stop-bar {
+  position: relative;
+  height: 16px;
+  margin: 4px 7px 6px 0;
+  border-radius: 4px;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  cursor: copy;
+}
+.stop-bar__stop {
+  position: absolute;
+  top: -3px;
+  width: 14px;
+  height: 20px;
+  margin-left: -7px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  cursor: ew-resize;
+  touch-action: none;
+}
+.stop-bar__stop--selected {
+  box-shadow: 0 0 0 2px var(--accent-primary, #6366f1);
+}
+
+/* stroke pattern and effects */
+.effects-block {
+  display: grid;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.effects-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+.effects-block__row {
+  display: flex;
+  gap: 6px;
+}
+.effects-chip {
+  flex: 1;
+  padding: 4px 6px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+  cursor: pointer;
+}
+.effects-chip--on {
+  background: var(--accent-primary, #6366f1);
+  border-color: var(--accent-primary, #6366f1);
+  color: #fff;
+}
+.shadow-row {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+}
+.shadow-row__main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.shadow-row__nums {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}

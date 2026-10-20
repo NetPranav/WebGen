@@ -11,6 +11,7 @@ import { documentCommands } from "../store/useDocumentStore";
 import { parentOrigin, worldBox } from "../editing/layerBoxes";
 import { transaction } from "../editing/editOps";
 import { safeRunColor } from "../text/runs";
+import { fillSummary, hasFills } from "../paint/paintOps";
 import { selectionSupports, sharedValue, simplePaths, supportsControl, type SimpleControl } from "./simpleControls";
 
 const layers = () => getDocument().layers;
@@ -34,7 +35,7 @@ function editable(ids: readonly string[]): string[] {
 }
 
 /** Writes `patch` on each target in one undo step; `build` decides the patch for a layer (null: nothing to write). Returns the number changed. */
-function write(ids: readonly string[], label: string, build: (id: string) => Record<string, PropValue> | null): number {
+function write(ids: readonly string[], label: string, build: (id: string) => Record<string, PropValue | undefined> | null): number {
   const targets = editable(ids);
   let changed = 0;
   transaction(label, () => {
@@ -56,8 +57,10 @@ export function setFill(ids: readonly string[], color: string): number {
   const safe = safeRunColor(color);
   if (safe === undefined) return 0;
   return write(ids, "Fill", (id) => {
-    const path = simplePaths(layers()[id].archetype).fill;
-    return path ? { [path]: safe } : null;
+    const layer = layers()[id];
+    const path = simplePaths(layer.archetype).fill;
+    // picking a colour here makes the fill that one plain colour: any gradients or extra fills go
+    return path ? { [path]: safe, ...(hasFills(layer.archetype) ? { "paint.fills": undefined } : {}) } : null;
   });
 }
 
@@ -162,6 +165,8 @@ export interface SimpleReadout {
   width: Shared<number>;
   height: Shared<number>;
   fill: Shared<string>;
+  /** Some selected layer keeps its fills as a list (so the Fill control opens the fills editor, not just a colour). */
+  paintList: boolean;
   strokeColor: Shared<string>;
   strokeWidth: Shared<number>;
   radius: Shared<number>;
@@ -188,7 +193,7 @@ export function readSimple(ids: readonly string[]): SimpleReadout {
       }),
     );
   const fillFallback = (id: string) => (l[id].archetype === "text" ? "#0f172a" : l[id].archetype.startsWith("container") || l[id].archetype === "form" ? "transparent" : "none");
-  const fillValues = live.filter((id) => simplePaths(l[id].archetype).fill).map((id) => String(resolveProps(l[id]).get(simplePaths(l[id].archetype).fill!) ?? fillFallback(id)));
+  const fillValues = live.filter((id) => simplePaths(l[id].archetype).fill).map((id) => (hasFills(l[id].archetype) && resolveProps(l[id]).get("paint.fills") ? fillSummary(id) : String(resolveProps(l[id]).get(simplePaths(l[id].archetype).fill!) ?? fillFallback(id))));
   return {
     has,
     x: per((b, o) => b.cx - b.w / 2 - o.x),
@@ -196,6 +201,7 @@ export function readSimple(ids: readonly string[]): SimpleReadout {
     width: per((b) => b.w),
     height: per((b) => b.h),
     fill: sharedValue(fillValues),
+    paintList: live.some((id) => hasFills(l[id].archetype)),
     strokeColor: prop((id) => simplePaths(l[id].archetype).strokeColor, "none"),
     strokeWidth: prop((id) => simplePaths(l[id].archetype).strokeWidth, 0),
     radius: prop((id) => simplePaths(l[id].archetype).radius, 0),

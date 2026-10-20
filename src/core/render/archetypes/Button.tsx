@@ -2,6 +2,7 @@ import React from "react";
 import { layerBoxStyle, px } from "../geometry";
 import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
+import { fillStyle } from "../paintStyle";
 
 /** A `button`. Hover and press looks come from states (Phase 78), not inline handlers. */
 export const Button: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
@@ -26,7 +27,7 @@ export const Button: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, n
         fontSize: px(resolved.num("typography.fontSize", 14)),
         fontWeight: resolved.str("typography.fontWeight", "600"),
         color: resolved.str("typography.color", "#ffffff"),
-        backgroundColor: resolved.str("appearance.background.color", "#206859"),
+        ...fillStyle(layer, resolved, resolved.str("appearance.background.color", "#206859")),
         border: "none",
         borderRadius: px(resolved.num("appearance.radius", 8)),
         cursor: disabled ? "not-allowed" : "pointer",

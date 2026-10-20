@@ -7,6 +7,8 @@ import type { HitIndex } from "@/core/hit/hitTest";
 import type { Layer } from "@/core/document/schema";
 import { boundsOf, gapsBetween, type SpreadAxis } from "@/core/geometry/align";
 import { corners, handlePoints, paramHandles, paramHandleWorld, rotateVec, unionBox, type Box, type ParamHandle, type ResizeHandle, RESIZE_HANDLES } from "@/core/geometry/transform";
+import { handlesFor, normToWorld, type GradientHandle } from "@/core/paint/gradientHandles";
+import type { Paint } from "@/core/paint/paints";
 import type { Camera, Point } from "@/core/viewport/camera";
 import { docToScreen } from "@/core/viewport/camera";
 
@@ -19,6 +21,17 @@ export interface TransformModel {
   params: { handle: ParamHandle; world: Point; layerId: string; value: number }[];
   /** Spacing handles between neighbouring layers of a multi-selection laid out in a row or a column (Phase 30). */
   gaps: GapHandle[];
+  /** The handles of the gradient fill being edited (single selection only), with their place on the canvas. */
+  gradient: GradientModel | null;
+}
+
+export interface GradientModel {
+  layerId: string;
+  paintIndex: number;
+  paint: Paint;
+  /** The layer's box on the canvas: the gradient's fractions are of this box. */
+  box: Box;
+  handles: { handle: GradientHandle; world: Point }[];
 }
 
 export interface GapHandle {
@@ -44,7 +57,7 @@ export function layerBox(layer: Layer, bounds: { x: number; y: number; width: nu
 }
 
 /** The model for a selection, or null when nothing selected is drawn. `inset` is the screen-constant handle gap in canvas px (14 / zoom). */
-export function buildTransformModel(index: HitIndex, layers: Record<string, Layer>, selectedIds: readonly string[], inset: number): TransformModel | null {
+export function buildTransformModel(index: HitIndex, layers: Record<string, Layer>, selectedIds: readonly string[], inset: number, editing?: { layerId: string; index: number; paint: Paint } | null): TransformModel | null {
   const ids: string[] = [];
   const boxes: Box[] = [];
   for (const id of selectedIds) {
@@ -63,7 +76,12 @@ export function buildTransformModel(index: HitIndex, layers: Record<string, Laye
       params.push({ handle, world: paramHandleWorld(boxes[0], handle), layerId: ids[0], value: num(layer.properties[handle.prop]) ?? defaultParam(handle.prop) });
     }
   }
-  return { ids, boxes, frame, params, gaps: spacingHandles(boxes) };
+  let gradient: GradientModel | null = null;
+  if (editing && ids.length === 1 && ids[0] === editing.layerId && editing.paint.type !== "solid") {
+    const box = boxes[0];
+    gradient = { layerId: editing.layerId, paintIndex: editing.index, paint: editing.paint, box, handles: handlesFor(editing.paint, box).map((handle) => ({ handle, world: normToWorld(box, handle.at) })) };
+  }
+  return { ids, boxes, frame, params, gaps: spacingHandles(boxes), gradient };
 }
 
 /**
@@ -100,13 +118,15 @@ export type HandleHit =
   | { kind: "resize"; handle: ResizeHandle }
   | { kind: "rotate" }
   | { kind: "param"; index: number }
-  | { kind: "gap"; index: number };
+  | { kind: "gap"; index: number }
+  | { kind: "gradient"; index: number };
 
 /** Screen-px radii. */
 const PARAM_RADIUS = 8;
 const RESIZE_RADIUS = 7;
 const ROTATE_OUTER = 24;
 const GAP_RADIUS = 9;
+const GRADIENT_RADIUS = 9;
 
 /**
  * Which handle is under a screen point, if any. Parameter handles come first, then the eight resize handles, then
@@ -114,6 +134,13 @@ const GAP_RADIUS = 9;
  */
 export function handleAtScreen(model: TransformModel, camera: Camera, screen: Point): HandleHit | null {
   const toScreen = (p: Point) => docToScreen(camera, p);
+  // a gradient's handles come first: they sit on top of the layer they shape
+  if (model.gradient) {
+    for (let i = model.gradient.handles.length - 1; i >= 0; i--) {
+      const s = toScreen(model.gradient.handles[i].world);
+      if (Math.hypot(s.x - screen.x, s.y - screen.y) <= GRADIENT_RADIUS) return { kind: "gradient", index: i };
+    }
+  }
   for (let i = 0; i < model.params.length; i++) {
     const s = toScreen(model.params[i].world);
     if (Math.hypot(s.x - screen.x, s.y - screen.y) <= PARAM_RADIUS) return { kind: "param", index: i };

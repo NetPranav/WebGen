@@ -1287,3 +1287,32 @@
 .canvas-text-editor:focus {
   outline: calc(1.5px / var(--canvas-zoom, 1)) solid var(--accent-primary, #6366f1);
 }
+
+/* Gradient handles (Phase 35): the points and lines that shape the fill being edited, one screen size at any zoom. */
+.canvas-overlay__ghandle {
+  position: absolute;
+  width: calc(12px / var(--canvas-zoom, 1));
+  height: calc(12px / var(--canvas-zoom, 1));
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fff;
+  border: calc(2px / var(--canvas-zoom, 1)) solid #fff;
+  box-shadow: 0 0 0 calc(1.5px / var(--canvas-zoom, 1)) var(--accent-primary, #6366f1);
+  pointer-events: none;
+}
+.canvas-overlay__ghandle[data-kind="from"],
+.canvas-overlay__ghandle[data-kind="center"] {
+  background: var(--accent-primary, #6366f1);
+}
+.canvas-overlay__ghandle[data-kind="radiusX"],
+.canvas-overlay__ghandle[data-kind="radiusY"],
+.canvas-overlay__ghandle[data-kind="angle"] {
+  border-radius: 2px;
+}
+.canvas-overlay__gline {
+  position: absolute;
+  height: 0;
+  transform-origin: 0 0;
+  border-top: calc(1.5px / var(--canvas-zoom, 1)) solid var(--accent-primary, #6366f1);
+  pointer-events: none;
+}
