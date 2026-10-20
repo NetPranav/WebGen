@@ -238,7 +238,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 59 | Scrub vs play | 58 | v3 10.2 | 2 | 🚧 |
 | 60 | Parity overlay | 59 | v3 10.3 | 2 | 🚧 |
 | 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 🚧 |
-| 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | 📋 |
+| 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | 🚧 |
 | 63 | Timeline navigation | 62 | v3 52.3 | 2 | 📋 |
 | 64 | Timeline at scale | 63 | v3 52.4 | 2 | 📋 |
 | 65 | Nested & interaction composition tabs | 64 | v3 52.5 | 2 | 📋 |
@@ -937,8 +937,8 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** a 10-step journey (trim, set work area, add marker, solo, lock) asserts the document after each step.
 
 ### Phase 62 · Twirl-downs & stopwatches
-**Needs:** 61 · **Was:** v3 52.2 · **Status:** 📋
-- [ ] Layer → groups (Transform, Appearance, Effects, States, Behaviours, Links) → properties, each with a stopwatch that starts keyframing. `U` reveals animated properties, `UU` modified ones.
+**Needs:** 61 · **Was:** v3 52.2 · **Status:** 🚧
+- [x] Layer → groups (Transform, Appearance, Effects, States, Behaviours, Links) → properties, each with a stopwatch that starts keyframing. `U` reveals animated properties, `UU` modified ones. In the Layer Timeline a layer's **P** twirl opens its six groups; Transform (position, scale, rotation, skew) and Appearance (opacity, corner radius, fill and border colour, border width) list their properties in plain words, each with a stopwatch; Effects, States, Behaviours and Links list what the layer has. A stopwatch turned on puts one keyframe at the playhead, holding the property's current value, in the layer's first clip in the composition (or a new clip called "Keyframes"); turned off it removes that property's tracks (and an empty "Keyframes" clip). Keyframes show as diamonds on the layer's time bar (click one to seek there) and an animated property shows its value at the playhead. `U` (timeline focus) toggles the animated-only view of the selected layers and a quick second press shows the modified ones. Editing keyframes (move, copy, easing) is Phases 66–67.
 
 **You'll see:** twirl down a layer and click a stopwatch to animate any property.
 **Done when:** stopwatch on/off round-trips through undo and save.

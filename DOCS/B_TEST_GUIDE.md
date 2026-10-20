@@ -1,4 +1,4 @@
-# Lane B manual test guide (Phases 53–61)
+# Lane B manual test guide (Phases 53–62)
 
 **For:** `@OVERxPOWERED`. **Covers:** everything Lane B has merged to `main`, tested together with Lane A's work (`A_TEST_GUIDE.md`).
 **Updated:** after every phase. The newest phase is at the end of section 3 (look for "NEW" in the table below).
@@ -13,7 +13,8 @@
 | 58 | Simple animations run as Web Animations | #44 | 3.6 |
 | 59 | Scrubbing is exact, playing hands over smoothly | #47 | 3.7 |
 | 60 | A parity badge in the status bar checks the engine against the kernel | #48 | 3.8 |
-| 61 | The Layer Timeline: layer rows, bars, work area, markers, motion badges | this PR (NEW) | 3.9 |
+| 61 | The Layer Timeline: layer rows, bars, work area, markers, motion badges | #49 | 3.9 |
+| 62 | Twirl a layer open and click a stopwatch to start keyframing | this PR (NEW) | 3.10 |
 
 ## How to use this guide
 
@@ -325,7 +326,7 @@ If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
-### 3.9 Phase 61: the Layer Timeline (NEW)
+### 3.9 Phase 61: the Layer Timeline
 
 **What changed:** the **Animate workspace** now opens a new bottom tab, **Layer Timeline**. It shows one row per layer. On the left of each row are switches, a blend mode and a parent. On the right is the layer's **time bar**: the stretch of time the layer is "on". Above the rows are a ruler, the green **work area**, and markers. A red needle shows the playhead. The older **Motion Sequencer** tab is still next to it.
 
@@ -383,6 +384,52 @@ If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
+### 3.10 Phase 62: twirl-downs and stopwatches (NEW)
+
+**What changed:** every layer row in the **Layer Timeline** has a small **▸P** button ("properties"). Click it and the layer opens into six **groups**: Transform, Appearance, Effects, States, Behaviours, Links. Click a group and it opens into its **properties**. Each property has a **stopwatch** (◷). Turning a stopwatch on starts keyframing that property; turning it off removes its keyframes. The yellow diamonds on the right are the keyframes.
+
+**Set up:** open `/editor`, click **Mount Showcase Demo**, click **Animate workspace** (the bottom area opens on **Layer Timeline**). Click the ▸ arrow at the left of the root row to show its children (the heading and the button).
+
+*Twirling open*
+- [ ] **T62.1** Do: on the **heading's** row click the **▸P** button (hover: "Properties and stopwatches"; its accessible name is "Show properties of …"). Expect: six indented group rows appear under it, in this order: **Transform**, **Appearance**, **Effects**, **States**, **Behaviours**, **Links**. The button becomes **▾P**. Each group row shows a small count on its right.
+- [ ] **T62.2** Do: click the ▸ arrow on the **Transform** group row. Expect: property rows appear, in plain words: **Position X**, **Position Y**, **Scale**, **Scale X**, **Scale Y**, **Rotation**, **Skew X**, **Skew Y**. Each has a grey ◷ stopwatch at its left and a value (such as `0` or `1`) at its right.
+- [ ] **T62.3** Do: open **Appearance**. Expect: **Opacity** (value `1`), **Corner radius**, **Fill colour**, **Border colour**, **Border width** (the heading is text, so some of these may be missing: only what the layer kind allows is listed).
+- [ ] **T62.4** Do: open **States**, **Effects**, **Behaviours**, **Links** on the heading. Expect: they list what the layer has (probably nothing, so the count is `0` and no rows appear). They have **no** stopwatches.
+- [ ] **T62.5** Do: click **▾P** again. Expect: the groups close. Open it again: the groups you had open are still open.
+
+*Turning a stopwatch on*
+- [ ] **T62.6** Do: move the red needle to about 1 second (click the ruler at the `00:01:00` label). Then click the ◷ stopwatch on **Position X**. Expect: the stopwatch turns **yellow** and is highlighted; a yellow **diamond** appears on that property's row at 1 s.
+- [ ] **T62.7** Do: hover the diamond. Expect: a tooltip like `1.000 s: 0`. Click it. Expect: the needle jumps to that moment.
+- [ ] **T62.8** Do: look at the heading's layer row in the Layers panel (switch to **Design workspace**). Expect: a round motion badge showing `1` (the layer now has one animation, the "Keyframes" clip). Go back to **Animate workspace**.
+- [ ] **T62.9** Do: turn on the stopwatches on **Position Y** (at 2 s) and **Opacity** (at 0 s). Expect: each gets a yellow stopwatch and one diamond at its own time.
+- [ ] **T62.10** Do: look at the value shown at the right of an animated property while you press **Play**. Expect: a number that updates about ten times a second (with only one keyframe it stays constant). A property with its stopwatch off shows what the layer holds.
+
+*Turning it off, undo, save*
+- [ ] **T62.11** Do: click the yellow stopwatch on **Position X** again. Expect: it turns grey, and its diamond is gone (stopwatch off removes the keyframes).
+- [ ] **T62.12** Do: press **Ctrl+Z** (pointer over the timeline). Expect: the stopwatch turns **on** again with its diamond, in one step.
+- [ ] **T62.13** Do: press **Ctrl+Shift+Z**. Expect: it turns off again.
+- [ ] **T62.14** Do: turn **Position X** on, press **Ctrl+S** (or **File → Save Project**), then reload the page. Click **Animate workspace**, show children of the root, open the heading's properties and its Transform group. Expect: the **Position X** stopwatch is still yellow with its diamond at the same time.
+- [ ] **T62.15** Do: turn all your stopwatches off. Expect: the heading's row in the Layers panel has no motion badge any more (the empty "Keyframes" clip is removed with the last stopwatch).
+- [ ] **T62.16** Do: move a layer's bar (see T61.9) after turning a stopwatch on. Expect: the diamond moves with the bar (keyframes sit on the layer's own time).
+
+*It is a real animation track*
+- [ ] **T62.17** Do: open the properties of the **root** row (the first row; the Motion Sequencer works on the root layer), open **Appearance** and turn on the stopwatch on **Opacity**. Then click the **Motion Sequencer** tab next to Layer Timeline. Expect: the Sequencer lists a track `appearance.opacity` with one keyframe at the time you set. With a single keyframe nothing visibly moves on the stage (a constant value); moving, adding and easing keyframes arrives in Phases 66–67. Turn the stopwatch off in the Layer Timeline: the track disappears from the Sequencer.
+
+*U and UU*
+- [ ] **T62.18** Do: with **Position X** on, click the heading's **name** in the timeline (it highlights), move the mouse over the timeline and press **U**. Expect: only the animated property is listed: **Position X** under **Transform**; every other group and property is hidden.
+- [ ] **T62.19** Do: wait a second, press **U** again. Expect: the view returns to how your twirls were (the Transform group's eight properties).
+- [ ] **T62.20** Do: press **U** twice quickly (a "double tap"). Expect: only the properties that are **animated or changed from their normal value** are listed.
+- [ ] **T62.21** Do: click into a text box (rename a layer) and press **U**. Expect: it types the letter and the timeline doesn't change.
+- [ ] **T62.22** Do: hover the **canvas** and press **U**. Expect: nothing (it is a timeline key).
+
+**Developer test**
+- [ ] **T62.23** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: 34 tests pass (22 from Phase 61 and 12 new).
+- [ ] **T62.24** Do: `npx playwright test tests/e2e/stopwatch.spec.ts --project=chromium`. Expect: 4 tests pass.
+- [ ] **T62.25** Do: turn **Position X** on at 1 s, export the project (**File → Export Project File**), open the file and find the heading's clip. Expect: `clips.<id>` named `Keyframes`, type `entrance`, trigger `mount`, one track `transform.x` with one keyframe at time `1` (± a frame) and value `0`.
+- [ ] **T62.26** Do: **Ctrl+P**, type `stopwatch`. Expect: "Turn a Stopwatch On or Off" (needs arguments, so it is for agents), and `reveal` finds "Reveal Animated Properties (U, twice for modified)" and "Reveal Properties".
+
+---
+
 ## 4. Regression checks (things that must still work)
 
 - [ ] **R1** Do: edit something, reload the page. Expect: your edit is still there and the Save button's dirty dot clears.
@@ -402,6 +449,7 @@ Repeat in **Firefox** and **Safari/WebKit** (CI runs all three):
 - [ ] **X4** T59.1, T59.3, T59.6 (hand-over) and T60.2 (badge turns green).
 - [ ] **X5** T53.1 and T53.3 (import and schema version).
 - [ ] **X6** T61.1, T61.7, T61.14 and T61.20 (the Layer Timeline).
+- [ ] **X7** T62.1, T62.6, T62.11 and T62.18 (stopwatches and U).
 
 ## 6. Run the automated suites and compare
 
@@ -430,4 +478,4 @@ Several timing-based tests can fail once on a busy machine and pass when run alo
 
 ## 8. Reporting a problem
 
-For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–61). Fixes go on a `b/phase-NN-…` branch and through a pull request.
+For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–62). Fixes go on a `b/phase-NN-…` branch and through a pull request.

@@ -1,4 +1,8 @@
 import { layerBar, type Marker } from "../document/compositions";
+import { getPropertyDefinition, isPropertyLegalFor } from "../document/properties";
+import type { PropValue } from "../document/registry";
+import { evaluate } from "../kernel/evaluate";
+import { createId } from "../ids";
 import { canReparent } from "../layers/reparent";
 import { getDocument } from "../store/documentState";
 import { documentCommands } from "../store/useDocumentStore";
@@ -112,3 +116,76 @@ export function parentChoices(layerId: string): Array<{ id: string; name: string
     .filter((l) => l.id !== layerId && canReparent(layers, [layerId], l.id).ok)
     .map((l) => ({ id: l.id, name: l.name }));
 }
+
+// ---------------------------------------------------------------------------
+// Stopwatches (ROADMAP Phase 62)
+// ---------------------------------------------------------------------------
+
+export interface StopwatchResult {
+  changed: boolean;
+  /** Why nothing changed, when it didn't. */
+  reason?: string;
+}
+
+/** The clips of `layerId` placed in the composition, with where each is placed. */
+function placedClips(compositionId: string, layerId: string) {
+  const doc = getDocument();
+  const comp = doc.compositions[compositionId];
+  if (!comp) return [];
+  return comp.clips.flatMap((placement) => {
+    const clip = doc.clips[placement.clipId];
+    return clip && clip.layerId === layerId ? [{ clip, offset: placement.offset }] : [];
+  });
+}
+
+/**
+ * Turns a property's stopwatch on or off. On: starts keyframing, with one keyframe at `time` holding the property's
+ * current value (the layer's first clip in the composition holds the track, or a new clip called "Keyframes" is made).
+ * Off: removes the property's tracks, as After Effects does; a "Keyframes" clip left empty goes with it. One undo step.
+ */
+export function setStopwatch(layerId: string, path: string, on: boolean, time = getTransport().time, compositionId = activeComposition()): StopwatchResult {
+  const doc = getDocument();
+  const comp = doc.compositions[compositionId];
+  const layer = doc.layers[layerId];
+  if (!comp || !layer) return { changed: false, reason: "No such layer or composition." };
+  const existing = placedClips(compositionId, layerId).filter(({ clip }) => clip.tracks.some((t) => t.property === path));
+
+  if (!on) {
+    if (existing.length === 0) return { changed: false, reason: "The stopwatch is already off." };
+    transaction("Turn off stopwatch", () => {
+      for (const { clip } of existing) {
+        for (const track of clip.tracks.filter((t) => t.property === path)) documentCommands.removeTrack(clip.id, track.id);
+        const left = getDocument().clips[clip.id];
+        if (left && left.tracks.length === 0 && left.name === KEYFRAMES_CLIP) documentCommands.removeClip(clip.id);
+      }
+    });
+    return { changed: true };
+  }
+
+  if (existing.length > 0) return { changed: false, reason: "The stopwatch is already on." };
+  const def = getPropertyDefinition(path);
+  if (!def || !def.animatable || !isPropertyLegalFor(path, layer.archetype)) return { changed: false, reason: `${path} can't be animated on this layer.` };
+  const resolved = evaluate(doc, compositionId, layerId, time)[path];
+  const value: PropValue | undefined = resolved ?? layer.properties[path] ?? def.default;
+  if (value === undefined || value === null) return { changed: false, reason: "The property has no value to start from." };
+
+  const bar = layerBar(comp, layerId);
+  const placed = placedClips(compositionId, layerId)[0];
+  const offset = placed?.offset ?? 0;
+  const delay = placed?.clip.delay ?? 0;
+  const local = Math.max(0, snapTime((time - bar.start) / bar.stretch - offset - delay, comp.fps));
+
+  transaction("Turn on stopwatch", () => {
+    let clipId = placed?.clip.id;
+    if (!clipId) {
+      clipId = documentCommands.addClip(layerId, { id: createId("clip"), name: KEYFRAMES_CLIP, type: "entrance", trigger: "mount", duration: Math.max(comp.duration, local), easing: "power2.out", enabled: true, tracks: [] });
+    } else if (local > placed!.clip.duration) {
+      documentCommands.updateClip(clipId, { duration: local });
+    }
+    documentCommands.addTrack(clipId, { property: path, keyframes: [{ id: createId("kf"), time: local, value }] });
+  });
+  return { changed: true };
+}
+
+/** The clip a stopwatch makes when the layer has none. */
+export const KEYFRAMES_CLIP = "Keyframes";
