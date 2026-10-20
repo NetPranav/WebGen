@@ -205,7 +205,7 @@ export class OverlayController {
       el.style.left = `${h.world.x}px`;
       el.style.top = `${h.world.y}px`;
       el.dataset.kind = h.handle.kind;
-      if (h.handle.stopIndex !== undefined && gm.paint.type !== "solid") {
+      if (h.handle.stopIndex !== undefined && "stops" in gm.paint) {
         el.dataset.stopIndex = String(h.handle.stopIndex);
         el.style.background = gm.paint.stops[h.handle.stopIndex]?.color ?? "";
       } else {
@@ -221,6 +221,8 @@ export class OverlayController {
       if (center && rx) links.push([center, rx]);
       if (center && ry) links.push([center, ry]);
       if (center && angle) links.push([center, angle]);
+      const [nw, ne, se, sw] = [at("imgNW"), at("imgNE"), at("imgSE"), at("imgSW")];
+      if (nw && ne && se && sw) links.push([nw, ne], [ne, se], [se, sw], [sw, nw]);
     }
     this.fill(this.gradientLines, links.length, "canvas-overlay__gline");
     this.gradientLines.forEach((el, i) => {

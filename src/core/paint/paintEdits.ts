@@ -10,7 +10,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 
 /** The colour a paint is best summed up by: its colour, or its first stop's. */
 export function paintColor(p: Paint): string {
-  return p.type === "solid" ? p.color : p.stops[0].color;
+  return p.type === "solid" ? p.color : p.type === "image" ? "#cbd5e1" : p.stops[0].color;
 }
 
 /** Adds a paint on top of the list. */
@@ -38,7 +38,8 @@ export function changeType(p: Paint, type: PaintType): Paint {
   const fresh = newPaint(type, paintColor(p));
   const keep = { opacity: p.opacity, visible: p.visible };
   if (fresh.type === "solid") return { ...fresh, ...keep };
-  return { ...fresh, ...keep, stops: p.type === "solid" ? fresh.stops : p.stops } as Paint;
+  if (fresh.type === "image") return { ...fresh, ...keep, ...(p.type === "image" ? p : {}) } as Paint;
+  return { ...fresh, ...keep, stops: "stops" in p ? p.stops : (fresh as { stops: GradientStop[] }).stops } as Paint;
 }
 
 export function updatePaint(fills: readonly Paint[], index: number, change: (p: Paint) => Paint): Paint[] {

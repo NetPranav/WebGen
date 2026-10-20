@@ -8,6 +8,7 @@ import { setLayerProps } from "../editing/editOps";
 import { resolveProps } from "../render/resolve";
 import { getDocument } from "../store/documentState";
 import { simplePaths } from "../inspector/simpleControls";
+import { safeImageSrc } from "../render/limits";
 import { DASH_PRESETS, effectiveFills, parseShadows, safeDashArray, serializeFills, serializeShadows, type Paint, type Shadow } from "./paints";
 
 const layers = () => getDocument().layers;
@@ -70,7 +71,9 @@ export function fillSummary(id: string): string {
   const fills = fillsOf(id).filter((p) => p.visible);
   if (fills.length === 0) return "None";
   if (fills.length === 1 && fills[0].type === "solid") return fills[0].color;
-  return fills.some((p) => p.type !== "solid") ? "Gradient" : "Multiple fills";
+  if (fills.some((p) => p.type === "linear" || p.type === "radial" || p.type === "conic")) return "Gradient";
+  if (fills.some((p) => p.type === "image")) return "Picture";
+  return "Multiple fills";
 }
 
 export type StrokeStyle = "solid" | "dashed" | "dotted";
@@ -110,6 +113,30 @@ export function setStrokeStyle(ids: readonly string[], style: StrokeStyle): numb
       ? { [paths.strokeStyle]: style === "solid" ? "solid" : style }
       : { "svg.strokeDasharray": preset.array(width), "svg.strokeLinecap": style === "dotted" ? "round" : "butt" };
     changed += setLayerProps([id], props, "Stroke style");
+  }
+  return changed;
+}
+
+/**
+ * Swaps the picture on layers (Phase 37, "replace image"): an image layer's source, or the image fills of any other
+ * layer (all of them, or just fill `index`). Everything else about them (fit, crop, colours) stays. A source that
+ * isn't a safe picture changes nothing. Returns how many layers changed.
+ */
+export function replaceImage(ids: readonly string[], src: string, natural?: { w: number; h: number }, index?: number): number {
+  const safe = safeImageSrc(src);
+  if (!safe) return 0;
+  let changed = 0;
+  for (const id of ids) {
+    const layer = layers()[id];
+    if (!layer) continue;
+    if (layer.archetype === "image") {
+      changed += setLayerProps([id], { "media.src": safe }, "Replace image");
+      continue;
+    }
+    if (!hasFills(layer.archetype)) continue;
+    const fills = fillsOf(id);
+    if (!fills.some((p, i) => p.type === "image" && (index === undefined || i === index))) continue;
+    changed += setFills([id], fills.map((p, i) => (p.type === "image" && (index === undefined || i === index) ? { ...p, src: safe, natural } : p)));
   }
   return changed;
 }

@@ -17,13 +17,18 @@ import { fillsOf, hasFills } from "@/core/paint/paintOps";
 import { addPaint, addStop, changeType, movePaint, moveStop, removePaint, removeStop, reverseStops, setStopColor, updatePaint } from "@/core/paint/paintEdits";
 import { paintCss, PAINT_TYPES, type GradientStop, type Paint, type PaintType } from "@/core/paint/paints";
 import { ColorPicker } from "./ColorPicker";
+import { ImageFillControls } from "./ImageFillControls";
+import { useAssetUrlMap } from "@/core/assets/useAssetUrl";
 import { SwatchPopover } from "./SwatchPopover";
 
-const TYPE_LABEL: Record<PaintType, string> = { solid: "Solid", linear: "Linear", radial: "Radial", conic: "Conic" };
+const TYPE_LABEL: Record<PaintType, string> = { solid: "Solid", linear: "Linear", radial: "Radial", conic: "Conic", image: "Image" };
+
+type GradientPaint = Exclude<Paint, { type: "solid" | "image" }>;
 
 /** CSS for a small preview of a paint. */
-function preview(p: Paint): string {
+function preview(p: Paint, url?: string | null): string {
   const checker = "repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 0 0 / 8px 8px";
+  if (p.type === "image") return `${url ? `url("${url}") center / cover no-repeat` : "none"}, ${checker}`;
   return `${paintCss({ ...p, visible: true }, 24, 24) ?? "none"}, ${checker}`;
 }
 
@@ -43,7 +48,7 @@ function useGesture() {
 
 const write = (fills: Paint[]) => void invokeCommand("paint.setFills", { fills });
 
-const StopBar: React.FC<{ paint: Exclude<Paint, { type: "solid" }>; selected: number; onSelect: (i: number) => void; onChange: (stops: GradientStop[]) => void; gesture: ReturnType<typeof useGesture> }> = ({ paint, selected, onSelect, onChange, gesture }) => {
+const StopBar: React.FC<{ paint: GradientPaint; selected: number; onSelect: (i: number) => void; onChange: (stops: GradientStop[]) => void; gesture: ReturnType<typeof useGesture> }> = ({ paint, selected, onSelect, onChange, gesture }) => {
   const bar = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ index: number; moved: boolean } | null>(null);
   const preview = `linear-gradient(to right, ${paint.stops.map((s) => `${s.color} ${s.at * 100}%`).join(", ")}), repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 0 0 / 8px 8px`;
@@ -125,10 +130,12 @@ const PaintRow: React.FC<{ fills: Paint[]; index: number; count: number; active:
   const [stop, setStop] = useState(0);
   const gesture = useGesture();
   const label = `Fill ${index + 1}`;
-  const selectedStop = paint.type === "solid" ? 0 : Math.min(stop, paint.stops.length - 1);
+  const hasStops = "stops" in paint;
+  const selectedStop = hasStops ? Math.min(stop, paint.stops.length - 1) : 0;
+  const urlOf = useAssetUrlMap(paint.type === "image" ? [paint.src] : []);
   const change = (fn: (p: Paint) => Paint) => write(updatePaint(fills, index, fn));
-  const setStops = (stops: GradientStop[]) => change((p) => (p.type === "solid" ? p : { ...p, stops }));
-  const color = paint.type === "solid" ? paint.color : paint.stops[selectedStop].color;
+  const setStops = (stops: GradientStop[]) => change((p) => ("stops" in p ? { ...p, stops } : p));
+  const color = paint.type === "solid" ? paint.color : "stops" in paint ? paint.stops[selectedStop].color : "#ffffff";
 
   return (
     <div className={`paint-row ${active ? "paint-row--active" : ""}`} role="group" aria-label={label} data-paint-type={paint.type} onFocusCapture={onActivate} onPointerDownCapture={onActivate}>
@@ -139,14 +146,18 @@ const PaintRow: React.FC<{ fills: Paint[]; index: number; count: number; active:
         <select className="paint-row__type" aria-label={`${label} type`} value={paint.type} onChange={(e) => change((p) => changeType(p, e.target.value as PaintType))}>
           {PAINT_TYPES.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
         </select>
+        {paint.type === "image" ? (
+          <span className="swatch-button" role="img" aria-label={`${label} picture preview`} style={{ background: preview(paint, paint.src ? urlOf(paint.src) : null) }} />
+        ) : (
         <SwatchPopover label={`${label} colour`} swatch={preview(paint)}>
           <ColorPicker
             value={color}
             onBegin={gesture.begin}
             onEnd={gesture.end}
-            onChange={(c) => change((p) => (p.type === "solid" ? { ...p, color: c } : { ...p, stops: setStopColor(p.stops, selectedStop, c) }))}
+            onChange={(c) => change((p) => (p.type === "solid" ? { ...p, color: c } : "stops" in p ? { ...p, stops: setStopColor(p.stops, selectedStop, c) } : p))}
           />
         </SwatchPopover>
+        )}
         <label className="paint-row__opacity">
           <input
             type="number"
@@ -165,7 +176,12 @@ const PaintRow: React.FC<{ fills: Paint[]; index: number; count: number; active:
         <button type="button" className="paint-row__btn" aria-label={`Move ${label} down`} disabled={index === count - 1} onClick={() => write(movePaint(fills, index, 1))}><ArrowDown size={12} /></button>
         <button type="button" className="paint-row__btn" aria-label={`Remove ${label}`} onClick={() => write(removePaint(fills, index))}><Trash2 size={12} /></button>
       </div>
-      {paint.type !== "solid" && (
+      {paint.type === "image" && (
+        <div className="paint-row__stops">
+          <ImageFillControls label={label} paint={paint} onChange={(next) => change(() => next)} />
+        </div>
+      )}
+      {"stops" in paint && (
         <div className="paint-row__stops">
           <StopBar paint={paint} selected={selectedStop} onSelect={setStop} onChange={setStops} gesture={gesture} />
           <div className="paint-row__stopline">
@@ -212,7 +228,7 @@ export const PaintEditor: React.FC = () => {
 
   // the active gradient's handles show on the canvas
   const activeIndex = Math.min(active, Math.max(0, fills.length - 1));
-  const activeIsGradient = fills[activeIndex] !== undefined && fills[activeIndex].type !== "solid";
+  const activeIsGradient = fills[activeIndex] !== undefined && fills[activeIndex].type !== "solid" && (fills[activeIndex].type !== "image" || (fills[activeIndex] as { mode?: string }).mode === "crop");
   useEffect(() => {
     const store = useCanvasViewStore.getState();
     if (sourceKey && activeIsGradient) store.setEditingPaint({ layerId: sourceKey, index: activeIndex });

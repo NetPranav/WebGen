@@ -13,7 +13,7 @@ import type { Box } from "../geometry/transform";
 import type { Paint, Point } from "./paints";
 import { moveStop } from "./paintEdits";
 
-export type HandleKind = "from" | "to" | "center" | "radiusX" | "radiusY" | "angle" | "stop";
+export type HandleKind = "from" | "to" | "center" | "radiusX" | "radiusY" | "angle" | "stop" | "imgNW" | "imgNE" | "imgSE" | "imgSW" | "imgMove";
 
 export interface GradientHandle {
   kind: HandleKind;
@@ -32,8 +32,27 @@ export const CONIC_HANDLE = 0.35;
 const dir = (deg: number): Point => ({ x: Math.sin((deg * Math.PI) / 180), y: -Math.cos((deg * Math.PI) / 180) });
 
 /** The handles for a paint: none for a solid. */
+/**
+ * Where a cropped picture's own outline is, in fractions of the box: the box is the window onto the picture, so the
+ * picture reaches outside it (a crop of the middle half is twice the box, centred).
+ */
+export function imageOutline(crop: { x: number; y: number; w: number; h: number }): { x0: number; y0: number; x1: number; y1: number } {
+  const x0 = -crop.x / crop.w || 0; // `|| 0` turns -0 into 0
+  const y0 = -crop.y / crop.h || 0;
+  return { x0, y0, x1: x0 + 1 / crop.w, y1: y0 + 1 / crop.h };
+}
+
 export function handlesFor(p: Paint, box: { w: number; h: number }): GradientHandle[] {
   switch (p.type) {
+    case "image": {
+      if (p.mode !== "crop") return [];
+      const o = imageOutline(p.crop);
+      return [
+        { kind: "imgMove", at: { x: (o.x0 + o.x1) / 2, y: (o.y0 + o.y1) / 2 } },
+        { kind: "imgNW", at: { x: o.x0, y: o.y0 } }, { kind: "imgNE", at: { x: o.x1, y: o.y0 } },
+        { kind: "imgSE", at: { x: o.x1, y: o.y1 } }, { kind: "imgSW", at: { x: o.x0, y: o.y1 } },
+      ];
+    }
     case "solid":
       return [];
     // Stops come first and the shaping handles last: they are drawn on top and picked first, so an end that has a stop on it is the end.
@@ -68,6 +87,30 @@ export function handlesFor(p: Paint, box: { w: number; h: number }): GradientHan
 export function dragHandle(p: Paint, handle: Pick<GradientHandle, "kind" | "stopIndex">, to: Point, box: { w: number; h: number }, options: { shift?: boolean } = {}): Paint {
   const pt = { x: clamp(to.x, -4, 5), y: clamp(to.y, -4, 5) };
   switch (p.type) {
+    case "image": {
+      if (p.mode !== "crop") return p;
+      const o = imageOutline(p.crop);
+      let { x0, y0, x1, y1 } = o;
+      if (handle.kind === "imgMove") {
+        const w = x1 - x0;
+        const h = y1 - y0;
+        x0 = clamp(pt.x - w / 2, 1 - w, 0);
+        y0 = clamp(pt.y - h / 2, 1 - h, 0);
+        x1 = x0 + w;
+        y1 = y0 + h;
+      } else {
+        // a corner drags two sides; the picture must keep covering the box, so a side can't come inside it
+        if (handle.kind === "imgNW" || handle.kind === "imgSW") x0 = Math.min(pt.x, 0);
+        else x1 = Math.max(pt.x, 1);
+        if (handle.kind === "imgNW" || handle.kind === "imgNE") y0 = Math.min(pt.y, 0);
+        else y1 = Math.max(pt.y, 1);
+        x1 = Math.min(x1, x0 + 100);
+        y1 = Math.min(y1, y0 + 100);
+      }
+      const w = 1 / (x1 - x0);
+      const h = 1 / (y1 - y0);
+      return { ...p, crop: { x: clamp(-x0 * w, 0, 1 - w), y: clamp(-y0 * h, 0, 1 - h), w, h } };
+    }
     case "solid":
       return p;
     case "linear": {

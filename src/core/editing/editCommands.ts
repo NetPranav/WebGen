@@ -9,7 +9,7 @@ import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
 import { moveLayers } from "../layers/reparent";
 import { importAndPlace } from "../assets/assetImport";
-import { setFills, setShadows, setBlur, setStrokeStyle } from "../paint/paintOps";
+import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage } from "../paint/paintOps";
 import { setFill, setFrame, setOpacity, setRadius, setSimpleText, setStroke } from "../inspector/simpleOps";
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
@@ -145,11 +145,17 @@ export function registerEditingCommands(): () => void {
     z.object({ type: z.literal("linear"), stops: z.array(stop).min(2).max(32), from: pt, to: pt, ...paintBase }),
     z.object({ type: z.literal("radial"), stops: z.array(stop).min(2).max(32), center: pt, radius: pt, ...paintBase }),
     z.object({ type: z.literal("conic"), stops: z.array(stop).min(2).max(32), center: pt, angle: z.number(), ...paintBase }),
+    z.object({
+      type: z.literal("image"), src: z.string().max(200_000), mode: z.enum(["fill", "fit", "crop", "tile"]).default("fill"),
+      crop: z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }).default({ x: 0, y: 0, w: 1, h: 1 }), scale: z.number().default(1),
+      natural: z.object({ w: z.number(), h: z.number() }).optional(), brightness: z.number().default(1), contrast: z.number().default(1), saturation: z.number().default(1), ...paintBase,
+    }),
   ]);
   add(defineTypedCommand({ id: "paint.setFills", title: "Set Fills", category: "Layer", args: z.object({ ids: targets, fills: z.array(paintSchema).max(16) }), run: ({ ids: t, fills }) => ({ changed: setFills(t ?? ids(), fills) }) }));
   const shadowSchema = z.object({ kind: z.enum(["drop", "inner"]), x: z.number(), y: z.number(), blur: z.number().min(0), spread: z.number(), color: z.string(), visible: z.boolean().default(true) });
   add(defineTypedCommand({ id: "paint.setShadows", title: "Set Shadows", category: "Layer", args: z.object({ ids: targets, shadows: z.array(shadowSchema).max(16) }), run: ({ ids: t, shadows }) => ({ changed: setShadows(t ?? ids(), shadows) }) }));
   add(defineTypedCommand({ id: "paint.setStrokeStyle", title: "Set Stroke Style", category: "Layer", args: z.object({ ids: targets, style: z.enum(["solid", "dashed", "dotted"]) }), run: ({ ids: t, style }) => ({ changed: setStrokeStyle(t ?? ids(), style) }) }));
+  add(defineTypedCommand({ id: "paint.replaceImage", title: "Replace Image", category: "Layer", args: z.object({ ids: targets, src: z.string(), natural: z.object({ w: z.number().positive(), h: z.number().positive() }).optional(), index: z.number().int().min(0).optional() }), run: ({ ids: t, src, natural, index }) => ({ changed: replaceImage(t ?? ids(), src, natural, index) }) }));
   add(defineTypedCommand({ id: "paint.setBlur", title: "Set Blur", category: "Layer", args: z.object({ ids: targets, layer: z.number().optional(), background: z.number().optional() }), run: ({ ids: t, layer, background }) => ({ changed: setBlur(t ?? ids(), { layer, background }) }) }));
   add(registerTextCommands());
   add(installClipboardEvents(window));

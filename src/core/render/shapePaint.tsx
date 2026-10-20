@@ -1,7 +1,8 @@
 import React from "react";
 import type { Layer } from "../document/schema";
 import { parseColor, toCss } from "../paint/colorMath";
-import { effectiveFills, paintCss, parseShadows, safeDashArray, type GradientStop, type Paint, type Shadow } from "../paint/paints";
+import { effectiveFills, imageFilterCss, paintCss, parseShadows, safeDashArray, type GradientStop, type ImagePaint, type Paint, type Shadow } from "../paint/paints";
+import { useAssetUrlMap } from "../assets/useAssetUrl";
 import type { ResolvedProps } from "./types";
 
 /**
@@ -105,6 +106,7 @@ export interface ShapePaintProps {
 export function ShapePaint({ layer, resolved, width, height, defaultFill, defaultStroke, defaultStrokeWidth, geometry, fillable = true, strokable = true }: ShapePaintProps) {
   const id = layer.id.replace(/[^A-Za-z0-9_-]/g, "_");
   const fills: Paint[] = fillable ? effectiveFills(resolved.get("paint.fills"), resolved.str("svg.fill", defaultFill)) : [];
+  const urlOf = useAssetUrlMap(fills.filter((p): p is ImagePaint => p.type === "image").map((p) => p.src));
   const stroke = resolved.str("svg.stroke", defaultStroke);
   const strokeWidth = Math.min(200, Math.max(0, resolved.num("svg.strokeWidth", defaultStrokeWidth)));
   const dash = safeDashArray(resolved.str("svg.strokeDasharray", "none"));
@@ -140,6 +142,38 @@ export function ShapePaint({ layer, resolved, width, height, defaultFill, defaul
         );
         painted.push(<React.Fragment key={`f${i}`}>{geometry({ fill: `url(#${gid})`, stroke: "none" })}</React.Fragment>);
         break;
+      case "image": {
+        const url = p.src ? urlOf(p.src) : null;
+        if (!url) break;
+        const filter = imageFilterCss(p) || undefined;
+        const W = width;
+        const H = height;
+        const nw = (p.natural?.w ?? 128) * p.scale;
+        const nh = (p.natural?.h ?? 128) * p.scale;
+        const c = p.crop;
+        // a pattern the size of the box (or of one tile), holding the picture placed as the mode says
+        const pw = p.mode === "tile" ? nw : W;
+        const ph = p.mode === "tile" ? nh : H;
+        const place =
+          p.mode === "crop" ? { x: (-c.x / c.w) * W, y: (-c.y / c.h) * H, width: W / c.w, height: H / c.h, par: "none" }
+          : p.mode === "tile" ? { x: 0, y: 0, width: nw, height: nh, par: "none" }
+          : p.natural
+            ? // placed by hand: engines disagree about `slice` on an SVG picture inside a pattern, so the size is worked out here
+              (() => {
+                const k = (p.mode === "fit" ? Math.min : Math.max)(W / p.natural.w, H / p.natural.h);
+                const iw = p.natural.w * k;
+                const ih = p.natural.h * k;
+                return { x: (W - iw) / 2, y: (H - ih) / 2, width: iw, height: ih, par: "none" };
+              })()
+            : { x: 0, y: 0, width: W, height: H, par: p.mode === "fit" ? "xMidYMid meet" : "xMidYMid slice" };
+        defs.push(
+          <pattern key={gid} id={gid} patternUnits="userSpaceOnUse" x={0} y={0} width={pw} height={ph}>
+            <image href={url} x={place.x} y={place.y} width={place.width} height={place.height} preserveAspectRatio={place.par} opacity={p.opacity} style={filter ? { filter } : undefined} />
+          </pattern>,
+        );
+        painted.push(<React.Fragment key={`f${i}`}>{geometry({ fill: `url(#${gid})`, stroke: "none" })}</React.Fragment>);
+        break;
+      }
       case "conic": {
         const css = paintCss(p, width, height);
         defs.push(<clipPath key={gid} id={gid}>{geometry({ fill: "#000", stroke: "none" })}</clipPath>);

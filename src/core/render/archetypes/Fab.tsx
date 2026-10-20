@@ -2,7 +2,7 @@ import React from "react";
 import { layerBoxStyle } from "../geometry";
 import { clampNumber } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
-import { fillStyle } from "../paintStyle";
+import { useFillStyle } from "../paintStyle";
 
 const ICONS: Record<string, string> = {
   plus: "M12 5v14M5 12h14",
@@ -16,6 +16,7 @@ export const Fab: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, node
   const size = clampNumber(resolved.num("button.size", 56), 16, 200, 56);
   const icon = ICONS[resolved.str("content.icon", "plus")] ?? ICONS.plus;
   const elevated = resolved.str("appearance.elevation", "lg") !== "none";
+  const fill = useFillStyle(layer, resolved, resolved.str("appearance.background.color", "#206859"));
   return (
     <button
       ref={nodeRef}
@@ -33,11 +34,12 @@ export const Fab: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, node
         borderRadius: "50%",
         border: "none",
         color: resolved.str("typography.color", "#ffffff"),
-        ...fillStyle(layer, resolved, resolved.str("appearance.background.color", "#206859")),
+        ...fill.style,
         boxShadow: elevated ? "0 8px 24px rgba(15, 23, 42, 0.25)" : undefined,
         cursor: "pointer",
       }}
     >
+      {fill.overlay}
       <svg width={size * 0.45} height={size * 0.45} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d={icon} />
       </svg>

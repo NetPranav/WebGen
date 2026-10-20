@@ -12,6 +12,7 @@
  * ============================================================================
  */
 
+import { safeImageSrc } from "../render/limits";
 import { parseColor, toCss, withOpacity } from "./colorMath";
 
 export interface Point {
@@ -33,9 +34,38 @@ export type SolidPaint = PaintBase & { type: "solid"; color: string };
 export type LinearPaint = PaintBase & { type: "linear"; stops: GradientStop[]; from: Point; to: Point };
 export type RadialPaint = PaintBase & { type: "radial"; stops: GradientStop[]; center: Point; radius: Point };
 export type ConicPaint = PaintBase & { type: "conic"; stops: GradientStop[]; center: Point; angle: number };
-export type Paint = SolidPaint | LinearPaint | RadialPaint | ConicPaint;
+/**
+ * A picture as a fill (Phase 37). `fill` covers the box, `fit` shows all of it, `crop` shows the part named by
+ * `crop` (fractions of the picture: the box is the window), `tile` repeats it at `scale` times its own size.
+ */
+export type ImageMode = "fill" | "fit" | "crop" | "tile";
+export const IMAGE_MODES: readonly ImageMode[] = ["fill", "fit", "crop", "tile"];
+export interface ImageCrop {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+export type ImagePaint = PaintBase & {
+  type: "image";
+  /** `asset:<sha256>` for an imported file, or any source `safeImageSrc` allows. Empty: nothing chosen yet. */
+  src: string;
+  mode: ImageMode;
+  crop: ImageCrop;
+  /** Tile size as a multiple of the picture's own size. */
+  scale: number;
+  /** The picture's own size in px, for tiling. */
+  natural?: { w: number; h: number };
+  /** 1 is unchanged. */
+  brightness: number;
+  contrast: number;
+  saturation: number;
+};
+export type Paint = SolidPaint | LinearPaint | RadialPaint | ConicPaint | ImagePaint;
 export type PaintType = Paint["type"];
-export const PAINT_TYPES: readonly PaintType[] = ["solid", "linear", "radial", "conic"];
+export const PAINT_TYPES: readonly PaintType[] = ["solid", "linear", "radial", "conic", "image"];
+
+export const FULL_CROP: ImageCrop = { x: 0, y: 0, w: 1, h: 1 };
 
 export const MAX_PAINTS = 16;
 export const MAX_STOPS = 32;
@@ -61,6 +91,7 @@ export const DEFAULT_STOPS: readonly GradientStop[] = [
 /** A fresh paint of a type, from a colour or the first stops of an existing one. */
 export function newPaint(type: PaintType, color = "#cbd5e1"): Paint {
   const base = { opacity: 1, visible: true };
+  if (type === "image") return { ...base, type, src: "", mode: "fill", crop: { ...FULL_CROP }, scale: 1, brightness: 1, contrast: 1, saturation: 1 };
   const stops: GradientStop[] = [{ at: 0, color }, { at: 1, color: parseColor(color) && (parseColor(color)!.r + parseColor(color)!.g + parseColor(color)!.b) / 3 > 128 ? "#0f172a" : "#ffffff" }];
   switch (type) {
     case "solid": return { ...base, type, color };
@@ -105,6 +136,20 @@ function parsePaint(v: unknown): Paint | null {
       const stops = parseStops(o.stops);
       return stops ? { ...base, type: "conic", stops, center: point(o.center, { x: 0.5, y: 0.5 }), angle: num(o.angle, 0, -720, 720) } : null;
     }
+    case "image": {
+      const mode = IMAGE_MODES.includes(o.mode as ImageMode) ? (o.mode as ImageMode) : "fill";
+      const c = typeof o.crop === "object" && o.crop !== null ? (o.crop as Record<string, unknown>) : {};
+      const w = num(c.w, 1, 0.01, 1);
+      const h = num(c.h, 1, 0.01, 1);
+      const nat = typeof o.natural === "object" && o.natural !== null ? (o.natural as Record<string, unknown>) : null;
+      const natural = nat && num(nat.w, 0, 0, 100_000) > 0 && num(nat.h, 0, 0, 100_000) > 0 ? { w: num(nat.w, 1, 1, 100_000), h: num(nat.h, 1, 1, 100_000) } : undefined;
+      return {
+        ...base, type: "image", mode, src: typeof o.src === "string" ? (safeImageSrc(o.src) ?? "") : "",
+        crop: { x: num(c.x, 0, 0, 1 - w), y: num(c.y, 0, 0, 1 - h), w, h },
+        scale: num(o.scale, 1, 0.05, 20), ...(natural ? { natural } : {}),
+        brightness: num(o.brightness, 1, 0, 3), contrast: num(o.contrast, 1, 0, 3), saturation: num(o.saturation, 1, 0, 3),
+      };
+    }
     default:
       return null;
   }
@@ -137,6 +182,13 @@ export function serializeFills(fills: readonly Paint[]): string {
         case "linear": return { ...base, stops: p.stops.map((s) => ({ at: r3(s.at), color: s.color })), from: pt(p.from), to: pt(p.to) };
         case "radial": return { ...base, stops: p.stops.map((s) => ({ at: r3(s.at), color: s.color })), center: pt(p.center), radius: pt(p.radius) };
         case "conic": return { ...base, stops: p.stops.map((s) => ({ at: r3(s.at), color: s.color })), center: pt(p.center), angle: r3(p.angle) };
+        case "image":
+          return {
+            ...base, src: p.src, mode: p.mode,
+            ...(p.mode === "crop" ? { crop: { x: r3(p.crop.x), y: r3(p.crop.y), w: r3(p.crop.w), h: r3(p.crop.h) } } : {}),
+            ...(p.scale !== 1 ? { scale: r3(p.scale) } : {}), ...(p.natural ? { natural: p.natural } : {}),
+            ...(p.brightness !== 1 ? { brightness: r3(p.brightness) } : {}), ...(p.contrast !== 1 ? { contrast: r3(p.contrast) } : {}), ...(p.saturation !== 1 ? { saturation: r3(p.saturation) } : {}),
+          };
       }
     }),
   );
@@ -163,7 +215,7 @@ function stopList(stops: readonly GradientStop[], opacity: number, position: (s:
  * One paint as a CSS image for `background-image`. A gradient is mapped exactly onto the layer's box (`w` by `h`
  * px), so a linear gradient between any two points renders the same as the handles on the canvas show.
  */
-export function paintCss(p: Paint, w: number, h: number): string | null {
+export function paintCss(p: Paint, w: number, h: number, assetUrl?: (src: string) => string | null): string | null {
   if (!p.visible) return null;
   const W = w > 0 ? w : 100;
   const H = h > 0 ? h : 100;
@@ -189,7 +241,68 @@ export function paintCss(p: Paint, w: number, h: number): string | null {
       return `radial-gradient(${f(p.radius.x * W)}px ${f(p.radius.y * H)}px at ${f(p.center.x * W)}px ${f(p.center.y * H)}px, ${stopList(p.stops, p.opacity, (s) => `${f(s.at * 100)}%`)})`;
     case "conic":
       return `conic-gradient(from ${f(p.angle)}deg at ${f(p.center.x * W)}px ${f(p.center.y * H)}px, ${stopList(p.stops, p.opacity, (s) => `${f(s.at * 360)}deg`)})`;
+    case "image": {
+      const url = p.src ? (assetUrl ? assetUrl(p.src) : p.src) : null;
+      return url ? `url("${url.replace(/["\\]/g, "\\$&").replace(/[\n\r]/g, "")}")` : null;
+    }
   }
+}
+
+/** Does this image paint change the picture's colours? Those can't be a `background-image`: they are drawn by a layer of their own. */
+export const hasImageFilter = (p: Paint): boolean => p.type === "image" && (p.brightness !== 1 || p.contrast !== 1 || p.saturation !== 1);
+
+/** `brightness() contrast() saturate()` for an image paint, or "" when it is unchanged. */
+export function imageFilterCss(p: Paint): string {
+  if (p.type !== "image" || !hasImageFilter(p)) return "";
+  return `brightness(${f(p.brightness)}) contrast(${f(p.contrast)}) saturate(${f(p.saturation)})`;
+}
+
+/** How a picture sits in its box as CSS `background-size`, `-position` and `-repeat`. A crop is the box showing the named part of the picture. */
+export function imageLayout(p: ImagePaint): { size: string; position: string; repeat: string } {
+  switch (p.mode) {
+    case "fill": return { size: "cover", position: "center", repeat: "no-repeat" };
+    case "fit": return { size: "contain", position: "center", repeat: "no-repeat" };
+    case "crop": {
+      const { x, y, w, h } = p.crop;
+      return { size: `${f(100 / w)}% ${f(100 / h)}%`, position: `${w >= 1 ? 0 : f((x / (1 - w)) * 100)}% ${h >= 1 ? 0 : f((y / (1 - h)) * 100)}%`, repeat: "no-repeat" };
+    }
+    case "tile": {
+      const nw = (p.natural?.w ?? 128) * p.scale;
+      const nh = (p.natural?.h ?? 128) * p.scale;
+      return { size: `${f(nw)}px ${f(nh)}px`, position: "0 0", repeat: "repeat" };
+    }
+  }
+}
+
+export interface FillLayers {
+  image: string;
+  size: string;
+  position: string;
+  repeat: string;
+}
+
+/** The four background lists for fills, top first, and the image paints that need a layer of their own for their colour filters. */
+export function fillLayers(fills: readonly Paint[], w: number, h: number, assetUrl?: (src: string) => string | null): { layers: FillLayers | undefined; filtered: ImagePaint[] } {
+  const images: string[] = [];
+  const sizes: string[] = [];
+  const positions: string[] = [];
+  const repeats: string[] = [];
+  const filtered: ImagePaint[] = [];
+  for (const p of fills) {
+    if (!p.visible) continue;
+    if (hasImageFilter(p)) {
+      filtered.push(p as ImagePaint);
+      continue;
+    }
+    const css = paintCss(p, w, h, assetUrl);
+    if (!css) continue;
+    images.push(css);
+    const l = p.type === "image" ? imageLayout(p) : { size: "auto", position: "0 0", repeat: "no-repeat" };
+    sizes.push(l.size);
+    positions.push(l.position);
+    repeats.push(l.repeat);
+  }
+  return { layers: images.length ? { image: images.join(", "), size: sizes.join(", "), position: positions.join(", "), repeat: repeats.join(", ") } : undefined, filtered };
 }
 
 /** The `background-image` for a list of fills (first is on top), or undefined when none is visible. */

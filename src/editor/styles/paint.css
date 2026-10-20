@@ -308,3 +308,36 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
 }
+
+/* image fills (Phase 37) */
+.image-fill {
+  display: grid;
+  gap: 6px;
+}
+.image-fill__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.image-fill__num {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  font-size: 10px;
+}
+.image-fill__num input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 3px 4px;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: var(--surface-input, transparent);
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+}
+.image-fill__hint {
+  font-size: 11px;
+  opacity: 0.7;
+}
