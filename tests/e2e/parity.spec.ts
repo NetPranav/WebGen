@@ -32,8 +32,11 @@ test("Phase 60: correct playback stays green", async ({ page }) => {
   await openLab(page);
   const warnings: string[] = [];
   page.on("console", (m) => m.type() === "warning" && warnings.push(m.text()));
-  await page.evaluate(() => window.__LL_ENGINE__!.play());
-  await expect.poll(async () => (await parity(page)).samples, { timeout: 15_000 }).toBeGreaterThanOrEqual(4);
+  await page.evaluate(() => {
+    window.__LL_ENGINE__!.loop(true); // playback must not run out while the monitor samples (a slow browser takes a while)
+    window.__LL_ENGINE__!.play();
+  });
+  await expect.poll(async () => (await parity(page)).samples, { timeout: 30_000 }).toBeGreaterThanOrEqual(4);
   const state = await parity(page);
   expect(state.status, JSON.stringify(state.drifts)).toBe("ok");
   expect(state.checked).toBeGreaterThan(0);
@@ -44,8 +47,11 @@ test("Phase 60: an injected wrong easing raises [PARITY_DRIFT]", async ({ page }
   await openLab(page);
   const warnings: string[] = [];
   page.on("console", (m) => m.type() === "warning" && warnings.push(m.text()));
-  await page.evaluate(() => window.__LL_ENGINE__!.play());
-  await expect.poll(async () => (await parity(page)).status, { timeout: 15_000 }).toBe("ok");
+  await page.evaluate(() => {
+    window.__LL_ENGINE__!.loop(true);
+    window.__LL_ENGINE__!.play();
+  });
+  await expect.poll(async () => (await parity(page)).status, { timeout: 30_000 }).toBe("ok");
 
   // Change one running animation's easing: the engine now shows a different curve from the kernel's.
   await page.evaluate((sel) => {
@@ -54,7 +60,7 @@ test("Phase 60: an injected wrong easing raises [PARITY_DRIFT]", async ({ page }
     (target.effect as KeyframeEffect).updateTiming({ easing: "steps(3, end)" });
   }, STAGE);
 
-  await expect.poll(async () => (await parity(page)).status, { timeout: 15_000 }).toBe("drift");
+  await expect.poll(async () => (await parity(page)).status, { timeout: 30_000 }).toBe("drift");
   const state = await parity(page);
   expect(state.drifts.length).toBeGreaterThan(0);
   await expect.poll(() => warnings.some((w) => w.includes("[PARITY_DRIFT]") && w.includes("anim_0"))).toBe(true);
