@@ -239,7 +239,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 60 | Parity overlay | 59 | v3 10.3 | 2 | 🚧 |
 | 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 🚧 |
 | 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | 🚧 |
-| 63 | Timeline navigation | 62 | v3 52.3 | 2 | 📋 |
+| 63 | Timeline navigation | 62 | v3 52.3 | 2 | 🚧 |
 | 64 | Timeline at scale | 63 | v3 52.4 | 2 | 📋 |
 | 65 | Nested & interaction composition tabs | 64 | v3 52.5 | 2 | 📋 |
 | 66 | Keyframing | 65 | v3 23.2 | 2 | 📋 |
@@ -944,8 +944,8 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** stopwatch on/off round-trips through undo and save.
 
 ### Phase 63 · Timeline navigation
-**Needs:** 62 · **Was:** v3 52.3 · **Status:** 📋
-- [ ] Ruler scrubbing, zoom to work area, J/K/L shuttle, I/O to jump to in/out points, B/N to set the work area, Page Up/Down to step frames (Shift for 10). All are commands with timeline focus.
+**Needs:** 62 · **Was:** v3 52.3 · **Status:** 🚧
+- [x] Ruler scrubbing, zoom to work area, J/K/L shuttle, I/O to jump to in/out points, B/N to set the work area, Page Up/Down to step frames (Shift for 10). All are commands with timeline focus. Ruler scrubbing (61) and J/K/L (54) were already there. New: Page Down / Page Up (one frame; Shift: ten), `I` / `O` (the selected layers' earliest in and latest out; with nothing selected, the work area's start and end), `B` / `N` (work area start and end at the playhead), `=` / `-` (zoom ×1.25, 20 to 2,400 px/s), `\` (zoom to the work area, scrolled into view), Ctrl + wheel (zoom around the pointer), and `End` (to the end of the composition). The timeline's zoom is a store value (`pixelsPerSecond`); the panel reports its view width so the fit knows what to fill.
 
 **You'll see:** After Effects shortcuts work in the timeline.
 **Done when:** a keyboard-only navigation journey lands on exact times.

@@ -1,4 +1,4 @@
-# Lane B manual test guide (Phases 53–62)
+# Lane B manual test guide (Phases 53–63)
 
 **For:** `@OVERxPOWERED`. **Covers:** everything Lane B has merged to `main`, tested together with Lane A's work (`A_TEST_GUIDE.md`).
 **Updated:** after every phase. The newest phase is at the end of section 3 (look for "NEW" in the table below).
@@ -14,7 +14,8 @@
 | 59 | Scrubbing is exact, playing hands over smoothly | #47 | 3.7 |
 | 60 | A parity badge in the status bar checks the engine against the kernel | #48 | 3.8 |
 | 61 | The Layer Timeline: layer rows, bars, work area, markers, motion badges | #49 | 3.9 |
-| 62 | Twirl a layer open and click a stopwatch to start keyframing | this PR (NEW) | 3.10 |
+| 62 | Twirl a layer open and click a stopwatch to start keyframing | #50 | 3.10 |
+| 63 | After Effects keys in the timeline: frames, I/O, B/N, zoom | this PR (NEW) | 3.11 |
 
 ## How to use this guide
 
@@ -384,7 +385,7 @@ If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
-### 3.10 Phase 62: twirl-downs and stopwatches (NEW)
+### 3.10 Phase 62: twirl-downs and stopwatches
 
 **What changed:** every layer row in the **Layer Timeline** has a small **▸P** button ("properties"). Click it and the layer opens into six **groups**: Transform, Appearance, Effects, States, Behaviours, Links. Click a group and it opens into its **properties**. Each property has a **stopwatch** (◷). Turning a stopwatch on starts keyframing that property; turning it off removes its keyframes. The yellow diamonds on the right are the keyframes.
 
@@ -430,6 +431,52 @@ If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
+### 3.11 Phase 63: timeline navigation (NEW)
+
+**What changed:** with the mouse pointer **over the Layer Timeline**, these keys now work. **Important:** keyboard shortcuts in this editor only apply where the pointer is. Move the mouse onto the timeline panel (the bottom area) before pressing keys, and don't have a text box focused. Over the canvas these keys do nothing (on the canvas, **O** is the Ellipse tool, for example).
+
+**Set up:** open `/editor`, **Mount Showcase Demo**, **Animate workspace**. In the Layer Timeline click the ▸ arrow of the root row to show its children. Click the **heading's name** to select it (its row turns blue). Trim the heading's bar so it runs from about **1 s to 3 s**: drag its left handle to the 1-second mark and its right handle to the 3-second mark (see T61.7–T61.8). Then move the mouse over the timeline and leave it there.
+
+*Frame by frame*
+- [ ] **T63.1** Do: press **Home**. Expect: the needle goes to the left end; both timecodes (toolbar of the timeline and status bar) read `00:00:00`.
+- [ ] **T63.2** Do: press **Page Down** three times. Expect: `00:00:03` (three frames), one frame per press.
+- [ ] **T63.3** Do: press **Shift+Page Down**. Expect: `00:00:13` (ten more frames).
+- [ ] **T63.4** Do: press **Page Up**, then **Shift+Page Up**. Expect: `00:00:12`, then `00:00:02`. Press **Shift+Page Up** once more: `00:00:00`, not below it.
+- [ ] **T63.5** Do: press **Page Down** with the pointer over the **canvas** (the stage). Expect: nothing happens. Move back over the timeline and press it: one frame.
+- [ ] **T63.6** Do: with the pointer over the timeline press **Right arrow** and **Left arrow**. Expect: one frame each (they did before Phase 63 too).
+
+*Jumping to in and out points*
+- [ ] **T63.7** Do: with the heading selected press **I**. Expect: the needle jumps to **1 s** (`00:01:00`), the start of the heading's bar. Press **O**: it jumps to **3 s** (`00:03:00`), the end of its bar.
+- [ ] **T63.8** Do: select **two** layers (click one name, Ctrl-click another; trim the second to 2–4.5 s first) and press **I** then **O**. Expect: **I** goes to the earliest start of the two, **O** to the latest end.
+- [ ] **T63.9** Do: select nothing (click an empty part of the stage, then move back over the timeline) and press **I** and **O**. Expect: they go to the **work area's** start and end (the green bar's ends; with no work area set, 0 s and 5 s).
+- [ ] **T63.10** Do: press **End**. Expect: the needle goes to the end (`00:05:00`). Press **Home**: back to the start.
+
+*Setting the work area from the keyboard*
+- [ ] **T63.11** Do: press **I** (to 1 s), then **B**. Expect: the green work-area bar on the ruler now starts at 1 s and the area to its left is shaded.
+- [ ] **T63.12** Do: press **O** (to 3 s), then **N**. Expect: the green bar now ends at 3 s: it covers 1–3 s.
+- [ ] **T63.13** Do: press **Ctrl+Z**. Expect: the work area's end goes back (one press undoes one of B or N).
+- [ ] **T63.14** Do: press **Space** to play from the work area. Expect: it plays only inside the green bar and stops at its end (T61.17).
+
+*Zoom*
+- [ ] **T63.15** Do: press **=** (equals). Expect: the timeline stretches: the ruler, bars and needle are 25% wider (the one-second ticks are further apart, and a horizontal scrollbar may appear). Press **-**: it returns.
+- [ ] **T63.16** Do: press **=** several times, then **-** several times. Expect: the zoom stops at some limit (very zoomed in: the ticks become tenths of a second; very zoomed out: whole seconds only) and never breaks.
+- [ ] **T63.17** Do: with the green bar covering 1–3 s press **\** (backslash). Expect: the timeline zooms so that **the work area fills the visible width** of the timeline, scrolled so that it starts near the left edge. Everything stays aligned: bars, the needle at any time (press **I** and **O** and watch the needle at 1 s and 3 s), diamonds, markers.
+- [ ] **T63.18** Do: hold **Ctrl** and turn the mouse wheel over the ruler or the rows. Expect: the timeline zooms in or out around the pointer.
+- [ ] **T63.19** Do: after zooming, drag a layer's bar handle, drag the green work area's ends, click the ruler to seek. Expect: each lands on the time under the mouse (the maths follows the zoom).
+- [ ] **T63.20** Do: zoom in a lot and press **Play**. Expect: the needle moves proportionally faster across the screen and stays smooth (it may leave the visible part; scrolling it into view while playing is not built).
+
+*Keys that must not fire*
+- [ ] **T63.21** Do: click into a text box (double-click a layer name in the **Layers** panel to rename it) and type `i`, `o`, `b`, `n`. Expect: the letters are typed; the timeline doesn't move.
+- [ ] **T63.22** Do: with the pointer over the **canvas** press **I**, **O**, **B**, **N**, **=**, **-**. Expect: the canvas keys apply (**O** is the Ellipse tool); the timeline doesn't change.
+
+**Developer test**
+- [ ] **T63.23** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: 42 tests pass (34 earlier and 8 new).
+- [ ] **T63.24** Do: `npx playwright test tests/e2e/timeline-navigation.spec.ts tests/e2e/keybinding-conflicts.spec.ts --project=chromium`. Expect: pass (the conflict audit proves no two commands answer the same key at once).
+- [ ] **T63.25** Do: **Ctrl+P** and type `frame`, `zoom`, `work area`, `point`. Expect: Next Frame, Previous Frame, Forward Ten Frames, Back Ten Frames, Zoom Timeline In/Out/to the Work Area, Work Area Starts/Ends at the Playhead, Go to In/Out Point, each showing its key (PageDown, Shift+PageUp, =, -, \, B, N, I, O).
+- [ ] **T63.26** Do: look at `src/core/timeline/model.ts`. Expect: `navigationTarget`, `zoomToRange` and `stepZoom` are pure functions with limits 20 to 2,400 pixels per second.
+
+---
+
 ## 4. Regression checks (things that must still work)
 
 - [ ] **R1** Do: edit something, reload the page. Expect: your edit is still there and the Save button's dirty dot clears.
@@ -450,6 +497,7 @@ Repeat in **Firefox** and **Safari/WebKit** (CI runs all three):
 - [ ] **X5** T53.1 and T53.3 (import and schema version).
 - [ ] **X6** T61.1, T61.7, T61.14 and T61.20 (the Layer Timeline).
 - [ ] **X7** T62.1, T62.6, T62.11 and T62.18 (stopwatches and U).
+- [ ] **X8** T63.2, T63.7, T63.11 and T63.17 (timeline keys and zoom).
 
 ## 6. Run the automated suites and compare
 
@@ -478,4 +526,4 @@ Several timing-based tests can fail once on a busy machine and pass when run alo
 
 ## 8. Reporting a problem
 
-For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–62). Fixes go on a `b/phase-NN-…` branch and through a pull request.
+For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–63). Fixes go on a `b/phase-NN-…` branch and through a pull request.

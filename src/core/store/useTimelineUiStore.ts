@@ -3,9 +3,18 @@
 import { create } from "zustand";
 
 /** What the timeline panel remembers while the editor is open (none of it is saved in the document). */
-import type { RevealMode } from "../timeline/model";
+import { clampZoom, ZOOM_LIMITS, type RevealMode } from "../timeline/model";
 
 interface TimelineUiState {
+  /** Horizontal zoom: pixels per second of timeline (Phase 63). */
+  pixelsPerSecond: number;
+  /** Width in px of the lanes' visible part, kept by the panel so "zoom to work area" knows what to fit. */
+  viewportWidth: number;
+  /** A scroll the panel should apply (px from the start of the lanes), then clear. */
+  scrollRequest: number | null;
+  setZoom: (pixelsPerSecond: number, scrollLeft?: number) => void;
+  setViewportWidth: (px: number) => void;
+  clearScrollRequest: () => void;
   /** `layerId` (a layer's groups show) and `layerId|group` (a group's properties show): the twirl-downs that are open. */
   open: ReadonlySet<string>;
   /** U (animated) and UU (modified) reveal: show only those properties of these layers, everything open. */
@@ -28,6 +37,12 @@ interface TimelineUiState {
 let lastReveal = { at: 0, key: "" };
 
 export const useTimelineUiStore = create<TimelineUiState>((set, get) => ({
+  pixelsPerSecond: ZOOM_LIMITS.default,
+  viewportWidth: 0,
+  scrollRequest: null,
+  setZoom: (pixelsPerSecond, scrollLeft) => set({ pixelsPerSecond: clampZoom(pixelsPerSecond), ...(scrollLeft !== undefined ? { scrollRequest: scrollLeft } : {}) }),
+  setViewportWidth: (viewportWidth) => set((s) => (s.viewportWidth === viewportWidth ? s : { viewportWidth })),
+  clearScrollRequest: () => set({ scrollRequest: null }),
   open: new Set<string>(),
   reveal: {},
   toggleOpen: (key) =>

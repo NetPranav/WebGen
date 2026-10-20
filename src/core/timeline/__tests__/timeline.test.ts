@@ -1,4 +1,4 @@
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { createDocumentFromLayers, createLayer, attachClip, hydrateClip } from "../../document/factories";
 import type { Layer } from "../../document/schema";
@@ -7,10 +7,14 @@ import { documentCommands, getDocument, historyCommands } from "../../store/useD
 import { setDocument } from "../../store/documentState";
 import { selectRenderable } from "../../render/RenderLayer";
 import { buildRows } from "../../layers/layerTree";
-import { transport } from "../../time/transport";
+import { getTransport, transport } from "../../time/transport";
+import { installTransportCommands } from "../../time/transportCommands";
+import { getCommand } from "../../commands";
+import { useSelectionStore } from "../../store/useSelectionStore";
+import { registerTimelineCommands } from "../timelineCommands";
 import { useTimelineUiStore } from "../../store/useTimelineUiStore";
 import { loadDocument } from "../../document/migrations";
-import { BLEND_MODES, buildTimelineItems, buildTimelineRows, clampWorkArea, motionIndex, motionLabel, rulerLabel, slideBar, snapTime, tickStep, trimIn, trimOut } from "../model";
+import { BLEND_MODES, ZOOM_LIMITS, buildTimelineItems, clampZoom, navigationTarget, stepZoom, zoomToRange, buildTimelineRows, clampWorkArea, motionIndex, motionLabel, rulerLabel, slideBar, snapTime, tickStep, trimIn, trimOut } from "../model";
 import { KEYFRAMES_CLIP, addMarkerAt, parentChoices, removeMarkerById, setLayerBarTimes, setLayerSwitch, setStopwatch, setWorkArea, setWorkAreaEdge, slideLayer, trimLayer } from "../timelineOps";
 
 const COMP = "comp_main";
@@ -310,5 +314,118 @@ describe("Phase 62: twirl-downs and stopwatches", () => {
     const view = { ...closed, open: new Set(["b", "b|states"]) };
     const info = items(view).filter((i) => i.kind === "info");
     assert.deepEqual(info.map((i) => (i as { label: string }).label), ["hover"]);
+  });
+});
+
+describe("Phase 63: navigation", () => {
+  beforeEach(fresh);
+
+  it("zooms within limits, a step at a time", () => {
+    assert.equal(clampZoom(1), ZOOM_LIMITS.min);
+    assert.equal(clampZoom(1e6), ZOOM_LIMITS.max);
+    assert.equal(stepZoom(120, 1), 150);
+    assert.equal(stepZoom(150, -1), 120);
+    assert.equal(stepZoom(ZOOM_LIMITS.max, 1), ZOOM_LIMITS.max);
+  });
+
+  it("fits a range into the view with a margin, and scrolls to it", () => {
+    const fit = zoomToRange(1, 3, 548, 24);
+    assert.equal(fit.pixelsPerSecond, 250, "(548 - 48) px over 2 s");
+    assert.equal(fit.scrollLeft, 1 * 250 - 24);
+    assert.equal(zoomToRange(0, 5, 1000, 24).scrollLeft, 0, "never scrolls before the start");
+    assert.equal(zoomToRange(1, 1.0000001, 1000, 24).pixelsPerSecond, ZOOM_LIMITS.max, "a tiny range stops at the limit");
+  });
+
+  it("I and O go to the selected layers' in and out points, or the work area when nothing is selected", () => {
+    const doc = () => getDocument();
+    assert.equal(navigationTarget(doc(), COMP, [], "in"), 0);
+    assert.equal(navigationTarget(doc(), COMP, [], "out"), 5);
+    setWorkArea(1, 4);
+    assert.equal(navigationTarget(doc(), COMP, [], "in"), 1);
+    assert.equal(navigationTarget(doc(), COMP, [], "out"), 4);
+    setLayerBarTimes("a", { in: 1, out: 3 });
+    setLayerBarTimes("b", { in: 2, out: 4.5 });
+    assert.equal(navigationTarget(doc(), COMP, ["a"], "in"), 1);
+    assert.equal(navigationTarget(doc(), COMP, ["a"], "out"), 3);
+    assert.equal(navigationTarget(doc(), COMP, ["a", "b"], "in"), 1, "the earliest in");
+    assert.equal(navigationTarget(doc(), COMP, ["a", "b"], "out"), 4.5, "the latest out");
+    assert.equal(navigationTarget(doc(), COMP, ["c"], "out"), 5, "an untrimmed layer spans the composition");
+  });
+
+  describe("the keys are commands", () => {
+    const run = (id: string) => getCommand(id)!.run(undefined as never);
+    let off: () => void;
+    beforeEach(() => {
+      off = registerTimelineCommands();
+      transport.seek(0);
+      useSelectionStore.getState().clearSelection();
+      useTimelineUiStore.setState({ pixelsPerSecond: ZOOM_LIMITS.default, viewportWidth: 800, scrollRequest: null });
+    });
+    afterEach(() => off());
+
+    it("Page Down and Page Up step one frame, Shift ten, and land on exact frame times", () => {
+      run("timeline.frameNext");
+      assert.equal(getTransport().time, 1 / 60);
+      run("timeline.frameNext10");
+      assert.equal(getTransport().time, 11 / 60);
+      run("timeline.framePrevious");
+      run("timeline.framePrevious10");
+      assert.equal(getTransport().time, 0);
+      run("timeline.framePrevious");
+      assert.equal(getTransport().time, 0, "never before the start");
+    });
+
+    it("they bind the keys the roadmap names, for the timeline only", () => {
+      const keys = (id: string) => getCommand(id)!.keybinding;
+      assert.equal(keys("timeline.frameNext"), "PageDown");
+      assert.equal(keys("timeline.framePrevious10"), "Shift+PageUp");
+      assert.equal(keys("timeline.goToIn"), "I");
+      assert.equal(keys("timeline.goToOut"), "O");
+      assert.equal(keys("timeline.workAreaStartHere"), "B");
+      assert.equal(keys("timeline.workAreaEndHere"), "N");
+      assert.equal(keys("timeline.zoomToWorkArea"), "\\");
+      const when = getCommand("timeline.goToIn")!.when!;
+      assert.equal(when({ timelineFocus: true, textEditing: false } as never), true);
+      assert.equal(when({ timelineFocus: false, textEditing: false } as never), false, "not on the canvas");
+      assert.equal(when({ timelineFocus: true, textEditing: true } as never), false, "not while typing");
+    });
+
+    it("I and O move the playhead, B and N set the work area from it", () => {
+      setLayerBarTimes("a", { in: 1, out: 3 });
+      useSelectionStore.getState().selectMultiple(["a"], "element");
+      run("timeline.goToIn");
+      assert.equal(getTransport().time, 1);
+      run("timeline.workAreaStartHere");
+      assert.equal(getDocument().compositions[COMP].workArea.start, 1);
+      run("timeline.goToOut");
+      assert.equal(getTransport().time, 3);
+      run("timeline.workAreaEndHere");
+      assert.deepEqual(getDocument().compositions[COMP].workArea, { start: 1, end: 3 });
+      historyCommands.undo();
+      assert.deepEqual(getDocument().compositions[COMP].workArea, { start: 1, end: 5 }, "each is one undo step");
+    });
+
+    it("= and - zoom, and \\ fits the work area into the view", () => {
+      run("timeline.zoomIn");
+      assert.equal(useTimelineUiStore.getState().pixelsPerSecond, 150);
+      run("timeline.zoomOut");
+      run("timeline.zoomOut");
+      assert.equal(useTimelineUiStore.getState().pixelsPerSecond, 96);
+      setWorkArea(1, 3);
+      run("timeline.zoomToWorkArea");
+      const ui = useTimelineUiStore.getState();
+      assert.equal(ui.pixelsPerSecond, (800 - 48) / 2);
+      assert.equal(ui.scrollRequest, 1 * ui.pixelsPerSecond - 24);
+    });
+
+    it("End goes to the end of the composition", () => {
+      const offTransport = installTransportCommands();
+      try {
+        run("transport.seekEnd");
+        assert.equal(getTransport().time, 5);
+      } finally {
+        offTransport();
+      }
+    });
   });
 });
