@@ -10,7 +10,8 @@
  * ============================================================================
  */
 
-import { getDefaultProps } from "../document/registry";
+import { getDefaultProps, type PropValue } from "../document/registry";
+import { isPropertyLegalFor, resolvePropertyPath } from "../document/properties";
 import type { Layer } from "../document/schema";
 import { duplicateFrame } from "../frames/frameCommands";
 import { listFrames, nextFramePosition } from "../frames/frames";
@@ -231,6 +232,39 @@ export function nudgeLayers(ids: readonly string[], dx: number, dy: number): voi
   const boxes = roots.map((id) => worldBox(id)).filter((b): b is Box => b !== null);
   if (boxes.length !== roots.length || roots.length === 0) return;
   transaction("Nudge", () => writeBoxes(roots, moveBoxes(boxes, dx, dy)));
+}
+
+// ---------------------------------------------------------------------------
+// Properties (Phase 31)
+// ---------------------------------------------------------------------------
+
+/**
+ * Writes properties on layers as one undo step: what an inspector control does. A `null` value removes the
+ * property (back to its default). Locked layers are skipped, and so is a layer that can't carry a property (the
+ * mixed selection of a text and a rectangle given a font size). Returns how many layers changed.
+ */
+export function setLayerProps(ids: readonly string[], props: Record<string, PropValue | null>, label = "Change properties"): number {
+  const l = layers();
+  const targets = ids.filter((id) => {
+    const layer = l[id];
+    return layer && layer.locked !== true;
+  });
+  const changed: string[] = [];
+  transaction(label, () => {
+    for (const id of targets) {
+      const layer = getDocument().layers[id];
+      const patch: Record<string, PropValue | undefined> = {};
+      for (const [path, value] of Object.entries(props)) {
+        const res = resolvePropertyPath(path, layer.archetype);
+        if (!res.ok || !isPropertyLegalFor(res.path, layer.archetype)) continue;
+        patch[res.path] = value === null ? undefined : value;
+      }
+      if (Object.keys(patch).length === 0) continue;
+      documentCommands.updateProps(id, patch);
+      changed.push(id);
+    }
+  });
+  return changed.length;
 }
 
 // ---------------------------------------------------------------------------

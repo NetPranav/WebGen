@@ -419,6 +419,8 @@ export function createLayerFromDrag(spec: CreationSpec, box: DragBox, parent: { 
       props["frame.width"] = box.width;
       props["frame.height"] = box.height;
     }
+    props["content.text"] = ""; // the editor opens on it at once; leaving it empty discards the layer
+    props["text.sizing"] = box.click ? "autoWidth" : "fixed";
   } else {
     props["frame.width"] = box.width;
     props["frame.height"] = box.height;

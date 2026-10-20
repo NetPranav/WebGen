@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { registerTextCommands } from "../text/textCommands";
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
 import { getDocument } from "../store/documentState";
@@ -14,7 +15,7 @@ import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
 import { mirrorRead, mirrorWrite, parseClip } from "./clipboard";
 import {
-  alignLayers, copyText, deleteLayers, distributeLayers, tidyLayers, showAll, unlockAll, duplicateLayers, groupLayers, nudgeLayers, pasteText, renameLayer, reorderLayers, selectionRoots, toggleHidden, toggleLock, ungroupLayers, type ZOrderOp,
+  alignLayers, setLayerProps, copyText, deleteLayers, distributeLayers, tidyLayers, showAll, unlockAll, duplicateLayers, groupLayers, nudgeLayers, pasteText, renameLayer, reorderLayers, selectionRoots, toggleHidden, toggleLock, ungroupLayers, type ZOrderOp,
 } from "./editOps";
 
 const ids = () => useSelectionStore.getState().selectedIds;
@@ -109,6 +110,13 @@ export function registerEditingCommands(): () => void {
   add(defineTypedCommand({ id: "layer.distribute", title: "Distribute Layers", category: "Arrange", args: z.object({ axis: z.enum(["h", "v"]) }), run: ({ axis }) => ({ changed: distributeLayers(ids(), axis) }) }));
   add(defineCommand({ id: "layer.tidy", title: "Tidy Up", category: "Arrange", keybinding: "Ctrl+Alt+T", when: onSelection, run: () => void tidyLayers(ids()) }));
 
+  // The one writer every inspector control and every agent uses to change properties (Phase 31; the Simple and Pro faces build on it).
+  add(defineTypedCommand({
+    id: "layer.setProps", title: "Set Layer Properties", category: "Layer",
+    args: z.object({ ids: z.array(z.string()).optional(), props: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])), label: z.string().optional() }),
+    run: ({ ids: target, props, label }) => ({ changed: setLayerProps(target ?? ids(), props, label) }),
+  }));
+  add(registerTextCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());
 }

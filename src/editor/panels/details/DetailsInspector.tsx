@@ -43,6 +43,7 @@ import { SvgVectorSection } from "./sections/SvgVectorSection";
 import { MaterialInspectorSection } from "./sections/MaterialInspectorSection";
 import { EnvironmentInspector } from "./EnvironmentInspector";
 import { AlignBar } from "./AlignBar";
+import { TextProperties } from "./TextProperties";
 import { SectionRail, type SectionRailItem } from "./SectionRail";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
@@ -190,6 +191,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         <SectionRail items={railItems} onSelect={jumpToSection} />
         <div className="panel-content">
         <AlignBar />
+        <TextProperties />
         {/* ====================================================================
          * SECTION 1: TRANSFORM
          * ==================================================================== */}

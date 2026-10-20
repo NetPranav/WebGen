@@ -25,6 +25,7 @@ import { useCanvasViewStore, restoreBackdrop } from "@/core/store/useCanvasViewS
 import { frameIdOf } from "@/core/frames/frames";
 import { combineSelection, marqueeCandidates, rootIds } from "@/core/selection/selectionOps";
 import { buildTransformModel, handleAtScreen, layerBox } from "./transformModel";
+import { TextEditor } from "./text/TextEditor";
 import { snapEnvironment, guideLines } from "./snapEnv";
 import { moveGuide, removeGuide } from "./guides";
 import { CanvasRulers, RULER_SIZE } from "./CanvasRulers";
@@ -352,6 +353,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         const frameId = frameIdOf(getDocument().layers, layer.id);
         if (frameId) useCanvasViewStore.getState().setActiveFrame(frameId);
         useToolStore.getState().setActive("select");
+        // A text layer just drawn is typed into straight away.
+        if (getDocument().layers[layer.id]?.archetype === "text") useCanvasViewStore.getState().startTextEdit(layer.id);
       },
       setPanning: setIsPanning,
       requestOverlay: () => setToolOverlay(gestureToolRef.current?.drawOverlay?.() ?? null),
@@ -687,6 +690,20 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
    * Component Selection Handler inside Device Frame
    * -------------------------------------------------------------------------- */
 
+  // Double-click on a text layer edits it in place (Phase 31).
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if (mode !== "design" || (currentTool !== "select" && currentTool !== "deepSelect")) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - r.left, y: e.clientY - r.top });
+    const hit = hitTester.pickAt(world, { deep: true });
+    const layer = hit ? getDocument().layers[hit.id] : undefined;
+    if (!hit || !layer || layer.archetype !== "text" || layer.locked === true) return;
+    useSelectionStore.getState().select(hit.id, "element");
+    useCanvasViewStore.getState().startTextEdit(hit.id);
+  };
+
   const canvasStyle: React.CSSProperties = {
     "--canvas-dot-color": palette.gridDot,
     backgroundColor: palette.bg,
@@ -704,6 +721,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       data-backdrop={backdrop}
       data-tool={currentTool}
       onContextMenu={handleContextMenu}
+      onDoubleClick={handleDoubleClick}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={(e) => endGesture(e, false)}
@@ -785,6 +803,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
         {/* Overlays when elements exist */}
         <OverlayLayer hitTester={hitTester} canvasRef={containerRef} transformModel={overlayTransformModel} guides={overlayGuides} hudMarks={overlayHud} />
+        <TextEditor hitTester={hitTester} />
       </div>
 
       {/* Sub-Phase 43.2: live dashed-rect preview while dragging a shape tool.

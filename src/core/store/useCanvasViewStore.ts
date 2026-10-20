@@ -43,6 +43,10 @@ interface CanvasViewState {
   renamingId: string | null;
   startRename: (id: string) => void;
   stopRename: () => void;
+  /** The text layer being edited in place (double-click, Enter, or just drawn with the Text tool), or null (Phase 31). */
+  editingTextId: string | null;
+  startTextEdit: (id: string) => void;
+  stopTextEdit: () => void;
   setMode: (mode: CanvasMode) => void;
   setBackdrop: (backdrop: Backdrop) => void;
   setActiveFrame: (frameId: string | null) => void;
@@ -55,6 +59,9 @@ export const useCanvasViewStore = create<CanvasViewState>((set) => ({
   renamingId: null,
   startRename: (renamingId) => set({ renamingId }),
   stopRename: () => set({ renamingId: null }),
+  editingTextId: null,
+  startTextEdit: (editingTextId) => set({ editingTextId }),
+  stopTextEdit: () => set({ editingTextId: null }),
   setMode: (mode) => set({ mode }),
   setBackdrop: (backdrop) => {
     set({ backdrop });

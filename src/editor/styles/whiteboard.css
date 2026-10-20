@@ -1268,3 +1268,19 @@
   font-size: 12px;
 }
 .canvas-rename label { display: flex; align-items: center; gap: 8px; }
+
+/* In-place text editing (Phase 31): sits in canvas space over the layer it edits. */
+.canvas-text-editor {
+  z-index: 60;
+  pointer-events: auto;
+  cursor: text;
+  outline: calc(1.5px / var(--canvas-zoom, 1)) solid var(--accent-primary, #6366f1);
+  outline-offset: calc(2px / var(--canvas-zoom, 1));
+  caret-color: var(--accent-primary, #6366f1);
+  user-select: text;
+  -webkit-user-select: text;
+  background: transparent;
+}
+.canvas-text-editor:focus {
+  outline: calc(1.5px / var(--canvas-zoom, 1)) solid var(--accent-primary, #6366f1);
+}

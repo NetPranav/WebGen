@@ -96,6 +96,14 @@ test("Phase 25: every box tool draws inside the frame with the dragged geometry,
     await expect(page.locator(".canvas-overlay__selection:not([hidden])")).toHaveAttribute("data-layer-id", id);
     await expect(page.locator(CANVAS)).toHaveAttribute("data-tool", "select");
 
+    // A text box is typed into straight away (Phase 31); leaving it empty throws it away.
+    if (c.archetype === "text") {
+      await expect(page.locator(".canvas-text-editor")).toBeFocused();
+      await page.keyboard.press("Escape");
+      await expect.poll(async () => (await layerIds(page)).includes(id), "an empty text box is discarded on Escape").toBe(false);
+      continue;
+    }
+
     // one undo step takes exactly this layer away, and redo brings it back
     await waitSaved(page);
     await page.keyboard.press("Control+z");
