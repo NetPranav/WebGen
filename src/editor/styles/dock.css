@@ -928,3 +928,34 @@ body.is-resizing .dock-corner-splitter {
   border-radius: 4px;
   cursor: pointer;
 }
+
+/* Phase 60: the engine parity badge (dev builds, tests, ?parity=1). */
+.parity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.parity-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.parity-badge--idle {
+  color: #94a3b8;
+}
+.parity-badge--ok {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+.parity-badge--drift {
+  color: #fff;
+  background: #dc2626;
+  border-color: #b91c1c;
+}

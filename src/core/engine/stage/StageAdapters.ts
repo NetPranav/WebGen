@@ -1,6 +1,6 @@
 import type { EvaluateInputs } from "../../kernel/evaluate";
 import { KernelAdapter } from "./KernelAdapter";
-import { WaapiAdapter } from "./WaapiAdapter";
+import { WaapiAdapter, type RunningLayer } from "./WaapiAdapter";
 import { canRunOnWaapi } from "./waapiEligibility";
 import type { AdapterHost, EngineAdapter, EngineCapabilities } from "./types";
 
@@ -63,6 +63,13 @@ export class StageAdapters implements EngineAdapter {
   }
   currentTime(): number | null {
     return this.waapi.currentTime();
+  }
+  /** Layers running on an engine of their own, for the parity monitor. */
+  running(): RunningLayer[] {
+    return this.playing ? this.waapi.running() : [];
+  }
+  get isPlaying(): boolean {
+    return this.playing;
   }
   dispose(): void {
     for (const a of this.all) a.dispose();
