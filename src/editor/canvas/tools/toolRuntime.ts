@@ -24,8 +24,23 @@ import { dragHandle, worldToNorm } from "@/core/paint/gradientHandles";
 import type { Paint } from "@/core/paint/paints";
 import { moveBoxes, paramValue, resizeBoxes, rotateBoxes, rotationDelta, unionBox, type Box } from "@/core/geometry/transform";
 import { frameContains, type HandleHit, type TransformModel } from "../transformModel";
+import { createPathTools } from "./pathTools";
+
+/** One of the samples a browser coalesced into a pointer move (a 120 Hz pen reports two or more per frame). */
+export interface CoalescedSample {
+  world: Point;
+  /** `PointerEvent.timeStamp`, ms. */
+  time: number;
+  pressure: number;
+}
 
 export interface ToolPointer {
+  /** `PointerEvent.timeStamp`, ms. */
+  time?: number;
+  /** 0 to 1; 0.5 for a mouse. */
+  pressure?: number;
+  /** The samples behind this move, oldest first (empty when the browser has none). */
+  coalesced?: CoalescedSample[];
   /** Canvas (document) space. */
   world: Point;
   /** Relative to the canvas element, in screen px. */
@@ -115,6 +130,8 @@ export interface Tool {
   /** Returns true when a gesture began: the canvas then captures the pointer until it ends. */
   onPointerDown?: (p: ToolPointer, ctx: ToolContext) => boolean;
   onPointerMove?: (p: ToolPointer, ctx: ToolContext) => void;
+  /** The pointer moved over the canvas with no gesture running (the pen's rubber band). */
+  onHover?: (p: ToolPointer, ctx: ToolContext) => void;
   onPointerUp?: (p: ToolPointer, ctx: ToolContext) => void;
   onPointerCancel?: (ctx: ToolContext) => void;
   /** A key pressed while this tool is current; true when it used it. */
@@ -522,11 +539,15 @@ export function createCreationTool(id: ToolId): Tool {
 
 /** The tools that have behaviour on the canvas, by id. */
 export function createTools(): Partial<Record<ToolId, Tool>> {
+  // the pen and pencil live in their own module
+  const paths = createPathTools();
   const tools: Partial<Record<ToolId, Tool>> = {
     select: createSelectTool("select"),
     deepSelect: createSelectTool("deepSelect"),
     pan: createHandTool(),
   };
   for (const id of Object.keys(CREATION) as ToolId[]) tools[id] = createCreationTool(id);
+  tools.pen = paths.pen;
+  tools.pencil = paths.pencil;
   return tools;
 }

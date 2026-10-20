@@ -54,6 +54,7 @@ import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import { useLayers, documentCommands } from "@/core/store/useDocumentStore";
+import { penControls } from "./tools/pathTools";
 import { useFocusScope, useCommand, type ContextKeys } from "@/core/commands";
 import { useCameraStore } from "@/core/store/useCameraStore";
 import { gridSpacing, wheelZoomFactor } from "@/core/viewport/camera";
@@ -543,10 +544,18 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   }, [canvasCommandWhen]);
   useToolKeys();
 
+  // the pen's keys: Enter finishes the path, Backspace takes the last node back
+  useCommand({ id: "pen.finish", title: "Finish Path", category: "Canvas", keybinding: "Enter", when: (ctx) => canvasCommandWhen(ctx) && !!penControls()?.active(), run: () => penControls()?.finish() }, [canvasCommandWhen]);
+  useCommand({ id: "pen.undoNode", title: "Remove Last Node", category: "Canvas", keybinding: "Backspace", when: (ctx) => canvasCommandWhen(ctx) && !!penControls()?.active(), run: () => penControls()?.undo() }, [canvasCommandWhen]);
+
   // Escape during a gesture lets the tool undo it (a move, a resize, a rotation).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && gestureToolRef.current?.onKey?.(e, toolCtx)) e.preventDefault();
+      else if (e.key === "Escape" && penControls()?.active()) {
+        penControls()?.finish();
+        e.preventDefault();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -642,6 +651,13 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       metaKey: e.metaKey,
       ctrlKey: e.ctrlKey,
       onBlank: target === containerRef.current || target.classList.contains("whiteboard-grid"),
+      time: e.timeStamp,
+      pressure: e.pointerType === "mouse" ? 0.5 : e.pressure,
+      coalesced: (e.nativeEvent.getCoalescedEvents?.() ?? []).map((c) => ({
+        world: screenToDoc(useCameraStore.getState().camera, { x: c.clientX - rect.left, y: c.clientY - rect.top }),
+        time: c.timeStamp,
+        pressure: c.pointerType === "mouse" ? 0.5 : c.pressure,
+      })),
     };
   };
 
@@ -678,12 +694,17 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     if (tool.onPointerDown(toToolPointer(e), toolCtx)) {
       gestureToolRef.current = tool;
       useToolStore.getState().setGesturing(true);
-      containerRef.current?.setPointerCapture(e.pointerId);
+      try {
+        containerRef.current?.setPointerCapture(e.pointerId);
+      } catch {
+        // a pointer that is already gone (a synthetic event) can't be captured; the gesture still runs
+      }
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    gestureToolRef.current?.onPointerMove?.(toToolPointer(e), toolCtx);
+    if (gestureToolRef.current) gestureToolRef.current.onPointerMove?.(toToolPointer(e), toolCtx);
+    else if (mode === "design" && !isPlayMode) tools[currentTool]?.onHover?.(toToolPointer(e), toolCtx);
   };
 
   /** Ends whatever gesture is running as a cancel: the window lost focus, or the browser took the pointer away. */

@@ -210,7 +210,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 36 | Asset store & storage safety | 3 | v3 54.1, 54.2 | 1 | 🚧 |
 | 37 | Image layers | 36 | — (new) | 1 | 🚧 |
 | 38 | Fonts | 36 | v3 17.3 | 1 | 🚧 |
-| 39 | Pen & pencil | 24 | v3 35.1–35.4 | 1 | 📋 |
+| 39 | Pen & pencil | 24 | v3 35.1–35.4 | 1 | 🚧 |
 | 40 | Vector editing & boolean operations | 39 | v3 16.1 | 1 | 📋 |
 | 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 📋 |
 | 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 📋 |
@@ -748,12 +748,13 @@ The document and World Environment have their own stores, After-track actions mo
 
 
 ### Phase 39 · Pen & pencil
-**Needs:** 24 · **Was:** v3 35.1–35.4 · **Closes:** AUD-19 · **Status:** 📋
-- [ ] Pointer capture with coalesced events and pressure. Pencil: streamline smoothing, Ramer–Douglas–Peucker simplification and bezier fitting. Pen: click-to-place bezier nodes as in Figma. Both produce vector layers with caps, joins, dashes, and fills for closed paths.
-- [ ] Per-point timestamps are kept (Phase 181 uses them for draw-to-animate).
+**Needs:** 24 · **Was:** v3 35.1–35.4 · **Closes:** AUD-19 · **Status:** 🚧
+- [x] Pointer capture with coalesced events and pressure. Pencil: streamline smoothing, Ramer–Douglas–Peucker simplification and bezier fitting. Pen: click-to-place bezier nodes as in Figma. Both produce vector layers with caps, joins, dashes, and fills for closed paths.
+- [x] Per-point timestamps are kept (Phase 181 uses them for draw-to-animate).
 
 **You'll see:** working pen and pencil tools.
 **Done when:** a recorded 3-second scribble becomes a path of < 60 nodes within 1.5 px of the input; 120 Hz input renders at 60 fps.
+**Evidence so far:** the scribble gate is a unit test (`pathFit.test.ts`, 360 samples over 3 s). `tests/e2e/pen.spec.ts` covers the pencil, the pen (clicks, dragged handles, close, Backspace, Enter, Escape) and undo in 3 browsers. The 120 Hz / 60 fps check is not written yet, so the phase stays 🚧.
 
 ### Phase 40 · Vector editing & boolean operations
 **Needs:** 39 · **Was:** v3 16.1 · **Status:** 📋
