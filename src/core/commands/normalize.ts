@@ -47,6 +47,8 @@ export function normalizeShortcut(input: KeyboardEvent | string): string {
   // Shift+[ reports "{" and Shift+] "}": a binding names the bracket key itself (Phase 29: Ctrl+Shift+] is "to front").
   // WebKit on macOS reports Control+letter as the control character ("\u0018" for Ctrl+X), not the letter.
   if (e.ctrlKey && key.length === 1 && key.charCodeAt(0) < 32 && typeof e.code === "string" && /^Key[A-Z]$/.test(e.code)) key = e.code.slice(3);
+  // macOS turns Option+letter into another character ("å" for Alt+A): a binding names the letter on the key (Phase 30).
+  if (e.altKey && typeof e.code === "string" && /^Key[A-Z]$/.test(e.code)) key = e.code.slice(3);
   if (e.shiftKey && e.code === "BracketLeft") key = "[";
   if (e.shiftKey && e.code === "BracketRight") key = "]";
   if (key === "Control" || key === "Meta" || key === "Alt" || key === "Shift") {

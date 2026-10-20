@@ -14,6 +14,7 @@ import { getDefaultProps } from "../document/registry";
 import type { Layer } from "../document/schema";
 import { duplicateFrame } from "../frames/frameCommands";
 import { listFrames, nextFramePosition } from "../frames/frames";
+import { alignBoxes, distributeBoxes, tidyBoxes, unionBounds, type AlignMode, type SpreadAxis } from "../geometry/align";
 import { moveBoxes, unionBox, type Box } from "../geometry/transform";
 import { getDocument } from "../store/documentState";
 import { documentCommands } from "../store/useDocumentStore";
@@ -230,6 +231,64 @@ export function nudgeLayers(ids: readonly string[], dx: number, dy: number): voi
   const boxes = roots.map((id) => worldBox(id)).filter((b): b is Box => b !== null);
   if (boxes.length !== roots.length || roots.length === 0) return;
   transaction("Nudge", () => writeBoxes(roots, moveBoxes(boxes, dx, dy)));
+}
+
+// ---------------------------------------------------------------------------
+// Align, distribute and tidy (Phase 30)
+// ---------------------------------------------------------------------------
+
+/** What an alignment lines up with: the selection's own bounds, or the parent's box. By default several layers align to each other and one layer to its parent. */
+export type AlignTarget = "auto" | "selection" | "parent";
+
+/** The boxes of the editable top-most layers in the selection, or null when any can't be found. */
+function editableBoxes(ids: readonly string[]): { roots: string[]; boxes: Box[] } | null {
+  const roots = editableRoots(ids);
+  const boxes = roots.map((id) => worldBox(id)).filter((b): b is Box => b !== null);
+  return boxes.length === roots.length && roots.length > 0 ? { roots, boxes } : null;
+}
+
+/** Aligns the selection. Returns false (and changes nothing) when there is nothing to align to: one layer with no parent, or no editable layers. */
+export function alignLayers(ids: readonly string[], mode: AlignMode, to: AlignTarget = "auto"): boolean {
+  const e = editableBoxes(ids);
+  if (!e) return false;
+  const layers = getDocument().layers;
+  const useParent = to === "parent" || (to === "auto" && selectionRoots(ids).length === 1); // a locked layer in the selection still counts as "several"
+  let target;
+  if (useParent) {
+    const parentIds = new Set(e.roots.map((id) => layers[id].parentId));
+    if (parentIds.size !== 1) return false;
+    const parentId = [...parentIds][0];
+    const pb = parentId ? worldBox(parentId) : null;
+    if (!pb) return false; // a top-level frame has no parent to align to
+    target = { x: pb.cx - pb.w / 2, y: pb.cy - pb.h / 2, width: pb.w, height: pb.h };
+  } else {
+    if (e.roots.length < 2) return false;
+    target = unionBounds(e.boxes)!;
+  }
+  const next = alignBoxes(e.boxes, mode, target);
+  if (next.every((b, i) => b.cx === e.boxes[i].cx && b.cy === e.boxes[i].cy)) return false;
+  transaction("Align", () => writeBoxes(e.roots, next));
+  return true;
+}
+
+/** Spreads three or more layers so the gaps between them are equal. */
+export function distributeLayers(ids: readonly string[], axis: SpreadAxis): boolean {
+  const e = editableBoxes(ids);
+  if (!e || e.roots.length < 3) return false;
+  const next = distributeBoxes(e.boxes, axis);
+  if (next.every((b, i) => b.cx === e.boxes[i].cx && b.cy === e.boxes[i].cy)) return false;
+  transaction("Distribute spacing", () => writeBoxes(e.roots, next));
+  return true;
+}
+
+/** Puts two or more layers on a tidy grid. */
+export function tidyLayers(ids: readonly string[]): boolean {
+  const e = editableBoxes(ids);
+  if (!e || e.roots.length < 2) return false;
+  const next = tidyBoxes(e.boxes);
+  if (next.every((b, i) => b.cx === e.boxes[i].cx && b.cy === e.boxes[i].cy)) return false;
+  transaction("Tidy up", () => writeBoxes(e.roots, next));
+  return true;
 }
 
 // ---------------------------------------------------------------------------

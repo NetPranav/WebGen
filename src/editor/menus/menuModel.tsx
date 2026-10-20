@@ -10,6 +10,8 @@ import {
   Undo2, Redo2, Scissors, Copy, ClipboardPaste, CopyPlus, Trash2, Settings,
   ZoomIn, ZoomOut, Maximize2, Grid, Magnet, Activity, Expand,
   BookOpen, Keyboard, Bug, Info,
+  AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
+  AlignHorizontalSpaceAround, AlignVerticalSpaceAround, LayoutGrid,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -65,6 +67,16 @@ export const MENU_MODEL: Record<MenuId, { label: string; entries: MenuEntry[] }>
       { kind: "item", label: "Group Selection", icon: CopyPlus, shortcut: "Ctrl+G", command: "edit.group" },
       { kind: "item", label: "Ungroup", icon: CopyPlus, shortcut: "Ctrl+Shift+G", command: "edit.ungroup" },
       { kind: "item", label: "Frame Selection", icon: CopyPlus, shortcut: "Ctrl+Alt+G", command: "edit.frameSelection" },
+      sep,
+      { kind: "item", label: "Align Left", icon: AlignStartVertical, shortcut: "Alt+A", command: "align.left" },
+      { kind: "item", label: "Align Horizontal Centers", icon: AlignCenterVertical, shortcut: "Alt+H", command: "align.hcenter" },
+      { kind: "item", label: "Align Right", icon: AlignEndVertical, shortcut: "Alt+D", command: "align.right" },
+      { kind: "item", label: "Align Top", icon: AlignStartHorizontal, shortcut: "Alt+W", command: "align.top" },
+      { kind: "item", label: "Align Vertical Centers", icon: AlignCenterHorizontal, shortcut: "Alt+V", command: "align.vcenter" },
+      { kind: "item", label: "Align Bottom", icon: AlignEndHorizontal, shortcut: "Alt+S", command: "align.bottom" },
+      { kind: "item", label: "Distribute Horizontal Spacing", icon: AlignHorizontalSpaceAround, shortcut: "Ctrl+Alt+H", command: "distribute.horizontal" },
+      { kind: "item", label: "Distribute Vertical Spacing", icon: AlignVerticalSpaceAround, shortcut: "Ctrl+Alt+V", command: "distribute.vertical" },
+      { kind: "item", label: "Tidy Up", icon: LayoutGrid, shortcut: "Ctrl+Alt+T", command: "layer.tidy" },
       sep,
       { kind: "item", label: "Preferences...", icon: Settings, shortcut: "Ctrl+,", command: "app.preferences" },
     ],

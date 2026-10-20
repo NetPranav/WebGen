@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
 import { getDocument } from "../store/documentState";
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
@@ -13,7 +14,7 @@ import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
 import { mirrorRead, mirrorWrite, parseClip } from "./clipboard";
 import {
-  copyText, deleteLayers, showAll, unlockAll, duplicateLayers, groupLayers, nudgeLayers, pasteText, renameLayer, reorderLayers, selectionRoots, toggleHidden, toggleLock, ungroupLayers, type ZOrderOp,
+  alignLayers, copyText, deleteLayers, distributeLayers, tidyLayers, showAll, unlockAll, duplicateLayers, groupLayers, nudgeLayers, pasteText, renameLayer, reorderLayers, selectionRoots, toggleHidden, toggleLock, ungroupLayers, type ZOrderOp,
 } from "./editOps";
 
 const ids = () => useSelectionStore.getState().selectedIds;
@@ -89,6 +90,24 @@ export function registerEditingCommands(): () => void {
   add(defineCommand({ id: "layer.toggleHidden", title: "Hide / Show", category: "Layer", keybinding: "Ctrl+Shift+H", when: onSelection, run: () => void toggleHidden(ids()) }));
   add(defineCommand({ id: "layer.rename", title: "Rename", category: "Layer", keybinding: "F2", when: (ctx) => onSelection(ctx) && ids().length === 1, run: () => useCanvasViewStore.getState().startRename(ids()[0]) }));
   add(defineTypedCommand({ id: "layer.setName", title: "Rename Layer", category: "Layer", args: z.object({ id: z.string(), name: z.string() }), run: ({ id, name }) => renameLayer(id, name) }));
+
+  // Phase 30: align, distribute and tidy. Alt+letter is Figma's alignment set; Ctrl+Alt+H / V distribute, Ctrl+Alt+T tidies.
+  const align = (mode: AlignMode) => () => void alignLayers(ids(), mode);
+  add(defineCommand({ id: "align.left", title: "Align Left", category: "Arrange", keybinding: "Alt+A", when: onSelection, run: align("left") }));
+  add(defineCommand({ id: "align.hcenter", title: "Align Horizontal Centers", category: "Arrange", keybinding: "Alt+H", when: onSelection, run: align("hcenter") }));
+  add(defineCommand({ id: "align.right", title: "Align Right", category: "Arrange", keybinding: "Alt+D", when: onSelection, run: align("right") }));
+  add(defineCommand({ id: "align.top", title: "Align Top", category: "Arrange", keybinding: "Alt+W", when: onSelection, run: align("top") }));
+  add(defineCommand({ id: "align.vcenter", title: "Align Vertical Centers", category: "Arrange", keybinding: "Alt+V", when: onSelection, run: align("vcenter") }));
+  add(defineCommand({ id: "align.bottom", title: "Align Bottom", category: "Arrange", keybinding: "Alt+S", when: onSelection, run: align("bottom") }));
+  add(defineTypedCommand({
+    id: "layer.align", title: "Align Layers", category: "Arrange",
+    args: z.object({ mode: z.enum(ALIGN_MODES as unknown as [AlignMode, ...AlignMode[]]), to: z.enum(["auto", "selection", "parent"]).default("auto") }),
+    run: ({ mode, to }) => ({ changed: alignLayers(ids(), mode, to) }),
+  }));
+  add(defineCommand({ id: "distribute.horizontal", title: "Distribute Horizontal Spacing", category: "Arrange", keybinding: "Ctrl+Alt+H", when: onSelection, run: () => void distributeLayers(ids(), "h") }));
+  add(defineCommand({ id: "distribute.vertical", title: "Distribute Vertical Spacing", category: "Arrange", keybinding: "Ctrl+Alt+V", when: onSelection, run: () => void distributeLayers(ids(), "v") }));
+  add(defineTypedCommand({ id: "layer.distribute", title: "Distribute Layers", category: "Arrange", args: z.object({ axis: z.enum(["h", "v"]) }), run: ({ axis }) => ({ changed: distributeLayers(ids(), axis) }) }));
+  add(defineCommand({ id: "layer.tidy", title: "Tidy Up", category: "Arrange", keybinding: "Ctrl+Alt+T", when: onSelection, run: () => void tidyLayers(ids()) }));
 
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());

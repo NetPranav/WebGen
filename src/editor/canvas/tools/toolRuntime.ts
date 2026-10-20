@@ -19,6 +19,7 @@ import { getDocument } from "@/core/store/documentState";
 import { getDefaultProps, type ArchetypeId, type PropValue } from "@/core/document/registry";
 import { dragBox, type DragBox, type DragKind } from "@/core/geometry/shapeDrag";
 import { listFrames, uniqueFrameName } from "@/core/frames/frames";
+import { setUniformGap } from "@/core/geometry/align";
 import { moveBoxes, paramValue, resizeBoxes, rotateBoxes, rotationDelta, unionBox, type Box } from "@/core/geometry/transform";
 import { frameContains, type HandleHit, type TransformModel } from "../transformModel";
 
@@ -175,7 +176,7 @@ const HANDLE_DIRS: Record<string, { sx: -1 | 0 | 1; sy: -1 | 0 | 1 }> = {
  */
 export function createSelectTool(id: "select" | "deepSelect"): Tool {
   const pan = panGesture();
-  type Mode = "idle" | "click" | "marquee" | "pan" | "pending-move" | "move" | "resize" | "rotate" | "param" | "guide" | "cancelled";
+  type Mode = "idle" | "click" | "marquee" | "pan" | "pending-move" | "move" | "resize" | "rotate" | "param" | "gap" | "guide" | "cancelled";
   let guide: { frameId: string; index: number; axis: "x" | "y" } | null = null;
   let mode: Mode = "idle";
   let down: ToolPointer | null = null;
@@ -183,7 +184,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
   let hit: PickedLayer | null = null;
   let marqueeFrame: string | null = null;
   let began = false;
-  let start: { ids: string[]; boxes: Box[]; frame: Box; handle?: HandleHit; startValue?: number } | null = null;
+  let start: { ids: string[]; boxes: Box[]; frame: Box; handle?: HandleHit; startValue?: number; gap?: { axis: "h" | "v"; size: number } } | null = null;
 
   const moved = (p: ToolPointer, from: ToolPointer | null) => from !== null && Math.hypot(p.screen.x - from.screen.x, p.screen.y - from.screen.y) >= CLICK_SLOP;
   const reset = () => {
@@ -198,6 +199,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
   const snapshot = (model: TransformModel, handle?: HandleHit) => {
     start = { ids: model.ids, boxes: model.boxes, frame: model.frame, handle };
     if (handle?.kind === "param") start.startValue = model.params[handle.index].value;
+    if (handle?.kind === "gap") start.gap = { axis: model.gaps[handle.index].axis, size: model.gaps[handle.index].size };
   };
   const begin = (ctx: ToolContext, label: string) => {
     if (began) return;
@@ -298,6 +300,12 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
         begin(ctx, "Rotate");
         const pivot = { x: start.frame.cx, y: start.frame.cy };
         ctx.applyBoxes(start.ids, rotateBoxes(start.boxes, pivot, rotationDelta(pivot, down.world, p.world), p.shiftKey));
+      } else if (mode === "gap" && start.gap && moved(p, down)) {
+        // Dragging a spacing handle gives every gap along its axis the same size: the first layer stays put.
+        begin(ctx, "Change spacing");
+        const along = start.gap.axis === "h" ? delta.x : delta.y;
+        const gap = Math.round(start.gap.size + (p.shiftKey ? Math.round(along / 10) * 10 : along));
+        ctx.applyBoxes(start.ids, setUniformGap(start.boxes, start.gap.axis, gap));
       } else if (mode === "param" && start.handle?.kind === "param" && moved(p, down)) {
         const model = ctx.transformModel();
         const info = model?.params[start.handle.index];

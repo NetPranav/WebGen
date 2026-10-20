@@ -5,6 +5,7 @@
 
 import type { HitIndex } from "@/core/hit/hitTest";
 import type { Layer } from "@/core/document/schema";
+import { boundsOf, gapsBetween, type SpreadAxis } from "@/core/geometry/align";
 import { corners, handlePoints, paramHandles, paramHandleWorld, rotateVec, unionBox, type Box, type ParamHandle, type ResizeHandle, RESIZE_HANDLES } from "@/core/geometry/transform";
 import type { Camera, Point } from "@/core/viewport/camera";
 import { docToScreen } from "@/core/viewport/camera";
@@ -16,6 +17,19 @@ export interface TransformModel {
   frame: Box;
   /** Parameter handles (single selection only), with their position in canvas space. */
   params: { handle: ParamHandle; world: Point; layerId: string; value: number }[];
+  /** Spacing handles between neighbouring layers of a multi-selection laid out in a row or a column (Phase 30). */
+  gaps: GapHandle[];
+}
+
+export interface GapHandle {
+  axis: SpreadAxis;
+  /** The gap in canvas px. */
+  size: number;
+  /** Where the handle sits (the middle of the gap, centred on the neighbours' overlap), in canvas space. */
+  world: Point;
+  /** The gap's extent along its axis. */
+  from: number;
+  to: number;
 }
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -49,7 +63,33 @@ export function buildTransformModel(index: HitIndex, layers: Record<string, Laye
       params.push({ handle, world: paramHandleWorld(boxes[0], handle), layerId: ids[0], value: num(layer.properties[handle.prop]) ?? defaultParam(handle.prop) });
     }
   }
-  return { ids, boxes, frame, params };
+  return { ids, boxes, frame, params, gaps: spacingHandles(boxes) };
+}
+
+/**
+ * The spacing handles of a selection: for each axis, when every neighbouring pair has a gap of zero or more and
+ * overlaps the next across the other axis (a row or a column of layers), one handle in the middle of each gap.
+ */
+export function spacingHandles(boxes: readonly Box[]): GapHandle[] {
+  if (boxes.length < 2) return [];
+  const out: GapHandle[] = [];
+  for (const axis of ["h", "v"] as const) {
+    const gaps = gapsBetween(boxes, axis);
+    if (gaps.length !== boxes.length - 1 || gaps.some((g) => g.size < 0)) continue;
+    const cross = gaps.map((g) => {
+      const a = boundsOf(boxes[g.a]);
+      const b = boundsOf(boxes[g.b]);
+      const lo = axis === "h" ? Math.max(a.y, b.y) : Math.max(a.x, b.x);
+      const hi = axis === "h" ? Math.min(a.y + a.height, b.y + b.height) : Math.min(a.x + a.width, b.x + b.width);
+      return hi > lo ? (lo + hi) / 2 : null;
+    });
+    if (cross.some((c) => c === null)) continue;
+    gaps.forEach((g, i) => {
+      const mid = (g.from + g.to) / 2;
+      out.push({ axis, size: g.size, from: g.from, to: g.to, world: axis === "h" ? { x: mid, y: cross[i]! } : { x: cross[i]!, y: mid } });
+    });
+  }
+  return out;
 }
 
 function defaultParam(prop: string): number {
@@ -59,12 +99,14 @@ function defaultParam(prop: string): number {
 export type HandleHit =
   | { kind: "resize"; handle: ResizeHandle }
   | { kind: "rotate" }
-  | { kind: "param"; index: number };
+  | { kind: "param"; index: number }
+  | { kind: "gap"; index: number };
 
 /** Screen-px radii. */
 const PARAM_RADIUS = 8;
 const RESIZE_RADIUS = 7;
 const ROTATE_OUTER = 24;
+const GAP_RADIUS = 9;
 
 /**
  * Which handle is under a screen point, if any. Parameter handles come first, then the eight resize handles, then
@@ -80,6 +122,10 @@ export function handleAtScreen(model: TransformModel, camera: Camera, screen: Po
   for (const h of RESIZE_HANDLES) {
     const s = toScreen(points[h]);
     if (Math.hypot(s.x - screen.x, s.y - screen.y) <= RESIZE_RADIUS) return { kind: "resize", handle: h };
+  }
+  for (let i = 0; i < model.gaps.length; i++) {
+    const s = toScreen(model.gaps[i].world);
+    if (Math.hypot(s.x - screen.x, s.y - screen.y) <= GAP_RADIUS) return { kind: "gap", index: i };
   }
   // Rotation: close to a corner, outside the box.
   const cs = corners(model.frame).map(toScreen);
