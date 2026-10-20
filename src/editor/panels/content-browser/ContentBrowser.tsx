@@ -41,9 +41,6 @@ import {
   Upload,
   ChevronRight,
   ChevronDown,
-  Box,
-  Cpu,
-  FileCode2,
   Film,
   Zap,
   Check,
@@ -56,10 +53,6 @@ import {
   Crosshair,
   Copy,
   Maximize2,
-  Eye,
-  EyeOff,
-  Lock,
-  Unlock,
   PanelLeft,
   PanelRight,
   Play,
@@ -71,7 +64,7 @@ import {
 } from "lucide-react";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
-import { TreeNode, INITIAL_TREE_DATA } from "@/editor/panels/outliner/OutlinerTree";
+import { type TreeNode, INITIAL_TREE_DATA } from "./stackTreeData";
 import { TYPE_REGISTRY } from "@/core/engine/ElementGrammarEngine";
 import {
   AnimationCategory,
@@ -379,16 +372,7 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
   const [outlinerPosition, setOutlinerPosition] = useState<"left" | "right">("left");
   const [outlinerWidth, setOutlinerWidth] = useState(315);
   const [isResizingOutliner, setIsResizingOutliner] = useState(false);
-  const [outlinerSearch] = useState("");
-  const [openTreeNodes, setOpenTreeNodes] = useState<Record<string, boolean>>({
-    pages_root: true,
-    page_home: true,
-    blueprints_root: true,
-    sequencer_root: true,
-  });
-  const [hiddenTreeNodes, setHiddenTreeNodes] = useState<Record<string, boolean>>({});
-  const [lockedTreeNodes, setLockedTreeNodes] = useState<Record<string, boolean>>({});
-  const [selectedTreeNodeId, setSelectedTreeNodeId] = useState<string>("untitled");
+  const selectedTreeNodeId = "untitled"; // the stack pane has no element picker until it is rebuilt on document layers
 
   const splitContainerRef = useRef<HTMLDivElement>(null);
 
@@ -414,126 +398,8 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
     window.addEventListener("mouseup", handleMouseUp);
   };
 
-  const handleSelectTreeNode = (node: TreeNode) => {
-    setSelectedTreeNodeId(node.id);
-    setActiveScope(node.id);
-    setStackName(node.label);
-    setTempStackName(node.label);
-    onSelectFolder?.(node.id, node.label);
-    if (onSelectElement) {
-      onSelectElement({ id: node.id, name: node.label });
-    }
-  };
 
 
-  const getNodeIcon = (type: TreeNode["type"]) => {
-    switch (type) {
-      case "page":
-        return <FileCode2 size={13} className="tree-node__icon--page" />;
-      case "section":
-        return <Layers size={13} className="tree-node__icon--section" />;
-      case "component":
-        return <Box size={13} className="tree-node__icon--component" />;
-      case "blueprint":
-        return <Cpu size={13} className="tree-node__icon--blueprint" />;
-    }
-  };
-
-  const renderOutlinerTree = (nodes: TreeNode[]): React.ReactNode => {
-    return nodes.map((node) => {
-      const isVisible =
-        !outlinerSearch ||
-        node.label.toLowerCase().includes(outlinerSearch.toLowerCase()) ||
-        node.tag.toLowerCase().includes(outlinerSearch.toLowerCase()) ||
-        (node.children &&
-          node.children.some(
-            (c) =>
-              c.label.toLowerCase().includes(outlinerSearch.toLowerCase()) ||
-              c.tag.toLowerCase().includes(outlinerSearch.toLowerCase())
-          ));
-
-      if (!isVisible) return null;
-
-      const hasChildren = node.children && node.children.length > 0;
-      const isOpen = openTreeNodes[node.id] || Boolean(outlinerSearch);
-      const isHidden = hiddenTreeNodes[node.id];
-      const isLocked = lockedTreeNodes[node.id];
-      const isSelected = selectedTreeNodeId === node.id || activeScope === node.id;
-
-      return (
-        <React.Fragment key={node.id}>
-          <div
-            id={`outliner-node-${node.id}`}
-            className={`tree-node ${isSelected ? "tree-node--selected" : ""}`}
-            style={{ paddingLeft: `${node.depth * 12 + 6}px` }}
-            onClick={() => handleSelectTreeNode(node)}
-            onDoubleClick={() => {
-              if (node.type === "blueprint") {
-                onOpenAsset?.(node.id, node.label);
-              } else {
-                onSelectFolder?.(node.id, node.label);
-              }
-            }}
-            role="treeitem"
-            aria-selected={isSelected}
-            title={`${node.label} (${node.tag}) - Click to inspect and scope`}
-          >
-            {hasChildren ? (
-              <button
-                type="button"
-                className={`tree-node__toggle ${isOpen ? "tree-node__toggle--open" : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenTreeNodes((prev) => ({ ...prev, [node.id]: !prev[node.id] }));
-                }}
-                title={isOpen ? "Collapse" : "Expand"}
-              >
-                <ChevronRight size={11} />
-              </button>
-            ) : (
-              <span style={{ width: 18, height: 18, display: "inline-block" }} />
-            )}
-
-            <div className="tree-node__icon">{getNodeIcon(node.type)}</div>
-
-            <span className="tree-node__label" title={node.label}>
-              {node.label}
-            </span>
-
-            <span className="tree-node__tag">{node.tag}</span>
-
-            <div className="tree-node__actions">
-              <button
-                type="button"
-                className={`tree-action-btn ${isHidden ? "tree-action-btn--hidden" : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setHiddenTreeNodes((prev) => ({ ...prev, [node.id]: !prev[node.id] }));
-                }}
-                title={isHidden ? "Unhide Element" : "Hide Element"}
-              >
-                {isHidden ? <EyeOff size={11} /> : <Eye size={11} />}
-              </button>
-
-              <button
-                type="button"
-                className={`tree-action-btn ${isLocked ? "tree-action-btn--locked" : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLockedTreeNodes((prev) => ({ ...prev, [node.id]: !prev[node.id] }));
-                }}
-                title={isLocked ? "Unlock Element" : "Lock Element"}
-              >
-                {isLocked ? <Lock size={11} /> : <Unlock size={11} />}
-              </button>
-            </div>
-          </div>
-
-          {hasChildren && isOpen && renderOutlinerTree(node.children!)}
-        </React.Fragment>
-      );
-    });
-  };
 
   // Checklist State: which animation categories are currently checked
   const [selectedCategories, setSelectedCategories] = useState<Set<AssetCategory>>(
@@ -541,8 +407,6 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
   );
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
-  // Active Scope Selection: "all" or folder id
-  const [activeScope, setActiveScope] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -557,13 +421,6 @@ export const ContentBrowser: React.FC<ContentBrowserProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const filterDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Sync with Outliner selection if user clicked an element in Outliner
-  useEffect(() => {
-    if (selectedFolderId) {
-      setActiveScope(selectedFolderId);
-    }
-  }, [selectedFolderId]);
 
   // Click outside listener for filter dropdown
   useEffect(() => {

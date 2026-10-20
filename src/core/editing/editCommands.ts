@@ -6,6 +6,10 @@
  */
 
 import { z } from "zod";
+import { registerTextCommands } from "../text/textCommands";
+import { moveLayers } from "../layers/reparent";
+import { setFill, setFrame, setOpacity, setRadius, setSimpleText, setStroke } from "../inspector/simpleOps";
+import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
 import { getDocument } from "../store/documentState";
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
@@ -13,7 +17,7 @@ import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
 import { mirrorRead, mirrorWrite, parseClip } from "./clipboard";
 import {
-  copyText, deleteLayers, showAll, unlockAll, duplicateLayers, groupLayers, nudgeLayers, pasteText, renameLayer, reorderLayers, selectionRoots, toggleHidden, toggleLock, ungroupLayers, type ZOrderOp,
+  alignLayers, setLayerProps, setLocked, setVisible, copyText, deleteLayers, distributeLayers, tidyLayers, showAll, unlockAll, duplicateLayers, groupLayers, nudgeLayers, pasteText, renameLayer, reorderLayers, selectionRoots, toggleHidden, toggleLock, ungroupLayers, type ZOrderOp,
 } from "./editOps";
 
 const ids = () => useSelectionStore.getState().selectedIds;
@@ -90,6 +94,47 @@ export function registerEditingCommands(): () => void {
   add(defineCommand({ id: "layer.rename", title: "Rename", category: "Layer", keybinding: "F2", when: (ctx) => onSelection(ctx) && ids().length === 1, run: () => useCanvasViewStore.getState().startRename(ids()[0]) }));
   add(defineTypedCommand({ id: "layer.setName", title: "Rename Layer", category: "Layer", args: z.object({ id: z.string(), name: z.string() }), run: ({ id, name }) => renameLayer(id, name) }));
 
+  // Phase 30: align, distribute and tidy. Alt+letter is Figma's alignment set; Ctrl+Alt+H / V distribute, Ctrl+Alt+T tidies.
+  const align = (mode: AlignMode) => () => void alignLayers(ids(), mode);
+  add(defineCommand({ id: "align.left", title: "Align Left", category: "Arrange", keybinding: "Alt+A", when: onSelection, run: align("left") }));
+  add(defineCommand({ id: "align.hcenter", title: "Align Horizontal Centers", category: "Arrange", keybinding: "Alt+H", when: onSelection, run: align("hcenter") }));
+  add(defineCommand({ id: "align.right", title: "Align Right", category: "Arrange", keybinding: "Alt+D", when: onSelection, run: align("right") }));
+  add(defineCommand({ id: "align.top", title: "Align Top", category: "Arrange", keybinding: "Alt+W", when: onSelection, run: align("top") }));
+  add(defineCommand({ id: "align.vcenter", title: "Align Vertical Centers", category: "Arrange", keybinding: "Alt+V", when: onSelection, run: align("vcenter") }));
+  add(defineCommand({ id: "align.bottom", title: "Align Bottom", category: "Arrange", keybinding: "Alt+S", when: onSelection, run: align("bottom") }));
+  add(defineTypedCommand({
+    id: "layer.align", title: "Align Layers", category: "Arrange",
+    args: z.object({ mode: z.enum(ALIGN_MODES as unknown as [AlignMode, ...AlignMode[]]), to: z.enum(["auto", "selection", "parent"]).default("auto") }),
+    run: ({ mode, to }) => ({ changed: alignLayers(ids(), mode, to) }),
+  }));
+  add(defineCommand({ id: "distribute.horizontal", title: "Distribute Horizontal Spacing", category: "Arrange", keybinding: "Ctrl+Alt+H", when: onSelection, run: () => void distributeLayers(ids(), "h") }));
+  add(defineCommand({ id: "distribute.vertical", title: "Distribute Vertical Spacing", category: "Arrange", keybinding: "Ctrl+Alt+V", when: onSelection, run: () => void distributeLayers(ids(), "v") }));
+  add(defineTypedCommand({ id: "layer.distribute", title: "Distribute Layers", category: "Arrange", args: z.object({ axis: z.enum(["h", "v"]) }), run: ({ axis }) => ({ changed: distributeLayers(ids(), axis) }) }));
+  add(defineCommand({ id: "layer.tidy", title: "Tidy Up", category: "Arrange", keybinding: "Ctrl+Alt+T", when: onSelection, run: () => void tidyLayers(ids()) }));
+
+  // The one writer every inspector control and every agent uses to change properties (Phase 31; the Simple and Pro faces build on it).
+  add(defineTypedCommand({
+    id: "layer.setProps", title: "Set Layer Properties", category: "Layer",
+    args: z.object({ ids: z.array(z.string()).optional(), props: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])), label: z.string().optional() }),
+    run: ({ ids: target, props, label }) => ({ changed: setLayerProps(target ?? ids(), props, label) }),
+  }));
+  // Phase 32: the Layers panel's writers. Each takes ids (default: the selection) so a row's buttons act on that row.
+  add(defineTypedCommand({ id: "layer.setLocked", title: "Lock or Unlock Layers", category: "Layer", args: z.object({ ids: z.array(z.string()).optional(), locked: z.boolean() }), run: ({ ids: target, locked }) => ({ changed: setLocked(target ?? ids(), locked) }) }));
+  add(defineTypedCommand({ id: "layer.setVisible", title: "Show or Hide Layers", category: "Layer", args: z.object({ ids: z.array(z.string()).optional(), visible: z.boolean() }), run: ({ ids: target, visible }) => ({ changed: setVisible(target ?? ids(), visible) }) }));
+  add(defineTypedCommand({
+    id: "layer.move", title: "Move Layers", category: "Layer",
+    args: z.object({ ids: z.array(z.string()).optional(), parentId: z.string().nullable(), index: z.number().int().min(0).optional() }),
+    run: ({ ids: target, parentId, index }) => moveLayers(target ?? ids(), parentId, index),
+  }));
+  // Phase 33: the Simple face's seven controls, as intent-level commands (each takes ids, default the selection).
+  const targets = z.array(z.string()).optional();
+  add(defineTypedCommand({ id: "layer.setFill", title: "Set Fill", category: "Layer", args: z.object({ ids: targets, color: z.string() }), run: ({ ids: t, color }) => ({ changed: setFill(t ?? ids(), color) }) }));
+  add(defineTypedCommand({ id: "layer.setStroke", title: "Set Stroke", category: "Layer", args: z.object({ ids: targets, color: z.string().optional(), width: z.number().optional() }), run: ({ ids: t, color, width }) => ({ changed: setStroke(t ?? ids(), { color, width }) }) }));
+  add(defineTypedCommand({ id: "layer.setRadius", title: "Set Corner Radius", category: "Layer", args: z.object({ ids: targets, radius: z.number() }), run: ({ ids: t, radius }) => ({ changed: setRadius(t ?? ids(), radius) }) }));
+  add(defineTypedCommand({ id: "layer.setOpacity", title: "Set Opacity", category: "Layer", args: z.object({ ids: targets, opacity: z.number() }), run: ({ ids: t, opacity }) => ({ changed: setOpacity(t ?? ids(), opacity) }) }));
+  add(defineTypedCommand({ id: "layer.setText", title: "Set Words", category: "Layer", args: z.object({ ids: targets, text: z.string() }), run: ({ ids: t, text }) => ({ changed: setSimpleText(t ?? ids(), text) }) }));
+  add(defineTypedCommand({ id: "layer.setFrame", title: "Set Position and Size", category: "Layer", args: z.object({ ids: targets, x: z.number().optional(), y: z.number().optional(), width: z.number().optional(), height: z.number().optional() }), run: ({ ids: t, ...patch }) => ({ changed: setFrame(t ?? ids(), patch) }) }));
+  add(registerTextCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());
 }

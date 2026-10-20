@@ -1,0 +1,165 @@
+/* Layers panel (Phase 32) */
+.layers-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: 12px;
+  color: var(--text-primary, inherit);
+}
+.layers-panel__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+}
+.layers-panel__search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  font: inherit;
+}
+.layers-panel__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  contain: strict;
+}
+.layers-panel__empty {
+  padding: 16px;
+  opacity: 0.6;
+}
+.layers-panel__status {
+  min-height: 0;
+  padding: 0 8px;
+  font-size: 11px;
+  color: #dc2626;
+}
+.layers-panel__status:not(:empty) {
+  padding: 6px 8px;
+  border-top: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+}
+.layers-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  padding-right: 6px;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  white-space: nowrap;
+}
+.layers-row:hover {
+  background: var(--surface-hover, rgba(128, 128, 128, 0.12));
+}
+.layers-row--selected,
+.layers-row--selected:hover {
+  background: var(--accent-soft, rgba(99, 102, 241, 0.22));
+}
+.layers-row--hidden .layers-row__name,
+.layers-row--hidden .layers-row__icon {
+  opacity: 0.4;
+}
+.layers-row--locked .layers-row__name {
+  opacity: 0.7;
+}
+.layers-row--context .layers-row__name {
+  opacity: 0.5;
+}
+.layers-row--dragging {
+  opacity: 0.5;
+}
+.layers-row__chevron {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+.layers-row__icon {
+  display: inline-flex;
+  flex: none;
+  opacity: 0.8;
+}
+.layers-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.layers-row__name mark {
+  background: rgba(250, 204, 21, 0.5);
+  color: inherit;
+}
+.layers-row__rename {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--surface-input, rgba(0, 0, 0, 0.25));
+  border: 1px solid var(--accent-primary, #6366f1);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.layers-row__spacer {
+  flex: 1;
+}
+.layers-row__btn {
+  display: inline-flex;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: 3px;
+  color: inherit;
+  opacity: 0;
+  cursor: pointer;
+}
+.layers-row:hover .layers-row__btn,
+.layers-row__btn--on,
+.layers-row__btn:focus-visible {
+  opacity: 0.85;
+}
+.layers-panel__search .layers-row__btn {
+  opacity: 0.7;
+}
+/* drop feedback: a line above or below, a frame around the row for "inside", red when refused */
+.layers-row--drop-inside {
+  outline: 2px solid var(--accent-primary, #6366f1);
+  outline-offset: -2px;
+}
+.layers-row--drop-before {
+  box-shadow: inset 0 2px 0 var(--accent-primary, #6366f1);
+}
+.layers-row--drop-after {
+  box-shadow: inset 0 -2px 0 var(--accent-primary, #6366f1);
+}
+.layers-row--drop-refused {
+  outline: 2px solid #dc2626;
+  outline-offset: -2px;
+}
+.layers-row--drop-refused-before {
+  box-shadow: inset 0 2px 0 #dc2626;
+}
+.layers-row--drop-refused-after {
+  box-shadow: inset 0 -2px 0 #dc2626;
+}

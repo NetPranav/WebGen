@@ -278,6 +278,10 @@ const DEFS = {
 
   // --- Content ---------------------------------------------------------------
   "content.text": str("", null, "layout", only("text", "svgText", "generic")),
+  /** Styled runs over `content.text` (bold, italic, underline, strike, colour) as JSON; ignored unless they spell the text exactly (Phase 31). */
+  "content.runs": typed(str("", null, "layout", only("text"))),
+  /** How a text layer's box follows its text: auto-width (one line, grows), auto-height (fixed width, grows down) or fixed (Phase 31). */
+  "text.sizing": typed(oneOf(["fixed", "autoWidth", "autoHeight"], "fixed", null, "layout", only("text"))),
   // The FAB's label shows when it expands on hover (`button.expandOnHover`).
   "content.label": str("", null, "layout", only("button", "badge", "toggle", "fab")),
   "content.isRichText": flag(false, "layout", only("text")),

@@ -1,31 +1,62 @@
 import React from "react";
-import { layerBoxStyle, px } from "../geometry";
+import { layerBoxStyle } from "../geometry";
 import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
+import { textTypography } from "./textStyle";
+import { runsOf, type TextRun } from "../../text/runs";
+
+/** The inline style of one run. */
+export function runStyle(run: TextRun): React.CSSProperties | undefined {
+  const style: React.CSSProperties = {};
+  if (run.bold) style.fontWeight = 700;
+  if (run.italic) style.fontStyle = "italic";
+  if (run.underline || run.strike) style.textDecoration = [run.underline ? "underline" : "", run.strike ? "line-through" : ""].filter(Boolean).join(" ");
+  if (run.color) style.color = run.color;
+  return Object.keys(style).length > 0 ? style : undefined;
+}
 
 export const Text: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, nodeRef }) => {
-  const raw = resolved.str("content.text", layer.name);
-  const text = clampText(ctx.interpolate ? ctx.interpolate(raw) : raw);
-  const align = resolved.str("typography.textAlign", "left");
+  const stored = resolved.get("content.text");
+  const raw = typeof stored === "string" ? stored : layer.name; // an empty text is empty, not its layer name
+  const interpolated = ctx.interpolate ? ctx.interpolate(raw) : raw;
+  const text = clampText(interpolated);
+  // Styled runs only apply while they spell the stored text exactly (and no {{variable}} changed it).
+  const runs = interpolated === raw && text === raw ? runsOf(raw, resolved.get("content.runs")) : null;
+  const styled = runs !== null && runs.some((r) => runStyle(r) !== undefined);
+  const sizing = resolved.str("text.sizing", "fixed");
+  const box = layerBoxStyle(layer, resolved, ctx);
+  if (sizing === "autoWidth") {
+    delete box.width;
+    delete box.height;
+  } else if (sizing === "autoHeight") {
+    delete box.height;
+  }
   return (
     <div
       ref={nodeRef}
       data-element-id={layer.id}
       data-archetype="text"
       style={{
-        ...layerBoxStyle(layer, resolved, ctx),
+        ...box,
         margin: 0,
-        fontSize: px(resolved.num("typography.fontSize", 16)),
-        fontWeight: resolved.str("typography.fontWeight", "400"),
-        fontFamily: resolved.str("typography.fontFamily", "inherit"),
-        color: resolved.str("typography.color", "#0f172a"),
-        textAlign: align === "center" || align === "right" || align === "justify" ? align : "left",
-        lineHeight: 1.5,
-        whiteSpace: "pre-wrap",
-        overflowWrap: "anywhere",
+        ...textTypography(resolved),
+        whiteSpace: sizing === "autoWidth" ? "pre" : "pre-wrap",
+        overflowWrap: sizing === "autoWidth" ? "normal" : "anywhere",
+        ...(sizing === "autoWidth" ? { width: "max-content" } : {}),
       }}
     >
-      {text}
+      {styled
+        ? runs!.map((run, i) => {
+            const style = runStyle(run);
+            return style ? (
+              <span key={i} style={style}>
+                {run.text}
+              </span>
+            ) : (
+              <React.Fragment key={i}>{run.text}</React.Fragment>
+            );
+          })
+        : text}
     </div>
   );
 };

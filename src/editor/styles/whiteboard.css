@@ -945,6 +945,9 @@
   top: 28px;
   left: 28px;
   display: flex;
+  flex-wrap: wrap; /* with the Layers panel open the stage is narrow: the bar wraps instead of running off the edge */
+  width: max-content;
+  max-width: calc(100% - 210px); /* clear of the viewport buttons at the top right */
   gap: 8px;
   z-index: 30;
   font-size: 12px;
@@ -1116,6 +1119,40 @@
   pointer-events: none;
 }
 
+/* Spacing handles (Phase 30): a pill in the middle of the gap between neighbouring selected layers, one screen size at any zoom. */
+.canvas-overlay__gap {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.canvas-overlay__gap::before {
+  content: "";
+  display: block;
+  width: calc(14px / var(--canvas-zoom, 1));
+  height: calc(6px / var(--canvas-zoom, 1));
+  border-radius: calc(3px / var(--canvas-zoom, 1));
+  background: var(--accent-primary, #6366f1);
+  box-shadow: 0 0 0 calc(1.5px / var(--canvas-zoom, 1)) #fff;
+}
+.canvas-overlay__gap[data-axis="v"]::before {
+  width: calc(6px / var(--canvas-zoom, 1));
+  height: calc(14px / var(--canvas-zoom, 1));
+}
+.canvas-overlay__gap span {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-top: calc(4px / var(--canvas-zoom, 1));
+  transform: translateX(-50%) scale(calc(1 / var(--canvas-zoom, 1)));
+  transform-origin: top center;
+  font-size: 10px;
+  line-height: 1;
+  color: #fff;
+  background: var(--accent-primary, #6366f1);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
 /* Snapping (Phase 28): smart-guide lines, spacing marks and ruler guides, all one screen pixel at any zoom. */
 .canvas-overlay__snapline,
 .canvas-overlay__guide {
@@ -1234,3 +1271,19 @@
   font-size: 12px;
 }
 .canvas-rename label { display: flex; align-items: center; gap: 8px; }
+
+/* In-place text editing (Phase 31): sits in canvas space over the layer it edits. */
+.canvas-text-editor {
+  z-index: 60;
+  pointer-events: auto;
+  cursor: text;
+  outline: calc(1.5px / var(--canvas-zoom, 1)) solid var(--accent-primary, #6366f1);
+  outline-offset: calc(2px / var(--canvas-zoom, 1));
+  caret-color: var(--accent-primary, #6366f1);
+  user-select: text;
+  -webkit-user-select: text;
+  background: transparent;
+}
+.canvas-text-editor:focus {
+  outline: calc(1.5px / var(--canvas-zoom, 1)) solid var(--accent-primary, #6366f1);
+}

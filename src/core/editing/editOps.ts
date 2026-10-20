@@ -10,10 +10,12 @@
  * ============================================================================
  */
 
-import { getDefaultProps } from "../document/registry";
+import { getDefaultProps, type PropValue } from "../document/registry";
+import { isPropertyLegalFor, resolvePropertyPath } from "../document/properties";
 import type { Layer } from "../document/schema";
 import { duplicateFrame } from "../frames/frameCommands";
 import { listFrames, nextFramePosition } from "../frames/frames";
+import { alignBoxes, distributeBoxes, tidyBoxes, unionBounds, type AlignMode, type SpreadAxis } from "../geometry/align";
 import { moveBoxes, unionBox, type Box } from "../geometry/transform";
 import { getDocument } from "../store/documentState";
 import { documentCommands } from "../store/useDocumentStore";
@@ -28,7 +30,7 @@ import { repairPageRoots } from "../frames/pageRoots";
 const DEFAULT_OFFSET = { dx: 16, dy: 16 };
 
 /** Runs `fn` as one undo step. Nested inside another transaction it joins it. */
-function transaction<T>(label: string, fn: () => T): T {
+export function transaction<T>(label: string, fn: () => T): T {
   const tx = documentCommands.begin(label);
   try {
     const result = fn();
@@ -233,6 +235,97 @@ export function nudgeLayers(ids: readonly string[], dx: number, dy: number): voi
 }
 
 // ---------------------------------------------------------------------------
+// Properties (Phase 31)
+// ---------------------------------------------------------------------------
+
+/**
+ * Writes properties on layers as one undo step: what an inspector control does. A `null` value removes the
+ * property (back to its default). Locked layers are skipped, and so is a layer that can't carry a property (the
+ * mixed selection of a text and a rectangle given a font size). Returns how many layers changed.
+ */
+export function setLayerProps(ids: readonly string[], props: Record<string, PropValue | null>, label = "Change properties"): number {
+  const l = layers();
+  const targets = ids.filter((id) => {
+    const layer = l[id];
+    return layer && layer.locked !== true;
+  });
+  const changed: string[] = [];
+  transaction(label, () => {
+    for (const id of targets) {
+      const layer = getDocument().layers[id];
+      const patch: Record<string, PropValue | undefined> = {};
+      for (const [path, value] of Object.entries(props)) {
+        const res = resolvePropertyPath(path, layer.archetype);
+        if (!res.ok || !isPropertyLegalFor(res.path, layer.archetype)) continue;
+        patch[res.path] = value === null ? undefined : value;
+      }
+      if (Object.keys(patch).length === 0) continue;
+      documentCommands.updateProps(id, patch);
+      changed.push(id);
+    }
+  });
+  return changed.length;
+}
+
+// ---------------------------------------------------------------------------
+// Align, distribute and tidy (Phase 30)
+// ---------------------------------------------------------------------------
+
+/** What an alignment lines up with: the selection's own bounds, or the parent's box. By default several layers align to each other and one layer to its parent. */
+export type AlignTarget = "auto" | "selection" | "parent";
+
+/** The boxes of the editable top-most layers in the selection, or null when any can't be found. */
+function editableBoxes(ids: readonly string[]): { roots: string[]; boxes: Box[] } | null {
+  const roots = editableRoots(ids);
+  const boxes = roots.map((id) => worldBox(id)).filter((b): b is Box => b !== null);
+  return boxes.length === roots.length && roots.length > 0 ? { roots, boxes } : null;
+}
+
+/** Aligns the selection. Returns false (and changes nothing) when there is nothing to align to: one layer with no parent, or no editable layers. */
+export function alignLayers(ids: readonly string[], mode: AlignMode, to: AlignTarget = "auto"): boolean {
+  const e = editableBoxes(ids);
+  if (!e) return false;
+  const layers = getDocument().layers;
+  const useParent = to === "parent" || (to === "auto" && selectionRoots(ids).length === 1); // a locked layer in the selection still counts as "several"
+  let target;
+  if (useParent) {
+    const parentIds = new Set(e.roots.map((id) => layers[id].parentId));
+    if (parentIds.size !== 1) return false;
+    const parentId = [...parentIds][0];
+    const pb = parentId ? worldBox(parentId) : null;
+    if (!pb) return false; // a top-level frame has no parent to align to
+    target = { x: pb.cx - pb.w / 2, y: pb.cy - pb.h / 2, width: pb.w, height: pb.h };
+  } else {
+    if (e.roots.length < 2) return false;
+    target = unionBounds(e.boxes)!;
+  }
+  const next = alignBoxes(e.boxes, mode, target);
+  if (next.every((b, i) => b.cx === e.boxes[i].cx && b.cy === e.boxes[i].cy)) return false;
+  transaction("Align", () => writeBoxes(e.roots, next));
+  return true;
+}
+
+/** Spreads three or more layers so the gaps between them are equal. */
+export function distributeLayers(ids: readonly string[], axis: SpreadAxis): boolean {
+  const e = editableBoxes(ids);
+  if (!e || e.roots.length < 3) return false;
+  const next = distributeBoxes(e.boxes, axis);
+  if (next.every((b, i) => b.cx === e.boxes[i].cx && b.cy === e.boxes[i].cy)) return false;
+  transaction("Distribute spacing", () => writeBoxes(e.roots, next));
+  return true;
+}
+
+/** Puts two or more layers on a tidy grid. */
+export function tidyLayers(ids: readonly string[]): boolean {
+  const e = editableBoxes(ids);
+  if (!e || e.roots.length < 2) return false;
+  const next = tidyBoxes(e.boxes);
+  if (next.every((b, i) => b.cx === e.boxes[i].cx && b.cy === e.boxes[i].cy)) return false;
+  transaction("Tidy up", () => writeBoxes(e.roots, next));
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Z-order
 // ---------------------------------------------------------------------------
 
@@ -357,6 +450,22 @@ export function toggleLock(ids: readonly string[]): boolean {
   const lock = !roots.every((id) => layers()[id].locked === true);
   transaction(lock ? "Lock" : "Unlock", () => roots.forEach((id) => documentCommands.setLayerFlags(id, { locked: lock })));
   return lock;
+}
+
+/** Sets locked on exactly these layers (the lock button on a row acts on that row, not on the selection). One undo step. */
+export function setLocked(ids: readonly string[], locked: boolean): number {
+  const targets = ids.filter((id) => layers()[id] && (layers()[id].locked === true) !== locked);
+  if (targets.length === 0) return 0;
+  transaction(locked ? "Lock" : "Unlock", () => targets.forEach((id) => documentCommands.setLayerFlags(id, { locked })));
+  return targets.length;
+}
+
+/** Sets visibility on exactly these layers. One undo step. */
+export function setVisible(ids: readonly string[], visible: boolean): number {
+  const targets = ids.filter((id) => layers()[id] && (layers()[id].visible !== false) !== visible);
+  if (targets.length === 0) return 0;
+  transaction(visible ? "Show" : "Hide", () => targets.forEach((id) => documentCommands.setLayerFlags(id, { visible })));
+  return targets.length;
 }
 
 /** Hides the selection, or shows it if every selected layer is already hidden. Returns whether they are now hidden. */

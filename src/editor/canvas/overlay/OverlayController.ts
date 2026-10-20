@@ -44,6 +44,7 @@ export class OverlayController {
   private readonly selection: Box[] = [];
   private readonly transform: HTMLDivElement;
   private readonly params: HTMLDivElement[] = [];
+  private readonly gapHandles: { root: HTMLDivElement; label: HTMLSpanElement }[] = [];
   private readonly snapLines: HTMLDivElement[] = [];
   private readonly marks: { root: HTMLDivElement; label: HTMLSpanElement }[] = [];
   private readonly guideLines: HTMLDivElement[] = [];
@@ -171,6 +172,26 @@ export class OverlayController {
       d.dataset.param = p.handle.kind;
     });
 
+    // Spacing handles (Phase 30): a pill in the middle of each gap between neighbouring selected layers
+    const gaps = model?.gaps ?? [];
+    while (this.gapHandles.length < gaps.length) {
+      const root = document.createElement("div");
+      root.className = "canvas-overlay__gap";
+      const label = document.createElement("span");
+      root.appendChild(label);
+      this.container.appendChild(root);
+      this.gapHandles.push({ root, label });
+    }
+    this.gapHandles.forEach((g, i) => {
+      const gap = gaps[i];
+      g.root.hidden = !gap;
+      if (!gap) return;
+      g.root.style.left = `${gap.world.x}px`;
+      g.root.style.top = `${gap.world.y}px`;
+      g.root.dataset.axis = gap.axis;
+      g.label.textContent = String(Math.round(gap.size));
+    });
+
     // Snap lines, spacing marks and ruler guides
     const fb = this.env.snapFeedback();
     this.fill(this.snapLines, fb.lines.length, "canvas-overlay__snapline");
@@ -272,6 +293,7 @@ export class OverlayController {
     this.hover.root.remove();
     this.transform.remove();
     this.params.forEach((d) => d.remove());
+    this.gapHandles.forEach((g) => g.root.remove());
     this.snapLines.forEach((d) => d.remove());
     this.marks.forEach((m) => m.root.remove());
     this.guideLines.forEach((d) => d.remove());

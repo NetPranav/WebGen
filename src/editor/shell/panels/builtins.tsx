@@ -8,6 +8,7 @@
 import { WhiteboardCanvas } from "@/editor/canvas/WhiteboardCanvas";
 import { DetailsInspector } from "@/editor/panels/details/DetailsInspector";
 import { ContentBrowser } from "@/editor/panels/content-browser/ContentBrowser";
+import { LayersPanel } from "@/editor/panels/layers/LayersPanel";
 import { BlueprintCanvas, ExecutionTracePanel, PagesManager, DeploymentDashboard, PluginManager, VersionControlPanel } from "../afterTrackPanels";
 import { registerPanel } from "./registry";
 import type { PanelContext } from "./context";
@@ -59,6 +60,9 @@ export function registerBuiltInPanels(): void {
     load: async () => (await import("@/editor/panels/settings/ProjectSettings")).ProjectSettings,
     props: (c: PanelContext) => ({ onClose: c.closeSettings }),
   });
+
+  // ---- left ----
+  registerPanel({ id: "layers", title: "Layers", zone: "left", edition: "initial", focusScope: "canvas", component: LayersPanel });
 
   // ---- right ----
   // The inspector's tabs (Phase 15): Design · Motion · Code, and Debug in the full edition.
