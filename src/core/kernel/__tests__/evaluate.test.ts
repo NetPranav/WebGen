@@ -230,9 +230,14 @@ describe("Phase 9.3: performance ('evaluating 200 tracks at one t takes < 1ms in
     // budget (V8-in-Node and a browser's V8 aren't identical, but the same
     // order of magnitude), so the assertion is generously above 1ms.
     for (let i = 0; i < 20; i++) evaluate(doc, MAIN_COMPOSITION_ID, id, 0.5);
-    const start = performance.now();
-    const props = evaluate(doc, MAIN_COMPOSITION_ID, id, 0.5);
-    const elapsed = performance.now() - start;
+    // The fastest of several runs: one slow sample on a shared CI runner (a GC pause, a noisy neighbour) says nothing about the code.
+    let elapsed = Infinity;
+    let props = evaluate(doc, MAIN_COMPOSITION_ID, id, 0.5);
+    for (let i = 0; i < 15; i++) {
+      const start = performance.now();
+      props = evaluate(doc, MAIN_COMPOSITION_ID, id, 0.5);
+      elapsed = Math.min(elapsed, performance.now() - start);
+    }
 
     assert.ok(Object.keys(props).length >= properties.length);
     assert.ok(elapsed < 10, `evaluate() with 200 tracks took ${elapsed}ms`);

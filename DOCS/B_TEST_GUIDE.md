@@ -10,12 +10,13 @@
 | 54 | The transport (one clock) and the transport bar | #20 |
 | 55 | The frame scheduler and a lint ban on `requestAnimationFrame` | #21 |
 | 56 | Sequencer playback moved onto the transport; old Sequencer clock removed | #22 |
-| 57 | Engine adapters; the kernel animates the real layers on the stage | this branch (`b/phase-57-engine-adapters`), PR pending |
+| 57 | Engine adapters; the kernel animates the real layers on the stage | #36 |
+| 58 | Web Animations adapter: routed layers run as Web Animations | `b/phase-58-waapi-adapter`, PR pending |
 
 Automated tests already cover most of this. This guide is for the things a person sees and feels, and for poking at edges the tests don't reach. Each test says what to do, what you should see, and what a failure looks like. Tick the boxes as you go, and note any failure with the test number.
 
 > **Known behaviour, not bugs.** Don't report these:
-> - **Only some things animate on the stage.** Since Phase 57 the stage shows the kernel's value for every property a layer animates. A layer with no clip does nothing. Behaviours other than `loop`, signal bindings and states are still not shown (see `KERNEL_GAPS`). Web Animations routing is Phase 58, and the scrub/play hand-over is Phase 59, so everything is drawn by the one kernel adapter for now.
+> - **Only some things animate on the stage.** Since Phase 57 the stage shows the kernel's value for every property a layer animates. A layer with no clip does nothing. Behaviours other than `loop`, signal bindings and states are still not shown (see `KERNEL_GAPS`). Since Phase 58, layers the rules route to CSS run as Web Animations (same values, baked from the kernel); the rest use the kernel adapter. The scrub/play hand-over is Phase 59.
 > - **Playing runs the whole composition** (5 s by default), not just the clip, and the Sequencer's Loop button toggles the transport's loop.
 > - **The Sequencer's Step Backward button** moves the head back 0.1 s. It is not a frame step. The transport bar's step buttons are the frame steps.
 > - **The toolbar's Play button** (top of the editor, "Play Live Application Preview") is a different feature. It is not the transport.
@@ -162,6 +163,15 @@ You need a layer with an animation. Draw a **Rectangle** on the stage, select it
 - [ ] **3A.12** Animate **position** (transform x or y) on a layer that is rotated (set its rotation in a project file or the inspector if available). The layer keeps its rotation while it moves.
 - [ ] **3A.13** Draw a second shape while the first one is playing. The new shape appears and the first keeps animating.
 - [ ] **3A.14** Console stays free of red errors through all of the above.
+
+### 3A.b Phase 58: Web Animations
+- [ ] **3A.15** In DevTools → More tools → **Animations**, press Play with an animated rectangle. An animation named `ll:<layer id>` appears and runs. (A layer animating something the rules don't route to CSS won't show one; that is correct.)
+- [ ] **3A.16** Pause. The animation pauses. Drag the playhead: its `currentTime` follows.
+- [ ] **3A.17** Click the ruler during playback, or let a Loop wrap. The animation jumps to the new time at once and keeps playing.
+- [ ] **3A.18** Change playback speed (the `0.5x` / `2x` pills or **L**). The animation's playback rate follows.
+- [ ] **3A.19** With the Performance panel, block the main thread (a long task) while playing a transform or opacity animation: it continues smoothly on the stage.
+- [ ] **3A.20** Edit a keyframe while playing. The stage picks up the change without restarting from 0.
+- [ ] **3A.21** The look at any paused time is the same as before Phase 58 (compare with a screenshot from `main` before the change if you have one).
 
 Developer check: `/editor/stage-lab` has a **Load 10 animations** button. It is used by `tests/e2e/stage-engine.spec.ts`, which seeks ten reference animations to five times each and compares the stage with the kernel to within 0.5 px.
 

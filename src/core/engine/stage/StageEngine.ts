@@ -2,7 +2,7 @@ import { documentStore, getDocument } from "../../store/documentState";
 import { frameScheduler, type FrameScheduler } from "../../time/scheduler";
 import { getTransport, subscribeTransport } from "../../time/transport";
 import type { StageRenderer } from "../../render/StageRenderer";
-import { KernelAdapter } from "./KernelAdapter";
+import { StageAdapters } from "./StageAdapters";
 import type { AdapterHost, EngineAdapter } from "./types";
 
 /**
@@ -20,11 +20,13 @@ export interface StageEngineOptions {
 
 export function installStageEngine(renderer: StageRenderer, options: StageEngineOptions = {}): () => void {
   const scheduler = options.scheduler ?? frameScheduler;
-  const adapter = options.adapter ?? new KernelAdapter();
+  const adapter = options.adapter ?? new StageAdapters();
   const host: AdapterHost = {
     node: (id) => renderer.registry.get(id),
     getDocument,
     compositionId: () => getTransport().compositionId,
+    fps: () => getTransport().fps,
+    duration: () => getTransport().duration,
   };
   adapter.mount(host);
 
