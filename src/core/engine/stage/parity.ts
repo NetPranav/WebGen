@@ -13,7 +13,7 @@ import type { RunningLayer } from "./WaapiAdapter";
  * show at the engine's own clock, and raises `[PARITY_DRIFT]` when they differ by more than a tolerance. The kernel is
  * the oracle (Law 8); an engine that disagrees with it is a bug, and this is where it shows up.
  *
- * It also checks that an engine's clock stays near the transport's. Colours and `%` lengths aren't compared yet (the
+ * (The comparison allows the engine's clock and its reported style to differ by a frame or two: see `SKEW_FRAMES`.) It also checks that an engine's clock stays near the transport's. Colours and `%` lengths aren't compared yet (the
  * browser reports them in another form); numbers, lengths and the transform are.
  * ============================================================================
  */
@@ -53,6 +53,12 @@ export function parityEnabled(): boolean {
 export const TOLERANCE = { length: 0.5, number: 0.01, translation: 0.5, matrix: 0.005 };
 /** An engine whose clock is further than this from the transport's is reported (after two samples in a row). */
 export const CLOCK_DRIFT_FRAMES = 6;
+/**
+ * The engine's own clock and the style the browser reports can differ by a frame or two (WebKit reports the value of
+ * the last rendered frame while the animation's clock is live). An engine is in step if what it shows lies within
+ * what the kernel says over this many frames either side of its clock.
+ */
+export const SKEW_FRAMES = 2;
 
 export type MatrixParser = (css: string) => number[] | null;
 
@@ -79,6 +85,30 @@ export function sameValue(property: string, expected: string, actual: string, pa
   const a = Number.parseFloat(actual);
   if (!Number.isFinite(e) || !Number.isFinite(a)) return true;
   return Math.abs(e - a) <= (property === "opacity" ? TOLERANCE.number : TOLERANCE.length);
+}
+
+/**
+ * True when `actual` lies within the band the kernel's values span (`candidates`, each a CSS value for the same
+ * property, taken at nearby times), widened by the tolerance. One candidate is the plain comparison of `sameValue`.
+ */
+export function inBand(property: string, candidates: readonly string[], actual: string, parseMatrix: MatrixParser = domMatrix): boolean {
+  if (candidates.length === 0) return true;
+  if (property === "transform") {
+    const matrices = candidates.map((c) => parseMatrix(c));
+    const b = parseMatrix(actual);
+    if (!b || matrices.some((m) => !m)) return true;
+    return b.every((v, i) => {
+      const values = matrices.map((m) => m![i]);
+      const tol = i >= 12 && i <= 14 ? TOLERANCE.translation : TOLERANCE.matrix;
+      return v >= Math.min(...values) - tol && v <= Math.max(...values) + tol;
+    });
+  }
+  if (candidates[0].trim().endsWith("%")) return true;
+  const numbers = candidates.map((c) => Number.parseFloat(c));
+  const a = Number.parseFloat(actual);
+  if (!Number.isFinite(a) || numbers.some((n) => !Number.isFinite(n))) return true;
+  const tol = property === "opacity" ? TOLERANCE.number : TOLERANCE.length;
+  return a >= Math.min(...numbers) - tol && a <= Math.max(...numbers) + tol;
 }
 
 export interface ParityEnv {
@@ -133,10 +163,13 @@ export class ParityMonitor {
     const clockLimit = CLOCK_DRIFT_FRAMES / env.fps();
     const stillLate = new Set<string>();
     for (const layer of running) {
-      const expected = styleWrites(layer.paths, evaluate(doc, compositionId, layer.layerId, layer.time));
+      const skew = SKEW_FRAMES / env.fps();
+      const at = (t: number) => styleWrites(layer.paths, evaluate(doc, compositionId, layer.layerId, Math.max(0, t)));
+      const [expected, before, after] = [at(layer.time), at(layer.time - skew), at(layer.time + skew)];
       for (const [property, want] of Object.entries(expected)) {
         const got = env.read(layer.element, property);
-        if (!sameValue(property, want, got, env.parseMatrix)) drifts.push({ layerId: layer.layerId, property, expected: want, actual: got });
+        const band = [want, before[property], after[property]].filter((v): v is string => v !== undefined);
+        if (!inBand(property, band, got, env.parseMatrix)) drifts.push({ layerId: layer.layerId, property, expected: want, actual: got });
       }
       const behind = Math.abs(layer.time - env.transportTime());
       if (behind > clockLimit) {
