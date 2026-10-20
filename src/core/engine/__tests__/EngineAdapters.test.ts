@@ -6,7 +6,6 @@ import {
   FramerMotionAdapter,
   GsapEngineAdapter,
   EngineAdapterManager,
-  engineAdapterManager,
 } from "../EngineAdapters";
 import { AnimationBinding } from "../../types/element-grammar";
 

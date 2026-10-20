@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Lexer } from "../Lexer";
 import { NodeScriptParser } from "../Parser";
 import { NodeScriptSyntaxError } from "../types";
-import { ASTManager, BlueprintGraph } from "@/core/ast/ASTManager";
+import { ASTManager } from "@/core/ast/ASTManager";
 
 describe("Sub-Phase 5.1: NodeScript Grammar & Parser", () => {
   // --------------------------------------------------------------------------

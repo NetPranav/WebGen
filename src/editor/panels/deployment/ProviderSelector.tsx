@@ -23,14 +23,9 @@ import {
   Container,
   Zap,
   Server,
-  HardDrive,
   CheckCircle2,
-  ExternalLink,
-  Shield,
   Layers,
   Cpu,
-  RefreshCw,
-  Info,
 } from "lucide-react";
 
 interface ProviderOption {

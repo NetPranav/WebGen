@@ -13,6 +13,8 @@
 
 import React from "react";
 import { Plus, Minus, Maximize2, Focus } from "lucide-react";
+import { MAX_ZOOM, MIN_ZOOM } from "@/core/viewport/camera";
+import { useCameraStore, selectZoomPercent } from "@/core/store/useCameraStore";
 
 interface ZoomControlsProps {
   zoomLevel: number; // e.g. 100 for 100%
@@ -34,8 +36,8 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
   onResetZoom,
   onFitToScreen,
   onRecenter,
-  minZoom = 10,
-  maxZoom = 400,
+  minZoom = MIN_ZOOM * 100,
+  maxZoom = MAX_ZOOM * 100,
   className,
   style,
 }) => {
@@ -112,4 +114,13 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
       )}
     </div>
   );
+};
+
+/**
+ * The zoom controls with the read-out wired to the camera. The percentage subscribes here, not in the canvas: every
+ * wheel tick changes it, and the canvas (its frames, its layers) must not re-render for that.
+ */
+export const LiveZoomControls: React.FC<Omit<ZoomControlsProps, "zoomLevel">> = (props) => {
+  const zoomLevel = useCameraStore(selectZoomPercent);
+  return <ZoomControls zoomLevel={zoomLevel} {...props} />;
 };

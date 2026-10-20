@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import { BlueprintGraph, BlueprintNodeInstance } from "@/core/ast/ASTManager";
+import { BlueprintGraph } from "@/core/ast/ASTManager";
 
 export interface LayoutOptions {
   nodeWidth?: number;

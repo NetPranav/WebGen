@@ -20,7 +20,6 @@ import {
   Sliders,
   RotateCw,
   Lock,
-  Eye,
   Trash2,
   Maximize2,
   AlignLeft,
@@ -135,7 +134,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
   const [opacity, setOpacity] = useState(100);
   const [borderRadius, setBorderRadius] = useState(12);
   const [borderWidth, setBorderWidth] = useState(1);
-  const [borderColor, setBorderColor] = useState("#E2E8F0");
+  const [] = useState("#E2E8F0");
   const [shadowPreset, setShadowPreset] = useState("sm");
 
   // Typography states
@@ -143,10 +142,10 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
   const [fontSize, setFontSize] = useState(16);
   const [fontWeight, setFontWeight] = useState("500");
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("center");
-  const [textColor, setTextColor] = useState("#0F172A");
+  const [] = useState("#0F172A");
 
   // Data binding
-  const [boundVariable, setBoundVariable] = useState("none");
+  const [] = useState("none");
 
   // If no element is selected on canvas or outliner, render World Environment settings directly
   if (!isElementSelected || !selectedElementId) {

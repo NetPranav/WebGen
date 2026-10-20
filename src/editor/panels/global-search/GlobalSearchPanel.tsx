@@ -29,11 +29,7 @@ import {
   Globe,
   ArrowRight,
   Clock,
-  CornerDownLeft,
   Sparkles,
-  Filter,
-  Check,
-  Tag,
 } from "lucide-react";
 
 export interface GlobalSearchPanelProps {

@@ -169,9 +169,7 @@ describe("Sub-Phase 4.7: SIMD-Vectorized Batch Spline Solver & Phase 4 Completio
       });
     }
 
-    const startTime = performance.now();
     const results = await pool.requestFrame(wires500, 50.0);
-    const frameDurationMs = performance.now() - startTime;
 
     assert.strictEqual(results.size, 500);
 

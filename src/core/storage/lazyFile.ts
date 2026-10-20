@@ -76,15 +76,25 @@ export function serializeLazyFile(snapshot: ProjectStateSnapshot, settings?: Pro
 
 /** A file name like `My Project.lazy.json`, safe on every OS. */
 export function lazyFileName(projectName: string): string {
-  const base = projectName.replace(/[\\/:*?"<>|]+/g, "-").trim() || "project";
+  let base = projectName
+    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]+/g, "-")
+    .replace(/[. ]+$/g, "") // Windows drops trailing dots and spaces
+    .trim()
+    .slice(0, 120);
+  if (!base || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i.test(base)) base = `project${base ? `-${base}` : ""}`; // reserved device names
   return `${base}${LAZY_FILE_EXTENSION}`;
 }
+
+/** The longest `.lazy.json` text and the most layers an import will take (decision 0008, rule R7). */
+export const MAX_LAZY_FILE_CHARS = 64_000_000;
+export const MAX_IMPORT_LAYERS = 20_000;
 
 /**
  * Parses and checks a `.lazy.json` file: format, format version, schema
  * version (migrating older ones), and the document itself.
  */
 export function parseLazyFile(text: string): LazyFile {
+  if (text.length > MAX_LAZY_FILE_CHARS) throw new LazyFileError(`This file is larger than the ${Math.round(MAX_LAZY_FILE_CHARS / 1_000_000)} MB a project import accepts.`);
   let raw: unknown;
   try {
     raw = JSON.parse(text);
@@ -113,6 +123,9 @@ export function parseLazyFile(text: string): LazyFile {
     snapshot = upgradeSnapshot(file.snapshot as unknown as LegacyProjectSnapshot);
   } catch (error) {
     throw new LazyFileError(`The project data can't be read: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (Object.keys(snapshot.document?.layers ?? {}).length > MAX_IMPORT_LAYERS) {
+    throw new LazyFileError(`This project has more than ${MAX_IMPORT_LAYERS.toLocaleString("en-US")} layers, which is more than an import accepts.`);
   }
   const check = validateMotionDocument(snapshot.document);
   if (!check.ok) {

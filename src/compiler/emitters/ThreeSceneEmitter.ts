@@ -13,7 +13,6 @@
 
 import { DEFAULT_OBJECT3D_PROPERTIES, DEFAULT_LIGHT3D_PROPERTIES } from "@/core/types/scene3d";
 import { readProps } from "@/core/document/props";
-import { Scene3DEngine } from "@/core/engine/Scene3DEngine";
 import type { Layer } from "@/core/document/schema";
 
 export interface ThreeSceneEmitterOptions {
@@ -136,7 +135,7 @@ export class ThreeSceneEmitter {
    */
   private static emitR3F(
     all3D: Layer[],
-    allElements: Record<string, Layer>,
+    _allElements: Record<string, Layer>,
     componentName: string,
     options: ThreeSceneEmitterOptions
   ): string {

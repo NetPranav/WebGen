@@ -15,11 +15,7 @@ import React, { useState } from "react";
 import {
   Workflow,
   Sparkles,
-  Database,
-  Layers,
   X,
-  Check,
-  Code2,
   ChevronDown,
   ArrowRight,
   Zap,
@@ -48,21 +44,21 @@ export const PropertyBlueprintBindingControl: React.FC<PropertyBlueprintBindingC
   value,
   placeholder = "Enter static value...",
   onChange,
-  targetProperty = "value",
-  elementId,
-  collectionName,
+  targetProperty: _targetProperty = "value",
+  elementId: _elementId,
+  collectionName: _collectionName,
   isBound: externalIsBound,
   boundSourceDescription: externalBoundDesc,
   onBindBlueprint,
   onUnbind: externalOnUnbind,
   formulaPresets,
 }) => {
-  const { stateVariables, databaseSchemas } = useProjectStore();
+  const { stateVariables } = useProjectStore();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"formula" | "blueprint" | "state">("formula");
   const [customFormula, setCustomFormula] = useState("");
-  const [selectedBlueprint, setSelectedBlueprint] = useState("");
-  const [selectedStateVar, setSelectedStateVar] = useState("");
+  const [] = useState("");
+  const [] = useState("");
 
   // Internal bound state if not externally managed
   const [internalBound, setInternalBound] = useState(false);
@@ -133,7 +129,7 @@ export const PropertyBlueprintBindingControl: React.FC<PropertyBlueprintBindingC
     },
   ];
 
-  const handleApplyPreset = (expr: string, desc: string) => {
+  const handleApplyPreset = (expr: string, _desc: string) => {
     onChange(expr);
     setInternalBound(true);
     setInternalBoundDesc(`Formula: ${expr}`);

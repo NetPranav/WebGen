@@ -39,7 +39,7 @@ export function useDockLayers() {
     }, 2000);
   };
 
-  const handleZoneMouseLeave = (zone: DockLayer) => {
+  const handleZoneMouseLeave = (_zone: DockLayer) => {
     // If mouse leaves before the 2 seconds, cancel the dwell transition timer.
     // Whichever layer was active continues to be active!
     if (layerTimerRef.current) {

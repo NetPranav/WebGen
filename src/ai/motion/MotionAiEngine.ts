@@ -13,7 +13,6 @@
 import { getArchetype, type ArchetypeId, type FamilyId } from "@/core/document/registry";
 import { hydrateClip, type ClipDraft } from "@/core/document/factories";
 import type { ClipTemplate, Layer } from "@/core/document/schema";
-import { ALL_PRESETS, getPresetById, RULE_6_1_BLOCKED_CATEGORIES } from "@/core/motion/presets";
 import { createId } from "@/core/ids";
 
 export interface MotionAiRequest {
@@ -44,15 +43,6 @@ export interface MotionAiResponse {
   suggestedPromptAlternatives?: string[];
 }
 
-/**
- * Natural language intent matching patterns.
- */
-interface IntentMatchRule {
-  keywords: string[];
-  matchedIntent: string;
-  presetId?: string;
-  generator?: (element: Layer) => ClipDraft;
-}
 
 export class MotionAiEngine {
   /**

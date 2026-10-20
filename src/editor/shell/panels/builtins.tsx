@@ -17,8 +17,6 @@ const lc = (s: string) => s.toLowerCase();
 /** Props for the stage, which is the same in the center zone and in the full-page "viewport" tab. */
 const stageProps = (c: PanelContext) => ({
   deviceMode: c.deviceMode,
-  zoomLevel: c.zoomLevel,
-  onZoomChange: c.setZoomLevel,
   onSelectElement: c.setSelectedElement,
   onDropAsset: (asset: { id: string; name: string }) => c.setSelectedElement({ id: asset.id, name: asset.name }),
   onOpenExecutionTrace: () => c.showBottomTab("trace"),

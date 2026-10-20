@@ -126,6 +126,8 @@ let openTransaction: OpenTransaction | null = null;
 let gestureActive = false;
 /** The transaction the current gesture opened lazily on its first labelled command. */
 let gestureTransaction: DocumentTransaction | null = null;
+/** The handle of the open transaction (the owner's), so undo and redo can cancel a drag that is still in progress. */
+let openHandle: DocumentTransaction | null = null;
 
 export interface DocumentTransaction {
   readonly label: string;
@@ -215,7 +217,7 @@ function beginTransaction(label: string): DocumentTransaction {
   openTransaction = tx;
   let open = true;
 
-  return {
+  const handle: DocumentTransaction = {
     label,
     get isOwner() {
       return open;
@@ -224,6 +226,7 @@ function beginTransaction(label: string): DocumentTransaction {
       if (!open) return null;
       open = false;
       openTransaction = null;
+      if (openHandle === handle) openHandle = null;
       if (gestureTransaction === this) gestureTransaction = null;
       const after = getDocument();
       const patches = diffPatches(tx.base, after);
@@ -238,6 +241,7 @@ function beginTransaction(label: string): DocumentTransaction {
       if (!open) return;
       open = false;
       openTransaction = null;
+      if (openHandle === handle) openHandle = null;
       if (gestureTransaction === this) gestureTransaction = null;
       const current = getDocument();
       const patches = diffPatches(current, tx.base);
@@ -246,6 +250,8 @@ function beginTransaction(label: string): DocumentTransaction {
       emit({ label: tx.label, patches, inversePatches: diffPatches(tx.base, current), source: "transaction", transient: true });
     },
   };
+  openHandle = handle;
+  return handle;
 }
 
 /** True while a transaction is open (a gesture is in progress). */
@@ -354,6 +360,12 @@ function tryApplyEntry(entry: HistoryTransaction, direction: "undo" | "redo"): H
 
 export const historyCommands = {
   undo(): boolean {
+    // A drag a tool opened (not the automatic pointer-press one) is still in progress: undo takes it back instead of
+    // swapping history underneath it, which used to leave the document and the history disagreeing.
+    if (openHandle && openHandle !== gestureTransaction) {
+      openHandle.cancel();
+      return true;
+    }
     gestureTransaction?.commit();
     const history = useHistoryStore.getState();
     const entry = history.takeUndo();
@@ -365,6 +377,7 @@ export const historyCommands = {
   },
 
   redo(): boolean {
+    if (openHandle && openHandle !== gestureTransaction) return false; // nothing to redo while a drag is in progress
     gestureTransaction?.commit();
     const history = useHistoryStore.getState();
     const entry = history.takeRedo();
@@ -382,17 +395,22 @@ export const historyCommands = {
    */
   jumpTo(transactionId: string): boolean {
     const { past, future } = useHistoryStore.getState();
+    // Every step must shrink the stack it walks; one that doesn't (a refused entry) ends the jump instead of spinning.
     if (past.some((t) => t.id === transactionId)) {
       while (useHistoryStore.getState().past.length > 0) {
         const last = useHistoryStore.getState().past.at(-1)!;
+        const before = useHistoryStore.getState().past.length;
         historyCommands.undo();
         if (last.id === transactionId) return true;
+        if (useHistoryStore.getState().past.length >= before) return false;
       }
     } else if (future.some((t) => t.id === transactionId)) {
       while (useHistoryStore.getState().future.length > 0) {
         const next = useHistoryStore.getState().future[0];
+        const before = useHistoryStore.getState().future.length;
         historyCommands.redo();
         if (next.id === transactionId) return true;
+        if (useHistoryStore.getState().future.length >= before) return false;
       }
     }
     return false;
@@ -494,7 +512,9 @@ export const documentCommands = {
 
   /** Adds a new layer of `archetype` (registry defaults unless props are given). Returns its id. */
   addLayer(input: NewLayerInput & { index?: number }, label = "Add layer"): string {
-    const layer = createLayer(input);
+    // Ids are random and 32 bits wide: a large document can hand out one that is already taken, so draw again.
+    let layer = createLayer(input);
+    for (let tries = 0; !input.id && getDocument().layers[layer.id] && tries < 16; tries++) layer = createLayer(input);
     layer.properties = canonicalProps(layer.archetype, layer.properties, "addLayer");
     commit(label, (draft) => {
       if (draft.layers[layer.id]) throw new Error(`Layer "${layer.id}" already exists.`);
@@ -511,6 +531,9 @@ export const documentCommands = {
   insertLayers(layers: Layer[], clips: Clip[] = [], label = "Insert layers") {
     commit(label, (draft) => {
       const batch = new Set(layers.map((l) => l.id));
+      for (const layer of layers) {
+        if (draft.layers[layer.id]) throw new Error(`Layer "${layer.id}" already exists.`);
+      }
       for (const layer of layers) {
         draft.layers[layer.id] = { ...layer, properties: canonicalProps(layer.archetype, layer.properties, "insertLayers") };
       }

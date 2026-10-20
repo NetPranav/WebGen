@@ -10,8 +10,8 @@
  * ============================================================================
  */
 
-import React, { useState, useRef, useEffect } from "react";
-import { X, Play, RotateCcw, Check, Sparkles } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { X, Play, Check, Sparkles } from "lucide-react";
 import { CubicBezierHandle } from "@/core/types/animations";
 import "@/editor/styles/forms.css";
 

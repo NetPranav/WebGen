@@ -5,12 +5,20 @@
  * one registration point for what used to be hardcoded keydown chains, plus the
  * File / View / Edit commands the menus run (Phase 13).
  */
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { defineCommand, defineTypedCommand, installGlobalCommands } from "@/core/commands";
 import { edition } from "@/core/flags";
 import { PRESET_IDS, presetsFor } from "@/core/workspace/layout";
 import { useWorkspaceStore } from "@/core/workspace/useWorkspaceStore";
+import { useCameraStore } from "@/core/store/useCameraStore";
+import { projectSession } from "@/core/storage/ProjectSession";
+import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
+import { useSnapStore } from "@/core/store/useSnapStore";
+import { registerFrameCommands } from "@/core/frames/frameCommands";
+import { registerSelectionCommands } from "@/core/selection/selectionCommands";
+import { registerEditingCommands } from "@/core/editing/editCommands";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
 export interface ShellCommandActions {
@@ -21,13 +29,13 @@ export interface ShellCommandActions {
   showBottomTab: (tabId: string) => void;
   exportProjectFile: () => void;
   openImportPicker: () => void;
-  setZoomLevel: Dispatch<SetStateAction<number>>;
   openSettings: () => void;
   /** Switches to a workspace preset and performs what it asks beyond layout. */
   selectPreset: (preset: string) => void;
 }
 
 export function useShellCommands(actions: ShellCommandActions) {
+  const router = useRouter();
   const {
     toggleCommandPalette,
     toggleGlobalSearch,
@@ -36,7 +44,6 @@ export function useShellCommands(actions: ShellCommandActions) {
     showBottomTab,
     exportProjectFile,
     openImportPicker,
-    setZoomLevel,
     openSettings,
     selectPreset,
   } = actions;
@@ -83,6 +90,7 @@ export function useShellCommands(actions: ShellCommandActions) {
         title: "Live Code Inspector",
         category: "View",
         keybinding: "Ctrl+Shift+G",
+        when: (ctx) => !ctx.canvasFocus, // on the canvas Ctrl+Shift+G is Ungroup (Phase 29)
         run: () => dockFullPage("code", "Live Code Inspector"),
       }),
       defineCommand({
@@ -118,6 +126,7 @@ export function useShellCommands(actions: ShellCommandActions) {
         title: "Undo History & Transaction Timeline",
         category: "Navigation",
         keybinding: "Ctrl+Shift+H",
+        when: (ctx) => !ctx.canvasFocus, // on the canvas Ctrl+Shift+H is Hide / Show (Phase 29)
         run: () => dockFullPage("history", "Undo History"),
       }),
       defineCommand({
@@ -166,15 +175,68 @@ export function useShellCommands(actions: ShellCommandActions) {
     const unregisters = [
       defineCommand({ id: "file.exportProjectFile", title: "Export Project File (.lazy.json)", category: "File", run: () => exportProjectFile() }),
       defineCommand({ id: "file.importProjectFile", title: "Import Project File...", category: "File", run: () => openImportPicker() }),
-      defineCommand({ id: "view.zoomIn", title: "Zoom In", category: "View", run: () => setZoomLevel((z) => Math.min(z + 10, 250)) }),
-      defineCommand({ id: "view.zoomOut", title: "Zoom Out", category: "View", run: () => setZoomLevel((z) => Math.max(z - 10, 25)) }),
-      defineCommand({ id: "view.zoomReset", title: "Reset Zoom (100%)", category: "View", run: () => setZoomLevel(100) }),
+      defineCommand({ id: "view.zoomIn", title: "Zoom In", category: "View", run: () => useCameraStore.getState().stepZoom(1) }),
+      defineCommand({ id: "view.zoomOut", title: "Zoom Out", category: "View", run: () => useCameraStore.getState().stepZoom(-1) }),
+      defineCommand({ id: "view.zoomReset", title: "Reset Zoom (100%)", category: "View", run: () => useCameraStore.getState().zoomTo100() }),
       defineCommand({ id: "app.preferences", title: "Preferences...", category: "Edit", run: () => openSettings() }),
+      // The project hub is the start page: saving first means leaving never loses an edit.
+      defineCommand({ id: "file.newProject", title: "New Project...", category: "File", run: () => void projectSession.flush().finally(() => router.push("/")) }),
+      defineCommand({ id: "file.closeProject", title: "Close Project", category: "File", run: () => void projectSession.flush().finally(() => router.push("/")) }),
+      defineCommand({
+        id: "view.toggleFullscreen",
+        title: "Toggle Fullscreen",
+        category: "View",
+        run: () => void (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => undefined),
+      }),
     ];
     return () => {
       for (const unregister of unregisters) unregister();
     };
-  }, [exportProjectFile, openImportPicker, setZoomLevel, openSettings]);
+  }, [exportProjectFile, openImportPicker, openSettings, router]);
+
+  // Phase 28: snapping and rulers.
+  useEffect(() => {
+    const snap = () => useSnapStore.getState();
+    const unregisters = [
+      defineCommand({ id: "view.snapObjects", title: "Toggle Snap to Objects", category: "View", run: () => snap().toggle("objects") }),
+      defineCommand({ id: "view.snapGuides", title: "Toggle Snap to Guides", category: "View", run: () => snap().toggle("guides") }),
+      defineCommand({ id: "view.snapGrid", title: "Toggle Pixel Grid Snap", category: "View", run: () => snap().toggle("grid") }),
+      defineCommand({ id: "view.toggleRulers", title: "Show / Hide Rulers", category: "View", keybinding: "Shift+R", when: (ctx) => ctx.canvasFocus && !ctx.textEditing, run: () => snap().toggle("rulers") }),
+    ];
+    return () => unregisters.forEach((off) => off());
+  }, []);
+
+  // Phase 28: snapping and rulers.
+  useEffect(() => {
+    const snap = () => useSnapStore.getState();
+    const unregisters = [
+      defineCommand({ id: "view.snapObjects", title: "Toggle Snap to Objects", category: "View", run: () => snap().toggle("objects") }),
+      defineCommand({ id: "view.snapGuides", title: "Toggle Snap to Guides", category: "View", run: () => snap().toggle("guides") }),
+      defineCommand({ id: "view.snapGrid", title: "Toggle Pixel Grid Snap", category: "View", run: () => snap().toggle("grid") }),
+      defineCommand({ id: "view.toggleRulers", title: "Show / Hide Rulers", category: "View", keybinding: "Shift+R", when: (ctx) => ctx.canvasFocus && !ctx.textEditing, run: () => snap().toggle("rulers") }),
+    ];
+    return () => unregisters.forEach((off) => off());
+  }, []);
+
+  // Phase 23: Design mode (the canvas picks layers) and Preview mode (the page is clickable).
+  useEffect(() => {
+    const view = () => useCanvasViewStore.getState();
+    const unregisters = [
+      defineCommand({ id: "view.designMode", title: "Design Mode", category: "View", run: () => view().setMode("design") }),
+      defineCommand({ id: "view.previewMode", title: "Preview Mode", category: "View", run: () => view().setMode("preview") }),
+      defineCommand({ id: "view.toggleMode", title: "Toggle Design / Preview", category: "View", run: () => view().setMode(view().mode === "design" ? "preview" : "design") }),
+    ];
+    return () => unregisters.forEach((off) => off());
+  }, []);
+
+  // Phase 21: add, duplicate, rename, resize, reorder and delete frames, and focus one.
+  useEffect(() => registerFrameCommands(), []);
+
+  // Phase 26: select all / none / inverse / children / parent.
+  useEffect(() => registerSelectionCommands(), []);
+
+  // Phase 29: copy, paste, duplicate, delete, nudge, arrange, group, lock, hide, rename.
+  useEffect(() => registerEditingCommands(), []);
 
   // Phase 15: workspace presets and saved layouts. The no-argument commands are what the
   // palette runs; the typed ones (`args`) are what an agent calls (Law 20).

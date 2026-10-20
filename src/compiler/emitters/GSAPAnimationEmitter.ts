@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import { AnimationSample, AnimationTrack, AnimationTrackId, KeyframePoint } from "@/core/types/animations";
+import { AnimationSample, AnimationTrackId } from "@/core/types/animations";
 import { GSAPAnimationEmitterOptions, EmittedFile } from "@/core/types/compiler";
 
 export class GSAPAnimationEmitter {

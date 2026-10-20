@@ -16,10 +16,6 @@ import {
   Boxes,
   ArrowRight,
   X,
-  PieChart,
-  HardDrive,
-  GitBranch,
-  Repeat,
 } from "lucide-react";
 import { useDependencyStore } from "../../../core/store/useDependencyStore";
 import { DependencyNode, DependencyNodeType } from "../../../core/types/dependencies";

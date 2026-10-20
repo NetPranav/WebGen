@@ -201,6 +201,8 @@ const DEFS = {
   "frame.widthUnit": unitOf(VISUAL),
   "frame.heightUnit": unitOf(VISUAL),
   "frame.rotation": deg(0, "rotate", "layout", VISUAL),
+  // Phase 28: a frame's ruler guides, as JSON text: [{"axis":"x"|"y","pos":px relative to the frame}]. Only top-level frames use it.
+  "frame.guides": str("[]", null, "layout", only("container")),
   "sizing.horizontal": oneOf(["fixed", "hug", "fill"], "hug", null, "layout", VISUAL),
   "sizing.vertical": oneOf(["fixed", "hug", "fill"], "hug", null, "layout", VISUAL),
   positioning: oneOf(["absolute", "flow"], "flow", "position", "layout", VISUAL),

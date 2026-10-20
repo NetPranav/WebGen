@@ -62,7 +62,7 @@ export function useTearOffChannel(options: UseTearOffChannelOptions = {}) {
       channel.close();
       channelRef.current = null;
     };
-  }, []);
+  }, [optionsRef]);
 
   const sendDetach = useCallback((panelId: string, panelTitle?: string, sourceZone?: string) => {
     channelRef.current?.postMessage({

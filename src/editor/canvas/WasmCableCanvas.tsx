@@ -97,7 +97,7 @@ export const WasmCableCanvas: React.FC<WasmCableCanvasProps> = ({
   zoom = 1,
   width,
   height,
-  className = "",
+  className: _className = "",
   onWireHover,
   onWireClick,
   onWireContextMenu,

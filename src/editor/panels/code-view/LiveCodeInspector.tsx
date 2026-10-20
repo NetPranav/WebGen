@@ -13,22 +13,16 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   FileCode,
-  FileText,
   Database,
   Copy,
   Check,
   Download,
-  RefreshCw,
   Search,
   Zap,
   Globe,
   Layers,
   Sparkles,
-  ExternalLink,
   Code,
-  CheckCircle2,
-  AlertCircle,
-  Hash,
   FolderArchive,
 } from "lucide-react";
 import { useProjectStore, ProjectStoreState } from "@/core/store/useProjectStore";

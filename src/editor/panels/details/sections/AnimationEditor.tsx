@@ -14,13 +14,8 @@
 import React, { useState, useMemo } from "react";
 import {
   Sparkles,
-  Plus,
-  Play,
-  Pause,
-  Sliders,
   CheckCircle2,
   AlertTriangle,
-  Clock,
   Activity,
   Trash2,
 } from "lucide-react";

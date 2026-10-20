@@ -7,7 +7,6 @@ import {
   MEDIA_PRESETS,
   STRUCTURAL_PRESETS,
   TEXT_PRESETS,
-  getPresetById,
   getPresetsByFamily,
   getPresetsForArchetype,
   instantiatePreset,

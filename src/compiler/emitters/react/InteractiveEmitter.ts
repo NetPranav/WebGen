@@ -180,7 +180,7 @@ export default ${name};
   private static emitToggle(
     name: string,
     label: string,
-    props: Record<string, unknown>,
+    _props: Record<string, unknown>,
     styling: string,
     hookCall: string,
     refProp: string
@@ -328,7 +328,7 @@ export default ${name};
   private static emitBadge(
     name: string,
     label: string,
-    props: Record<string, unknown>,
+    _props: Record<string, unknown>,
     styling: string,
     hookCall: string,
     refProp: string
@@ -423,7 +423,7 @@ export default ${name};
   private static emitFab(
     name: string,
     label: string,
-    props: Record<string, unknown>,
+    _props: Record<string, unknown>,
     styling: string,
     hookCall: string,
     refProp: string

@@ -20,21 +20,13 @@ import {
   GitFork,
   ArrowRightLeft,
   Settings2,
-  Lock,
-  Globe,
-  Variable,
   AlertTriangle,
-  Check,
   X,
-  Sparkles,
-  Shield,
-  FileText,
-  Copy,
   Trash2,
 } from "lucide-react";
 import { useProjectStore, PageDefinition } from "@/core/store/useProjectStore";
 import { type FullEditionProjectStoreState } from "@/core/store/fullEditionTypes";
-import { RedirectRule, RouteParameter, extractRouteParameters, normalizeRouteSlug } from "@/core/types/routing";
+import { extractRouteParameters, normalizeRouteSlug } from "@/core/types/routing";
 import { RouteCard } from "./RouteCard";
 import { NavigationFlowDiagram } from "./NavigationFlowDiagram";
 
@@ -59,7 +51,6 @@ export const PagesManager: React.FC<PagesManagerProps> = ({ className, style }) 
   const deletePage = useProjectStore((s) => (s as FullEditionProjectStoreState).deletePage);
   const duplicatePage = useProjectStore((s) => (s as FullEditionProjectStoreState).duplicatePage);
   const addRedirectRule = useProjectStore((s) => (s as FullEditionProjectStoreState).addRedirectRule);
-  const updateRedirectRule = useProjectStore((s) => (s as FullEditionProjectStoreState).updateRedirectRule);
   const deleteRedirectRule = useProjectStore((s) => (s as FullEditionProjectStoreState).deleteRedirectRule);
 
   // Local UI states

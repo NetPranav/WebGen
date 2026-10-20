@@ -219,11 +219,9 @@ describe("Sub-Phase 7.4: Plugin Architecture & Extension SDK (Panel 29)", () => 
   describe("7. Reactive Subscription Listener", () => {
     it("triggers subscriber notification on state changes", () => {
       let callCount = 0;
-      let lastPluginCount = 0;
 
-      const unsubscribe = PluginManagerEngine.subscribe((plugins) => {
+      const unsubscribe = PluginManagerEngine.subscribe((_plugins) => {
         callCount++;
-        lastPluginCount = plugins.length;
       });
 
       // Initial call on subscribe

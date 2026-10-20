@@ -24,7 +24,6 @@ import {
   Check,
   ImageIcon,
   Box,
-  Table,
   Workflow,
   ZoomIn,
   ZoomOut,
@@ -142,7 +141,7 @@ type DevicePreview = "desktop" | "tablet" | "mobile";
 export const AssetFileEditor: React.FC<AssetFileEditorProps> = ({
   assetId,
   assetTitle,
-  isDirty = false,
+  isDirty: _isDirty = false,
   onSave,
   onSwitchToBlueprint,
 }) => {

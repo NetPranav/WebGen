@@ -16,7 +16,7 @@ export interface AABB {
   maxY: number;
 }
 
-export type SpatialItemType = "node" | "pin" | "wire" | "comment";
+export type SpatialItemType = "node" | "pin" | "wire" | "comment" | "layer";
 
 export interface SpatialItem {
   id: string;

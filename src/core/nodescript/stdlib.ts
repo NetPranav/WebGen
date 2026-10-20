@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import { getAllRegisteredNodes, NodeDefinition } from "@/core/types/node-registry";
+import { getAllRegisteredNodes } from "@/core/types/node-registry";
 
 export const NODESCRIPT_STDLIB_VERSION = "1.0.0";
 export const SUPPORTED_NLS_VERSIONS = ["1.0", "1.0.0"];

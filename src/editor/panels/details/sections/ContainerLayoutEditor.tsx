@@ -17,18 +17,12 @@ import {
   Layout,
   Grid,
   Columns,
-  Rows,
   Maximize2,
   ArrowRight,
   ArrowDown,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
   GripVertical,
   Eye,
   EyeOff,
-  RotateCcw,
   ChevronRight,
   Plus,
   Trash2,
@@ -45,7 +39,7 @@ export interface ContainerLayoutEditorProps {
 export const ContainerLayoutEditor: React.FC<ContainerLayoutEditorProps> = ({
   config,
   onChange,
-  onReset,
+  onReset: _onReset,
 }) => {
   const [openSubgroups, setOpenSubgroups] = useState({
     mode: true,

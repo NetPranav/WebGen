@@ -14,7 +14,6 @@ import {
   BlueprintGraph,
   BlueprintNodeInstance,
   BlueprintWire,
-  BlueprintVariable,
 } from "@/core/ast/ASTManager";
 import { LogicFlowEmitterOptions, EmittedFile } from "@/core/types/compiler";
 

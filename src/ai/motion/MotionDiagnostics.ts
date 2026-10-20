@@ -67,7 +67,7 @@ export class MotionDiagnostics {
   /**
    * Identifies layout reflow violations where geometric properties are animated.
    */
-  private checkLayoutReflows(element: Layer, animations: ClipTemplate[]): MotionDiagnosticIssue[] {
+  private checkLayoutReflows(_element: Layer, animations: ClipTemplate[]): MotionDiagnosticIssue[] {
     const issues: MotionDiagnosticIssue[] = [];
     const reflowProps = ["layout.width", "layout.height", "layout.top", "layout.left", "layout.margin", "layout.padding"];
 

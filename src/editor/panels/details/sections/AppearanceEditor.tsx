@@ -17,14 +17,6 @@ import {
   ChevronRight,
   Link,
   Unlink,
-  RotateCcw,
-  Sparkles,
-  Layers,
-  Move,
-  Clock,
-  Shield,
-  Palette,
-  Image as ImageIcon,
 } from "lucide-react";
 import {
   AssetAppearanceSchema,
@@ -50,7 +42,7 @@ export interface AppearanceEditorProps {
 export const AppearanceEditor: React.FC<AppearanceEditorProps> = ({
   appearance,
   onChange,
-  onResetToDefault,
+  onResetToDefault: _onResetToDefault,
 }) => {
   // Collapsible sub-sections
   const [openSubgroups, setOpenSubgroups] = useState({

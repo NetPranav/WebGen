@@ -145,7 +145,6 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
   const {
     blueprintGraphs,
     activeBlueprintGraphId,
-    setActiveBlueprintGraph,
     addBlueprintNode,
     removeBlueprintNode,
     moveBlueprintNode,

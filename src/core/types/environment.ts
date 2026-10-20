@@ -1,3 +1,4 @@
+import { MAX_ZOOM, MIN_ZOOM } from "../viewport/camera";
 /**
  * ============================================================================
  * WORLD ENVIRONMENT & ELEMENT EXPERIENCE TYPES (THE TOP 20)
@@ -161,8 +162,9 @@ export const DEFAULT_ENVIRONMENT_SETTINGS: WorldEnvironmentSettings = {
     zoom: {
       enabled: true,
       speed: "normal",
-      min: 10,
-      max: 400,
+      // the canvas camera is the authority on the range (percent); these follow it
+      min: MIN_ZOOM * 100,
+      max: MAX_ZOOM * 100,
     },
     grid: {
       style: "dots",

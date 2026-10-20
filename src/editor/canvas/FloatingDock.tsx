@@ -13,12 +13,16 @@
  */
 
 import React from "react";
+import { dockTools, type ToolId } from "@/core/tools/toolDefs";
 import {
   MousePointer2,
   Hand,
   Square,
   Circle,
   Minus,
+  ArrowUpRight,
+  Hexagon,
+  Star,
   Frame as FrameIcon,
   Type,
   Plus,
@@ -35,39 +39,27 @@ import {
 // either a shape-handle-editing UI or a bezier/freehand path-drawing UI that
 // doesn't exist yet — every tool actually listed here is fully functional,
 // not a placeholder button that looks clickable and does nothing.
-export type CanvasTool =
-  | "select"
-  | "pan"
-  | "frame"
-  | "rectangle"
-  | "ellipse"
-  | "line"
-  | "text";
-
 interface FloatingDockProps {
-  activeTool: CanvasTool;
-  onSelectTool: (tool: CanvasTool) => void;
+  activeTool: ToolId;
+  onSelectTool: (tool: ToolId) => void;
   onOpenQuickInsert?: () => void;
   className?: string;
   style?: React.CSSProperties;
 }
 
-interface ToolDefinition {
-  id: CanvasTool;
-  name: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  shortcut: string;
-}
-
-const TOOLS: ToolDefinition[] = [
-  { id: "select", name: "Select Tool", icon: MousePointer2, shortcut: "V" },
-  { id: "pan", name: "Hand Tool (Pan)", icon: Hand, shortcut: "H" },
-  { id: "frame", name: "Frame Tool", icon: FrameIcon, shortcut: "F" },
-  { id: "rectangle", name: "Rectangle Tool", icon: Square, shortcut: "R" },
-  { id: "ellipse", name: "Ellipse Tool", icon: Circle, shortcut: "O" },
-  { id: "line", name: "Line Tool", icon: Minus, shortcut: "L" },
-  { id: "text", name: "Text Tool", icon: Type, shortcut: "T" },
-];
+/** One icon per tool that has a button. The list of tools comes from `dockTools()`: a tool whose feature isn't built yet has no button. */
+const ICONS: Partial<Record<ToolId, React.ComponentType<{ size?: number; className?: string }>>> = {
+  select: MousePointer2,
+  pan: Hand,
+  frame: FrameIcon,
+  rectangle: Square,
+  ellipse: Circle,
+  line: Minus,
+  arrow: ArrowUpRight,
+  polygon: Hexagon,
+  star: Star,
+  text: Type,
+};
 
 export const FloatingDock: React.FC<FloatingDockProps> = ({
   activeTool,
@@ -83,8 +75,9 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({
         role="toolbar"
         aria-label="Confluence Whiteboard Tools"
       >
-        {TOOLS.map((tool) => {
-          const Icon = tool.icon;
+        {dockTools().map((tool) => {
+          const Icon = ICONS[tool.id];
+          if (!Icon) return null;
           const isActive = activeTool === tool.id;
 
           return (
@@ -93,32 +86,31 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({
               type="button"
               className={`floating-dock__btn ${isActive ? "floating-dock__btn--active" : ""}`}
               onClick={() => onSelectTool(tool.id)}
-              aria-label={tool.name}
+              aria-label={tool.label}
               aria-pressed={isActive}
             >
               <Icon size={16} />
               <span className="floating-dock__tooltip" role="tooltip">
-                {tool.name}
+                {tool.label}
                 <kbd className="floating-dock__kbd">{tool.shortcut}</kbd>
               </span>
             </button>
           );
         })}
 
-        <div className="floating-dock__divider" />
-
-        <button
-          type="button"
-          className="floating-dock__btn"
-          onClick={onOpenQuickInsert}
-          aria-label="Add Node / Asset"
-        >
-          <Plus size={16} />
-          <span className="floating-dock__tooltip" role="tooltip">
-            Quick Insert
-            <kbd className="floating-dock__kbd">Tab</kbd>
-          </span>
-        </button>
+        {/* Quick Insert has no behaviour yet: its button appears with the feature. */}
+        {onOpenQuickInsert && (
+          <>
+            <div className="floating-dock__divider" />
+            <button type="button" className="floating-dock__btn" onClick={onOpenQuickInsert} aria-label="Add Node / Asset">
+              <Plus size={16} />
+              <span className="floating-dock__tooltip" role="tooltip">
+                Quick Insert
+                <kbd className="floating-dock__kbd">Tab</kbd>
+              </span>
+            </button>
+          </>
+        )}
       </nav>
     </div>
   );

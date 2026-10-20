@@ -23,13 +23,11 @@ import {
   Check,
   X,
   Sparkles,
-  Layers,
 } from "lucide-react";
 import { useFullEditionProjectStore } from "@/core/store/fullEditionTypes";
 import {
   CollectionSchema,
   DatabaseField,
-  DatabaseFieldType,
 } from "@/core/types/database";
 import { DatabaseValidator } from "@/core/engine/DatabaseValidator";
 import { EntityTableCard } from "./EntityTableCard";

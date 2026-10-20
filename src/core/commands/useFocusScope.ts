@@ -35,10 +35,18 @@ export function bindFocusScope(el: EventTarget, scope: FocusScope): () => void {
     if (useContextKeysStore.getState()[FOCUS_KEY_FOR_SCOPE[scope]]) setFocusScope(null);
   };
   const onEnter = () => setFocusScope(scope);
+  // A pointer that never left (a context menu closed under it, a popover went away) fires no new enter, so a move
+  // over the region claims the scope back if nothing else holds it. WebKit doesn't re-send enter in those cases.
+  const onMove = () => {
+    const s = useContextKeysStore.getState();
+    if (!s.canvasFocus && !s.timelineFocus && !s.blueprintFocus) setFocusScope(scope);
+  };
   el.addEventListener("pointerenter", onEnter);
+  el.addEventListener("pointermove", onMove);
   el.addEventListener("pointerleave", clearIfStillActive);
   return () => {
     el.removeEventListener("pointerenter", onEnter);
+    el.removeEventListener("pointermove", onMove);
     el.removeEventListener("pointerleave", clearIfStillActive);
     clearIfStillActive();
   };

@@ -10,7 +10,6 @@ import {
 } from "../svg";
 import {
   ARCHETYPE_PROPERTY_BINDING_MATRIX,
-  DatabasePropertyCategory,
 } from "../database";
 import { ARCHETYPE_ANIMATION_COMPATIBILITY } from "../animations";
 import { DataBindingValidator } from "@/core/engine/DataBindingValidator";

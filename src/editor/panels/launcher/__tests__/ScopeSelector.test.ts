@@ -45,7 +45,6 @@ describe("Sub-Phase 2.1: Element-Only Scope Selector", () => {
     });
 
     it("renders Component Design card in disabled state with tooltip reason", () => {
-      let clicked = false;
       const props: ScopeCardProps = {
         scope: "component",
         title: "Component Design",
@@ -55,7 +54,6 @@ describe("Sub-Phase 2.1: Element-Only Scope Selector", () => {
         disabled: true,
         disabledReason: "Coming in a later phase — see ROADMAP.md",
         onClick: () => {
-          clicked = true;
         },
       };
 

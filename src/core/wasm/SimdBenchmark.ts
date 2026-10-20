@@ -10,7 +10,7 @@
  * ============================================================================
  */
 
-import { Point2D, SplineConfig, SplineResult, SplineSolver } from "./SplineSolver";
+import { SplineResult, SplineSolver } from "./SplineSolver";
 import { WireJobInput } from "./types/worker-pool";
 
 export interface BenchmarkCountResult {

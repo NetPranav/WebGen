@@ -19,16 +19,9 @@ import {
   Send,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
-  Layers,
   Wand2,
-  Flame,
   Search,
-  Check,
   X,
-  Play,
-  Activity,
-  Cpu,
 } from "lucide-react";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { motionAiEngine, MotionAiResponse } from "@/ai/motion/MotionAiEngine";

@@ -18,8 +18,8 @@
 import React, { useState, useRef, useMemo, useCallback } from "react";
 import "@/editor/styles/sequencer.css";
 import { Point2D, SplineSolver } from "@/core/wasm/SplineSolver";
-import { SpringEditor, SpringConfig } from "./SpringEditor";
-import { Play, RotateCcw, Check, Sparkles, Layers, Sliders } from "lucide-react";
+import { SpringEditor } from "./SpringEditor";
+import { Play, Check, Sparkles, Sliders } from "lucide-react";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import { getLayerClips } from "@/core/document/factories";
 import { documentCommands, getDocument, useLayers } from "@/core/store/useDocumentStore";

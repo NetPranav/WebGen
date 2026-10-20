@@ -5,8 +5,11 @@ import { useContextKeysStore } from "../commands/contextKeys";
 import type { ContextKeys } from "../commands/types";
 import { subscribeTransport, transport } from "./transport";
 
-/** The transport applies to the canvas and the timeline, never while a text field has focus. */
-const stageOrTimeline = (ctx: ContextKeys) => !ctx.textEditing && (ctx.timelineFocus || ctx.canvasFocus);
+/**
+ * The transport's keys are timeline-focus commands (ROADMAP Phase 63: "all are commands with timeline focus"), never
+ * while a text field has focus. J/K/L shuttle used to apply on the canvas too; the canvas needs L for the Line tool
+ * (Phase 24), and J, K and L are one set.
+ */
 const timelineOnly = (ctx: ContextKeys) => !ctx.textEditing && ctx.timelineFocus;
 
 /**
@@ -25,9 +28,9 @@ export function installTransportCommands(): () => void {
     defineCommand({ id: "transport.stop", title: "Stop and Return to Start", category: "Transport", run: () => transport.stop() }),
     defineCommand({ id: "transport.stepForward", title: "Step Forward One Frame", category: "Transport", keybinding: "ArrowRight", when: timelineOnly, run: () => transport.stepFrame(1) }),
     defineCommand({ id: "transport.stepBack", title: "Step Back One Frame", category: "Transport", keybinding: "ArrowLeft", when: timelineOnly, run: () => transport.stepFrame(-1) }),
-    defineCommand({ id: "transport.shuttleReverse", title: "Shuttle Reverse (J)", category: "Transport", keybinding: "J", when: stageOrTimeline, run: () => transport.shuttle("reverse") }),
-    defineCommand({ id: "transport.shuttleStop", title: "Stop Shuttle (K)", category: "Transport", keybinding: "K", when: stageOrTimeline, run: () => transport.stopShuttle() }),
-    defineCommand({ id: "transport.shuttleForward", title: "Shuttle Forward (L)", category: "Transport", keybinding: "L", when: stageOrTimeline, run: () => transport.shuttle("forward") }),
+    defineCommand({ id: "transport.shuttleReverse", title: "Shuttle Reverse (J)", category: "Transport", keybinding: "J", when: timelineOnly, run: () => transport.shuttle("reverse") }),
+    defineCommand({ id: "transport.shuttleStop", title: "Stop Shuttle (K)", category: "Transport", keybinding: "K", when: timelineOnly, run: () => transport.stopShuttle() }),
+    defineCommand({ id: "transport.shuttleForward", title: "Shuttle Forward (L)", category: "Transport", keybinding: "L", when: timelineOnly, run: () => transport.shuttle("forward") }),
     defineCommand({ id: "transport.cycleLoop", title: "Cycle Loop Mode", category: "Transport", run: () => transport.cycleLoop() }),
   ];
 

@@ -12,7 +12,6 @@
  */
 
 import React from "react";
-import { Sparkles, Layers } from "lucide-react";
 import { documentCommands, useLayers } from "@/core/store/useDocumentStore";
 import type { PropValue } from "@/core/document/registry";
 import { readProps } from "@/core/document/props";
@@ -25,7 +24,7 @@ export interface BackgroundSectionProps {
 
 export const BackgroundSection: React.FC<BackgroundSectionProps> = ({
   elementId,
-  elementName,
+  elementName: _elementName,
 }) => {
   const elements = useLayers();
   const currentElement = elements[elementId];

@@ -11,9 +11,9 @@
  */
 
 import { NodeScriptParser } from "@/core/nodescript/Parser";
-import { BlueprintGraph, BlueprintWire } from "@/core/ast/ASTManager";
+import { BlueprintGraph } from "@/core/ast/ASTManager";
 import { TypeChecker } from "@/core/ast/TypeChecker";
-import { getNodeDefinition, PinDefinition } from "@/core/types/node-registry";
+import { getNodeDefinition } from "@/core/types/node-registry";
 import { toRegistryNodeType } from "@/core/nodescript/stdlib";
 import { StructuredIntent } from "@/ai/intent/intent-types";
 
@@ -292,7 +292,7 @@ export class ConstrainedDecoder {
   public static repairScript(
     script: string,
     diagnostics: string[],
-    graph: BlueprintGraph
+    _graph: BlueprintGraph
   ): string {
     const lines = script.split("\n");
     const repairedLines: string[] = [];
@@ -337,7 +337,7 @@ export class ConstrainedDecoder {
   /**
    * Syntax error repair pass: corrects missing headers, unmatched braces, etc.
    */
-  public static repairSyntaxErrors(script: string, errMsg: string): string {
+  public static repairSyntaxErrors(script: string, _errMsg: string): string {
     let repaired = script;
 
     // 1. Ensure version header
