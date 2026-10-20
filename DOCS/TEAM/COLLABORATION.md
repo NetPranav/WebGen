@@ -82,10 +82,13 @@ To keep that cheap, a few files are **shared hot spots**. Changing them is fine;
 ## 5. Day-to-day git: merge every day
 
 - **`main` only changes through pull requests with green CI.** That applies to both people, admins included. No force-pushes to `main`.
-- One branch per phase, named as in §1. A phase may land as several PRs (e.g. `a/phase-18-stage-host-1`, `-2`).
+- One branch per phase **or per batch of phases**, named as in §1 (a batch uses the first and last phase: `b/phase-53-58-schema-and-engine`). A phase may land as several PRs (e.g. `a/phase-18-stage-host-1`, `-2`).
+- **Batching is allowed.** One Claude run may build 5–10 phases in order on one branch and land them as one PR (or a few). Phases still go in order (Law 18), each phase keeps its own commit(s), changelog fragment and ROADMAP rows, and a phase is ✅ only when its gate passes in CI. Don't make a PR per phase just to satisfy a rule: there isn't one.
+- **You merge your own PR.** GitHub only needs the PR and green `verify` + `e2e` checks (no reviewer approval is required). When CI is green, the PR's author squash-merges it (or tells their Claude to). Nobody needs the other person's approval.
 - **Merge into `main` every day.** At the end of each working day, each person opens or updates a PR with whatever is done and green, and merges it. Smaller, daily merges mean conflicts stay small. Unfinished work can merge if it's hidden or harmless; the phase just stays 🚧.
 - **Start every session from the latest `main`:**
   `git fetch origin && git rebase origin/main`
+  (That is the only way the other lane's work reaches you: through `main`. Never merge or cherry-pick the other person's branch into yours.)
 - If something goes wrong after a merge (a conflict, a broken feature, the other person's work changed under you), **fix it forward** in the next PR. Talk it through with the other person if the fix touches their phase.
 - Merge style: **squash merge**, with a conventional-commit PR title: `feat(canvas): Phase 25 creation tools`.
 - Never rewrite a branch the other person has pulled.
@@ -115,7 +118,7 @@ The PR template (`.github/pull_request_template.md`) asks for this. In short:
 1. Know your lane (§1). Work on phases in your lane, in order. You may edit any file a phase needs (§3).
 2. Before starting a phase: `git fetch origin`, rebase on `origin/main`, check that every phase in its "Needs" line is ✅ on `origin/main`, and check `CLAIMS.md`.
 3. If you change a shared hot spot (§3), say so in the PR description and in your end-of-session summary.
-4. Never push to `main` or merge a PR unless the person asks. Never use `--force` on a shared branch. Never pass `--admin` to bypass branch protection.
+4. Never push to `main`. Merge a PR only when the person asks, and only a PR from their own lane (never the other lane's, unless they say so by name). Never use `--force` on a shared branch. Never pass `--admin` to bypass branch protection.
 5. Never edit `CHANGELOG.md` directly; write a fragment. Never mark a phase ✅ before its gate passes in CI.
 6. Don't add `Co-Authored-By: Claude` trailers to commits or PRs in this repo.
 7. At the end of a session, remind the person about the daily merge (§5) and summarise: the branch, what's done, what's next, and any hot-spot change the other lane should know about.
