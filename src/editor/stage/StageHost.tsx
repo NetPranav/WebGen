@@ -19,6 +19,7 @@ import { StageRenderer, registerFrameRenderer, setStageRenderer } from "@/core/r
 import { installStageEngine } from "@/core/engine/stage/StageEngine";
 import { evaluate } from "@/core/kernel/evaluate";
 import { getTransport, transport } from "@/core/time/transport";
+import { parityStore } from "@/core/engine/stage/parity";
 import { StageFrame, type FrameMount } from "./StageFrame";
 import { useFontSync } from "../fonts/useFontSync";
 import { useFontsStore } from "@/core/store/useFontsStore";
@@ -41,7 +42,7 @@ declare global {
   interface Window {
     __LL_TEST__?: boolean;
     __LL_STAGE__?: StageRenderer;
-    __LL_ENGINE__?: { kernel(layerId: string, time: number): Record<string, unknown>; seek(time: number): void; play(): void; pause(): void; time(): number };
+    __LL_ENGINE__?: { kernel(layerId: string, time: number): Record<string, unknown>; seek(time: number): void; play(): void; pause(): void; time(): number; parity(): { status: string; drifts: unknown[] }; loop(on: boolean): void };
   }
 }
 
@@ -109,7 +110,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
     const uninstall = installStageEngine(renderer);
     // Test seam: the kernel's answer for a layer, and the transport's seek, so a browser test can compare the stage with the oracle.
     if (window.__LL_TEST__) {
-      window.__LL_ENGINE__ = { kernel: (layerId, time) => evaluate(getDocument(), getTransport().compositionId, layerId, time), seek: (time) => transport.seek(time), play: () => transport.play(), pause: () => transport.pause(), time: () => getTransport().time };
+      window.__LL_ENGINE__ = { kernel: (layerId, time) => evaluate(getDocument(), getTransport().compositionId, layerId, time), seek: (time) => transport.seek(time), play: () => transport.play(), pause: () => transport.pause(), time: () => getTransport().time, parity: () => parityStore.getState(), loop: (on) => transport.setLoop(on ? "loop" : "off") };
     }
     return () => {
       uninstall();

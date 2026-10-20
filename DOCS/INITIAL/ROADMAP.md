@@ -236,7 +236,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | ✅ |
 | 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | ✅ |
 | 59 | Scrub vs play | 58 | v3 10.2 | 2 | 🚧 |
-| 60 | Parity overlay | 59 | v3 10.3 | 2 | 📋 |
+| 60 | Parity overlay | 59 | v3 10.3 | 2 | 🚧 |
 | 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 📋 |
 | 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | 📋 |
 | 63 | Timeline navigation | 62 | v3 52.3 | 2 | 📋 |
@@ -921,8 +921,8 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** 10 reference animations show identical screenshots paused at 5 times from the kernel and from the running engine (≤ 0.5%).
 
 ### Phase 60 · Parity overlay
-**Needs:** 59 · **Was:** v3 10.3 · **Status:** 📋
-- [ ] A dev overlay samples running engines against `evaluate()` every N frames and raises `[PARITY_DRIFT]` beyond tolerance.
+**Needs:** 59 · **Was:** v3 10.3 · **Status:** 🚧
+- [x] A dev overlay samples running engines against `evaluate()` every N frames and raises `[PARITY_DRIFT]` beyond tolerance. `ParityMonitor` (`src/core/engine/stage/parity.ts`) runs in the scheduler's `stats` phase every 30 frames while an engine of its own is playing: it compares each running layer's computed lengths, numbers and transform matrix with `evaluate()` at the engine's own clock (0.5 px, 0.01 opacity, 0.005 matrix), and the engine's clock with the transport's (6 frames, two samples in a row). Drift is `console.warn`ed once per layer and property, kept in `parityStore`, and shown by the status-bar `ParityBadge` (grey idle, green OK, red drift with the details in its tooltip). Dev builds, tests and `?parity=1` only. Colours and `%` lengths aren't compared yet.
 
 **You'll see:** a parity badge in the status bar (dev builds) that turns red on drift.
 **Done when:** an injected wrong easing raises `[PARITY_DRIFT]`; correct playback stays green.

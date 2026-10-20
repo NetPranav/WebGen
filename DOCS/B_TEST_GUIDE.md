@@ -1,4 +1,4 @@
-# Lane B manual test guide (Phases 53–59)
+# Lane B manual test guide (Phases 53–60)
 
 **For:** `@OVERxPOWERED`. **Covers:** everything Lane B has merged to `main`, tested together with Lane A's work (`A_TEST_GUIDE.md`).
 **Updated:** after every phase. The newest phase is at the end of section 3 (look for "NEW" in the table below).
@@ -11,7 +11,8 @@
 | 56 | The Sequencer plays on that clock | #22 | 3.4 |
 | 57 | Pressing play animates the real layers on the stage | #36 | 3.5 |
 | 58 | Simple animations run as Web Animations | #44 | 3.6 |
-| 59 | Scrubbing is exact, playing hands over smoothly | this PR (NEW) | 3.7 |
+| 59 | Scrubbing is exact, playing hands over smoothly | #47 | 3.7 |
+| 60 | A parity badge in the status bar checks the engine against the kernel | this PR (NEW) | 3.8 |
 
 ## How to use this guide
 
@@ -277,7 +278,7 @@ If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
-### 3.7 Phase 59: scrub vs play (NEW)
+### 3.7 Phase 59: scrub vs play
 
 **What changed:** there is now a rule for who draws what. **Scrubbing or paused: the kernel draws every layer** (exact, at any time, in any order). **Playing: each layer hands over to its routed engine** (Web Animations for simple ones, the kernel for the rest) at the current time and speed. **Pausing hands it back.** The hand-over must not change a single pixel.
 
@@ -298,6 +299,30 @@ If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
+### 3.8 Phase 60: the parity badge (NEW)
+
+**What changed:** while an engine of its own (Web Animations) plays, the editor checks every 0.5 s that the layer shows what the kernel says it should. A small badge in the **status bar** (right side, left of the branch name) shows the result: **Parity idle** (grey), **Parity OK** (green) or **Parity drift** (red). It only exists in dev builds (`npm run dev`), or in a production build when you add `?parity=1` to the address.
+
+**User test** (use `npm run dev`; Recipe A first)
+- [ ] **T60.1** Do: look at the right side of the status bar before pressing anything. Expect: a grey badge **Parity idle**.
+- [ ] **T60.2** Do: click **Stop and return to start**, then **Play**, and watch the badge for about 3 seconds. Expect: it turns green and says **Parity OK**.
+- [ ] **T60.3** Do: hover the green badge. Expect: a tooltip such as "1 layer on an engine match evaluate()".
+- [ ] **T60.4** Do: click **Pause**. Expect: the badge goes grey (**Parity idle**) within about half a second.
+- [ ] **T60.5** Do: while paused, drag the playhead around. Expect: the badge stays grey (the kernel draws; nothing to compare).
+- [ ] **T60.6** Do: press **Play** and change playback speed with the pills (`0.25x`, `2x`) and loop modes while playing. Expect: the badge stays green throughout, never red, even for a moment after you click the ruler.
+- [ ] **T60.7** Do: open the production build with `npm run build && npm run start` and go to `http://localhost:3000/editor`. Expect: **no** badge. Add `?parity=1` after `/editor` (for example `/editor?projectId=<your id>&parity=1`): the badge appears.
+
+**Developer test: make it go red**
+- [ ] **T60.8** Do: with the demo playing, open DevTools → Console, switch the context dropdown (top left of the Console) from `top` to the **Stage** iframe (`stage-frame.html`), and run:
+  `document.getAnimations().forEach(a => a.effect.updateTiming({ easing: 'steps(3, end)' }))`
+  Expect: within about half a second the badge turns **red** (**Parity drift**), and the Console shows a warning starting `[PARITY_DRIFT] layer el_root_container, …`. Hovering the badge lists what differs.
+- [ ] **T60.9** Do: click **Pause**, then **Play** again. Expect: the animations are baked again from the kernel and the badge returns to green.
+- [ ] **T60.10** Do: `npx tsx --test src/core/engine/stage/__tests__/parity.test.ts`. Expect: 8 tests pass.
+- [ ] **T60.11** Do: `npx playwright test tests/e2e/parity.spec.ts --project=chromium`. Expect: 3 tests pass (green stays green; an injected wrong easing raises `[PARITY_DRIFT]`; the badge turns green in the editor).
+- [ ] **T60.12** Do: read `src/core/engine/stage/parity.ts`. Expect: tolerances 0.5 px for lengths, 0.01 for opacity, 0.005 for matrix entries, 6 frames for the clock, one sample every 30 frames.
+
+---
+
 ## 4. Regression checks (things that must still work)
 
 - [ ] **R1** Do: edit something, reload the page. Expect: your edit is still there and the Save button's dirty dot clears.
@@ -314,7 +339,7 @@ Repeat in **Firefox** and **Safari/WebKit** (CI runs all three):
 - [ ] **X1** Section 2 (smoke).
 - [ ] **X2** Recipe A, then T57.1–T57.4.
 - [ ] **X3** T54.1–T54.14 (transport bar).
-- [ ] **X4** T59.1, T59.3, T59.6 (hand-over).
+- [ ] **X4** T59.1, T59.3, T59.6 (hand-over) and T60.2 (badge turns green).
 - [ ] **X5** T53.1 and T53.3 (import and schema version).
 
 ## 6. Run the automated suites and compare
@@ -344,4 +369,4 @@ Several timing-based tests can fail once on a busy machine and pass when run alo
 
 ## 8. Reporting a problem
 
-For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–59). Fixes go on a `b/phase-NN-…` branch and through a pull request.
+For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–60). Fixes go on a `b/phase-NN-…` branch and through a pull request.

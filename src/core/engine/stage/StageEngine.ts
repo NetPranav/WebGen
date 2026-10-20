@@ -3,6 +3,7 @@ import { frameScheduler, type FrameScheduler } from "../../time/scheduler";
 import { getTransport, subscribeTransport } from "../../time/transport";
 import type { StageRenderer } from "../../render/StageRenderer";
 import { StageAdapters } from "./StageAdapters";
+import { ParityMonitor, parityEnabled } from "./parity";
 import type { AdapterHost, EngineAdapter } from "./types";
 
 /**
@@ -16,6 +17,8 @@ import type { AdapterHost, EngineAdapter } from "./types";
 export interface StageEngineOptions {
   scheduler?: FrameScheduler;
   adapter?: EngineAdapter;
+  /** Run the parity monitor (Phase 60). Default: dev builds, tests and `?parity=1`. */
+  parity?: boolean;
 }
 
 export function installStageEngine(renderer: StageRenderer, options: StageEngineOptions = {}): () => void {
@@ -67,7 +70,24 @@ export function installStageEngine(renderer: StageRenderer, options: StageEngine
     adapter.seek(time);
   });
 
+  // Phase 60: while playing, compare what the engines show with `evaluate()` every 30 frames.
+  const stageAdapters = adapter instanceof StageAdapters ? adapter : null;
+  const unmonitor =
+    stageAdapters && (options.parity ?? parityEnabled())
+      ? new ParityMonitor({
+          scheduler,
+          getDocument,
+          compositionId: () => getTransport().compositionId,
+          fps: () => getTransport().fps,
+          transportTime: () => getTransport().time,
+          isPlaying: () => getTransport().playing,
+          running: () => stageAdapters.running(),
+          read: (element, property) => element.ownerDocument.defaultView?.getComputedStyle(element).getPropertyValue(property) ?? "",
+        }).install()
+      : null;
+
   return () => {
+    unmonitor?.();
     unregister();
     unsubscribeTransport();
     unsubscribeNodes();

@@ -17,6 +17,7 @@
 
 import React from "react";
 import { TransportBar } from "./TransportBar";
+import { ParityBadge } from "./ParityBadge";
 import {
   Activity,
   Cpu,
@@ -154,6 +155,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
       {/* Right section: environment read-outs */}
       <div className="statusbar__right">
+        <ParityBadge />
         <div className="statusbar__item statusbar__item--branch" title={`Working on branch ${branchName}`}>
           <GitBranch size={11} className="statusbar__muted-icon" />
           <span>{branchName}</span>

@@ -34,6 +34,16 @@ const camel = (cssProperty: string) => cssProperty.replace(/-([a-z])/g, (_, c: s
 interface Baked {
   element: WaapiElement;
   animation: WaapiAnimation;
+  paths: ReadonlySet<string>;
+}
+
+/** A layer this adapter is running, for the parity monitor (Phase 60). */
+export interface RunningLayer {
+  layerId: string;
+  element: Element;
+  paths: ReadonlySet<string>;
+  /** The animation's own clock, in seconds. */
+  time: number;
 }
 
 export class WaapiAdapter implements EngineAdapter {
@@ -75,6 +85,16 @@ export class WaapiAdapter implements EngineAdapter {
       if (Number.isFinite(t)) return t / 1000;
     }
     return null;
+  }
+
+  /** The layers running as Web Animations right now, each with its own clock. */
+  running(): RunningLayer[] {
+    const out: RunningLayer[] = [];
+    for (const [layerId, { element, animation, paths }] of this.baked) {
+      const time = Number(animation.currentTime);
+      if (Number.isFinite(time)) out.push({ layerId, element: element as unknown as Element, paths, time: time / 1000 });
+    }
+    return out;
   }
 
   play(time: number, rate: number): void {
@@ -158,7 +178,7 @@ export class WaapiAdapter implements EngineAdapter {
         animation.playbackRate = this.rate;
         animation.play();
       }
-      this.baked.set(layerId, { element, animation });
+      this.baked.set(layerId, { element, animation, paths });
       this.stats.bakes++;
     }
   }
