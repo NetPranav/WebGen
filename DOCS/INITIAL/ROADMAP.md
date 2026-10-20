@@ -233,7 +233,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 54 | Transport & one clock | 11, 12 | v3 45.1 | 2 | ✅ |
 | 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | ✅ |
 | 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | ✅ |
-| 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | 📋 |
+| 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | ✅ |
 | 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | 📋 |
 | 59 | Scrub vs play | 58 | v3 10.2 | 2 | 📋 |
 | 60 | Parity overlay | 59 | v3 10.3 | 2 | 📋 |
@@ -899,9 +899,9 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** during playback the timeline panel makes ≤ 10 React commits per second; canvas and timeline agree within 1 frame (Playwright).
 
 ### Phase 57 · Engine adapters & the kernel on the stage
-**Needs:** 19, 56 · **Was:** v3 10.1 (interface, kernel adapter) · **Closes:** AUD-09 (partial) · **Status:** 📋
-- [ ] `EngineAdapter { mount, play, pause, seek, setInputs, dispose }` plus capabilities. Adapters are driven by the scheduler and write through the `LayerNodeRegistry` (Phase 19), never through React or `postMessage`.
-- [ ] `KernelAdapter` applies `evaluate()` directly. It is the universal fallback and the scrub engine.
+**Needs:** 19, 56 · **Was:** v3 10.1 (interface, kernel adapter) · **Closes:** AUD-09 (partial) · **Status:** ✅
+- [x] `EngineAdapter { mount, play, pause, seek, setInputs, dispose }` plus capabilities (and `invalidate`). Adapters are driven by the scheduler's `apply` phase and write through the `LayerNodeRegistry` (Phase 19), never through React or `postMessage` (`src/core/engine/stage/`).
+- [x] `KernelAdapter` applies `evaluate()` directly. It is the universal fallback and the scrub engine. It writes only the properties a layer animates, only when they changed, and puts back what React drew when a layer stops animating. `installStageEngine` (called by `StageHost`) wires the transport, the document and the registry to it.
 
 **You'll see:** pressing play animates the real layers on the canvas, eased exactly as the curves say.
 **Done when:** 10 reference animations seeked to 5 times match the kernel's values within 0.5 px.
