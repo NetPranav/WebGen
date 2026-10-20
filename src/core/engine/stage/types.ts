@@ -21,7 +21,14 @@ export interface AdapterHost {
   getDocument(): MotionDocument;
   /** The composition being played. */
   compositionId(): string;
+  /** Frames per second of the composition. */
+  fps(): number;
+  /** Length of the composition in seconds. */
+  duration(): number;
 }
+
+/** Which layers an adapter takes (the others belong to another adapter). `paths` are the properties the layer animates. */
+export type LayerFilter = (layerId: string, paths: ReadonlySet<string>) => boolean;
 
 /** The elements an adapter writes to: a `style` it can set and clear. Narrow on purpose, so adapters test without a browser. */
 export interface StyledElement {
@@ -46,6 +53,8 @@ export interface EngineAdapter {
   /** Show `time`. Called on every scrub, and every frame while playing for engines that need it. */
   seek(time: number): void;
   setInputs(inputs: EvaluateInputs): void;
+  /** Where the engine itself says it is, in seconds, or null when it has no clock of its own (it only shows what it is told). */
+  currentTime(): number | null;
   /** Something the adapter depends on changed (the document, or a layer's element); drop cached work. */
   invalidate(): void;
   /** Stop writing and put every element back the way React drew it. */

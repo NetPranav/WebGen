@@ -1,6 +1,6 @@
 import type { MotionDocument } from "../../document/schema";
 import { evaluate, type EvaluateInputs } from "../../kernel/evaluate";
-import type { AdapterHost, EngineAdapter, EngineCapabilities, StyledElement } from "./types";
+import type { AdapterHost, EngineAdapter, EngineCapabilities, LayerFilter, StyledElement } from "./types";
 import { animatedLayers, styleWrites } from "./styleWrites";
 
 /**
@@ -28,6 +28,13 @@ export class KernelAdapter implements EngineAdapter {
 
   /** Counts of work done, for tests. */
   stats = { evaluations: 0, writes: 0 };
+
+  /** @param accepts the layers this adapter draws; the default is every animated layer. */
+  constructor(private readonly accepts: LayerFilter = () => true) {}
+
+  currentTime(): number | null {
+    return null;
+  }
 
   mount(host: AdapterHost): void {
     this.host = host;
@@ -58,7 +65,7 @@ export class KernelAdapter implements EngineAdapter {
     this.lastTime = time;
     const doc = host.getDocument();
     if (this.plannedFor !== doc) {
-      this.plan = animatedLayers(doc);
+      this.plan = new Map(Array.from(animatedLayers(doc)).filter(([id, paths]) => this.accepts(id, paths)));
       this.plannedFor = doc;
       this.restoreStale();
     }
