@@ -5,6 +5,14 @@ import { documentCommands } from "@/core/store/useDocumentStore";
 import { scrubValue, stepValue } from "@/core/inspector/proModel";
 import type { PropertyDefinition } from "@/core/document/properties";
 
+interface Scrub {
+  x: number;
+  start: number;
+  tx: { commit: () => void; cancel: () => void };
+  /** Ends the drag and puts the value back. */
+  off: () => void;
+}
+
 interface Props {
   path: string;
   label: string;
@@ -23,7 +31,7 @@ export const ScrubNumber: React.FC<Props> = ({ path, label, def, value, write })
   // While the field is focused it shows what is being typed (`draft`); otherwise it shows the document's value.
   const [draft, setDraft] = useState<string | null>(null);
   const shown = draft ?? (value === null ? "" : String(value));
-  const scrub = useRef<{ x: number; start: number; tx: { commit: () => void; cancel: () => void } } | null>(null);
+  const scrub = useRef<Scrub | null>(null);
 
   const commitText = () => {
     const n = Number(shown);
@@ -39,29 +47,38 @@ export const ScrubNumber: React.FC<Props> = ({ path, label, def, value, write })
         tabIndex={-1}
         title="Drag to change (Shift: faster, Alt: finer)"
         onPointerDown={(e) => {
-          if (e.button !== 0) return;
+          if (e.button !== 0 || scrub.current) return;
           e.currentTarget.focus({ preventScroll: true }); // so Escape reaches the label while the drag is going
-          e.currentTarget.setPointerCapture(e.pointerId);
-          scrub.current = { x: e.clientX, start: value ?? Number(def.default) ?? 0, tx: documentCommands.begin(`Scrub ${label}`) };
-        }}
-        onPointerMove={(e) => {
-          const s = scrub.current;
-          if (!s) return;
-          write(scrubValue(def, s.start, e.clientX - s.x, { shift: e.shiftKey, alt: e.altKey }));
-        }}
-        onPointerUp={() => {
-          scrub.current?.tx.commit();
-          scrub.current = null;
-        }}
-        onPointerCancel={() => {
-          scrub.current?.tx.cancel();
-          scrub.current = null;
+          const s: Scrub = { x: e.clientX, start: value ?? Number(def.default) ?? 0, tx: documentCommands.begin(`Scrub ${label}`), off: () => undefined };
+          scrub.current = s;
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {
+            // the window listeners below carry the drag anyway
+          }
+          // The drag is followed on the window (and the pointer is captured where the engine allows it), so it keeps going wherever the pointer is.
+          const move = (ev: PointerEvent) => write(scrubValue(def, s.start, ev.clientX - s.x, { shift: ev.shiftKey, alt: ev.altKey }));
+          const end = (commit: boolean) => {
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", up);
+            window.removeEventListener("pointercancel", cancel);
+            if (scrub.current === s) {
+              if (commit) s.tx.commit();
+              else s.tx.cancel();
+              scrub.current = null;
+            }
+          };
+          const up = () => end(true);
+          const cancel = () => end(false);
+          s.off = () => end(false);
+          window.addEventListener("pointermove", move);
+          window.addEventListener("pointerup", up);
+          window.addEventListener("pointercancel", cancel);
         }}
         onKeyDown={(e) => {
           if (e.key === "Escape" && scrub.current) {
             e.stopPropagation();
-            scrub.current.tx.cancel();
-            scrub.current = null;
+            scrub.current.off(); // puts the value back
           }
         }}
       >
