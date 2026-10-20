@@ -2,8 +2,10 @@ import { z } from "zod";
 import { defineCommand, defineTypedCommand } from "../commands";
 import type { ContextKeys } from "../commands/types";
 import { useTimelineUiStore } from "../store/useTimelineUiStore";
-import { getTransport } from "../time/transport";
+import { getTransport, transport } from "../time/transport";
 import { useSelectionStore } from "../store/useSelectionStore";
+import { getDocument } from "../store/documentState";
+import { navigationTarget, stepZoom, zoomToRange } from "./model";
 import { addMarkerAt, removeMarkerById, setLayerBarTimes, setLayerSwitch, setStopwatch, setWorkArea, setWorkAreaEdge, slideLayer, trimLayer } from "./timelineOps";
 
 /**
@@ -79,6 +81,39 @@ export function registerTimelineCommands(): () => void {
     run: ({ ids: t, mode }) => {
       useTimelineUiStore.getState().setReveal(t ?? ids(), mode === "off" ? null : mode);
       return { mode };
+    },
+  }));
+  // Phase 63: keyboard navigation, all with timeline focus. Page Down / Page Up step frames (Shift: ten), I and O go
+  // to the selected layers' in and out points, B and N set the work area from the playhead, = and - zoom, \ fits the work area.
+  const key = (id: string, title: string, keybinding: string, run: () => void) => add(defineCommand({ id, title, category: "Timeline", keybinding, when: timelineOnly, run }));
+  key("timeline.frameNext", "Next Frame", "PageDown", () => transport.stepFrame(1));
+  key("timeline.framePrevious", "Previous Frame", "PageUp", () => transport.stepFrame(-1));
+  key("timeline.frameNext10", "Forward Ten Frames", "Shift+PageDown", () => transport.stepFrame(10));
+  key("timeline.framePrevious10", "Back Ten Frames", "Shift+PageUp", () => transport.stepFrame(-10));
+  const go = (edge: "in" | "out") => () => {
+    const t = navigationTarget(getDocument(), getTransport().compositionId, ids(), edge);
+    if (t !== null) transport.seek(t);
+  };
+  key("timeline.goToIn", "Go to In Point (selected layers, or the work area)", "I", go("in"));
+  key("timeline.goToOut", "Go to Out Point (selected layers, or the work area)", "O", go("out"));
+  key("timeline.workAreaStartHere", "Work Area Starts at the Playhead", "B", () => void setWorkAreaEdge("start", getTransport().time));
+  key("timeline.workAreaEndHere", "Work Area Ends at the Playhead", "N", () => void setWorkAreaEdge("end", getTransport().time));
+  const zoom = (direction: 1 | -1) => () => useTimelineUiStore.getState().setZoom(stepZoom(useTimelineUiStore.getState().pixelsPerSecond, direction));
+  key("timeline.zoomIn", "Zoom Timeline In", "=", zoom(1));
+  key("timeline.zoomOut", "Zoom Timeline Out", "-", zoom(-1));
+  key("timeline.zoomToWorkArea", "Zoom Timeline to the Work Area", "\\", () => {
+    const comp = getDocument().compositions[getTransport().compositionId];
+    if (!comp) return;
+    const ui = useTimelineUiStore.getState();
+    const fit = zoomToRange(comp.workArea.start, comp.workArea.end, Math.max(200, ui.viewportWidth || 800));
+    ui.setZoom(fit.pixelsPerSecond, fit.scrollLeft);
+  });
+  add(defineTypedCommand({
+    id: "timeline.setZoom", title: "Set Timeline Zoom", category: "Timeline",
+    args: z.object({ pixelsPerSecond: z.number().positive() }),
+    run: ({ pixelsPerSecond }) => {
+      useTimelineUiStore.getState().setZoom(pixelsPerSecond);
+      return { pixelsPerSecond: useTimelineUiStore.getState().pixelsPerSecond };
     },
   }));
   return () => offs.forEach((off) => off());

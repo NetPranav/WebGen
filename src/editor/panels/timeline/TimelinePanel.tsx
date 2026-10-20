@@ -23,21 +23,18 @@ import { frameScheduler } from "@/core/time/scheduler";
 import { getTransport, snapToFrame, transport, transportStore } from "@/core/time/transport";
 import { useTransportTime } from "@/core/time/useTransportTime";
 import { formatTimecode } from "@/core/time/transport";
-import { BLEND_MODES, buildTimelineItems, rulerLabel, slideBar, tickStep, trimIn, trimOut, type KeyframeMark, type TimelineItem, type TimelineRow } from "@/core/timeline/model";
+import { BLEND_MODES, buildTimelineItems, rulerLabel, slideBar, stepZoom, tickStep, trimIn, trimOut, type KeyframeMark, type TimelineItem, type TimelineRow } from "@/core/timeline/model";
 import { evaluate } from "@/core/kernel/evaluate";
 import { getDocument } from "@/core/store/documentState";
 import { parentChoices } from "@/core/timeline/timelineOps";
 import type { CompositionLayer } from "@/core/document/compositions";
 import "@/editor/styles/timeline.css";
 
-const PIXELS_PER_SECOND = 120;
 const ROW_HEIGHT = 26;
 const HEAD_WIDTH = 500;
 
 type BarDrag = { layerId: string; kind: "in" | "out" | "slide"; startX: number; origin: CompositionLayer; preview: CompositionLayer };
 type AreaDrag = { edge: "start" | "end"; startX: number; origin: { start: number; end: number }; preview: { start: number; end: number } };
-
-const seconds = (px: number) => px / PIXELS_PER_SECOND;
 
 interface RowProps {
   row: TimelineRow;
@@ -46,6 +43,7 @@ interface RowProps {
   propsOpen: boolean;
   bar: CompositionLayer;
   duration: number;
+  pps: number;
   onSelect: (id: string, additive: boolean) => void;
   onBarPointerDown: (e: React.PointerEvent, row: TimelineRow, kind: BarDrag["kind"]) => void;
   onLanePointerDown: (e: React.PointerEvent) => void;
@@ -76,7 +74,7 @@ const ParentSelect: React.FC<{ row: TimelineRow }> = ({ row }) => {
   );
 };
 
-const Row = memo(function Row({ row, selected, flashing, propsOpen, bar, duration, onSelect, onBarPointerDown, onLanePointerDown }: RowProps) {
+const Row = memo(function Row({ row, selected, flashing, propsOpen, bar, duration, pps, onSelect, onBarPointerDown, onLanePointerDown }: RowProps) {
   const dimmed = row.hidden || row.hiddenByAncestor;
   const locked = row.locked || row.lockedByAncestor;
   const set = (key: "solo" | "shy" | "motionBlur", on: boolean) => void invokeCommand("layer.setSwitch", { ids: [row.id], switch: key, on });
@@ -142,13 +140,13 @@ const Row = memo(function Row({ row, selected, flashing, propsOpen, bar, duratio
         </select>
         <ParentSelect row={row} />
       </div>
-      <div className="timeline__lane" role="gridcell" style={{ width: duration * PIXELS_PER_SECOND }} onPointerDown={onLanePointerDown}>
+      <div className="timeline__lane" role="gridcell" style={{ width: duration * pps }} onPointerDown={onLanePointerDown}>
         <div
           className={`timeline__bar${row.trimmed ? " timeline__bar--trimmed" : ""}${row.motion.clips > 0 ? " timeline__bar--animated" : ""}`}
           data-layer-bar={row.id}
           data-in={bar.in}
           data-out={bar.out}
-          style={{ left: bar.in * PIXELS_PER_SECOND, width: Math.max(2, (bar.out - bar.in) * PIXELS_PER_SECOND) }}
+          style={{ left: bar.in * pps, width: Math.max(2, (bar.out - bar.in) * pps) }}
           title={`${row.name}: ${bar.in.toFixed(3)} s to ${bar.out.toFixed(3)} s`}
           onPointerDown={(e) => onBarPointerDown(e, row, "slide")}
         >
@@ -170,7 +168,7 @@ const formatValue = (value: unknown): string => {
 };
 
 /** A group row (Transform, Appearance, …) that opens to its properties. */
-const GroupRow: React.FC<{ item: Extract<TimelineItem, { kind: "group" }>; duration: number; onLanePointerDown: (e: React.PointerEvent) => void }> = ({ item, duration, onLanePointerDown }) => (
+const GroupRow: React.FC<{ item: Extract<TimelineItem, { kind: "group" }>; duration: number; pps: number; onLanePointerDown: (e: React.PointerEvent) => void }> = ({ item, duration, pps, onLanePointerDown }) => (
   <div className="timeline__row timeline__row--group" role="row" data-timeline-group={`${item.layerId}|${item.group}`} style={{ height: ROW_HEIGHT }}>
     <div className="timeline__head" role="rowheader" style={{ width: HEAD_WIDTH, paddingLeft: SIDE + 6 }}>
       <button
@@ -185,12 +183,12 @@ const GroupRow: React.FC<{ item: Extract<TimelineItem, { kind: "group" }>; durat
       <span className="timeline__name">{item.label}</span>
       <span className="timeline__count">{item.count}</span>
     </div>
-    <div className="timeline__lane" style={{ width: duration * PIXELS_PER_SECOND }} onPointerDown={onLanePointerDown} />
+    <div className="timeline__lane" style={{ width: duration * pps }} onPointerDown={onLanePointerDown} />
   </div>
 );
 
 /** A property row: its stopwatch, its value at the playhead, and its keyframes as diamonds. */
-const PropertyRow: React.FC<{ item: Extract<TimelineItem, { kind: "property" }>; compositionId: string; duration: number; onLanePointerDown: (e: React.PointerEvent) => void }> = ({ item, compositionId, duration, onLanePointerDown }) => {
+const PropertyRow: React.FC<{ item: Extract<TimelineItem, { kind: "property" }>; compositionId: string; duration: number; pps: number; onLanePointerDown: (e: React.PointerEvent) => void }> = ({ item, compositionId, duration, pps, onLanePointerDown }) => {
   // Animated properties show their value at the playhead (ten times a second); the others show what the layer holds.
   const time = useTransportTime({ maxHz: 10 });
   const shown = item.animated ? (evaluate(getDocument(), compositionId, item.layerId, time)[item.path] ?? item.value) : item.value;
@@ -212,7 +210,7 @@ const PropertyRow: React.FC<{ item: Extract<TimelineItem, { kind: "property" }>;
           {formatValue(shown)}
         </span>
       </div>
-      <div className="timeline__lane" style={{ width: duration * PIXELS_PER_SECOND }} onPointerDown={onLanePointerDown}>
+      <div className="timeline__lane" style={{ width: duration * pps }} onPointerDown={onLanePointerDown}>
         {item.keys.map((k: KeyframeMark) => (
           <button
             key={k.id}
@@ -221,7 +219,7 @@ const PropertyRow: React.FC<{ item: Extract<TimelineItem, { kind: "property" }>;
             data-keyframe={k.id}
             aria-label={`${item.label} keyframe at ${k.time.toFixed(3)} seconds`}
             title={`${k.time.toFixed(3)} s: ${formatValue(k.value)}`}
-            style={{ left: k.time * PIXELS_PER_SECOND }}
+            style={{ left: k.time * pps }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => transport.seek(k.time)}
           />
@@ -232,13 +230,13 @@ const PropertyRow: React.FC<{ item: Extract<TimelineItem, { kind: "property" }>;
 };
 
 /** Effects, States, Behaviours and Links list what the layer has. */
-const InfoRow: React.FC<{ item: Extract<TimelineItem, { kind: "info" }>; duration: number }> = ({ item, duration }) => (
+const InfoRow: React.FC<{ item: Extract<TimelineItem, { kind: "info" }>; duration: number; pps: number }> = ({ item, duration, pps }) => (
   <div className="timeline__row timeline__row--info" role="row" style={{ height: ROW_HEIGHT }}>
     <div className="timeline__head" role="rowheader" style={{ width: HEAD_WIDTH, paddingLeft: SIDE * 2 + 6 }}>
       <span className="timeline__name">{item.label}</span>
       <span className="timeline__value">{item.detail}</span>
     </div>
-    <div className="timeline__lane" style={{ width: duration * PIXELS_PER_SECOND }} />
+    <div className="timeline__lane" style={{ width: duration * pps }} />
   </div>
 );
 
@@ -250,6 +248,9 @@ export const TimelinePanel: React.FC = () => {
   const comp = doc.compositions[compositionId];
   const expanded = useLayersUiStore((s) => s.expanded);
   const hideShy = useTimelineUiStore((s) => s.hideShy);
+  const pps = useTimelineUiStore((s) => s.pixelsPerSecond);
+  const scrollRequest = useTimelineUiStore((s) => s.scrollRequest);
+  const seconds = useCallback((px: number) => px / pps, [pps]);
   const open = useTimelineUiStore((s) => s.open);
   const reveal = useTimelineUiStore((s) => s.reveal);
   const rulerMode = useTimelineUiStore((s) => s.rulerMode);
@@ -271,11 +272,40 @@ export const TimelinePanel: React.FC = () => {
   useEffect(() => {
     const paint = () => {
       const el = needleRef.current;
-      if (el) el.style.transform = `translateX(${Math.min(getTransport().time, getTransport().duration) * PIXELS_PER_SECOND}px)`;
+      if (el) el.style.transform = `translateX(${Math.min(getTransport().time, getTransport().duration) * pps}px)`;
     };
     paint();
     return frameScheduler.register("render", paint);
+  }, [pps]);
+
+  // Zoom (Phase 63): keep the store told how wide the lanes' view is, apply a scroll a zoom command asked for, and
+  // Ctrl + wheel zooms around the pointer.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const report = () => useTimelineUiStore.getState().setViewportWidth(Math.max(0, el.clientWidth - HEAD_WIDTH));
+    report();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(report);
+    observer?.observe(el);
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const ui = useTimelineUiStore.getState();
+      const next = stepZoom(ui.pixelsPerSecond, e.deltaY < 0 ? 1 : -1);
+      const anchor = Math.max(0, e.clientX - el.getBoundingClientRect().left - HEAD_WIDTH + el.scrollLeft);
+      ui.setZoom(next, Math.max(0, (anchor / ui.pixelsPerSecond) * next - (e.clientX - el.getBoundingClientRect().left - HEAD_WIDTH)));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      observer?.disconnect();
+      el.removeEventListener("wheel", onWheel);
+    };
   }, []);
+  useEffect(() => {
+    if (scrollRequest === null) return;
+    if (scrollRef.current) scrollRef.current.scrollLeft = scrollRequest;
+    useTimelineUiStore.getState().clearScrollRequest();
+  }, [scrollRequest, pps]);
 
   // A motion badge in the Layers panel asks for a layer: bring its row into view (the row flashes while the request lasts).
   useEffect(() => {
@@ -293,7 +323,7 @@ export const TimelinePanel: React.FC = () => {
   const seekFrom = useCallback((clientX: number, el: HTMLElement) => {
     const left = el.getBoundingClientRect().left;
     transport.seek(snapToFrame(Math.max(0, Math.min(getTransport().duration, seconds(clientX - left))), getTransport().fps));
-  }, []);
+  }, [seconds]);
   const startScrub = useCallback(
     (e: React.PointerEvent) => {
       if (e.button !== 0) return;
@@ -336,7 +366,7 @@ export const TimelinePanel: React.FC = () => {
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     },
-    [comp],
+    [comp, seconds],
   );
 
   // ---- the work area's ends on the ruler
@@ -365,10 +395,10 @@ export const TimelinePanel: React.FC = () => {
   if (!comp) return <div className="timeline timeline--empty" role="region" aria-label="Timeline">No composition to show.</div>;
 
   const area = areaDrag?.preview ?? comp.workArea;
-  const step = tickStep(PIXELS_PER_SECOND);
+  const step = tickStep(pps);
   const ticks: number[] = [];
   for (let t = 0; t <= duration + 1e-9; t += step) ticks.push(Math.round(t * 1000) / 1000);
-  const width = duration * PIXELS_PER_SECOND;
+  const width = duration * pps;
 
   return (
     <div className="timeline" role="region" aria-label="Timeline" ref={rootRef}>
@@ -402,17 +432,17 @@ export const TimelinePanel: React.FC = () => {
               <span className="timeline__ruler-title">{comp.name} · {layerCount} layer{layerCount === 1 ? "" : "s"}</span>
             </div>
             <div className="timeline__lane timeline__ruler" data-timeline-ruler style={{ width }} onPointerDown={startScrub}>
-              <div className="timeline__workarea" data-work-area-start={area.start} data-work-area-end={area.end} style={{ left: area.start * PIXELS_PER_SECOND, width: (area.end - area.start) * PIXELS_PER_SECOND }}>
+              <div className="timeline__workarea" data-work-area-start={area.start} data-work-area-end={area.end} style={{ left: area.start * pps, width: (area.end - area.start) * pps }}>
                 <span className="timeline__wa-handle timeline__wa-handle--start" role="slider" aria-label="Work area start" aria-valuenow={area.start} onPointerDown={(e) => onAreaPointerDown(e, "start")} />
                 <span className="timeline__wa-handle timeline__wa-handle--end" role="slider" aria-label="Work area end" aria-valuenow={area.end} onPointerDown={(e) => onAreaPointerDown(e, "end")} />
               </div>
               {ticks.map((t) => (
-                <span key={t} className="timeline__tick" style={{ left: t * PIXELS_PER_SECOND }}>
+                <span key={t} className="timeline__tick" style={{ left: t * pps }}>
                   {rulerLabel(t, fps, rulerMode)}
                 </span>
               ))}
               {comp.markers.map((m) => (
-                <span key={m.id} className="timeline__marker" data-marker={m.id} style={{ left: m.time * PIXELS_PER_SECOND }} onPointerDown={(e) => e.stopPropagation()}>
+                <span key={m.id} className="timeline__marker" data-marker={m.id} style={{ left: m.time * pps }} onPointerDown={(e) => e.stopPropagation()}>
                   <button type="button" className="timeline__marker-flag" aria-label={`Marker ${m.label} at ${m.time.toFixed(3)} seconds`} onClick={() => transport.seek(m.time)}>
                     {m.label}
                   </button>
@@ -436,18 +466,19 @@ export const TimelinePanel: React.FC = () => {
                   propsOpen={item.propsOpen}
                   bar={barDrag && barDrag.layerId === row.id ? barDrag.preview : row.bar}
                   duration={duration}
+                  pps={pps}
                   onSelect={select}
                   onBarPointerDown={onBarPointerDown}
                   onLanePointerDown={startScrub}
                 />
               );
             }
-            if (item.kind === "group") return <GroupRow key={`${item.layerId}|${item.group}`} item={item} duration={duration} onLanePointerDown={startScrub} />;
-            if (item.kind === "property") return <PropertyRow key={`${item.layerId}|${item.path}`} item={item} compositionId={compositionId} duration={duration} onLanePointerDown={startScrub} />;
-            return <InfoRow key={`${item.layerId}|${item.group}|${item.label}`} item={item} duration={duration} />;
+            if (item.kind === "group") return <GroupRow key={`${item.layerId}|${item.group}`} item={item} duration={duration} pps={pps} onLanePointerDown={startScrub} />;
+            if (item.kind === "property") return <PropertyRow key={`${item.layerId}|${item.path}`} item={item} compositionId={compositionId} duration={duration} pps={pps} onLanePointerDown={startScrub} />;
+            return <InfoRow key={`${item.layerId}|${item.group}|${item.label}`} item={item} duration={duration} pps={pps} />;
           })}
-          <div className="timeline__shade" style={{ left: HEAD_WIDTH, width: area.start * PIXELS_PER_SECOND }} aria-hidden />
-          <div className="timeline__shade" style={{ left: HEAD_WIDTH + area.end * PIXELS_PER_SECOND, width: Math.max(0, (duration - area.end) * PIXELS_PER_SECOND) }} aria-hidden />
+          <div className="timeline__shade" style={{ left: HEAD_WIDTH, width: area.start * pps }} aria-hidden />
+          <div className="timeline__shade" style={{ left: HEAD_WIDTH + area.end * pps, width: Math.max(0, (duration - area.end) * pps) }} aria-hidden />
           <div className="timeline__needle-track" style={{ left: HEAD_WIDTH, width }} aria-hidden>
             <div className="timeline__needle" ref={needleRef} data-timeline-needle />
           </div>

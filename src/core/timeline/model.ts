@@ -285,3 +285,39 @@ export function buildTimelineItems(doc: MotionDocument, compositionId: string, e
   }
   return items;
 }
+
+// ---------------------------------------------------------------------------
+// Navigation (ROADMAP Phase 63)
+// ---------------------------------------------------------------------------
+
+/** Pixels per second the timeline can be zoomed to. */
+export const ZOOM_LIMITS = { min: 20, max: 2400, default: 120 } as const;
+export const ZOOM_STEP = 1.25;
+
+export const clampZoom = (pixelsPerSecond: number): number => Math.min(ZOOM_LIMITS.max, Math.max(ZOOM_LIMITS.min, pixelsPerSecond));
+
+/** One zoom step in or out (×1.25), within the limits. */
+export const stepZoom = (pixelsPerSecond: number, direction: 1 | -1): number => clampZoom(direction === 1 ? pixelsPerSecond * ZOOM_STEP : pixelsPerSecond / ZOOM_STEP);
+
+/**
+ * The zoom and scroll that show `[start, end]` across `viewportPx` pixels with a margin on each side. The scroll is
+ * in pixels from the start of the lanes.
+ */
+export function zoomToRange(start: number, end: number, viewportPx: number, marginPx = 24): { pixelsPerSecond: number; scrollLeft: number } {
+  const span = Math.max(1e-6, end - start);
+  const pixelsPerSecond = clampZoom(Math.max(1, viewportPx - 2 * marginPx) / span);
+  return { pixelsPerSecond, scrollLeft: Math.max(0, start * pixelsPerSecond - marginPx) };
+}
+
+/**
+ * Where "go to in point" (I) and "go to out point" (O) take the playhead: the earliest in (or latest out) of the
+ * selected layers' bars, or the work area's start (end) when no layer is selected.
+ */
+export function navigationTarget(doc: MotionDocument, compositionId: string, selectedIds: readonly string[], edge: "in" | "out"): number | null {
+  const comp = doc.compositions[compositionId];
+  if (!comp) return null;
+  const chosen = selectedIds.filter((id) => doc.layers[id]);
+  if (chosen.length === 0) return edge === "in" ? comp.workArea.start : comp.workArea.end;
+  const bars = chosen.map((id) => layerBar(comp, id));
+  return edge === "in" ? Math.min(...bars.map((b) => b.in)) : Math.max(...bars.map((b) => b.out));
+}
