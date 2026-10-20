@@ -47,7 +47,9 @@ const view = (page: Page, id: string) =>
   page.evaluate(({ sel, id }) => {
     const el = document.querySelector<HTMLIFrameElement>(sel)!.contentDocument!.querySelector<HTMLElement>(`[data-element-id="${id}"]`);
     if (!el) return null;
-    const inner = el.querySelector("rect, ellipse, polygon, line, path");
+    const all = Array.from(el.querySelectorAll("rect, ellipse, polygon, line, path"));
+    const inner = all[0]; // the fill
+    const outline = all[all.length - 1]; // the stroke is drawn as its own outline (Phase 35)
     const cs = getComputedStyle(el);
     return {
       left: parseFloat(el.style.left), top: parseFloat(el.style.top),
@@ -56,7 +58,7 @@ const view = (page: Page, id: string) =>
       opacity: cs.opacity, text: el.textContent, color: cs.color, background: cs.backgroundColor, radius: cs.borderTopLeftRadius,
       borderWidth: cs.borderTopWidth, borderStyle: cs.borderTopStyle, borderColor: cs.borderTopColor,
       bx: Math.round(el.getBoundingClientRect().left), by: Math.round(el.getBoundingClientRect().top),
-      fill: inner?.getAttribute("fill") ?? null, stroke: inner?.getAttribute("stroke") ?? null, strokeWidth: inner?.getAttribute("stroke-width") ?? null, rx: inner?.getAttribute("rx") ?? null,
+      fill: inner?.getAttribute("fill") ?? null, stroke: outline?.getAttribute("stroke") ?? null, strokeWidth: outline?.getAttribute("stroke-width") ?? null, rx: inner?.getAttribute("rx") ?? null,
     };
   }, { sel: STAGE, id });
 
@@ -100,7 +102,7 @@ test("Phase 33: every Simple control of a rectangle writes to the layer, the doc
   await setText(page, "Stroke", "#0000ff");
   await setNumber(page, "Stroke width", "4");
   await expect.poll(async () => (await view(page, id))?.strokeWidth).toBe("4");
-  expect((await view(page, id))!.stroke).toBe("#0000ff");
+  expect((await view(page, id))!.stroke).toBe("rgba(0, 0, 255, 1)"); // strokes are written as rgba since Phase 35
   await setNumber(page, "Radius", "16");
   await expect.poll(async () => (await view(page, id))?.rx).toBe("16");
   await setNumber(page, "Opacity", "50");
