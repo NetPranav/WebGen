@@ -413,6 +413,8 @@ const DEFS = {
   "svg.strokeDashoffset": num(0, "stroke-dashoffset", "paint", SVG_STROKED),
   /** The drawn path as nodes with handles, times and pressures, JSON (Phase 39); `svg.path` is what is drawn, this is what is edited and replayed. */
   "svg.nodes": typed(str("", null, "paint", only("svgPath"))),
+  /** How overlapping parts of one path are filled; the boolean operations make compound paths that need `evenodd` (Phase 40). */
+  "svg.fillRule": typed(oneOf(["nonzero", "evenodd"], "nonzero", "fill-rule", "paint", only("svgPath"))),
   "svg.href": str("", null, "paint", only("svgUse")),
   "svg.viewBox": str("0 0 24 24", null, "layout", only("icon", "svgGroup")),
   "svg.filter.gaussianBlur": num(0, "filter", "paint", SVG_STROKED),
