@@ -106,7 +106,8 @@ export interface ArchetypeEntry {
 /** Details sections for parametric shapes: the same surface as an SVG path. */
 const SHAPE_SECTIONS: readonly DetailSectionId[] = ["identity", "appearance", "attachments", "variables", "events", "layout"];
 
-const IMAGE_SRC = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119";
+/** The sample picture an image layer starts with: bundled with the app, so nothing depends on a remote site (Phase 36). */
+const IMAGE_SRC = "/samples/landscape.svg";
 
 const ENTRIES: Record<ArchetypeId, Omit<ArchetypeEntry, "id">> = {
   button: {
@@ -190,8 +191,8 @@ const ENTRIES: Record<ArchetypeId, Omit<ArchetypeEntry, "id">> = {
     grammarType: "Image",
     sections: ["identity", "media_props", "image_props", "attachments", "variables", "appearance", "layout"],
     defaultProps: {
-      "media.src": `${IMAGE_SRC}?w=800&q=80`,
-      "media.fallbackSrc": `${IMAGE_SRC}?w=400&q=50`,
+      "media.src": IMAGE_SRC,
+      "media.fallbackSrc": "/samples/pattern.svg",
       "media.alt": "Hero Image",
       "media.objectFit": "cover",
       "media.objectPosition": "center",

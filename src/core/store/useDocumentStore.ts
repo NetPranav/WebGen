@@ -50,6 +50,7 @@ import {
   type Composition,
   type ExportSettings,
   type Keyframe,
+  type AssetEntry,
   type Layer,
   type LayerState,
   type MotionDocument,
@@ -594,6 +595,20 @@ export const documentCommands = {
   setLayerFlags(layerId: string, flags: Partial<Pick<Layer, "visible" | "locked">>, label?: string) {
     commit(label, (draft) => {
       Object.assign(requireLayer(draft, layerId), flags);
+    });
+  },
+
+  /** Records an imported file in the document's asset manifest (Phase 36). The bytes are in the asset store. */
+  addAsset(entry: AssetEntry, label = "Import asset") {
+    commit(label, (draft) => {
+      (draft.assets ??= {})[entry.id] = entry;
+    });
+  },
+
+  /** Removes a file from the manifest (the bytes stay in the store until nothing refers to them). */
+  removeAsset(id: string, label = "Remove asset") {
+    commit(label, (draft) => {
+      if (draft.assets) delete draft.assets[id];
     });
   },
 

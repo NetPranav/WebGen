@@ -142,6 +142,19 @@ export const ExportSettingsSchema = z.object({
   language: z.string(),
 });
 
+/** One imported file the document uses (Phase 36). The bytes live in the asset store, keyed by `id` (their SHA-256); the document keeps this description. */
+export const AssetEntrySchema = z.object({
+  id: z.string().regex(/^[0-9a-f]{64}$/, "An asset id is a SHA-256 in hex."),
+  name: z.string().max(200),
+  kind: z.enum(["image", "svg", "font"]),
+  mime: z.string().max(100),
+  bytes: z.number().int().nonnegative(),
+  width: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+  addedAt: z.number().int().nonnegative(),
+});
+export type AssetEntry = z.infer<typeof AssetEntrySchema>;
+
 const MotionDocumentShape = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
   layers: z.record(IdSchema, LayerSchema),
@@ -160,6 +173,8 @@ const MotionDocumentShape = z.object({
   compositions: z.record(IdSchema, CompositionSchema),
   tokens: TokensSchema,
   exportSettings: ExportSettingsSchema,
+  /** Imported files, by content hash (Phase 36). Absent in documents saved before assets: read it as empty. */
+  assets: z.record(z.string(), AssetEntrySchema).optional(),
 });
 
 /** Structural schema plus referential integrity (keys, tree links, owners). */
