@@ -7,15 +7,57 @@
  * layer it touched, and that `renderer.measure()` agrees with the DOM. Reachable at
  * `/editor/stage-lab`; nothing links to it.
  */
-import React, { useCallback, useState } from "react";
-import { createDocumentFromLayers, createLayer } from "@/core/document/factories";
-import type { Layer } from "@/core/document/schema";
+import React, { useCallback, useEffect, useState } from "react";
+import { installTransportDriver } from "@/core/time/transportDriver";
+import { createDocumentFromLayers, createLayer, hydrateClip, attachClip } from "@/core/document/factories";
+import type { Clip, Layer } from "@/core/document/schema";
 import { documentCommands } from "@/core/store/useDocumentStore";
 import { StageHost } from "@/editor/stage/StageHost";
 
 export const LAB_ROOT = "el_root_container";
 export const LAB_COUNT = 500;
 export const labId = (i: number) => `lab_${String(i).padStart(3, "0")}`;
+
+/** Phase 57's ten reference animations: one property each, from → to over one second with an ease. */
+export const ANIMATION_REFS: ReadonlyArray<readonly [property: string, from: number, to: number, ease: string]> = [
+  ["transform.x", 0, 240, "linear"],
+  ["transform.y", -50, 50, "power2.inOut"],
+  ["transform.x", 300, 0, "power4.in"],
+  ["transform.y", 0, 120, "power2.in"],
+  ["frame.width", 40, 160, "power1.out"],
+  ["frame.height", 120, 30, "linear"],
+  ["frame.x", 10, 300, "power3.out"],
+  ["frame.y", 10, 150, "linear"],
+  ["appearance.radius", 0, 40, "power2.out"],
+  ["appearance.opacity", 1, 0.2, "power1.inOut"],
+];
+export const animId = (i: number) => `anim_${i}`;
+
+function animationDocument() {
+  const kids = ANIMATION_REFS.map((_, i) =>
+    createLayer({
+      id: animId(i),
+      archetype: "rectangle",
+      parentId: LAB_ROOT,
+      properties: { positioning: "absolute", "frame.x": 20 + (i % 5) * 150, "frame.y": 20 + Math.floor(i / 5) * 200, "frame.width": 80, "frame.height": 60 },
+    }) as Layer,
+  );
+  const root = createLayer({ id: LAB_ROOT, archetype: "container", parentId: null, children: kids.map((k) => k.id), properties: { "frame.width": 800, "frame.height": 500 } }) as Layer;
+  const clips: Clip[] = ANIMATION_REFS.map(([property, from, to, ease], i) =>
+    attachClip(
+      hydrateClip({
+        name: `Reference ${i}`,
+        type: "entrance",
+        trigger: "mount",
+        duration: 1,
+        easing: "linear",
+        tracks: [{ property, keyframes: [{ time: 0, value: from }, { time: 1, value: to, ease }] }],
+      }),
+      animId(i),
+    ),
+  );
+  return createDocumentFromLayers([root, ...kids], clips);
+}
 
 function labLayers(): Layer[] {
   const children = Array.from({ length: LAB_COUNT }, (_, i) => labId(i));
@@ -32,6 +74,8 @@ const button: React.CSSProperties = { padding: "4px 10px", marginRight: 6, borde
 export const StageLab: React.FC = () => {
   const [mountMs, setMountMs] = useState<number | null>(null);
   const [edits, setEdits] = useState(0);
+  // The editor shell advances the transport; this page has no shell, so it does.
+  useEffect(() => installTransportDriver(), []);
 
   const frameDocument = () => document.querySelector<HTMLIFrameElement>('iframe[title="Stage"]')?.contentDocument ?? null;
 
@@ -53,6 +97,8 @@ export const StageLab: React.FC = () => {
     documentCommands.replaceDocument(createDocumentFromLayers(labLayers()), "Load stage lab");
   }, []);
 
+  const loadAnimations = useCallback(() => documentCommands.replaceDocument(animationDocument(), "Load reference animations"), []);
+
   const editOne = useCallback(() => {
     setEdits((n) => n + 1);
     documentCommands.updateProps(labId(250), { "content.text": `Edited ${Date.now()}` }, "Edit one layer");
@@ -71,6 +117,7 @@ export const StageLab: React.FC = () => {
         <strong>Stage lab</strong> · {LAB_COUNT} text layers in the real stage
         <div style={{ marginTop: 8 }}>
           <button type="button" style={button} onClick={load}>Load 500 layers</button>
+          <button type="button" style={button} onClick={loadAnimations}>Load 10 animations</button>
           <button type="button" style={button} onClick={editOne}>Edit one layer</button>
           <button type="button" style={button} onClick={addOne}>Add one layer</button>
           <button type="button" style={button} onClick={removeOne}>Remove one layer</button>
