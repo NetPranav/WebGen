@@ -57,6 +57,7 @@ export function installStageEngine(renderer: StageRenderer, options: StageEngine
     if (playing !== lastPlaying || (playing && rate !== lastRate)) {
       if (playing) adapter.play(time, rate);
       else adapter.pause(time);
+      if (playing !== lastPlaying) dirty = true; // a hand-over between engines: show the time again
       lastPlaying = playing;
       lastRate = rate;
     }

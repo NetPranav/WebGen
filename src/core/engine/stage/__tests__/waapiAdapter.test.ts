@@ -196,6 +196,7 @@ describe("StageAdapters", () => {
       fps: () => 60,
       duration: () => 1,
     });
+    engines.play(0.5, 1); // Web Animations take a layer over while playing (Phase 59); scrubbing is the kernel's
     engines.seek(0.5);
     assert.equal(smoothEl.animations.length, 1);
     assert.equal(engines.kernel.stats.evaluations, 1, "the other layer is drawn by the kernel");
@@ -209,5 +210,87 @@ describe("StageAdapters", () => {
     engines.mount({ node: () => el as unknown as Element, getDocument: () => doc, compositionId: () => MAIN_COMPOSITION_ID, fps: () => 60, duration: () => 1 });
     engines.seek(0.5);
     assert.equal(Number(values.get("opacity")), evaluate(doc, MAIN_COMPOSITION_ID, id, 0.5)["appearance.opacity"]);
+  });
+});
+
+describe("Phase 59: scrub vs play", () => {
+  /** A stage with one layer Web Animations can run, one only the kernel can, and the elements they are drawn into. */
+  function stage() {
+    const b = new DocBuilder();
+    const smooth = b.layer("rectangle", "Smooth", null);
+    const morph = b.layer("rectangle", "Morph", null);
+    b.clip(smooth, { name: "A", type: "entrance", trigger: "mount", duration: 1, easing: "linear", tracks: [track("appearance.opacity", 0, 1, "power2.inOut")] });
+    b.clip(morph, { name: "B", type: "entrance", trigger: "mount", duration: 1, easing: "linear", tracks: [track("transform.motionPath", 0, 1)] });
+    const doc = b.build();
+    const values = new Map<string, string>();
+    const smoothEl = Object.assign(new FakeElement(), {
+      style: { setProperty: (n: string, v: string) => values.set(n, v), removeProperty: (n: string) => (values.delete(n), ""), getPropertyValue: (n: string) => values.get(n) ?? "" },
+    });
+    const kernelOnly = new Map<string, string>();
+    const morphEl = {
+      style: { setProperty: (n: string, v: string) => kernelOnly.set(n, v), removeProperty: (n: string) => (kernelOnly.delete(n), ""), getPropertyValue: (n: string) => kernelOnly.get(n) ?? "" },
+      animate: () => {
+        throw new Error("the kernel-only layer must never become a Web Animation");
+      },
+    };
+    const engines = new StageAdapters({ waapi: true });
+    engines.mount({
+      node: (id) => (id === smooth ? (smoothEl as unknown as Element) : (morphEl as unknown as Element)),
+      getDocument: () => doc,
+      compositionId: () => MAIN_COMPOSITION_ID,
+      fps: () => 60,
+      duration: () => 1,
+    });
+    return { engines, smooth, doc, smoothEl, values };
+  }
+
+  it("scrubbing draws every layer with the kernel and runs no Web Animation", () => {
+    const { engines, smoothEl, values, smooth, doc } = stage();
+    engines.seek(0.4);
+    assert.equal(smoothEl.animations.filter((a) => a.state !== "canceled").length, 0);
+    assert.equal(Number(values.get("opacity")), evaluate(doc, MAIN_COMPOSITION_ID, smooth, 0.4)["appearance.opacity"]);
+  });
+
+  it("playing hands a routed layer to Web Animations at the transport's time and rate, and gives back the kernel's styles", () => {
+    const { engines, smoothEl, values } = stage();
+    engines.seek(0.4);
+    assert.ok(values.has("opacity"));
+    engines.play(0.4, 2);
+    engines.seek(0.4); // the engine's next frame
+    const live = smoothEl.animations.filter((a) => a.state !== "canceled");
+    assert.equal(live.length, 1);
+    assert.equal(live[0].state, "running");
+    assert.equal(live[0].playbackRate, 2);
+    assert.equal(live[0].currentTime, 400);
+    assert.equal(values.has("opacity"), false, "the kernel's inline value is gone while the animation runs the layer");
+  });
+
+  it("pausing hands the layer back to the kernel at the paused time", () => {
+    const { engines, smoothEl, values, smooth, doc } = stage();
+    engines.play(0.2, 1);
+    engines.pause(0.7);
+    engines.seek(0.7);
+    assert.equal(smoothEl.animations.filter((a) => a.state !== "canceled").length, 0);
+    assert.equal(Number(values.get("opacity")), evaluate(doc, MAIN_COMPOSITION_ID, smooth, 0.7)["appearance.opacity"]);
+  });
+
+  it("a speed change while playing keeps the same animation", () => {
+    const { engines, smoothEl } = stage();
+    engines.play(0.1, 1);
+    const [first] = smoothEl.animations;
+    engines.play(0.1, 4);
+    assert.equal(smoothEl.animations.length, 1, "no new animation");
+    assert.equal(first.playbackRate, 4);
+  });
+
+  it("scrubbing again after a play leaves the layer exactly where the kernel puts it", () => {
+    const { engines, values, smooth, doc } = stage();
+    engines.play(0, 1);
+    engines.pause(0.3);
+    engines.seek(0.3);
+    for (const t of [0.9, 0.1, 0.55]) {
+      engines.seek(t);
+      assert.equal(Number(values.get("opacity")), evaluate(doc, MAIN_COMPOSITION_ID, smooth, t)["appearance.opacity"], `at ${t}`);
+    }
   });
 });

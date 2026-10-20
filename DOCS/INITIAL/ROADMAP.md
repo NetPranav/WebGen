@@ -235,7 +235,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | ✅ |
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | ✅ |
 | 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | ✅ |
-| 59 | Scrub vs play | 58 | v3 10.2 | 2 | 📋 |
+| 59 | Scrub vs play | 58 | v3 10.2 | 2 | 🚧 |
 | 60 | Parity overlay | 59 | v3 10.3 | 2 | 📋 |
 | 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 📋 |
 | 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | 📋 |
@@ -914,8 +914,8 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** WAAPI-routed reference animations match the kernel at 5 times (≤ 0.5% pixels).
 
 ### Phase 59 · Scrub vs play
-**Needs:** 58 · **Was:** v3 10.2 · **Status:** 📋
-- [ ] While scrubbing, every layer is driven by the kernel. On play, each layer hands over to its routed adapter at the current time with matching velocity.
+**Needs:** 58 · **Was:** v3 10.2 · **Status:** 🚧
+- [x] While scrubbing, every layer is driven by the kernel. On play, each layer hands over to its routed adapter at the current time with matching velocity. `StageAdapters` keeps a `playing` flag: not playing, the kernel draws every layer (the Web Animations are cancelled); playing, a routed layer becomes a Web Animation baked at the transport's time and rate (the kernel gives its inline styles back), and a speed change keeps the same animation; pausing hands the layer back to the kernel. `StageEngine` shows the time again on every play/pause change.
 
 **You'll see:** scrubbing and playing look the same at every frame.
 **Done when:** 10 reference animations show identical screenshots paused at 5 times from the kernel and from the running engine (≤ 0.5%).

@@ -41,7 +41,7 @@ declare global {
   interface Window {
     __LL_TEST__?: boolean;
     __LL_STAGE__?: StageRenderer;
-    __LL_ENGINE__?: { kernel(layerId: string, time: number): Record<string, unknown>; seek(time: number): void; play(): void; pause(): void };
+    __LL_ENGINE__?: { kernel(layerId: string, time: number): Record<string, unknown>; seek(time: number): void; play(): void; pause(): void; time(): number };
   }
 }
 
@@ -109,7 +109,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
     const uninstall = installStageEngine(renderer);
     // Test seam: the kernel's answer for a layer, and the transport's seek, so a browser test can compare the stage with the oracle.
     if (window.__LL_TEST__) {
-      window.__LL_ENGINE__ = { kernel: (layerId, time) => evaluate(getDocument(), getTransport().compositionId, layerId, time), seek: (time) => transport.seek(time), play: () => transport.play(), pause: () => transport.pause() };
+      window.__LL_ENGINE__ = { kernel: (layerId, time) => evaluate(getDocument(), getTransport().compositionId, layerId, time), seek: (time) => transport.seek(time), play: () => transport.play(), pause: () => transport.pause(), time: () => getTransport().time };
     }
     return () => {
       uninstall();
