@@ -14,7 +14,7 @@ export interface PlanStore {
   get: (layerId: string) => readonly string[] | undefined;
   roots: () => readonly string[];
   subscribe: (listener: Listener) => () => void;
-  /** Recomputes the plan if the structure (ids, children, visibility, roots) changed. Returns whether anything changed. */
+  /** Recomputes the plan if the structure (ids, children, visibility, solo, roots) changed. Returns whether anything changed. */
   refresh: (layers: Record<string, Layer>, rootIds: readonly string[]) => boolean;
 }
 
@@ -25,7 +25,7 @@ function structureKey(layers: Record<string, Layer>, rootIds: readonly string[])
   let key = `${rootIds.join(",")}|`;
   for (const id in layers) {
     const layer = layers[id];
-    key += `${id}:${layer.visible === false ? "h" : "v"}:${layer.children.join(",")};`;
+    key += `${id}:${layer.visible === false ? "h" : "v"}${layer.solo === true ? "s" : ""}:${layer.children.join(",")};`;
   }
   return key;
 }

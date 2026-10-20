@@ -107,6 +107,8 @@ export function registerBuiltInPanels(): void {
   registerPanel({ id: "trace", title: "Execution Trace (Debug)", zone: "bottom", edition: "full", component: ExecutionTracePanel, props: traceProps });
   registerPanel({ id: "blueprint", title: "Logic Blueprint", zone: "bottom", edition: "full", focusScope: "blueprint", component: BlueprintCanvas, props: (c: PanelContext) => ({ focusedNodeId: c.focusedBlueprintNodeId, onBackToViewport: c.collapseBottom }) });
   registerPanel({ id: "curves", title: "Curve Editor", zone: "bottom", edition: "initial", load: async () => (await import("@/editor/panels/curves/CurveEditor")).CurveEditor });
+  // Phase 61: the layer timeline (rows, bars, work area, markers). The Motion Sequencer stays until Phase 68 retires it.
+  registerPanel({ id: "timeline", title: "Layer Timeline", zone: "bottom", edition: "initial", focusScope: "timeline", load: async () => (await import("@/editor/panels/timeline/TimelinePanel")).TimelinePanel });
   registerPanel({ id: "sequencer", title: "Motion Sequencer", zone: "bottom", edition: "initial", focusScope: "timeline", load: async () => (await import("@/editor/panels/sequencer/TimelineSequencer")).TimelineSequencer });
 
   // ---- full-page tabs (matched in this order; the asset editor is the fallback) ----

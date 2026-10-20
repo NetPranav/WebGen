@@ -44,7 +44,7 @@ MotionDocument
   tokens         { colors, spacing, radii }
   exportSettings { framework, styling, animation, language }   // was project `target` in v1
 
-Layer      { id, name, archetype, parentId | null, children[], visible?, locked?, properties: Props,
+Layer      { id, name, archetype, parentId | null, children[], visible?, locked?, solo?, shy?, motionBlur?, properties: Props,
              pins?: Record<name, { x, y, unit: px | % }>, tags?: string[] }
 Props      = Record<CanonicalPath, PropValue>   // geometry included: frame.x|y|width|height|rotation, sizing.horizontal|vertical, positioning
 Clip       { id, layerId, name, type, trigger, event?, duration, delay?, easing: Easing, repeat? (-1 = loop), repeatDelay?,

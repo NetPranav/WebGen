@@ -13,11 +13,31 @@ import type { RenderContext } from "./types";
  */
 export type RenderPlan = ReadonlyMap<string, readonly string[]>;
 
+/**
+ * With any layer soloed (Phase 61), only soloed layers are drawn, with what contains them and what they contain.
+ * Returns null when nothing is soloed (everything draws).
+ */
+function soloKeep(layers: Record<string, Layer>): Set<string> | null {
+  let keep: Set<string> | null = null;
+  for (const id in layers) {
+    if (layers[id].solo !== true) continue;
+    keep ??= new Set();
+    for (let cur: Layer | undefined = layers[id], guard = 0; cur && guard++ < MAX_TREE_DEPTH + 1; cur = cur.parentId ? layers[cur.parentId] : undefined) keep.add(cur.id);
+    const down = [id];
+    for (let next = down.pop(); next !== undefined; next = down.pop()) {
+      keep.add(next);
+      for (const child of layers[next]?.children ?? []) if (!keep.has(child)) down.push(child);
+    }
+  }
+  return keep;
+}
+
 export function selectRenderable(layers: Record<string, Layer>, rootIds: readonly string[]): RenderPlan {
   const plan = new Map<string, string[]>();
+  const keep = soloKeep(layers);
   const visit = (id: string, depth: number, path: ReadonlySet<string>): boolean => {
     const layer = layers[id];
-    if (!layer || layer.visible === false) return false;
+    if (!layer || layer.visible === false || (keep && !keep.has(id))) return false;
     if (depth > MAX_TREE_DEPTH || path.has(id) || plan.has(id) || plan.size >= MAX_RENDERED_LAYERS) return false;
     const kept: string[] = [];
     plan.set(id, kept);

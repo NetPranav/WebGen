@@ -163,3 +163,23 @@
 .layers-row--drop-refused-after {
   box-shadow: inset 0 -2px 0 #dc2626;
 }
+
+/* Motion badge on a layer row (Phase 61): how many animations (and states) the layer has; click opens it in the timeline. */
+.layers-row__motion {
+  flex: none;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 5px;
+  margin-right: 2px;
+  font: inherit;
+  font-size: 10px;
+  line-height: 16px;
+  border-radius: 9px;
+  border: 1px solid rgba(129, 140, 248, 0.7);
+  background: rgba(99, 102, 241, 0.25);
+  color: inherit;
+  cursor: pointer;
+}
+.layers-row__motion:hover {
+  background: rgba(99, 102, 241, 0.5);
+}

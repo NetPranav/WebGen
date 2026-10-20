@@ -121,7 +121,7 @@ export function applyPreset(layout: WorkspaceLayout, preset: string, options: Pr
       next.right.activeTab = "motion";
       next.bottom.collapsed = false;
       next.bottom.size = Math.round(Math.min(ZONE_LIMITS.bottom.max, Math.max(ZONE_LIMITS.bottom.min, height * 0.4)));
-      next.bottom.activeTab = "sequencer";
+      next.bottom.activeTab = "timeline";
       next.center.activeTab = "viewport";
       next.outputLogOpen = false;
       effects.push({ type: "focusZone", zone: "bottom" });

@@ -28,7 +28,7 @@ describe("Phase 14: workspace layout model", () => {
     const tall = applyPreset(DEFAULT_LAYOUT, "animate", { viewportHeight: 1000 });
     assert.equal(tall.layout.bottom.size, 400);
     assert.equal(tall.layout.bottom.collapsed, false);
-    assert.equal(tall.layout.bottom.activeTab, "sequencer");
+    assert.equal(tall.layout.bottom.activeTab, "timeline");
     assert.equal(tall.layout.right.activeTab, "motion");
     assert.deepEqual(tall.effects, [{ type: "focusZone", zone: "bottom" }]);
     assert.equal(applyPreset(DEFAULT_LAYOUT, "animate", { viewportHeight: 200 }).layout.bottom.size, 140, "clamped to the splitter minimum");
