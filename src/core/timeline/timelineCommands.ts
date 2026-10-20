@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { defineTypedCommand } from "../commands";
+import { defineCommand, defineTypedCommand } from "../commands";
+import type { ContextKeys } from "../commands/types";
+import { useTimelineUiStore } from "../store/useTimelineUiStore";
 import { getTransport } from "../time/transport";
 import { useSelectionStore } from "../store/useSelectionStore";
-import { addMarkerAt, removeMarkerById, setLayerBarTimes, setLayerSwitch, setWorkArea, setWorkAreaEdge, slideLayer, trimLayer } from "./timelineOps";
+import { addMarkerAt, removeMarkerById, setLayerBarTimes, setLayerSwitch, setStopwatch, setWorkArea, setWorkAreaEdge, slideLayer, trimLayer } from "./timelineOps";
 
 /**
  * The timeline's commands (ROADMAP Phase 61, Law 20): the panel's buttons and drags, and agents, call these. Times
@@ -10,6 +12,7 @@ import { addMarkerAt, removeMarkerById, setLayerBarTimes, setLayerSwitch, setWor
  */
 const ids = () => useSelectionStore.getState().selectedIds;
 const targets = z.array(z.string()).optional();
+const timelineOnly = (ctx: ContextKeys) => !ctx.textEditing && ctx.timelineFocus;
 
 export function registerTimelineCommands(): () => void {
   const offs: Array<() => void> = [];
@@ -59,6 +62,24 @@ export function registerTimelineCommands(): () => void {
     id: "timeline.removeMarker", title: "Delete Marker", category: "Timeline",
     args: z.object({ id: z.string() }),
     run: ({ id }) => ({ removed: removeMarkerById(id) }),
+  }));
+  // Phase 62: stopwatches, and U / UU to reveal animated / modified properties of the selected layers.
+  add(defineTypedCommand({
+    id: "timeline.setStopwatch", title: "Turn a Stopwatch On or Off", category: "Timeline",
+    args: z.object({ layerId: z.string(), property: z.string(), on: z.boolean(), time: z.number().optional() }),
+    run: ({ layerId, property, on, time }) => setStopwatch(layerId, property, on, time ?? getTransport().time),
+  }));
+  add(defineCommand({
+    id: "timeline.revealAnimated", title: "Reveal Animated Properties (U, twice for modified)", category: "Timeline", keybinding: "U", when: timelineOnly,
+    run: () => void useTimelineUiStore.getState().pressReveal(ids()),
+  }));
+  add(defineTypedCommand({
+    id: "timeline.setReveal", title: "Reveal Properties", category: "Timeline",
+    args: z.object({ ids: targets, mode: z.enum(["animated", "modified", "off"]) }),
+    run: ({ ids: t, mode }) => {
+      useTimelineUiStore.getState().setReveal(t ?? ids(), mode === "off" ? null : mode);
+      return { mode };
+    },
   }));
   return () => offs.forEach((off) => off());
 }

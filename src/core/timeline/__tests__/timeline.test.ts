@@ -8,8 +8,10 @@ import { setDocument } from "../../store/documentState";
 import { selectRenderable } from "../../render/RenderLayer";
 import { buildRows } from "../../layers/layerTree";
 import { transport } from "../../time/transport";
-import { BLEND_MODES, buildTimelineRows, clampWorkArea, motionIndex, motionLabel, rulerLabel, slideBar, snapTime, tickStep, trimIn, trimOut } from "../model";
-import { addMarkerAt, parentChoices, removeMarkerById, setLayerBarTimes, setLayerSwitch, setWorkArea, setWorkAreaEdge, slideLayer, trimLayer } from "../timelineOps";
+import { useTimelineUiStore } from "../../store/useTimelineUiStore";
+import { loadDocument } from "../../document/migrations";
+import { BLEND_MODES, buildTimelineItems, buildTimelineRows, clampWorkArea, motionIndex, motionLabel, rulerLabel, slideBar, snapTime, tickStep, trimIn, trimOut } from "../model";
+import { KEYFRAMES_CLIP, addMarkerAt, parentChoices, removeMarkerById, setLayerBarTimes, setLayerSwitch, setStopwatch, setWorkArea, setWorkAreaEdge, slideLayer, trimLayer } from "../timelineOps";
 
 const COMP = "comp_main";
 const dims = { duration: 5, fps: 60 };
@@ -187,5 +189,126 @@ describe("Phase 61: solo", () => {
     setLayerSwitch(["b"], "solo", true);
     documentCommands.setLayerFlags("b", { visible: false });
     assert.equal(selectRenderable(getDocument().layers, ["page"]).has("b"), false);
+  });
+});
+
+describe("Phase 62: twirl-downs and stopwatches", () => {
+  beforeEach(fresh);
+  const closed = { open: new Set<string>(), reveal: {} as Record<string, "animated" | "modified"> };
+  const items = (view: { open: Set<string>; reveal: Record<string, "animated" | "modified"> } = closed) => buildTimelineItems(getDocument(), COMP, new Set(["page"]), view);
+  const trackOf = (layerId: string, property: string) =>
+    Object.values(getDocument().clips).flatMap((c) => (c.layerId === layerId ? c.tracks.map((t) => ({ clip: c, track: t })) : [])).find((x) => x.track.property === property);
+
+  it("a layer is closed until its twirl is opened, then shows its six groups", () => {
+    assert.ok(items().every((i) => i.kind === "layer"));
+    const opened = items({ ...closed, open: new Set(["b"]) });
+    const groups = opened.filter((i) => i.kind === "group").map((i) => (i as { group: string }).group);
+    assert.deepEqual(groups, ["transform", "appearance", "effects", "states", "behaviours", "links"]);
+  });
+
+  it("a group is closed until opened, then lists its properties with their stopwatches off", () => {
+    const view = { ...closed, open: new Set(["b", "b|transform"]) };
+    const props = items(view).filter((i) => i.kind === "property");
+    assert.ok(props.length >= 5);
+    assert.ok(props.every((p) => p.kind === "property" && p.path.startsWith("transform.") && !p.animated));
+    assert.deepEqual(props.slice(0, 2).map((p) => (p as { label: string }).label), ["Position X", "Position Y"], "plain words");
+  });
+
+  it("turning a stopwatch on starts keyframing: one keyframe at the playhead holding the current value", () => {
+    const result = setStopwatch("b", "transform.x", true, 1);
+    assert.equal(result.changed, true);
+    const found = trackOf("b", "transform.x")!;
+    assert.equal(found.clip.name, KEYFRAMES_CLIP);
+    assert.equal(found.track.keyframes.length, 1);
+    assert.equal(found.track.keyframes[0].time, 1);
+    assert.equal(found.track.keyframes[0].value, 0, "the property's current value");
+    assert.equal(found.clip.duration, 5, "the clip covers the composition");
+    const row = items({ ...closed, open: new Set(["b", "b|transform"]) }).find((i) => i.kind === "property" && i.path === "transform.x");
+    assert.ok(row && row.kind === "property" && row.animated && row.keys.length === 1 && Math.abs(row.keys[0].time - 1) < 1e-9);
+  });
+
+  it("starts from the value the layer shows at that moment, animation included", () => {
+    setStopwatch("a", "transform.y", true, 0);
+    const first = trackOf("a", "transform.y")!;
+    assert.equal(first.clip.name, "Fade", "an existing clip of the layer holds the new track");
+    documentCommands.setKeyframe(first.clip.id, first.track.id, { id: "k_late", time: 2, value: 50 });
+    setStopwatch("a", "transform.x", true, 1);
+    assert.ok(trackOf("a", "transform.x"));
+  });
+
+  it("is a no-op when already on, and refuses a property the layer can't animate", () => {
+    setStopwatch("b", "transform.x", true, 0);
+    assert.equal(setStopwatch("b", "transform.x", true, 0).changed, false);
+    assert.equal(setStopwatch("b", "content.text", true, 0).changed, false);
+    assert.equal(setStopwatch("b", "transform.y", false, 0).changed, false, "off when off");
+  });
+
+  it("turning it off removes the keyframes and the empty Keyframes clip", () => {
+    setStopwatch("b", "transform.x", true, 1);
+    setStopwatch("b", "appearance.opacity", true, 2);
+    setStopwatch("b", "transform.x", false);
+    assert.equal(trackOf("b", "transform.x"), undefined);
+    assert.ok(trackOf("b", "appearance.opacity"), "the other stopwatch is untouched");
+    setStopwatch("b", "appearance.opacity", false);
+    assert.equal(Object.values(getDocument().clips).filter((c) => c.layerId === "b").length, 0, "the empty Keyframes clip went with it");
+  });
+
+  it("on and off round-trip through undo, redo and a save", () => {
+    const before = JSON.stringify(getDocument().clips);
+    setStopwatch("b", "transform.x", true, 1.5);
+    const withTrack = JSON.stringify(getDocument().clips);
+    assert.notEqual(withTrack, before);
+    historyCommands.undo();
+    assert.equal(JSON.stringify(getDocument().clips), before, "one undo step turns it off");
+    historyCommands.redo();
+    assert.equal(JSON.stringify(getDocument().clips), withTrack);
+    // A save and reload goes through the same validator the document is stored with.
+    const reloaded = loadDocument({ document: JSON.parse(JSON.stringify(getDocument())) });
+    assert.ok(Object.values(reloaded.clips).some((c) => c.layerId === "b" && c.tracks.some((t) => t.property === "transform.x" && t.keyframes[0].time === 1.5)));
+    setStopwatch("b", "transform.x", false);
+    historyCommands.undo();
+    assert.equal(JSON.stringify(getDocument().clips), withTrack, "turning it off undoes in one step too");
+  });
+
+  it("keyframes sit on the ruler through the layer's bar", () => {
+    setStopwatch("b", "transform.x", true, 1);
+    setLayerBarTimes("b", { start: 2, in: 2, out: 5 });
+    const row = items({ ...closed, open: new Set(["b", "b|transform"]) }).find((i) => i.kind === "property" && i.path === "transform.x");
+    assert.ok(row && row.kind === "property");
+    assert.ok(Math.abs(row.keys[0].time - 3) < 1e-9, "the layer's own time 0 moved to 2 s, so its 1 s keyframe is at 3 s");
+  });
+
+  it("a stopwatch later than the clip's end lengthens the clip rather than failing", () => {
+    setStopwatch("a", "transform.y", true, 0);
+    const clip = trackOf("a", "transform.y")!.clip;
+    documentCommands.updateClip(clip.id, { duration: 1 });
+    setStopwatch("a", "appearance.radius", true, 4);
+    assert.equal(getDocument().clips[clip.id].duration, 4);
+  });
+
+  it("U reveals only the animated properties of the layer; a second press quickly reveals the modified ones", () => {
+    setStopwatch("b", "transform.x", true, 0);
+    documentCommands.updateProps("b", { "appearance.radius": 12 });
+    const revealed = (mode: "animated" | "modified") => items({ ...closed, reveal: { b: mode } }).filter((i) => i.kind === "property").map((i) => (i as { path: string }).path);
+    assert.deepEqual(revealed("animated"), ["transform.x"]);
+    assert.deepEqual(revealed("modified").sort(), ["appearance.radius", "transform.x"]);
+    const groups = items({ ...closed, reveal: { b: "animated" } }).filter((i) => i.kind === "group").map((i) => (i as { group: string }).group);
+    assert.deepEqual(groups, ["transform"], "empty groups are left out");
+  });
+
+  it("the U key toggles, and a quick second press asks for the modified ones", () => {
+    const ids = ["u-test-1", "u-test-2"];
+    const store = useTimelineUiStore.getState();
+    assert.equal(store.pressReveal(ids), "animated");
+    assert.equal(store.pressReveal(ids), "modified", "a second press within 450 ms");
+    store.setReveal(ids, null);
+    assert.deepEqual(useTimelineUiStore.getState().reveal["u-test-1"], undefined);
+  });
+
+  it("lists what a layer has under Effects, States, Behaviours and Links", () => {
+    documentCommands.addState("b", "hover", { "appearance.opacity": 0.5 });
+    const view = { ...closed, open: new Set(["b", "b|states"]) };
+    const info = items(view).filter((i) => i.kind === "info");
+    assert.deepEqual(info.map((i) => (i as { label: string }).label), ["hover"]);
   });
 });
