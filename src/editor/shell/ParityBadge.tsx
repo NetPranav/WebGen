@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { parityEnabled, parityStore } from "@/core/engine/stage/parity";
 
@@ -9,10 +9,11 @@ import { parityEnabled, parityStore } from "@/core/engine/stage/parity";
  * the engines match `evaluate()`, red (and listing what differs) when they drift. Dev builds, tests and `?parity=1`
  * only; in production it renders nothing.
  */
+const subscribeNever = () => () => undefined;
+
 export const ParityBadge: React.FC = () => {
-  // The flag is read after mount so the server and the first client render agree.
-  const [enabled, setEnabled] = useState(false);
-  useEffect(() => setEnabled(parityEnabled()), []);
+  // The flag is read on the client only: the server and the first client render agree (off), then it turns on.
+  const enabled = useSyncExternalStore(subscribeNever, parityEnabled, () => false);
   const state = useStore(parityStore);
   if (!enabled) return null;
 
