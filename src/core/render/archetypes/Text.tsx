@@ -1,5 +1,5 @@
 import React from "react";
-import { layerBoxStyle, px } from "../geometry";
+import { layerBoxStyle } from "../geometry";
 import { clampText } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
 import { textTypography } from "./textStyle";

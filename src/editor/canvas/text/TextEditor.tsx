@@ -159,6 +159,7 @@ const TextEditorBody: React.FC<{ id: string; hitTester: CanvasHitTester }> = ({ 
     };
     el.addEventListener("beforeinput", onBefore);
     return () => el.removeEventListener("beforeinput", onBefore);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the editor is keyed by layer id; insertText only touches refs
   }, []);
 
   const left = box ? box.cx - box.w / 2 : 0;
