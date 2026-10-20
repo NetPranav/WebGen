@@ -212,7 +212,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 38 | Fonts | 36 | v3 17.3 | 1 | 🚧 |
 | 39 | Pen & pencil | 24 | v3 35.1–35.4 | 1 | 🚧 |
 | 40 | Vector editing & boolean operations | 39 | v3 16.1 | 1 | 🚧 |
-| 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 📋 |
+| 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 🚧 |
 | 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 📋 |
 | 43 | Breakpoints & overrides | 42 | v3 50.3 (properties half) | 1 | 📋 |
 | 44 | Breakpoint canvas | 21, 43 | v3 50.4 | 1 | 📋 |
@@ -765,11 +765,12 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence so far (2026-10-20):** boolean golden tests in `src/core/paths/__tests__/booleans.test.ts` (exact areas for union, subtract, intersect and exclude of squares, circles with holes, three-shape subtract, even-odd rings); path data and node-editing unit tests (`pathData.test.ts`, `pathEdit.test.ts`); `tests/e2e/vector.spec.ts` in 3 browsers: move, add, delete, close, smooth and handle drags (one undo step each), the four booleans and flatten through the inspector buttons, and a 500-node SVG placed as vectors (script removed by the sanitiser) edited with the 90th-percentile frame under 34 ms (50 ms on CI). **Design:** `svg.fillRule` (additive) for compound results; a boolean result with one outline is an editable path, with holes or several outlines a compound path (not node-editable); curves are flattened in the answer (corner nodes). Group transforms and gradients in imported SVGs are not applied. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 41 · Auto-layout: stacks
-**Needs:** 27, 32 · **Was:** v3 50.1 (stacks) · **Status:** 📋
-- [ ] Shift+A adds auto-layout: direction, gap, padding, alignment, wrap; hug, fill and fixed sizing; drag to reorder inside a stack. It maps 1:1 to CSS flex.
+**Needs:** 27, 32 · **Was:** v3 50.1 (stacks) · **Status:** 🚧
+- [x] Shift+A adds auto-layout: direction, gap, padding, alignment, wrap; hug, fill and fixed sizing; drag to reorder inside a stack. It maps 1:1 to CSS flex.
 
 **You'll see:** cards and buttons that resize to their content.
 **Done when:** a fixture with nested stacks lays out identically in 3 browsers at 5 widths.
+**Evidence so far (2026-10-20):** `src/core/layout/stack.ts` is the layout as pure functions (`computeStack`, `hugSize`, `inferStack`, `insertionIndex`), 15 unit tests; `src/core/editing/__tests__/layoutOps.test.ts` (10: Shift+A reads a row or column, in reading order, from where layers are; wraps loose layers in a hugging frame; one undo step; Shift+Alt+A pins children; stack settings; sizing; reorder; nested). `tests/e2e/auto-layout.spec.ts` in 3 browsers: **a fixture of nested stacks (header with space-between and a hug nav row, a wrapping body, a footer with a fill child) is within 0.5 px of `computeStack` for every box at 320, 480, 768, 1024 and 1440 px**; Shift+A through the inspector; direction, gap, alignment and sizing controls; dragging a child shows an insertion line and reorders (one undo step) and keeps it in the flow. **Design:** a frame is auto layout when `layout.auto` is true; children are `flow` with fixed/hug/fill sizing; Container now renders `justifyContent`, `alignItems`, `flexWrap` (lines packed at the start) and four paddings; a fixed size in a stack never shrinks (`flex-shrink: 0`); a resize of a flow child writes size only. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 42 · Grid layout & constraints
 **Needs:** 41 · **Was:** v3 50.1 (grid), 50.2 · **Status:** 📋

@@ -8,6 +8,7 @@
 import { isEditingPath } from "../store/useVectorEditStore";
 import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
+import { registerLayoutCommands } from "./layoutCommands";
 import { moveLayers } from "../layers/reparent";
 import { importAndPlace } from "../assets/assetImport";
 import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage } from "../paint/paintOps";
@@ -161,6 +162,7 @@ export function registerEditingCommands(): () => void {
   add(defineTypedCommand({ id: "paint.setBlur", title: "Set Blur", category: "Layer", args: z.object({ ids: targets, layer: z.number().optional(), background: z.number().optional() }), run: ({ ids: t, layer, background }) => ({ changed: setBlur(t ?? ids(), { layer, background }) }) }));
   add(defineTypedCommand({ id: "fonts.setDisplay", title: "Set Font Loading", category: "Text", args: z.object({ display: z.enum(["swap", "block", "fallback", "optional", "auto"]) }), run: ({ display }) => { documentCommands.setFontDisplay(display); return { ok: true }; } }));
   add(registerTextCommands());
+  add(registerLayoutCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());
 }

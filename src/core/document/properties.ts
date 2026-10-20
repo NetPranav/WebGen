@@ -318,6 +318,12 @@ const DEFS = {
   "layout.gridRows": num(1, null, "layout", FLEX, false),
   "layout.gridTemplateColumns": str("", "grid-template-columns", "layout", FLEX),
   "layout.gridTemplateRows": str("", "grid-template-rows", "layout", FLEX),
+  /** This container is an auto-layout frame (Phase 41): its children flow, and the editor offers stack controls. */
+  "layout.auto": typed(flag(false, "layout", FLEX)),
+  "layout.paddingTop": ranged(px(0, "padding-top", "layout", FLEX), { min: 0 }),
+  "layout.paddingRight": ranged(px(0, "padding-right", "layout", FLEX), { min: 0 }),
+  "layout.paddingBottom": ranged(px(0, "padding-bottom", "layout", FLEX), { min: 0 }),
+  "layout.paddingLeft": ranged(px(0, "padding-left", "layout", FLEX), { min: 0 }),
   "layout.padding": px(0, "padding", "layout", LAYOUT),
   "layout.paddingX": px(0, "padding-inline", "layout", LAYOUT),
   "layout.paddingY": px(0, "padding-block", "layout", LAYOUT),

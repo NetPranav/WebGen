@@ -815,3 +815,11 @@ export function useClip(clipId: string | null | undefined): Clip | undefined {
 export function useComposition(compositionId: string | null | undefined): Composition | undefined {
   return documentStore((state) => (compositionId ? state.document.compositions[compositionId] : undefined));
 }
+
+/**
+ * Test seam: with `window.__LL_TEST__` set before load, `window.__LL_DOC__` gives a browser test the real document
+ * commands and the current document, to build fixtures a person would build by hand (nested stacks, many components).
+ */
+if (typeof window !== "undefined" && (window as unknown as { __LL_TEST__?: boolean }).__LL_TEST__) {
+  (window as unknown as Record<string, unknown>).__LL_DOC__ = { commands: documentCommands, get: () => documentStore.getState().document };
+}

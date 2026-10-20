@@ -36,6 +36,8 @@ export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: Render
     const unit = isWidth ? g.units.width : g.units.height;
     if (sizing === "fixed") {
       style[isWidth ? "width" : "height"] = px(size, unit);
+      // a fixed size in a stack never shrinks to fit (Figma's fixed): the stack's overflow is the author's to see
+      if (g.positioning === "flow" && ((isWidth && parentRow) || (!isWidth && ctx.parentDirection === "column"))) style.flexShrink = 0;
     } else if (sizing === "fill") {
       if (g.positioning === "absolute") {
         style[isWidth ? "width" : "height"] = "100%";

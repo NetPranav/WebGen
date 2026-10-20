@@ -14,6 +14,7 @@ import { useFontsStore } from "@/core/store/useFontsStore";
 import { useDraftPathStore } from "@/core/store/useDraftPathStore";
 import { nodesToPathData } from "@/core/paths/pathFit";
 import { penRubberBand } from "@/core/paths/penModel";
+import { useStackDropStore } from "@/core/store/useStackDropStore";
 import { VectorEditLayer } from "../vector/VectorEditLayer";
 import type { TransformModel } from "../transformModel";
 
@@ -34,6 +35,18 @@ const DraftPath: React.FC = () => {
         nodes.map((n, i) => (
           <rect key={i} x={n.x - 3 * px} y={n.y - 3 * px} width={6 * px} height={6 * px} fill={i === 0 ? "#2563eb" : "#fff"} stroke="#2563eb" strokeWidth={px} />
         ))}
+    </svg>
+  );
+};
+
+/** The line showing where a child dragged inside an auto-layout frame will land (Phase 41). */
+const StackDropLine: React.FC = () => {
+  const line = useStackDropStore((s) => s.line);
+  const zoom = useCameraStore((s) => s.camera.zoom) || 1;
+  if (!line) return null;
+  return (
+    <svg data-testid="stack-drop" style={{ position: "absolute", left: 0, top: 0, width: 1, height: 1, overflow: "visible", pointerEvents: "none" }}>
+      <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#2563eb" strokeWidth={2 / zoom} strokeLinecap="round" />
     </svg>
   );
 };
@@ -143,6 +156,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       <div ref={layerRef} className="canvas-overlay" aria-hidden="true" />
       <DraftPath />
       <VectorEditLayer />
+      <StackDropLine />
     </>
   );
 };

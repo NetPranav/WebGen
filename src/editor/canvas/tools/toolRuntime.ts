@@ -122,6 +122,15 @@ export interface ToolContext {
   setPanning: (on: boolean) => void;
   /** Asks the canvas to redraw the tool's overlay. */
   requestOverlay: () => void;
+  /**
+   * For layers dragged inside an auto-layout frame (Phase 41): where they would land, shown as an insertion line.
+   * Null when they aren't all flow children of one stack, so the drag is a free move.
+   */
+  stackDrop: (ids: readonly string[], world: Point) => { parentId: string; index: number } | null;
+  /** Drops them there: one undo step. */
+  commitStackDrop: (ids: readonly string[], target: { parentId: string; index: number }) => void;
+  /** Hides the insertion line. */
+  clearStackDrop: () => void;
 }
 
 export interface Tool {
@@ -205,6 +214,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
   let hit: PickedLayer | null = null;
   let marqueeFrame: string | null = null;
   let began = false;
+  let reorder: { parentId: string; index: number } | null = null;
   let start: { ids: string[]; boxes: Box[]; frame: Box; handle?: HandleHit; startValue?: number; gap?: { axis: "h" | "v"; size: number }; gradient?: { layerId: string; paintIndex: number; paint: Paint; box: Box; kind: string; stopIndex?: number } } | null = null;
 
   const moved = (p: ToolPointer, from: ToolPointer | null) => from !== null && Math.hypot(p.screen.x - from.screen.x, p.screen.y - from.screen.y) >= CLICK_SLOP;
@@ -216,6 +226,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
     began = false;
     start = null;
     guide = null;
+    reorder = null;
   };
   const snapshot = (model: TransformModel, handle?: HandleHit) => {
     start = { ids: model.ids, boxes: model.boxes, frame: model.frame, handle };
@@ -294,6 +305,13 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
       if (!start) return;
       const delta = { x: p.world.x - down.world.x, y: p.world.y - down.world.y };
       if (mode === "move") {
+        // inside an auto-layout frame the layers don't go where the pointer is: they take a place in the order
+        const drop = ctx.stackDrop(start.ids, p.world);
+        if (drop) {
+          reorder = drop;
+          return;
+        }
+        reorder = null;
         begin(ctx, "Move");
         let { x, y } = delta;
         const lockY = p.shiftKey && Math.abs(x) >= Math.abs(y);
@@ -351,8 +369,11 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
       const was = mode;
       const frameBg = marqueeFrame;
       const didBegin = began;
+      const dropTarget = reorder;
+      const ids = start?.ids ?? null;
       const grabbedGuide = guide;
       if (was === "pan") pan.end(ctx);
+      ctx.clearStackDrop();
       reset();
       ctx.requestOverlay();
       if (!from || was === "cancelled") return;
@@ -369,6 +390,10 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
         ctx.commitTransform();
         return;
       }
+      if (was === "move" && dropTarget && ids) {
+        ctx.commitStackDrop(ids, dropTarget);
+        return;
+      }
       if (was === "marquee") {
         ctx.marquee(from.world, p.world, frameBg, p.shiftKey ? "add" : "replace");
         return;
@@ -381,6 +406,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
     onPointerCancel: (ctx) => {
       if (mode === "pan") pan.end(ctx);
       ctx.clearSnap();
+      ctx.clearStackDrop();
       if (began) ctx.cancelTransform();
       reset();
       ctx.requestOverlay();
@@ -390,6 +416,12 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
         ctx.clearSnap();
         ctx.cancelTransform();
         began = false;
+        mode = "cancelled";
+        return true;
+      }
+      if (e.key === "Escape" && reorder) {
+        ctx.clearStackDrop();
+        reorder = null;
         mode = "cancelled";
         return true;
       }

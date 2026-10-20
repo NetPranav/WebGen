@@ -55,6 +55,11 @@ import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
 import { useLayers, documentCommands } from "@/core/store/useDocumentStore";
 import { penControls } from "./tools/pathTools";
+import { isAutoLayout, readStack } from "@/core/editing/layoutOps";
+import { worldBox } from "@/core/editing/layerBoxes";
+import { insertionIndex, insertionLine } from "@/core/layout/stack";
+import { moveLayers } from "@/core/layers/reparent";
+import { useStackDropStore } from "@/core/store/useStackDropStore";
 import { useVectorEdit } from "./vector/useVectorEdit";
 import { useFocusScope, useCommand, type ContextKeys } from "@/core/commands";
 import { useCameraStore } from "@/core/store/useCameraStore";
@@ -286,6 +291,21 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
             patch["frame.height"] = round(box.h);
           }
           if (box.rot !== 0 || typeof layer.properties["frame.rotation"] === "number") patch["frame.rotation"] = round(box.rot);
+          // A layer placed by an auto-layout frame keeps its place in the flow: a resize changes only its size (fixed on that axis).
+          const parentLayer = layer.parentId ? layers[layer.parentId] : undefined;
+          if (parentLayer && isAutoLayout(parentLayer) && layer.properties.positioning !== "absolute") {
+            const flow: Record<string, number | string> = {};
+            if (was && Math.abs(was.w - box.w) > 0.01) {
+              flow["frame.width"] = round(box.w);
+              flow["sizing.horizontal"] = "fixed";
+            }
+            if (was && Math.abs(was.h - box.h) > 0.01) {
+              flow["frame.height"] = round(box.h);
+              flow["sizing.vertical"] = "fixed";
+            }
+            if (Object.keys(flow).length > 0) documentCommands.updateProps(id, flow);
+            return;
+          }
           documentCommands.updateProps(id, patch);
         });
       },
@@ -385,6 +405,29 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       },
       setPanning: setIsPanning,
       requestOverlay: () => setToolOverlay(gestureToolRef.current?.drawOverlay?.() ?? null),
+      stackDrop: (ids, world) => {
+        const layers = getDocument().layers;
+        const first = ids[0] ? layers[ids[0]] : undefined;
+        const parent = first?.parentId ? layers[first.parentId] : undefined;
+        if (!parent || !isAutoLayout(parent)) return null;
+        if (!ids.every((id) => layers[id]?.parentId === parent.id && layers[id].properties.positioning !== "absolute")) return null;
+        const siblings = parent.children.filter((id) => !ids.includes(id));
+        const rects: { x: number; y: number; w: number; h: number }[] = [];
+        for (const id of siblings) {
+          const b = worldBox(id);
+          if (b) rects.push({ x: b.cx - b.w / 2, y: b.cy - b.h / 2, w: b.w, h: b.h });
+        }
+        if (rects.length !== siblings.length) return null;
+        const stack = readStack(parent);
+        const index = insertionIndex(stack.direction, rects, world);
+        useStackDropStore.getState().set(insertionLine(stack.direction, rects, index, stack.gap));
+        return { parentId: parent.id, index };
+      },
+      commitStackDrop: (ids, target) => {
+        useStackDropStore.getState().clear();
+        moveLayers(ids, target.parentId, target.index);
+      },
+      clearStackDrop: () => useStackDropStore.getState().clear(),
     }),
     [hitTester, environmentRef, parentIdRef]
   );
