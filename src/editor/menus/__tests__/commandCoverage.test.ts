@@ -56,6 +56,7 @@ describe("Phase 13: menu → command coverage", () => {
       "editor/panels/launcher/ProjectHub.tsx",
       "editor/canvas/WhiteboardCanvas.tsx",
       "editor/canvas/CanvasContextMenu.tsx", // Escape closes the context menu
+      "editor/panels/layers/LayersPanel.tsx", // Escape cancels a layer drag
       "editor/canvas/tools/useToolKeys.ts", // spring-loaded tools: Space (Hand) and Cmd/Ctrl (deep select) need a key-up
     ]);
     const offenders: string[] = [];

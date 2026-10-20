@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
+import { moveLayers } from "../layers/reparent";
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
 import { getDocument } from "../store/documentState";
@@ -15,7 +16,7 @@ import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
 import { mirrorRead, mirrorWrite, parseClip } from "./clipboard";
 import {
-  alignLayers, setLayerProps, copyText, deleteLayers, distributeLayers, tidyLayers, showAll, unlockAll, duplicateLayers, groupLayers, nudgeLayers, pasteText, renameLayer, reorderLayers, selectionRoots, toggleHidden, toggleLock, ungroupLayers, type ZOrderOp,
+  alignLayers, setLayerProps, setLocked, setVisible, copyText, deleteLayers, distributeLayers, tidyLayers, showAll, unlockAll, duplicateLayers, groupLayers, nudgeLayers, pasteText, renameLayer, reorderLayers, selectionRoots, toggleHidden, toggleLock, ungroupLayers, type ZOrderOp,
 } from "./editOps";
 
 const ids = () => useSelectionStore.getState().selectedIds;
@@ -115,6 +116,14 @@ export function registerEditingCommands(): () => void {
     id: "layer.setProps", title: "Set Layer Properties", category: "Layer",
     args: z.object({ ids: z.array(z.string()).optional(), props: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])), label: z.string().optional() }),
     run: ({ ids: target, props, label }) => ({ changed: setLayerProps(target ?? ids(), props, label) }),
+  }));
+  // Phase 32: the Layers panel's writers. Each takes ids (default: the selection) so a row's buttons act on that row.
+  add(defineTypedCommand({ id: "layer.setLocked", title: "Lock or Unlock Layers", category: "Layer", args: z.object({ ids: z.array(z.string()).optional(), locked: z.boolean() }), run: ({ ids: target, locked }) => ({ changed: setLocked(target ?? ids(), locked) }) }));
+  add(defineTypedCommand({ id: "layer.setVisible", title: "Show or Hide Layers", category: "Layer", args: z.object({ ids: z.array(z.string()).optional(), visible: z.boolean() }), run: ({ ids: target, visible }) => ({ changed: setVisible(target ?? ids(), visible) }) }));
+  add(defineTypedCommand({
+    id: "layer.move", title: "Move Layers", category: "Layer",
+    args: z.object({ ids: z.array(z.string()).optional(), parentId: z.string().nullable(), index: z.number().int().min(0).optional() }),
+    run: ({ ids: target, parentId, index }) => moveLayers(target ?? ids(), parentId, index),
   }));
   add(registerTextCommands());
   add(installClipboardEvents(window));

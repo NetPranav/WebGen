@@ -19,6 +19,7 @@ export function useWorkspace() {
   const setLeftCollapsed = useCallback((v: Update<boolean>) => store().setZoneCollapsed("left", v), [store]);
   const setRightCollapsed = useCallback((v: Update<boolean>) => store().setZoneCollapsed("right", v), [store]);
   const setBottomCollapsed = useCallback((v: Update<boolean>) => store().setZoneCollapsed("bottom", v), [store]);
+  const setLeftWidth = useCallback((v: number) => store().setZoneSize("left", v), [store]);
   const setRightWidth = useCallback((v: number) => store().setZoneSize("right", v), [store]);
   const setBottomHeight = useCallback((v: number) => store().setZoneSize("bottom", v), [store]);
   const setLeftActiveTab = useCallback((v: string) => store().setZoneTab("left", v), [store]);
@@ -48,6 +49,7 @@ export function useWorkspace() {
     setLeftCollapsed,
     setRightCollapsed,
     setBottomCollapsed,
+    setZoneSizeLeft: setLeftWidth,
     setRightWidth,
     setBottomHeight,
     setLeftActiveTab,

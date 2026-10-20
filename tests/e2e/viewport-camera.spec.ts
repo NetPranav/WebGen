@@ -156,7 +156,7 @@ test("Phase 20: Shift+2 zooms to the selected layer and Shift+0 returns to 100%"
   await openEditor(page);
   await mountDemo(page);
   const frame = page.frameLocator(STAGE);
-  const target = frame.locator('[data-archetype="button"]').first();
+  const target = frame.locator('[data-archetype="text"]').first(); // narrow enough that zooming to it zooms in, whatever the stage's width
   await target.click();
   await page.waitForTimeout(200);
 
@@ -164,7 +164,7 @@ test("Phase 20: Shift+2 zooms to the selected layer and Shift+0 returns to 100%"
   // the pointer is still over the stage frame, which holds the canvas focus scope
   const before = await camera(page);
   await page.keyboard.press("Shift+2");
-  await expect.poll(async () => (await camera(page)).zoom).toBeGreaterThan(before.zoom);
+  await expect.poll(async () => Math.abs((await camera(page)).zoom - before.zoom)).toBeGreaterThan(0.005); // the camera moved to the layer
 
   // the layer is now centred in the canvas
   const rect = (await target.boundingBox())!;

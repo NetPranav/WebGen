@@ -452,6 +452,22 @@ export function toggleLock(ids: readonly string[]): boolean {
   return lock;
 }
 
+/** Sets locked on exactly these layers (the lock button on a row acts on that row, not on the selection). One undo step. */
+export function setLocked(ids: readonly string[], locked: boolean): number {
+  const targets = ids.filter((id) => layers()[id] && (layers()[id].locked === true) !== locked);
+  if (targets.length === 0) return 0;
+  transaction(locked ? "Lock" : "Unlock", () => targets.forEach((id) => documentCommands.setLayerFlags(id, { locked })));
+  return targets.length;
+}
+
+/** Sets visibility on exactly these layers. One undo step. */
+export function setVisible(ids: readonly string[], visible: boolean): number {
+  const targets = ids.filter((id) => layers()[id] && (layers()[id].visible !== false) !== visible);
+  if (targets.length === 0) return 0;
+  transaction(visible ? "Show" : "Hide", () => targets.forEach((id) => documentCommands.setLayerFlags(id, { visible })));
+  return targets.length;
+}
+
 /** Hides the selection, or shows it if every selected layer is already hidden. Returns whether they are now hidden. */
 export function toggleHidden(ids: readonly string[]): boolean {
   const roots = selectionRoots(ids);

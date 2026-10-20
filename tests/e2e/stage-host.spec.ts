@@ -81,9 +81,11 @@ test("Phase 18: a document edit updates the stage in place, without reloading th
   const before = await count();
   await page.getByRole("button", { name: "Rectangle Tool", exact: true }).click();
   const box = (await page.locator(".whiteboard-stage").boundingBox())!;
-  await page.mouse.move(box.x + 100, box.y + 100);
+  const cx = box.x + box.width / 2; // the middle of the stage is over the frame, clear of the toolbar along its top
+  const cy = box.y + box.height / 2;
+  await page.mouse.move(cx - 60, cy);
   await page.mouse.down();
-  await page.mouse.move(box.x + 240, box.y + 190, { steps: 6 });
+  await page.mouse.move(cx + 80, cy + 90, { steps: 6 });
   await page.mouse.up();
   await expect.poll(count).toBe(before + 1);
 
@@ -131,14 +133,16 @@ test("Phase 18: keys typed with the pointer over the stage reach the command bus
   const box = (await stage.boundingBox())!;
 
   // Click into the frame so keyboard focus is inside it, then use a tool shortcut and undo.
-  await page.mouse.click(box.x + 300, box.y + 200);
+  await page.mouse.click(box.x + box.width / 2 + 100, box.y + box.height / 2 + 50);
   await page.keyboard.press("r"); // Rectangle tool
   await expect(page.getByRole("button", { name: "Rectangle Tool", exact: true })).toHaveAttribute("aria-pressed", "true");
 
   const before = await (await stageFrame(page)).locator("[data-element-id]").count();
-  await page.mouse.move(box.x + 100, box.y + 100);
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  await page.mouse.move(cx - 60, cy);
   await page.mouse.down();
-  await page.mouse.move(box.x + 220, box.y + 180, { steps: 6 });
+  await page.mouse.move(cx + 60, cy + 80, { steps: 6 });
   await page.mouse.up();
   await expect.poll(async () => (await stageFrame(page)).locator("[data-element-id]").count()).toBeGreaterThan(before);
 

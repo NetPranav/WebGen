@@ -62,7 +62,7 @@ export type ZoneId = "left" | "right" | "bottom";
 export const DEFAULT_LAYOUT: WorkspaceLayout = {
   version: 1,
   preset: "design",
-  left: { size: 340, collapsed: false, activeTab: "outliner" },
+  left: { size: 280, collapsed: false, activeTab: "layers" },
   right: { size: 360, collapsed: false, activeTab: "design" },
   bottom: { size: 290, collapsed: true, activeTab: "sequencer" },
   center: { activeTab: "viewport" },
@@ -92,8 +92,8 @@ export function applyPreset(layout: WorkspaceLayout, preset: string, options: Pr
   switch (preset) {
     case "design":
       next.left.collapsed = false;
-      next.left.size = 340;
-      next.left.activeTab = "outliner";
+      next.left.size = 280;
+      next.left.activeTab = "layers";
       next.right.collapsed = false;
       next.right.size = 360;
       next.right.activeTab = "design";
@@ -159,6 +159,7 @@ export function parseLayout(raw: unknown): WorkspaceLayout {
 
 /** Size limits the splitters enforce, shared so a restored layout can't exceed what a user could drag to. */
 export const ZONE_LIMITS = {
+  left: { min: 200, max: 480 },
   right: { min: 240, max: 550 },
   bottom: { min: 140, max: 480 },
   ai: { min: 260, max: 600 },
@@ -169,6 +170,7 @@ export function clampLayout(layout: WorkspaceLayout): WorkspaceLayout {
   const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
   return {
     ...layout,
+    left: { ...layout.left, size: clamp(layout.left.size, ZONE_LIMITS.left.min, ZONE_LIMITS.left.max), activeTab: "layers" },
     right: { ...layout.right, size: clamp(layout.right.size, ZONE_LIMITS.right.min, ZONE_LIMITS.right.max) },
     bottom: { ...layout.bottom, size: clamp(layout.bottom.size, ZONE_LIMITS.bottom.min, ZONE_LIMITS.bottom.max) },
     ai: { ...layout.ai, width: clamp(layout.ai.width, ZONE_LIMITS.ai.min, ZONE_LIMITS.ai.max) },

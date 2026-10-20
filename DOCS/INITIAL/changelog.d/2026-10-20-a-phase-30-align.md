@@ -5,7 +5,7 @@
 - Distribute horizontal and vertical spacing (Ctrl/Cmd+Alt+H, V) for three or more layers, keeping the outer two in place.
 - Tidy up (Ctrl/Cmd+Alt+T): puts two or more layers on a grid using the gaps they already have.
 - Spacing handles on the canvas between neighbouring selected layers; drag one to give every gap the same size.
-- An align bar at the top of the inspector, entries in the Edit menu and the context menu, and typed twins for agents (`layer.align`, `layer.distribute`).
+- An align bar at the top of the inspector, entries in the Edit menu, and typed twins for agents (`layer.align`, `layer.distribute`).
 - `src/core/geometry/align.ts` with 23 golden tests, `alignOps.test.ts`, and `tests/e2e/align.spec.ts`.
 
 #### Fixed

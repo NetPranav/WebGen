@@ -186,14 +186,14 @@ test("Phase 25: over bare canvas only the Frame tool does anything, and it makes
   const frames = () => page.locator(".canvas-frame").count();
   const before = await frames();
   const frameBox = (await page.locator(".canvas-frame").first().boundingBox())!;
-  // a point left of the frame, clear of the chrome
-  const blank = { x: Math.max(stage!.x + 60, frameBox.x - 120), y: stage!.y + stage!.height / 2 };
-  expect(blank.x).toBeLessThan(frameBox.x - 5);
+  // a point right of the frame, clear of the chrome (the Layers panel narrows the stage, so the room is on the right)
+  const blank = { x: frameBox.x + frameBox.width + 8, y: stage!.y + stage!.height / 2 };
+  expect(blank.x + 32).toBeLessThan(stage!.x + stage!.width - 4);
 
-  await drawWith(page, "r", blank, { x: blank.x + 40, y: blank.y + 40 });
+  await drawWith(page, "r", blank, { x: blank.x + 24, y: blank.y + 24 });
   expect(await frames(), "a rectangle can't be drawn on bare canvas").toBe(before);
 
-  await drawWith(page, "f", blank, { x: blank.x + 80, y: blank.y + 80 });
+  await drawWith(page, "f", blank, { x: blank.x + 30, y: blank.y + 30 });
   await expect(page.locator(".canvas-frame")).toHaveCount(before + 1);
   await expect(page.locator(CANVAS)).toHaveAttribute("data-tool", "select");
 });

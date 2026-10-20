@@ -86,6 +86,8 @@ export const DockTree: React.FC<DockTreeProps> = ({
   }, [fp.visibleBottomTabs, bottomActiveTab]);
 
   const rightTabs = useMemo(() => rightTabsFor(edition), []);
+  const leftZoneRef = React.useRef<HTMLElement | null>(null);
+  const leftTabs = useMemo(() => [{ id: "layers", title: "Layers", closable: false }], []);
   const rightId = normalizeInspectorTab(rightActiveTab, edition);
   const bottomIds = ["content-browser", "export-code", "trace", "blueprint", "curves"];
   const bottomId = bottomIds.includes(bottomActiveTab) ? bottomActiveTab : "sequencer";
@@ -181,7 +183,36 @@ export const DockTree: React.FC<DockTreeProps> = ({
         </>
       ) : (
         <>
-          {/* LayoutAI docked on LEFT (beside Outliner) — Normal Layout */}
+          {/* Layers (Phase 32): the layer tree, left of the stage */}
+          <DockZone
+            ref={leftZoneRef}
+            zoneId="left"
+            size={ws.leftWidth}
+            isCollapsed={ws.leftCollapsed}
+            tabs={leftTabs}
+            activeTabId="layers"
+            onSelectTab={() => handleZoneClick("left")}
+            onToggleCollapse={() => ws.setLeftCollapsed((c) => !c)}
+            onMouseEnter={() => handleZoneMouseEnter("left")}
+            onMouseLeave={() => handleZoneMouseLeave("left")}
+            onClick={() => handleZoneClick("left")}
+            className={activeLayer === "left" ? "dock-zone--elevated" : ""}
+          >
+            <PanelHost zone="left" panelId="layers" context={context} />
+          </DockZone>
+          {!ws.leftCollapsed && (
+            <DockSplitter
+              orientation="vertical"
+              targetRef={leftZoneRef}
+              value={ws.leftWidth}
+              min={ZONE_LIMITS.left.min}
+              max={ZONE_LIMITS.left.max}
+              onCommit={(v) => ws.setZoneSizeLeft(v)}
+              style={{ zIndex: activeLayer === "left" ? 29 : 28 }}
+            />
+          )}
+
+          {/* LayoutAI docked on LEFT (beside Layers) — Normal Layout */}
           <AiDockColumn side="left" ai={ai} layers={layers} zoneRef={aiZoneRef} />
 
           {/* Center Column: the stage */}
