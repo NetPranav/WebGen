@@ -237,7 +237,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | ✅ |
 | 59 | Scrub vs play | 58 | v3 10.2 | 2 | 🚧 |
 | 60 | Parity overlay | 59 | v3 10.3 | 2 | 🚧 |
-| 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 📋 |
+| 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 🚧 |
 | 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | 📋 |
 | 63 | Timeline navigation | 62 | v3 52.3 | 2 | 📋 |
 | 64 | Timeline at scale | 63 | v3 52.4 | 2 | 📋 |
@@ -928,10 +928,10 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** an injected wrong easing raises `[PARITY_DRIFT]`; correct playback stays green.
 
 ### Phase 61 · Timeline workspace: layout
-**Needs:** 15, 54, 60 · **Was:** v3 52.1, 23.1, 21.2 · **Status:** 📋
-- [ ] Left: the layer stack (same order and selection as the Layers panel) with switches: visible, solo, lock, shy, motion blur, blend mode, parent pick-whip.
-- [ ] Right: a time ruler (timecode or frames), layer bars with in/out trimming, the work area, composition and layer markers, the current-time indicator.
-- [ ] Motion badges in the Layers panel (clip count, states, engine); clicking one opens it in the timeline.
+**Needs:** 15, 54, 60 · **Was:** v3 52.1, 23.1, 21.2 · **Status:** 🚧
+- [x] Left: the layer stack (same order, open groups and selection as the Layers panel) with switches: visible, solo, lock, shy, motion blur (these three new switches are optional layer fields, `solo`, `shy`, `motionBlur`, with no schema version bump), blend mode (`appearance.blendMode`) and a parent picker (the pick-whip is a menu for now; it re-parents the layer through `layer.move`). With any layer soloed the stage draws only soloed layers and what contains them. Motion blur is recorded only; the renderer draws it later.
+- [x] Right: a time ruler (timecode or frames), layer bars with in/out trimming (drag an end) and sliding (drag the middle), the work area (drag its ends, or set from the playhead), composition markers (layer markers come later), the current-time indicator (painted by the scheduler). Bars are the existing `compositions[id].layers[layerId]` time bars (sparse, frame-snapped).
+- [x] Motion badges in the Layers panel (clip count, states, engine); clicking one opens it in the timeline. The Animate preset opens the new **Layer Timeline** tab; the Motion Sequencer stays beside it until Phase 68.
 
 **You'll see:** an After Effects-style timeline under the canvas in the Animate preset.
 **Done when:** a 10-step journey (trim, set work area, add marker, solo, lock) asserts the document after each step.

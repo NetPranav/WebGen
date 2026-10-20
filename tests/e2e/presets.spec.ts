@@ -22,7 +22,7 @@ test("Phase 15: Animate gives the timeline ~40% of the window and opens the Moti
   await openEditor(page);
   await tab(page, /Animate/).click();
   await expect(tab(page, /Animate/)).toHaveAttribute("aria-selected", "true");
-  await page.locator(".sequencer-ruler-wrap").waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator(".timeline").waitFor({ state: "visible", timeout: 15_000 });
   const viewport = page.viewportSize()!;
   const height = (await page.locator(".dock-zone--bottom").boundingBox())!.height;
   const expected = Math.min(480, Math.max(140, viewport.height * 0.4));
@@ -34,7 +34,7 @@ test("Phase 15: a preset switch takes under 100 ms and never replaces the stage"
   await openEditor(page);
   // Load the lazy panels once, so the switch itself is what's timed.
   await tab(page, /Animate/).click();
-  await page.locator(".sequencer-ruler-wrap").waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator(".timeline").waitFor({ state: "visible", timeout: 15_000 });
   await tab(page, /Code/).click();
   await expect.poll(() => loadedPanels(page)).toContain("right:code");
   await tab(page, /Design/).click();
@@ -98,7 +98,7 @@ test("Phase 15: the Code inspector shows the document's code in the right dock",
 test("Phase 15: a custom layout can be saved, applied and survives a reload", async ({ page }) => {
   await openEditor(page);
   await tab(page, /Animate/).click();
-  await page.locator(".sequencer-ruler-wrap").waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator(".timeline").waitFor({ state: "visible", timeout: 15_000 });
 
   await page.getByRole("button", { name: "Layouts" }).click();
   await page.getByLabel("Layout name").fill("My review");
@@ -114,7 +114,7 @@ test("Phase 15: a custom layout can be saved, applied and survives a reload", as
 
   await page.getByRole("button", { name: "Layouts" }).click();
   await page.getByRole("menuitem", { name: /My review/ }).click();
-  await page.locator(".sequencer-ruler-wrap").waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator(".timeline").waitFor({ state: "visible", timeout: 15_000 });
   await expect(page.getByRole("region", { name: "Motion inspector" })).toBeVisible();
   await expect(page.locator(".dock-zone--bottom")).toHaveCount(1);
 

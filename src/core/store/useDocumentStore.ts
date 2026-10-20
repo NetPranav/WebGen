@@ -42,7 +42,7 @@ import { attachClip, createLayer, getLayerClips, getSubtreeIds, type NewLayerInp
 import { type ArchetypeId, type LayerProps, type PropValue } from "../document/registry";
 import { canonicalizeProps, canonicalizeTrackPath, coercePropertyValue, getPropertyDefinition, resolvePropertyPath } from "../document/properties";
 import { removeLayerDependents } from "../document/migrations";
-import { syncCompositions } from "../document/compositions";
+import { syncCompositions, type CompositionLayer, type Marker } from "../document/compositions";
 import {
   validateMotionDocument,
   type Clip,
@@ -594,9 +594,63 @@ export const documentCommands = {
     });
   },
 
-  setLayerFlags(layerId: string, flags: Partial<Pick<Layer, "visible" | "locked">>, label?: string) {
+  setLayerFlags(layerId: string, flags: Partial<Pick<Layer, "visible" | "locked" | "solo" | "shy" | "motionBlur">>, label?: string) {
     commit(label, (draft) => {
       Object.assign(requireLayer(draft, layerId), flags);
+    });
+  },
+
+  /**
+   * Sets a layer's time bar in a composition (Phase 61). A bar equal to the default (the whole composition, no stretch)
+   * is removed, so bars stay sparse.
+   */
+  setLayerBar(compositionId: string, layerId: string, bar: CompositionLayer, label = "Trim layer") {
+    commit(label, (draft) => {
+      const comp = draft.compositions[compositionId];
+      if (!comp) throw new Error(`No composition "${compositionId}".`);
+      requireLayer(draft, layerId);
+      const isDefault = bar.start === 0 && bar.in === 0 && bar.out === comp.duration && bar.stretch === 1 && !(bar.markers && bar.markers.length > 0);
+      if (isDefault) delete comp.layers[layerId];
+      else comp.layers[layerId] = { ...bar };
+    });
+  },
+
+  /** Sets a composition's work area, the part that plays and exports (Phase 61). */
+  setWorkArea(compositionId: string, start: number, end: number, label = "Set work area") {
+    commit(label, (draft) => {
+      const comp = draft.compositions[compositionId];
+      if (!comp) throw new Error(`No composition "${compositionId}".`);
+      if (!(start >= 0 && end > start && end <= comp.duration + 1e-9)) throw new Error("The work area must lie inside the composition.");
+      comp.workArea = { start, end };
+    });
+  },
+
+  /** Adds a marker to a composition (Phase 61). Returns its id. */
+  addMarker(compositionId: string, marker: Omit<Marker, "id"> & { id?: string }, label = "Add marker"): string {
+    const id = marker.id ?? createId("mk");
+    commit(label, (draft) => {
+      const comp = draft.compositions[compositionId];
+      if (!comp) throw new Error(`No composition "${compositionId}".`);
+      comp.markers.push({ ...marker, id });
+      comp.markers.sort((a, b) => a.time - b.time);
+    });
+    return id;
+  },
+
+  updateMarker(compositionId: string, markerId: string, patch: Partial<Omit<Marker, "id">>, label = "Edit marker") {
+    commit(label, (draft) => {
+      const marker = draft.compositions[compositionId]?.markers.find((m) => m.id === markerId);
+      if (!marker) throw new Error(`No marker "${markerId}".`);
+      Object.assign(marker, patch);
+      draft.compositions[compositionId].markers.sort((a, b) => a.time - b.time);
+    });
+  },
+
+  removeMarker(compositionId: string, markerId: string, label = "Delete marker") {
+    commit(label, (draft) => {
+      const comp = draft.compositions[compositionId];
+      if (!comp) throw new Error(`No composition "${compositionId}".`);
+      comp.markers = comp.markers.filter((m) => m.id !== markerId);
     });
   },
 

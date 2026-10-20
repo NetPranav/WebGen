@@ -1,4 +1,4 @@
-# Lane B manual test guide (Phases 53–60)
+# Lane B manual test guide (Phases 53–61)
 
 **For:** `@OVERxPOWERED`. **Covers:** everything Lane B has merged to `main`, tested together with Lane A's work (`A_TEST_GUIDE.md`).
 **Updated:** after every phase. The newest phase is at the end of section 3 (look for "NEW" in the table below).
@@ -12,7 +12,8 @@
 | 57 | Pressing play animates the real layers on the stage | #36 | 3.5 |
 | 58 | Simple animations run as Web Animations | #44 | 3.6 |
 | 59 | Scrubbing is exact, playing hands over smoothly | #47 | 3.7 |
-| 60 | A parity badge in the status bar checks the engine against the kernel | this PR (NEW) | 3.8 |
+| 60 | A parity badge in the status bar checks the engine against the kernel | #48 | 3.8 |
+| 61 | The Layer Timeline: layer rows, bars, work area, markers, motion badges | this PR (NEW) | 3.9 |
 
 ## How to use this guide
 
@@ -28,7 +29,7 @@ Each phase has a **User test** (click around, no tools needed) and a **Developer
 
 > **Known behaviour, not bugs.** Don't report these:
 > - **A project with no animation does nothing when you press Play.** Only the playhead and timecode move. Make an animation with Recipe A below.
-> - **The Sequencer works on the page's root container**, not on whichever layer you click. Layer-by-layer animation arrives with the timeline phases (61 onward).
+> - **The Sequencer works on the page's root container**, not on whichever layer you click. The Layer Timeline (Phase 61) lists every layer and its time bar but doesn't edit keyframes yet; that arrives in Phases 62–66.
 > - **The toolbar's "Play Live Application Preview"** is a different feature from the transport.
 > - **The Sequencer's Step Backward button** moves 0.1 s, not one frame. The status bar's step buttons move one frame.
 > - **Only animation of numbers, lengths, angles and colours is drawn on the stage.** Behaviours other than `loop`, signal bindings, states and path morphs are not shown yet (`KERNEL_GAPS` in `src/core/kernel/evaluate.ts`).
@@ -54,7 +55,8 @@ npm run dev            # then open http://localhost:3000/editor
 |---|---|---|
 | Workspace switch | Top header | Three tabs: **Design workspace**, **Animate workspace**, **Code workspace** |
 | Transport bar | **Status bar**, very bottom, centre | Buttons **Stop and return to start**, **Step back one frame**, **Play** (becomes **Pause**), **Step forward one frame**, **Loop: off** (cycles), then a timecode like `00:00:00 / 00:05:00` |
-| Sequencer (the timeline panel) | Bottom of the screen in the **Animate** tab | Tab **Motion Sequencer** (next to Content Browser and Export Preview). Has its own **Play**, **Stop and Reset**, **Step Backward**, **Toggle Loop**, speed pills, **+ Keyframe**, and a ruler across the top |
+| Layer Timeline (new in Phase 61) | Bottom of the screen in the **Animate** tab, opened by default | Tab **Layer Timeline**. One row per layer, a ruler, bars. See section 3.9 |
+| Sequencer (the older timeline panel, used by Phases 54–60) | Same bottom area: click the tab **Motion Sequencer** (next to Layer Timeline, Content Browser and Export Preview), or the header button **Timeline tool** | Tab **Motion Sequencer**. Has its own **Play**, **Stop and Reset**, **Step Backward**, **Toggle Loop**, speed pills, **+ Keyframe**, and a ruler across the top |
 | Demo content | Header, right of the canvas-size buttons | Button **Mount Showcase Demo** |
 | Stage | Centre | The canvas with the frames |
 | Layers panel | Left dock | Button **Layers** |
@@ -64,7 +66,7 @@ The status bar's timecode is `MM:SS:FF` (frames, 00–59 at the default 60 fps).
 ### 1.2 Recipe A: make something animate (used by most tests below)
 
 1. Open `http://localhost:3000/editor`.
-2. Click the **Animate workspace** tab. Wait a second: the Sequencer loads.
+2. Click the **Animate workspace** tab. The bottom area opens on **Layer Timeline**. Click the tab **Motion Sequencer** next to it and wait a second: the Sequencer loads. (Recipe A and sections 3.2–3.8 use the Sequencer.)
 3. Click **Mount Showcase Demo** (header). A page with a heading and a button appears on the stage.
 4. In the Sequencer, click on the **ruler** (the strip of seconds at the top of the timeline) about 0.4 s from its left end. The needle jumps there.
 5. Click **+ Keyframe**. The panel now lists two tracks: `appearance.opacity` and `transform.y`.
@@ -299,7 +301,7 @@ If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
-### 3.8 Phase 60: the parity badge (NEW)
+### 3.8 Phase 60: the parity badge
 
 **What changed:** while an engine of its own (Web Animations) plays, the editor checks every 0.5 s that the layer shows what the kernel says it should. A small badge in the **status bar** (right side, left of the branch name) shows the result: **Parity idle** (grey), **Parity OK** (green) or **Parity drift** (red). It only exists in dev builds (`npm run dev`), or in a production build when you add `?parity=1` to the address.
 
@@ -323,6 +325,64 @@ If any step fails, stop and report it. Everything else depends on them.
 
 ---
 
+### 3.9 Phase 61: the Layer Timeline (NEW)
+
+**What changed:** the **Animate workspace** now opens a new bottom tab, **Layer Timeline**. It shows one row per layer. On the left of each row are switches, a blend mode and a parent. On the right is the layer's **time bar**: the stretch of time the layer is "on". Above the rows are a ruler, the green **work area**, and markers. A red needle shows the playhead. The older **Motion Sequencer** tab is still next to it.
+
+**Set up:** open `/editor`, click **Mount Showcase Demo**, click **Animate workspace**. The bottom area opens on **Layer Timeline**. You see one row, the root layer (called something like "Root Canvas" or the demo's container).
+
+**How the panel is laid out** (left to right in each row): a small arrow ▸/▾ (show or hide the layer's children), then five switch buttons: ● visible, **S** solo, 🔒 lock, **~** shy, **≋** motion blur, then the layer's name, a blend-mode menu (starts at `normal`) and a parent menu (starts at the layer's current parent). Hover a switch to see its tooltip. The bar to the right is a rounded rectangle labelled with the layer name; it has a handle on each end.
+
+*Rows and the ruler*
+- [ ] **T61.1** Do: click the ▸ arrow at the left of the root row (hover shows "Show children of …"). Expect: two more rows appear below it, one for the heading and one for the button, indented. The arrow becomes ▾.
+- [ ] **T61.2** Do: click the **Design workspace** tab, then look at the **Layers** panel on the left, then go back to **Animate workspace**. Expect: the Layers panel lists the same layers in the same order as the timeline (the Layers panel lists the front-most first, and so does the timeline). Open groups in one stay open in the other.
+- [ ] **T61.3** Do: look at the ruler across the top of the timeline. Expect: labels such as `00:00:00`, `00:01:00`, `00:02:00` each second (`MM:SS:FF`). Click the toolbar button **Show frames**. Expect: the labels change to frame numbers (`0`, `60`, `120`) and the button reads **Show timecode**. Click it again to go back.
+- [ ] **T61.4** Do: press the mouse on the ruler at about the 1-second label and drag right to 2 seconds. Expect: the red needle follows the mouse, the toolbar timecode on the left (`00:01:..`) and the status bar timecode follow it. Press the mouse on an empty part of a row's lane (not on a bar): the same.
+- [ ] **T61.5** Do: click **Play** (status bar). Expect: the red needle moves smoothly along the ruler and the timeline's timecode counts up. Click **Pause**.
+- [ ] **T61.6** Do: click a row's name area, then **Shift-click** or **Ctrl-click** another row. Expect: the row is highlighted (blue tint), and the same layer is selected in the Layers panel and on the stage. Ctrl-click adds a second.
+
+*Trimming and moving a layer's bar*
+- [ ] **T61.7** Do: find the heading's row. Press the mouse on the **right-hand handle** of its bar (a lighter strip at the bar's right end) and drag it left by about 3 seconds' worth (about 360 pixels), then release. Expect: the bar shortens while you drag and stays shortened on release. The bar's tooltip now reads about `0.000 s to 2.000 s`. The bar gets a thin white inner outline (it is "trimmed").
+- [ ] **T61.8** Do: drag the same bar's **left-hand handle** to the right by about half a second (about 60 pixels). Expect: the bar's start moves right; the tooltip reads about `0.500 s to 2.000 s`.
+- [ ] **T61.9** Do: drag the **middle** of the bar (the label area) to the right by 1 second. Expect: the whole bar slides right; it stops at the end of the timeline if you drag too far.
+- [ ] **T61.10** Do: drag a handle all the way past the other handle. Expect: the bar never gets shorter than one frame, and never leaves the 0 to 5 second range.
+- [ ] **T61.11** Do: after any trim press **Ctrl+Z** (with the mouse over the timeline or the canvas). Expect: the bar returns to where it was, in one step (not many).
+- [ ] **T61.12** Do: trim the heading's bar back to the full length (drag the in handle to 0 and the out handle past the right end). Expect: the "trimmed" outline disappears (the layer has no bar of its own again).
+- [ ] **T61.13** Do: trim the bar of an animated layer (Recipe A first, then trim the root's bar in so that it starts at 2 s) and press **Play** from the start. Expect: the layer's animation now waits until 2 s (the layer is not active before its in point).
+
+*Work area and markers*
+- [ ] **T61.14** Do: click the ruler at about 1 second, then click the toolbar button **Work area start**. Expect: the green bar on the ruler now starts at 1 s; the area to the left of it is shaded.
+- [ ] **T61.15** Do: click the ruler at about 3 seconds, then click **Work area end**. Expect: the green bar ends at 3 s, with shading to its right.
+- [ ] **T61.16** Do: drag the green bar's left or right end (small green tabs on the ruler's top edge). Expect: the work area changes; the ends stop one frame apart at the closest.
+- [ ] **T61.17** Do: click **Reset work area**. Expect: the green bar covers 0 to 5 s again. Click **Play**: it plays over the whole composition. Set the work area again (T61.14–15) and play: it plays only between the green ends and stops at the green end (with Loop on it loops inside them). **Stop and return to start** now returns to the green start, not to 0.
+- [ ] **T61.18** Do: move the needle to 3 s and click **Add marker**. Expect: a yellow flag labelled **Marker 1** appears on the ruler at 3 s. Add another at 1 s: it is labelled **Marker 2** and sits to the left; flags stay in time order.
+- [ ] **T61.19** Do: click a flag's label. Expect: the needle jumps to that marker. Click the small × next to a flag. Expect: the marker is deleted. **Ctrl+Z** brings it back.
+
+*Switches*
+- [ ] **T61.20** Do: click **S** (solo) on the heading's row. Expect: the stage shows only the heading (and its page), the button disappears. Click **S** again: everything returns. Turn on solo for two layers: both show.
+- [ ] **T61.21** Do: click **●** (visible) on a row. Expect: the dot becomes ◌, the row dims, and the layer disappears from the stage. Click again to bring it back.
+- [ ] **T61.22** Do: click 🔒 on a row. Expect: the lock is highlighted and the name turns italic; the layer can't be selected on the stage. Click it again to unlock.
+- [ ] **T61.23** Do: click **~** (shy) on a row, then the toolbar button **Hide shy layers**. Expect: that layer's row disappears from the timeline (it is still on the stage and in the Layers panel). Click **Hide shy layers** again: the row returns.
+- [ ] **T61.24** Do: click **≋** (motion blur). Expect: the switch is highlighted. (Nothing is blurred yet; the flag is saved for a later phase.)
+- [ ] **T61.25** Do: change a row's blend-mode menu to **multiply**. Expect: the layer's look on the stage changes to a multiply blend; **Ctrl+Z** puts it back to normal.
+- [ ] **T61.26** Do: open a row's parent menu. Expect: a list of layers it may be moved under (never itself or something inside it). Pick one. Expect: the layer moves under it (check the Layers panel). Choose **None** for a layer you can: it becomes a top-level frame.
+- [ ] **T61.27** Do: after each switch press **Ctrl+Z**. Expect: each switch undoes by itself.
+- [ ] **T61.28** Do: set several switches, press **Ctrl+S** (or File → Save Project), reload the page. Expect: the switches, trims, work area and markers are all still there. Export the project (**File → Export Project File**), open the file, and look for `"solo": true`, `"workArea"` and `"markers"`.
+
+*Motion badges in the Layers panel*
+- [ ] **T61.29** Do: do Recipe A (this gives the root layer an animation), then click the **Design workspace** tab and look at the **Layers** panel's row for the root. Expect: a small round badge showing `1` just before the lock icon. Hover it: the tooltip says `1 animation, plays on web animations. Click to open in the timeline.`
+- [ ] **T61.30** Do: click the badge. Expect: the layer is selected on the stage, and the bottom drawer shows the **Layer Timeline** tab (it opens the drawer if it was closed, without changing your workspace), scrolled to that layer's row. The row flashes yellow for about a second.
+- [ ] **T61.31** Do: look at a layer that has no animation (for example the demo's heading). Expect: **no** badge on its row.
+
+**Developer test**
+- [ ] **T61.32** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: 22 tests pass.
+- [ ] **T61.33** Do: `npx playwright test tests/e2e/timeline.spec.ts --project=chromium`. Expect: 4 tests pass, including the ten-step journey.
+- [ ] **T61.34** Do: export a project after trimming and open the file. Expect: `snapshot.document.compositions.comp_main.layers.<layerId>` has `start`, `in`, `out`, `stretch`; `workArea` has `start` and `end`; `markers` lists your markers; layers carry `solo`, `shy`, `motionBlur` only while on.
+- [ ] **T61.35** Do: press **Ctrl+P**, type `timeline`. Expect: Trim Layer, Move Layer in Time, Set Layer Bar, Set Work Area, Set Work Area Start/End at Playhead, Add Marker at Playhead, Delete Marker, Open Layer Timeline. Run **Add Marker at Playhead**: a marker appears.
+- [ ] **T61.36** Do: `grep -rn "requestAnimationFrame" src/editor/panels/timeline`. Expect: nothing. The needle is moved by the scheduler.
+
+---
+
 ## 4. Regression checks (things that must still work)
 
 - [ ] **R1** Do: edit something, reload the page. Expect: your edit is still there and the Save button's dirty dot clears.
@@ -341,6 +401,7 @@ Repeat in **Firefox** and **Safari/WebKit** (CI runs all three):
 - [ ] **X3** T54.1–T54.14 (transport bar).
 - [ ] **X4** T59.1, T59.3, T59.6 (hand-over) and T60.2 (badge turns green).
 - [ ] **X5** T53.1 and T53.3 (import and schema version).
+- [ ] **X6** T61.1, T61.7, T61.14 and T61.20 (the Layer Timeline).
 
 ## 6. Run the automated suites and compare
 
@@ -369,4 +430,4 @@ Several timing-based tests can fail once on a busy machine and pass when run alo
 
 ## 8. Reporting a problem
 
-For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–60). Fixes go on a `b/phase-NN-…` branch and through a pull request.
+For each failure write: the test number (for example `T59.3`), what you did, what you expected, what happened, the browser, whether it was `npm run dev` or a production build, any console error text, and a screenshot or short screen recording for timing problems. Hand it to your Claude, naming the phase (53–61). Fixes go on a `b/phase-NN-…` branch and through a pull request.

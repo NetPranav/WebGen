@@ -90,7 +90,7 @@ export const DockTree: React.FC<DockTreeProps> = ({
   const leftTabs = useMemo(() => LEFT_TABS.map((t) => ({ id: t.id, title: t.title, closable: false })), []);
   const leftId = normalizeLeftTab(ws.leftActiveTab);
   const rightId = normalizeInspectorTab(rightActiveTab, edition);
-  const bottomIds = ["content-browser", "export-code", "trace", "blueprint", "curves"];
+  const bottomIds = ["content-browser", "export-code", "trace", "blueprint", "curves", "timeline"];
   const bottomId = bottomIds.includes(bottomActiveTab) ? bottomActiveTab : "sequencer";
   const showingStageInFullPage = currentTabId === "viewport" || currentFullPagePanel?.panelId === "content-browser";
 

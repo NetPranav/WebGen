@@ -19,6 +19,7 @@ import { useSnapStore } from "@/core/store/useSnapStore";
 import { registerFrameCommands } from "@/core/frames/frameCommands";
 import { registerSelectionCommands } from "@/core/selection/selectionCommands";
 import { registerEditingCommands } from "@/core/editing/editCommands";
+import { registerTimelineCommands } from "@/core/timeline/timelineCommands";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
 export interface ShellCommandActions {
@@ -153,6 +154,14 @@ export function useShellCommands(actions: ShellCommandActions) {
         },
       }),
       defineCommand({
+        id: "view.timeline",
+        title: "Open Layer Timeline",
+        category: "View",
+        run: () => {
+          showBottomTab("timeline");
+        },
+      }),
+      defineCommand({
         id: "view.curves",
         title: "Open Curve Editor",
         category: "View",
@@ -237,6 +246,9 @@ export function useShellCommands(actions: ShellCommandActions) {
 
   // Phase 29: copy, paste, duplicate, delete, nudge, arrange, group, lock, hide, rename.
   useEffect(() => registerEditingCommands(), []);
+
+  // Phase 61: the timeline's switches, trims, work area and markers.
+  useEffect(() => registerTimelineCommands(), []);
 
   // Phase 15: workspace presets and saved layouts. The no-argument commands are what the
   // palette runs; the typed ones (`args`) are what an agent calls (Law 20).
