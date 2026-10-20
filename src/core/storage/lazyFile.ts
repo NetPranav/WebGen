@@ -24,6 +24,7 @@ import type { LegacyProjectSnapshot, ProjectStateSnapshot } from "../store/usePr
 import type { ProjectSettings } from "./ProjectDatabase";
 import { SCHEMA_VERSION, validateMotionDocument } from "../document/schema";
 import { upgradeSnapshot } from "../document/migrations";
+import type { EmbeddedAssets } from "../assets/embed";
 
 export const LAZY_FILE_FORMAT = "lazylayout-project";
 export const LAZY_FILE_FORMAT_VERSION = 1;
@@ -36,7 +37,8 @@ export interface LazyFile {
   exportedAt: string;
   project: { name: string; settings?: ProjectSettings };
   snapshot: ProjectStateSnapshot;
-  assets: { linked: string[] };
+  /** `linked`: http(s) URLs the document points at. `embedded`: imported files, by hash (Phase 36). `missing`: manifest entries whose bytes weren't available at export. */
+  assets: { linked: string[]; embedded?: EmbeddedAssets; missing?: string[] };
 }
 
 export class LazyFileError extends Error {
@@ -58,7 +60,7 @@ function collectLinkedAssets(value: unknown, out = new Set<string>()): Set<strin
   return out;
 }
 
-export function createLazyFile(snapshot: ProjectStateSnapshot, settings?: ProjectSettings): LazyFile {
+export function createLazyFile(snapshot: ProjectStateSnapshot, settings?: ProjectSettings, embed?: { embedded: EmbeddedAssets; missing: string[] }): LazyFile {
   return {
     format: LAZY_FILE_FORMAT,
     formatVersion: LAZY_FILE_FORMAT_VERSION,
@@ -66,12 +68,16 @@ export function createLazyFile(snapshot: ProjectStateSnapshot, settings?: Projec
     exportedAt: new Date().toISOString(),
     project: { name: snapshot.projectName, ...(settings ? { settings } : {}) },
     snapshot,
-    assets: { linked: [...collectLinkedAssets(snapshot.document)].sort() },
+    assets: {
+      linked: [...collectLinkedAssets(snapshot.document)].sort(),
+      ...(embed && Object.keys(embed.embedded).length > 0 ? { embedded: embed.embedded } : {}),
+      ...(embed && embed.missing.length > 0 ? { missing: embed.missing } : {}),
+    },
   };
 }
 
-export function serializeLazyFile(snapshot: ProjectStateSnapshot, settings?: ProjectSettings): string {
-  return JSON.stringify(createLazyFile(snapshot, settings), null, 2);
+export function serializeLazyFile(snapshot: ProjectStateSnapshot, settings?: ProjectSettings, embed?: { embedded: EmbeddedAssets; missing: string[] }): string {
+  return JSON.stringify(createLazyFile(snapshot, settings, embed), null, 2);
 }
 
 /** A file name like `My Project.lazy.json`, safe on every OS. */
@@ -140,8 +146,22 @@ export function parseLazyFile(text: string): LazyFile {
     exportedAt: typeof file.exportedAt === "string" ? file.exportedAt : new Date(0).toISOString(),
     project: { name: file.project?.name || snapshot.projectName || "Imported Project", settings: file.project?.settings },
     snapshot: { ...snapshot, document: check.document },
-    assets: { linked: Array.isArray(file.assets?.linked) ? file.assets.linked.filter((a): a is string => typeof a === "string") : [] },
+    assets: {
+      linked: Array.isArray(file.assets?.linked) ? file.assets.linked.filter((a): a is string => typeof a === "string") : [],
+      embedded: readEmbedded(file.assets?.embedded),
+    },
   };
+}
+
+/** The embedded assets of a file, keeping only entries of the right shape (the store checks the bytes themselves). */
+function readEmbedded(value: unknown): EmbeddedAssets | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const out: EmbeddedAssets = {};
+  for (const [id, a] of Object.entries(value as Record<string, unknown>)) {
+    const o = a as Record<string, unknown> | null;
+    if (/^[0-9a-f]{64}$/.test(id) && o && typeof o.data === "string" && typeof o.name === "string" && typeof o.mime === "string") out[id] = { name: o.name, mime: o.mime, data: o.data };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /** True for file names this app should try to open (`*.lazy.json`, or any `.json`). */

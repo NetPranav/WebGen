@@ -58,6 +58,17 @@ export const WorkspaceLayoutSchema = z.object({
 export type WorkspaceLayout = z.infer<typeof WorkspaceLayoutSchema>;
 export type ZoneId = "left" | "right" | "bottom";
 
+/** The tabs of the left dock: the layer tree and the imported files (Phase 32, 36). */
+export const LEFT_TABS = [
+  { id: "layers", title: "Layers" },
+  { id: "assets", title: "Assets" },
+] as const;
+
+/** A tab id from an old or edited layout (the retired "outliner") falls back to Layers. */
+export function normalizeLeftTab(tabId: string): (typeof LEFT_TABS)[number]["id"] {
+  return LEFT_TABS.find((t) => t.id === tabId)?.id ?? "layers";
+}
+
 /** The Design workspace: Layers (Phase 32) │ stage │ Design inspector, the timeline folded away to the transport bar in the status bar. */
 export const DEFAULT_LAYOUT: WorkspaceLayout = {
   version: 1,
@@ -170,7 +181,7 @@ export function clampLayout(layout: WorkspaceLayout): WorkspaceLayout {
   const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
   return {
     ...layout,
-    left: { ...layout.left, size: clamp(layout.left.size, ZONE_LIMITS.left.min, ZONE_LIMITS.left.max), activeTab: "layers" },
+    left: { ...layout.left, size: clamp(layout.left.size, ZONE_LIMITS.left.min, ZONE_LIMITS.left.max), activeTab: normalizeLeftTab(layout.left.activeTab) },
     right: { ...layout.right, size: clamp(layout.right.size, ZONE_LIMITS.right.min, ZONE_LIMITS.right.max) },
     bottom: { ...layout.bottom, size: clamp(layout.bottom.size, ZONE_LIMITS.bottom.min, ZONE_LIMITS.bottom.max) },
     ai: { ...layout.ai, width: clamp(layout.ai.width, ZONE_LIMITS.ai.min, ZONE_LIMITS.ai.max) },

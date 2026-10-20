@@ -29,7 +29,7 @@
 import { useMemo } from "react";
 import { applyPatches, enablePatches, produceWithPatches, type Draft, type Patch } from "immer";
 import { captureProjectState, useProjectStore } from "./useProjectStore";
-import { documentStore, getDocument, setDocument } from "./documentState";
+import { documentStore, getDocument, isDocumentReadOnly, setDocument } from "./documentState";
 import { setEnvironment } from "./useEnvironmentStore";
 import { useProjectMetaStore, splitProjectMeta } from "./useProjectMetaStore";
 import type { WorldEnvironmentSettings } from "../types/environment";
@@ -185,6 +185,7 @@ function recordCommandChange(label: string, before: MotionDocument, after: Motio
  * it is applied and emitted as transient.
  */
 function commit(label: string | undefined, recipe: (draft: Draft<MotionDocument>) => void): DocumentChange {
+  if (isDocumentReadOnly()) return { label: label ?? DEFAULT_LABEL, patches: [], inversePatches: [] }; // another tab has this project
   const before = getDocument();
   // Phase 46: every write leaves clips placed in compositions (the legacy editor writes clips only).
   const [next, patches, inversePatches] = produceWithPatches(before, (draft) => {
@@ -302,6 +303,7 @@ export const gestureCoalescing = {
 // ---------------------------------------------------------------------------
 
 function applyDocumentPatches(patches: Patch[], inversePatches: Patch[], label: string, source: DocumentChangeSource) {
+  if (isDocumentReadOnly()) return;
   setDocument(applyPatches(getDocument(), patches));
   emit({ label, patches, inversePatches, source });
 }

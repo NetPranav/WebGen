@@ -1316,3 +1316,29 @@
   border-top: calc(1.5px / var(--canvas-zoom, 1)) solid var(--accent-primary, #6366f1);
   pointer-events: none;
 }
+
+/* A problem importing a file (Phase 36) */
+.asset-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(520px, calc(100% - 48px));
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #7f1d1d;
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+.asset-notice button {
+  background: none;
+  border: 0;
+  color: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}

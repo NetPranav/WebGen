@@ -26,6 +26,8 @@ import { frameIdOf } from "@/core/frames/frames";
 import { combineSelection, marqueeCandidates, rootIds } from "@/core/selection/selectionOps";
 import { buildTransformModel, handleAtScreen, layerBox } from "./transformModel";
 import { TextEditor } from "./text/TextEditor";
+import { importAndPlace, placeImage } from "@/core/assets/assetImport";
+import { AssetNotice } from "./AssetNotice";
 import { fillsOf } from "@/core/paint/paintOps";
 import { serializeFills, type Paint } from "@/core/paint/paints";
 import { snapEnvironment, guideLines } from "./snapEnv";
@@ -756,6 +758,26 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       }}
       onDrop={(e) => {
         e.preventDefault();
+        // files dragged in from the desktop become assets, and pictures become image layers where they land (Phase 36)
+        if (e.dataTransfer.files.length > 0 && mode === "design") {
+          const rect = containerRef.current!.getBoundingClientRect();
+          const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+          const container = hitTester.containerAt(world);
+          void importAndPlace(Array.from(e.dataTransfer.files), { x: world.x, y: world.y, parentId: container?.id ?? null, parentOrigin: container?.origin });
+          return;
+        }
+        // a tile dragged out of the Assets panel
+        const tile = e.dataTransfer.getData("application/x-lazylayout-asset");
+        if (tile && mode === "design") {
+          const entry = getDocument().assets?.[tile];
+          if (entry) {
+            const rect = containerRef.current!.getBoundingClientRect();
+            const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+            const container = hitTester.containerAt(world);
+            placeImage(entry, { x: world.x, y: world.y, parentId: container?.id ?? null, parentOrigin: container?.origin });
+          }
+          return;
+        }
         const rawData = e.dataTransfer.getData("application/json");
         if (!rawData) return;
         try {
@@ -844,6 +866,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
       <CanvasRulers hitTester={hitTester} containerRef={containerRef} />
       <CanvasContextMenu menu={contextMenu} onClose={closeContextMenu} />
+      <AssetNotice />
       <RenameBox currentName={(id) => getDocument().layers[id]?.name ?? id} />
       <FrameBar />
 

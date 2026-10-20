@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
 import { moveLayers } from "../layers/reparent";
+import { importAndPlace } from "../assets/assetImport";
 import { setFills, setShadows, setBlur, setStrokeStyle } from "../paint/paintOps";
 import { setFill, setFrame, setOpacity, setRadius, setSimpleText, setStroke } from "../inspector/simpleOps";
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
@@ -172,6 +173,13 @@ export function installClipboardEvents(target: Window): () => void {
   const paste = (e: Event) => {
     const ev = e as ClipboardEvent;
     if (!canvas()) return;
+    // a picture copied from elsewhere pastes as an image layer (Phase 36)
+    const pictures = Array.from(ev.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (pictures.length > 0) {
+      ev.preventDefault();
+      void importAndPlace(pictures);
+      return;
+    }
     const system = ev.clipboardData?.getData("text/plain") ?? "";
     // our payload from the system clipboard; or, when the page was given none, the mirror every tab of this origin shares
     const text = parseClip(system) ? system : system === "" ? mirrorRead() : null;

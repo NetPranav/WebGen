@@ -31,6 +31,8 @@ import { useWorkspace } from "./hooks/useWorkspace";
 import { useDockLayers } from "./hooks/useDockLayers";
 import { useAiDock } from "./hooks/useAiDock";
 import { useProjectFiles } from "./hooks/useProjectFiles";
+import { useProjectLock } from "./hooks/useProjectLock";
+import { ReadOnlyBanner } from "./ReadOnlyBanner";
 import { useFullPageDock } from "./hooks/useFullPageDock";
 import { useShellCommands } from "./hooks/useShellCommands";
 import { useProjectMetaStore } from "@/core/store/useProjectMetaStore";
@@ -104,6 +106,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
   }, []);
 
   const files = useProjectFiles();
+  useProjectLock();
   const ai = useAiDock({ rightZoneRef, rightWidth: ws.rightWidth, rightCollapsed: ws.rightCollapsed, setActiveLayer });
   const { setIsAiCoPilotOpen } = ai;
   const fp = useFullPageDock(ws, handleZoneClick);
@@ -315,6 +318,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
         />
       </div>
 
+      <ReadOnlyBanner />
       <DockTree
         ws={ws}
         layers={layers}
