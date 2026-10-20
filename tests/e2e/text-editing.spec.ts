@@ -197,6 +197,7 @@ test("Phase 31: the inspector's text properties change the layer, one undo step 
   await page.keyboard.type("Style me");
   await page.keyboard.press("Escape");
   await expect(page.locator(EDITOR)).toHaveCount(0);
+  await page.getByRole("tab", { name: "Pro" }).click(); // the text properties are on the Pro face
   const text = page.getByRole("group", { name: "Text", exact: true });
   await expect(text).toBeVisible();
   const before = (await view(page, id))!;
@@ -236,6 +237,7 @@ test("Phase 31: auto width, auto height and fixed size", async ({ page }) => {
   const id = await drawText(page, "drag");
   await page.keyboard.type("Short");
   await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: "Pro" }).click();
   const sizing = page.getByRole("group", { name: "Text box sizing" });
   const dragged = (await view(page, id))!;
   expect(dragged.width, "a dragged text box keeps the dragged width").toBeGreaterThan(200);

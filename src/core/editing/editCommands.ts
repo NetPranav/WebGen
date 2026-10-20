@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
 import { moveLayers } from "../layers/reparent";
+import { setFill, setFrame, setOpacity, setRadius, setSimpleText, setStroke } from "../inspector/simpleOps";
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
 import { getDocument } from "../store/documentState";
@@ -125,6 +126,14 @@ export function registerEditingCommands(): () => void {
     args: z.object({ ids: z.array(z.string()).optional(), parentId: z.string().nullable(), index: z.number().int().min(0).optional() }),
     run: ({ ids: target, parentId, index }) => moveLayers(target ?? ids(), parentId, index),
   }));
+  // Phase 33: the Simple face's seven controls, as intent-level commands (each takes ids, default the selection).
+  const targets = z.array(z.string()).optional();
+  add(defineTypedCommand({ id: "layer.setFill", title: "Set Fill", category: "Layer", args: z.object({ ids: targets, color: z.string() }), run: ({ ids: t, color }) => ({ changed: setFill(t ?? ids(), color) }) }));
+  add(defineTypedCommand({ id: "layer.setStroke", title: "Set Stroke", category: "Layer", args: z.object({ ids: targets, color: z.string().optional(), width: z.number().optional() }), run: ({ ids: t, color, width }) => ({ changed: setStroke(t ?? ids(), { color, width }) }) }));
+  add(defineTypedCommand({ id: "layer.setRadius", title: "Set Corner Radius", category: "Layer", args: z.object({ ids: targets, radius: z.number() }), run: ({ ids: t, radius }) => ({ changed: setRadius(t ?? ids(), radius) }) }));
+  add(defineTypedCommand({ id: "layer.setOpacity", title: "Set Opacity", category: "Layer", args: z.object({ ids: targets, opacity: z.number() }), run: ({ ids: t, opacity }) => ({ changed: setOpacity(t ?? ids(), opacity) }) }));
+  add(defineTypedCommand({ id: "layer.setText", title: "Set Words", category: "Layer", args: z.object({ ids: targets, text: z.string() }), run: ({ ids: t, text }) => ({ changed: setSimpleText(t ?? ids(), text) }) }));
+  add(defineTypedCommand({ id: "layer.setFrame", title: "Set Position and Size", category: "Layer", args: z.object({ ids: targets, x: z.number().optional(), y: z.number().optional(), width: z.number().optional(), height: z.number().optional() }), run: ({ ids: t, ...patch }) => ({ changed: setFrame(t ?? ids(), patch) }) }));
   add(registerTextCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());

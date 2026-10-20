@@ -6,7 +6,8 @@
  * the layers disagree on reads "Mixed". Every change runs `layer.setProps` (or `text.setSizing`), one undo step.
  */
 
-import React, { useState } from "react";
+import React from "react";
+import { NumberField } from "./controls/NumberField";
 import { AlignLeft, AlignCenter, AlignRight, AlignJustify } from "lucide-react";
 import { invokeCommand } from "@/core/commands";
 import { resolveProps } from "@/core/render/resolve";
@@ -29,26 +30,6 @@ const SIZINGS = [
 ] as const;
 
 const set = (props: Record<string, PropValue | null>) => void invokeCommand("layer.setProps", { props, label: "Text properties" });
-
-/** A number field that writes on Enter or blur, so typing "24" is one undo step, not two. It restarts when the value changes under it. */
-const NumberField: React.FC<{ label: string; value: number | null; step?: number; min?: number; onCommit: (n: number) => void }> = (props) => (
-  <NumberInput key={props.value === null ? "mixed" : props.value} {...props} />
-);
-
-const NumberInput: React.FC<{ label: string; value: number | null; step?: number; min?: number; onCommit: (n: number) => void }> = ({ label, value, step = 1, min, onCommit }) => {
-  const [text, setText] = useState(value === null ? "" : String(value));
-  const commit = () => {
-    const n = Number(text);
-    if (text.trim() !== "" && Number.isFinite(n) && n !== value) onCommit(min !== undefined ? Math.max(min, n) : n);
-    else setText(value === null ? "" : String(value));
-  };
-  return (
-    <label className="text-props__field">
-      <span>{label}</span>
-      <input type="number" aria-label={label} step={step} min={min} placeholder={value === null ? "Mixed" : undefined} value={text} onChange={(e) => setText(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} />
-    </label>
-  );
-};
 
 export const TextProperties: React.FC = () => {
   const layers = useLayers();

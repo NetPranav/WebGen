@@ -44,6 +44,8 @@ import { MaterialInspectorSection } from "./sections/MaterialInspectorSection";
 import { EnvironmentInspector } from "./EnvironmentInspector";
 import { AlignBar } from "./AlignBar";
 import { TextProperties } from "./TextProperties";
+import { SimpleFace } from "./simple/SimpleFace";
+import { useInspectorFaceStore } from "@/core/store/useInspectorFaceStore";
 import { SectionRail, type SectionRailItem } from "./SectionRail";
 import "@/editor/styles/panels.css";
 import "@/editor/styles/forms.css";
@@ -63,6 +65,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
   onDeselect,
 }) => {
   const elements = useLayers();
+  const face = useInspectorFaceStore((st) => st.face);
   const isElementSelected = Boolean(
     selectedElementId &&
     selectedElementId !== "" &&
@@ -188,9 +191,17 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
 
       {/* Section Rail + Scrollable Inspector Body */}
       <div className="panel-body">
-        <SectionRail items={railItems} onSelect={jumpToSection} />
+        {face === "pro" && <SectionRail items={railItems} onSelect={jumpToSection} />}
         <div className="panel-content">
         <AlignBar />
+        <div className="inspector-face-switch" role="tablist" aria-label="Inspector face">
+          <button type="button" role="tab" aria-selected={face === "simple"} onClick={() => useInspectorFaceStore.getState().setFace("simple")}>Simple</button>
+          <button type="button" role="tab" aria-selected={face === "pro"} onClick={() => useInspectorFaceStore.getState().setFace("pro")}>Pro</button>
+        </div>
+        {face === "simple" ? (
+          <SimpleFace />
+        ) : (
+        <>
         <TextProperties />
         {/* ====================================================================
          * SECTION 1: TRANSFORM
@@ -839,6 +850,8 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
             </div>
           )}
         </div>
+        </>
+        )}
         </div>
       </div>
     </div>

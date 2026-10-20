@@ -1,0 +1,122 @@
+/* Simple face of the Design inspector (Phase 33) */
+.simple-face {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px 10px;
+  font-size: 12px;
+}
+.simple-face--empty {
+  padding: 16px;
+  opacity: 0.6;
+}
+.simple-group {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.15));
+}
+.simple-group__title {
+  opacity: 0.75;
+}
+.simple-group__body {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.simple-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 6px;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+  background: var(--surface-input, transparent);
+}
+.simple-field__badge {
+  opacity: 0.55;
+  font-size: 10px;
+  width: 10px;
+  text-align: center;
+}
+.simple-field input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 4px 0;
+}
+.simple-field__unit {
+  opacity: 0.6;
+}
+.simple-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.simple-color input[type="color"] {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.simple-color input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+  background: var(--surface-input, transparent);
+  color: inherit;
+  font: inherit;
+}
+.simple-text {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  padding: 4px 6px;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  border-radius: 4px;
+  background: var(--surface-input, transparent);
+  color: inherit;
+  font: inherit;
+}
+.inspector-face-switch {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+}
+.inspector-face-switch button {
+  flex: 1;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border-default, rgba(128, 128, 128, 0.3));
+  cursor: pointer;
+}
+.inspector-face-switch button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+.inspector-face-switch button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+.inspector-face-switch button[aria-selected="true"] {
+  background: var(--accent-primary, #6366f1);
+  border-color: var(--accent-primary, #6366f1);
+  color: #fff;
+}

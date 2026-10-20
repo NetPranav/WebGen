@@ -30,7 +30,7 @@ import { repairPageRoots } from "../frames/pageRoots";
 const DEFAULT_OFFSET = { dx: 16, dy: 16 };
 
 /** Runs `fn` as one undo step. Nested inside another transaction it joins it. */
-function transaction<T>(label: string, fn: () => T): T {
+export function transaction<T>(label: string, fn: () => T): T {
   const tx = documentCommands.begin(label);
   try {
     const result = fn();
