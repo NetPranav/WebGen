@@ -234,7 +234,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 55 | Frame scheduler | 54 | v3 45.2, 45.3 | 2 | ✅ |
 | 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | ✅ |
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | ✅ |
-| 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | 🚧 |
+| 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | ✅ |
 | 59 | Scrub vs play | 58 | v3 10.2 | 2 | 📋 |
 | 60 | Parity overlay | 59 | v3 10.3 | 2 | 📋 |
 | 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 📋 |
@@ -907,8 +907,8 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** 10 reference animations seeked to 5 times match the kernel's values within 0.5 px.
 
 ### Phase 58 · CSS / Web Animations adapter
-**Needs:** 57 · **Was:** v3 10.1 (WAAPI) · **Status:** 🚧
-- [x] Routed animations (Phase 10's `rules.route`) run as Web Animations or CSS where they can (compositor thread); seek maps to `currentTime`. `WaapiAdapter` bakes the kernel's curve once per frame into linear keyframes (so every easing matches the kernel) and runs one animation per layer; `canRunOnWaapi` uses the `css` route plus a check that every property can be interpolated; `StageAdapters` gives each animated layer to exactly one of the Web Animations and kernel adapters (kernel fallback where `Element.animate` doesn't exist). *(Remaining for ✅: CI green on `main`.)*
+**Needs:** 57 · **Was:** v3 10.1 (WAAPI) · **Status:** ✅
+- [x] Routed animations (Phase 10's `rules.route`) run as Web Animations or CSS where they can (compositor thread); seek maps to `currentTime`. `WaapiAdapter` bakes the kernel's curve once per frame into linear keyframes (so every easing matches the kernel) and runs one animation per layer; `canRunOnWaapi` uses the `css` route plus a check that every property can be interpolated; `StageAdapters` gives each animated layer to exactly one of the Web Animations and kernel adapters (kernel fallback where `Element.animate` doesn't exist).
 
 **You'll see:** passive loops and simple tweens keep running smoothly even when the main thread is busy.
 **Done when:** WAAPI-routed reference animations match the kernel at 5 times (≤ 0.5% pixels).
