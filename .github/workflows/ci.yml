@@ -60,7 +60,9 @@ jobs:
   # every push/PR, on Chromium, Firefox and WebKit (playwright.config.ts).
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The suite passed 20 minutes at Phase 34 (three browsers, one worker); a job split by browser would change the
+    # check's name, which branch protection may require, so the limit goes up instead.
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
 
