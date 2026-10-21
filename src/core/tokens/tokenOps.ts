@@ -10,6 +10,7 @@ import type { Layer, MotionDocument } from "../document/schema";
 import { getResolvedDocument, documentCommands } from "../store/useDocumentStore";
 import { getDocument } from "../store/documentState";
 import { useModeStore } from "../store/useModeStore";
+import { markOverridden } from "../components/instances";
 import { MAX_MODES, MAX_STYLES, MAX_VARIABLES, STYLE_PROPS, defaultModeOf, modesOf, valueIn, variableTypeFor, type StyleDef, type StyleKind, type Variable, type VariableType } from "./tokens";
 
 const rid = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -133,7 +134,10 @@ export function bindVariable(ids: readonly string[], path: string, variableId: s
   });
   if (targets.length === 0) return 0;
   documentCommands.mutate("Bind to variable", (d) => {
-    for (const id of targets) ((d.layers[id].tokens ??= {})[path] = { variable: variableId });
+    for (const id of targets) {
+      (d.layers[id].tokens ??= {})[path] = { variable: variableId };
+      markOverridden(d.layers[id] as Layer, ["tokens"]);
+    }
   });
   return targets.length;
 }
@@ -148,6 +152,7 @@ export function detachBinding(ids: readonly string[], path: string): number {
       const v = currentValue(d, layer as Layer, path);
       if (v !== undefined) layer.properties[path] = v;
       layer.tokens![path].detached = true;
+      markOverridden(layer as Layer, ["tokens"]);
     }
   });
   return targets.length;
@@ -166,6 +171,7 @@ export function unbind(ids: readonly string[], path: string): number {
       }
       delete layer.tokens![path];
       if (Object.keys(layer.tokens!).length === 0) delete layer.tokens;
+      markOverridden(layer as Layer, ["tokens"]);
     }
   });
   return targets.length;
@@ -219,7 +225,10 @@ export function applyStyle(ids: readonly string[], styleId: string): number {
   });
   if (targets.length === 0) return 0;
   documentCommands.mutate("Apply style", (d) => {
-    for (const id of targets) (d.layers[id].styleRefs ??= {})[style.kind] = styleId;
+    for (const id of targets) {
+      (d.layers[id].styleRefs ??= {})[style.kind] = styleId;
+      markOverridden(d.layers[id] as Layer, ["styleRefs"]);
+    }
   });
   return targets.length;
 }
@@ -227,6 +236,7 @@ export function applyStyle(ids: readonly string[], styleId: string): number {
 function materialize(d: MotionDocument, layer: Layer, kind: StyleKind) {
   const style = d.styles?.[layer.styleRefs?.[kind] ?? ""];
   if (style) for (const path of STYLE_PROPS[kind]) if (style.props[path] !== undefined) layer.properties[path] = style.props[path];
+  markOverridden(layer, ["styleRefs"]);
   if (layer.styleRefs) {
     delete layer.styleRefs[kind];
     if (!layer.styleRefs.text && !layer.styleRefs.effect) delete layer.styleRefs;

@@ -13,6 +13,7 @@ import { importFiles, placeAsVectors, placeImage } from "@/core/assets/assetImpo
 import type { AssetEntry } from "@/core/document/schema";
 import { documentCommands, useDocument } from "@/core/store/useDocumentStore";
 import { useAssetUiStore } from "@/core/store/useAssetUiStore";
+import { ComponentsList } from "./ComponentsList";
 import "@/editor/styles/assets.css";
 
 const ACCEPT = "image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml,.svg,.woff,.woff2,.ttf,.otf";
@@ -126,6 +127,7 @@ export const AssetsPanel: React.FC = () => {
           }}
         />
       </div>
+      <ComponentsList />
       {entries.length === 0 ? (
         <div className="assets-panel__empty">
           <ImagePlus size={28} aria-hidden />

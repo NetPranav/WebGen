@@ -15,7 +15,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Box, ChevronDown, ChevronRight, Circle, Eye, EyeOff, Frame, Image as ImageIcon, Lock, LockOpen, Minus, MousePointerClick, Search, Square, Star, Hexagon, Type, X, MoveUpRight,
+  Box, Component, Diamond, ChevronDown, ChevronRight, Circle, Eye, EyeOff, Frame, Image as ImageIcon, Lock, LockOpen, Minus, MousePointerClick, Search, Square, Star, Hexagon, Type, X, MoveUpRight,
 } from "lucide-react";
 import { invokeCommand } from "@/core/commands";
 import { useOwnFocusScope } from "@/core/commands";
@@ -96,7 +96,7 @@ interface RowProps {
 }
 
 const Row = memo(function Row({ row, top, selected, drop, renaming, dragging, query, motion, onPointerDown, onToggle, onContextMenu, onRename, onCommitName }: RowProps) {
-  const Icon = ICONS[row.archetype] ?? Box;
+  const Icon = row.component === "main" ? Component : row.component === "instance" ? Diamond : (ICONS[row.archetype] ?? Box);
   const dimmed = row.hidden || row.hiddenByAncestor;
   const locked = row.locked || row.lockedByAncestor;
   const cls = [

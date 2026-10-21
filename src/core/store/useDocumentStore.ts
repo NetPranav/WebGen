@@ -47,6 +47,7 @@ import { appliedBreakpoints, breakpointsOf, isBase, resolveDocumentAt, resolveLa
 import { useBreakpointStore } from "./useBreakpointStore";
 import { useModeStore } from "./useModeStore";
 import { STYLE_PROPS } from "../tokens/tokens";
+import { markOverridden, syncInstances } from "../components/instances";
 import { syncCompositions, type CompositionLayer, type Marker } from "../document/compositions";
 import {
   validateMotionDocument,
@@ -196,6 +197,8 @@ function commit(label: string | undefined, recipe: (draft: Draft<MotionDocument>
   const [next, patches, inversePatches] = produceWithPatches(before, (draft) => {
     recipe(draft);
     syncCompositions(draft as MotionDocument);
+    // an edited main component brings its instances in line, in this same change (Phase 46)
+    syncInstances(draft as MotionDocument, before);
   });
   const resolvedLabel = label ?? DEFAULT_LABEL;
   if (patches.length === 0) return { label: resolvedLabel, patches, inversePatches };
@@ -585,6 +588,12 @@ export const documentCommands = {
     commit(label, (draft) => {
       const layer = draft.layers[layerId];
       if (!layer) return;
+      // a layer inside an instance mirrors the main one: deleting it hides it (the instance's own change), it isn't gone (Phase 46)
+      if (layer.instance && !layer.instance.root) {
+        layer.visible = false;
+        markOverridden(layer as Layer, ["visible"]);
+        return;
+      }
       detachChild(draft, layer);
       const doomed = new Set(getSubtreeIds(draft as MotionDocument, layerId));
       doomed.forEach((id) => delete draft.layers[id]);
@@ -632,6 +641,14 @@ export const documentCommands = {
         delete props[res.ok ? res.path : key];
       }
       const before = { width: props["frame.width"], height: props["frame.height"] };
+      // an instance's own change is an override: the main no longer overwrites it (Phase 46)
+      if (layer.instance) {
+        const named = [...Object.keys(direct)].map((k) => {
+          const res = resolvePropertyPath(k, layer.archetype);
+          return res.ok ? res.path : k;
+        });
+        markOverridden(layer as Layer, [...named, ...(Object.keys(routed).length > 0 ? ["overrides"] : [])]);
+      }
       // a property a person edits by hand stops following its variable or style, and keeps the value they gave it (Phase 45)
       detachOnEdit(draft as MotionDocument, layer as Layer, [...Object.keys(defined), ...Object.keys(direct).filter((k) => direct[k] === undefined)]);
       Object.assign(props, canonicalProps(layer.archetype, defined, "updateProps"));
@@ -671,6 +688,7 @@ export const documentCommands = {
   setLayerFlags(layerId: string, flags: Partial<Pick<Layer, "visible" | "locked" | "solo" | "shy" | "motionBlur">>, label?: string) {
     commit(label, (draft) => {
       const layer = requireLayer(draft, layerId);
+      if ("visible" in flags) markOverridden(layer as Layer, ["visible"]);
       const activeId = useBreakpointStore.getState().activeId;
       // at a smaller breakpoint, showing or hiding a layer is that breakpoint's override (Phase 43)
       if ("visible" in flags && !isBase(breakpointsOf(draft), activeId)) {

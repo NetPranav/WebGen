@@ -138,6 +138,14 @@ export const LayerSchema = z.object({
   tokens: z.record(z.string(), z.object({ variable: z.string(), detached: z.boolean().optional() })).optional(),
   /** The text style and effect style this layer follows (Phase 45): style ids. */
   styleRefs: z.object({ text: z.string().optional(), effect: z.string().optional() }).optional(),
+  /** This layer is the main component with this id (Phase 46): the one place the component is edited. */
+  componentMain: z.string().optional(),
+  /**
+   * This layer is part of an instance of a component (Phase 46): the component, the main layer it mirrors, whether it
+   * is the instance's root, and the properties (and `visible`, `tokens`, `styleRefs`, `overrides`) the instance
+   * changed on its own, which the main no longer overwrites.
+   */
+  instance: z.object({ component: z.string(), source: z.string(), root: z.boolean().optional(), overridden: z.array(z.string()).optional() }).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -190,6 +198,8 @@ const MotionDocumentShape = z.object({
   exportSettings: ExportSettingsSchema,
   /** Imported files, by content hash (Phase 36). Absent in documents saved before assets: read it as empty. */
   assets: z.record(z.string(), AssetEntrySchema).optional(),
+  /** The design components: id, name and the layer that is the main component (Phase 46). */
+  designComponents: z.record(z.string(), z.object({ id: z.string(), name: z.string().min(1).max(120), mainId: z.string() })).optional(),
   /** Modes for variables, the first is the default (Phase 45). Absent: Light and Dark. */
   modes: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40) })).max(8).optional(),
   /** Colour and number variables with a value for each mode (Phase 45). */

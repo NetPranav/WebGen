@@ -19,6 +19,8 @@ export interface LayerRow {
   depth: number;
   name: string;
   archetype: string;
+  /** The layer is a main component or part of an instance (Phase 46). */
+  component?: "main" | "instance";
   parentId: string | null;
   hasChildren: boolean;
   expanded: boolean;
@@ -73,6 +75,7 @@ export function buildRows(layers: Layers, expanded: ReadonlySet<string>, query =
       depth,
       name: l.name,
       archetype: l.archetype,
+      ...(l.componentMain ? { component: "main" as const } : l.instance ? { component: "instance" as const } : {}),
       parentId: l.parentId,
       hasChildren: l.children.length > 0,
       expanded: open,
