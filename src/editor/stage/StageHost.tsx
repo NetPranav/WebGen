@@ -9,7 +9,8 @@
  * layer id to the editor.
  */
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { getResolvedDocument, useDocument } from "@/core/store/useDocumentStore";
+import { getResolvedDocument, useDocumentAt } from "@/core/store/useDocumentStore";
+import { resolveDocumentAt } from "@/core/breakpoints/breakpoints";
 import { useBreakpointStore } from "@/core/store/useBreakpointStore";
 import { documentStore, getDocument } from "@/core/store/documentState";
 import { useProjectStore } from "@/core/store/useProjectStore";
@@ -30,6 +31,10 @@ export interface StageHostProps {
   height?: number | string;
   /** A canvas frame (Phase 21): the top-level layer this stage draws, alone, at the origin of its own frame element. */
   frameId?: string;
+  /** The breakpoint this stage draws (Phase 44), whatever the one being edited is; absent: the one being edited. */
+  breakpointId?: string | null;
+  /** A preview of a breakpoint beside the real frame: it registers no renderer of its own and runs no engine. */
+  ghost?: boolean;
   /** The frame element's title (for assistive technology and tests). */
   title?: string;
   /** Called with the layer id of a clicked element. */
@@ -47,7 +52,7 @@ declare global {
   }
 }
 
-export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "100%", frameId, title = "Stage", onElementClick, className, style }) => {
+export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "100%", frameId, title = "Stage", onElementClick, className, style, breakpointId, ghost = false }) => {
   const pages = useProjectStore((s) => s.pages);
   const activePageId = useProjectStore((s) => s.activePageId);
   const stateVariables = useProjectStore((s) => s.stateVariables);
@@ -55,7 +60,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
 
   // The ids drawn at the top: the page's root layer if it exists, otherwise every parentless layer. A string, so a
   // property edit (which can't change it) doesn't re-render the host.
-  const rootKey = useDocument((d) => {
+  const rootKey = useDocumentAt((d) => {
     if (frameId) return d.layers[frameId] ? frameId : "";
     const id = page?.rootElementId;
     if (id && d.layers[id]) return id;
@@ -63,27 +68,29 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
       .filter((l) => l.parentId === null)
       .map((l) => l.id)
       .join(",");
-  });
+  }, breakpointId);
   const rootIds = useMemo(() => (rootKey ? rootKey.split(",") : []), [rootKey]);
 
+  // the document as this stage draws it: at its own breakpoint, or at the one being edited
+  const seen = useCallback(() => (breakpointId === undefined ? getResolvedDocument() : resolveDocumentAt(getDocument(), breakpointId)), [breakpointId]);
   const [plan] = useState(() => {
     const store = createPlanStore();
-    store.refresh(getResolvedDocument().layers, rootIds); // the first paint already has its content
+    store.refresh(seen().layers, rootIds); // the first paint already has its content
     return store;
   });
   const [renderer] = useState(() => new StageRenderer());
 
   // Keep the plan in step with the document: a structural change (ids, children, visibility, roots) updates it; a property edit doesn't.
   useLayoutEffect(() => {
-    plan.refresh(getResolvedDocument().layers, rootIds);
+    plan.refresh(seen().layers, rootIds);
     // the document changed, or another breakpoint is being viewed (a layer hidden there, a frame at its width)
-    const offDoc = documentStore.subscribe(() => plan.refresh(getResolvedDocument().layers, rootIds));
-    const offBp = useBreakpointStore.subscribe(() => plan.refresh(getResolvedDocument().layers, rootIds));
+    const offDoc = documentStore.subscribe(() => plan.refresh(seen().layers, rootIds));
+    const offBp = useBreakpointStore.subscribe(() => plan.refresh(seen().layers, rootIds));
     return () => {
       offDoc();
       offBp();
     };
-  }, [plan, rootIds]);
+  }, [plan, rootIds, seen]);
 
   const [frameDoc, setFrameDoc] = useState<Document | null>(null);
   const handleFrame = useCallback(
@@ -100,6 +107,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
   useEffect(() => renderer.onLayout(() => useFontsStore.getState().bump()), [renderer]);
 
   useEffect(() => {
+    if (ghost) return undefined; // a preview of another breakpoint is not the frame's renderer
     const off = frameId ? registerFrameRenderer(frameId, renderer) : undefined;
     if (!frameId) setStageRenderer(renderer);
     if (window.__LL_TEST__) window.__LL_STAGE__ = renderer;
@@ -108,10 +116,11 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
       if (!frameId) setStageRenderer(null);
       if (window.__LL_STAGE__ === renderer) delete window.__LL_STAGE__;
     };
-  }, [renderer, frameId]);
+  }, [renderer, frameId, ghost]);
 
   // The animation engine: shows the transport's time on the stage by writing to the layers' elements (Phase 57).
   useEffect(() => {
+    if (ghost) return undefined;
     const uninstall = installStageEngine(renderer);
     // Test seam: the kernel's answer for a layer, and the transport's seek, so a browser test can compare the stage with the oracle.
     if (window.__LL_TEST__) {
@@ -121,7 +130,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
       uninstall();
       delete window.__LL_ENGINE__;
     };
-  }, [renderer]);
+  }, [renderer, ghost]);
 
   // `{{name}}` in a text layer shows the state variable's value.
   const ctx = useMemo<RenderContext>(
@@ -135,7 +144,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
     }),
     [stateVariables, frameId],
   );
-  const stage = useMemo<StageContextValue>(() => ({ plan, renderer, ctx }), [plan, renderer, ctx]);
+  const stage = useMemo<StageContextValue>(() => ({ plan, renderer, ctx, breakpointId }), [plan, renderer, ctx, breakpointId]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {

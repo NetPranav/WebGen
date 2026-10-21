@@ -9,7 +9,7 @@
  * edit re-renders the layer it touched and nothing else; adding or removing a layer re-renders its parent.
  */
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import { useLayer } from "@/core/store/useDocumentStore";
+import { useLayerAt } from "@/core/store/useDocumentStore";
 import { RENDER_DEFINITIONS } from "./definitions";
 import { resolveProps } from "./resolve";
 import { recordRender } from "./renderStats";
@@ -22,6 +22,8 @@ export interface StageContextValue {
   plan: PlanStore;
   renderer: StageRenderer;
   ctx: RenderContext;
+  /** The breakpoint this stage draws (Phase 44); absent: the one being edited. */
+  breakpointId?: string | null;
 }
 
 export const StageContext = createContext<StageContextValue | null>(null);
@@ -35,9 +37,9 @@ interface StoreRenderLayerProps {
 function StoreRenderLayerImpl({ layerId, parentDirection }: StoreRenderLayerProps) {
   const stage = useContext(StageContext);
   if (!stage) throw new Error("StoreRenderLayer must be rendered inside a StageContext");
-  const { plan, renderer, ctx: stageCtx } = stage;
+  const { plan, renderer, ctx: stageCtx, breakpointId } = stage;
 
-  const layer = useLayer(layerId);
+  const layer = useLayerAt(layerId, breakpointId);
   const childIds = useSyncExternalStore(plan.subscribe, () => plan.get(layerId), () => plan.get(layerId));
   const resolved = useMemo(() => (layer ? resolveProps(layer) : null), [layer]);
   const ctx = useMemo<RenderContext>(() => ({ ...stageCtx, parentDirection }), [stageCtx, parentDirection]);

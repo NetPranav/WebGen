@@ -946,6 +946,20 @@ export function useLayers(): Record<string, Layer> {
   return documentStore((state) => resolveDocumentAt(state.document, activeId).layers);
 }
 
+/** `useLayer`, at a given breakpoint rather than the one being edited (a stage drawing a breakpoint of its own, Phase 44). `undefined` follows the one being edited. */
+export function useLayerAt(layerId: string | null | undefined, breakpointId: string | null | undefined): Layer | undefined {
+  const activeId = useBreakpointStore((s) => s.activeId);
+  const at = breakpointId === undefined ? activeId : breakpointId;
+  return documentStore((state) => (layerId ? resolveDocumentAt(state.document, at).layers[layerId] : undefined));
+}
+
+/** `useDocument`, at a given breakpoint (`undefined`: the one being edited). */
+export function useDocumentAt<T>(selector: (document: MotionDocument) => T, breakpointId: string | null | undefined): T {
+  const activeId = useBreakpointStore((s) => s.activeId);
+  const at = breakpointId === undefined ? activeId : breakpointId;
+  return documentStore((state) => selector(resolveDocumentAt(state.document, at)));
+}
+
 /** The document as seen at the breakpoint being edited, for reads outside React that need what is drawn (hit testing, measuring). */
 export function getResolvedDocument(): MotionDocument {
   return resolveDocumentAt(documentStore.getState().document, useBreakpointStore.getState().activeId);

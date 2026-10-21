@@ -215,7 +215,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 🚧 |
 | 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 🚧 |
 | 43 | Breakpoints & overrides | 42 | v3 50.3 (properties half) | 1 | 🚧 |
-| 44 | Breakpoint canvas | 21, 43 | v3 50.4 | 1 | 📋 |
+| 44 | Breakpoint canvas | 21, 43 | v3 50.4 | 1 | 🚧 |
 | 45 | Design tokens & styles | 35, 38 | v3 22.3 | 1 | 📋 |
 | 46 | Components & instances | 29, 32 | v3 75.1, 75.5 (design) | 1 | 📋 |
 | 47 | Variants & component properties | 46 | v3 75.2 (static), 75.3 | 1 | 📋 |
@@ -789,11 +789,12 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence so far (2026-10-20):** `src/core/breakpoints/breakpoints.ts` is the rule as pure functions (which overrides apply, `resolveLayerAt`, `resolveDocumentAt` memoised, constraints carried from the base frame width to the breakpoint's), `breakpointOps.ts` and the `breakpoint.*` commands; `src/core/breakpoints/__tests__/breakpoints.test.ts` (16: cascade Tablet → Mobile, edits routed to overrides while a breakpoint is active, one undo step, no override when nothing differs or the base value is written back, reset one or all, hide at a breakpoint, a responsive frame at the breakpoint's width with pinned layers following and an override beating the pin, adding/renaming/removing breakpoints and their overrides). `tests/e2e/breakpoints.spec.ts` in 3 browsers: the bar; Mobile shows the page at 375; an X edit through the inspector at Mobile is an override (Desktop and the base untouched, the document still saves); Reset frame.x and Reset all; undo brings an override back; Tablet changes reach Mobile and Mobile's win; hide at Mobile; pinned layer follows; add a 1024 breakpoint, edit at it, remove it. **Design:** `Layer.overrides` (breakpoint id → property → value; the key `layer.visible` hides) and `MotionDocument.breakpoints` are optional and additive (no schema bump); the widest breakpoint is the base; `documentCommands.updateProps` and `setLayerFlags` send edits to the active breakpoint's overrides (a top-level frame's canvas position and `breakpoints.responsive` stay the document's); `useDocument`, `useLayer`, `useLayers` and `getResolvedDocument()` give the document as seen at the breakpoint (hit testing, measuring and the stage plan use it); a top-level frame follows the bar only when `breakpoints.responsive` is set (the bar's Responsive box; the first smaller breakpoint chosen turns it on for the selection's frame). Not built: breakpoints in the Pro face's property list beyond a dot, and Phase 44's side-by-side breakpoint canvas. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 44 · Breakpoint canvas
-**Needs:** 21, 43 · **Was:** v3 50.4 · **Status:** 📋
-- [ ] Every breakpoint of a page side by side as linked frames; drag a frame's edge to reflow it live; selecting a layer selects it at every breakpoint.
+**Needs:** 21, 43 · **Was:** v3 50.4 · **Status:** 🚧
+- [x] Every breakpoint of a page side by side as linked frames; drag a frame's edge to reflow it live; selecting a layer selects it at every breakpoint.
 
 **You'll see:** Desktop, Tablet and Mobile versions of the same page updating together.
 **Done when:** a 200-layer page reflows at 60 fps while its frame edge is dragged.
+**Evidence so far (2026-10-21):** `tests/e2e/breakpoint-canvas.spec.ts` in 3 browsers: **All** draws Tablet and Mobile beside Desktop, each at its own width, a pinned layer where its constraint puts it at each width, and a change at the base shows in every view live; selecting a layer outlines it in every view; clicking a layer in a preview selects it and makes that breakpoint the one being edited (the previous one becomes a preview); dragging a view's right edge sets the breakpoint's width, the page reflows live and one undo puts it back; **a 200-layer page: 90th-percentile frame under 34 ms (50 ms on CI) while an edge is dragged for 40 moves**. **Design:** `StageHost` takes `breakpointId` and `ghost` (a preview registers no renderer and runs no engine); `useLayerAt` / `useDocumentAt` read the document at a breakpoint; previews sit in a row beneath the responsive frame so they never cover other frames; a preview takes clicks itself (the element under the pointer in its own frame). The real frame stays the only one with handles, hit testing and snapping. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 45 · Design tokens & styles
 **Needs:** 35, 38 · **Was:** v3 22.3 · **Closes:** AUD-20 (Tier 2: properties 34–40) · **Status:** 📋

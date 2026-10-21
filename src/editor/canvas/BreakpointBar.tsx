@@ -5,6 +5,7 @@ import { invokeCommand } from "@/core/commands";
 import { breakpointsOf, isBase } from "@/core/breakpoints/breakpoints";
 import { targetFrameId } from "@/core/breakpoints/breakpointOps";
 import { useBreakpointStore } from "@/core/store/useBreakpointStore";
+import { useBreakpointViewStore } from "@/core/store/useBreakpointViewStore";
 import { documentStore } from "@/core/store/documentState";
 
 /**
@@ -18,6 +19,7 @@ export const BreakpointBar: React.FC = () => {
   const doc = documentStore((s) => s.document);
   const list = breakpointsOf(doc);
   const base = isBase(list, activeId);
+  const showAll = useBreakpointViewStore((s) => s.showAll);
   const [adding, setAdding] = useState(false);
   const [width, setWidth] = useState("1024");
   const frameId = targetFrameId();
@@ -62,6 +64,9 @@ export const BreakpointBar: React.FC = () => {
           +
         </button>
       )}
+      <button type="button" className="panel-icon-btn panel-text-btn" aria-pressed={showAll} aria-label="Show all breakpoints" title="Show every breakpoint of a responsive page side by side" onClick={() => useBreakpointViewStore.getState().setShowAll(!showAll)} style={{ fontWeight: showAll ? 600 : 400 }}>
+        All
+      </button>
       {!base && list.length > 1 && (
         <button type="button" className="panel-icon-btn panel-text-btn" aria-label={`Remove ${list.find((b) => b.id === activeId)?.name ?? "breakpoint"}`} title="Remove this breakpoint and its overrides" onClick={() => void invokeCommand("breakpoint.remove", { id: activeId })} style={{ padding: "3px 8px" }}>
           ×

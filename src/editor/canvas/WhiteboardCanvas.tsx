@@ -16,6 +16,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallba
 import "@/editor/styles/whiteboard.css";
 import { FloatingDock } from "./FloatingDock";
 import { BreakpointBar } from "./BreakpointBar";
+import { BreakpointViews } from "./BreakpointViews";
 import { LiveZoomControls } from "./ZoomControls";
 import { OverlayLayer } from "./overlay/OverlayLayer";
 import { CanvasFrames, FrameBar, visibleFrames } from "./CanvasFrames";
@@ -902,7 +903,10 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
             </div>
           </div>
         ) : (
-          <CanvasFrames frames={frames} toolCapturesPointer={!isPlayMode && mode === "design"} onElementClick={mode === "design" ? handleStageClick : undefined} />
+          <>
+            <CanvasFrames frames={frames} toolCapturesPointer={!isPlayMode && mode === "design"} onElementClick={mode === "design" ? handleStageClick : undefined} />
+            <BreakpointViews frames={frames} />
+          </>
         )}
 
         {/* World-space Origin Marker — a fixed point of reference (Blender's 3D-cursor
