@@ -9,6 +9,11 @@ import { useVectorEditStore } from "@/core/store/useVectorEditStore";
  * Path edit mode's overlay (ROADMAP Phase 40): the path being edited as an outline, its nodes (selected ones filled),
  * and the bezier handles of the selected nodes. In canvas space, sized in screen pixels by the camera's zoom.
  */
+/** One node's square. Memoised, so dragging one node of a path of hundreds re-renders that one and not the rest. */
+const NodeMark = React.memo(function NodeMark({ i, x, y, selected, px }: { i: number; x: number; y: number; selected: boolean; px: number }) {
+  return <rect data-testid={`node-${i}`} data-selected={selected ? "true" : "false"} x={x - 4 * px} y={y - 4 * px} width={8 * px} height={8 * px} fill={selected ? "#2563eb" : "#fff"} stroke="#2563eb" strokeWidth={px} />;
+});
+
 export const VectorEditLayer: React.FC = () => {
   const { layerId, nodes, closed, selected } = useVectorEditStore();
   const zoom = useCameraStore((s) => s.camera.zoom) || 1;
@@ -31,18 +36,7 @@ export const VectorEditLayer: React.FC = () => {
         );
       })}
       {nodes.map((n, i) => (
-        <rect
-          key={i}
-          data-testid={`node-${i}`}
-          data-selected={selected.includes(i) ? "true" : "false"}
-          x={n.x - 4 * px}
-          y={n.y - 4 * px}
-          width={8 * px}
-          height={8 * px}
-          fill={selected.includes(i) ? blue : "#fff"}
-          stroke={blue}
-          strokeWidth={px}
-        />
+        <NodeMark key={i} i={i} x={n.x} y={n.y} selected={selected.includes(i)} px={px} />
       ))}
     </svg>
   );
