@@ -27,7 +27,7 @@ export interface SiteExport {
 
 export async function buildSiteExport(doc: MotionDocument, options: SiteExportOptions): Promise<SiteExport> {
   const styling: Styling = options.target === "html" ? "css" : options.styling;
-  const plan = buildPlan(doc, { styling: options.styling, hrefs: options.target === "html" ? "files" : "routes" });
+  const plan = buildPlan(doc, { styling: options.styling, hrefs: options.target === "html" ? "files" : "routes", components: options.target !== "html" });
   const assets = new Map<string, AssetBytes>();
   const warnings = [...plan.warnings];
   if (options.target === "html" && options.styling !== "css") warnings.push("Plain HTML is written with one stylesheet; Tailwind and CSS Modules are for the React targets.");

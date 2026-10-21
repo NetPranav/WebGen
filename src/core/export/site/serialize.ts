@@ -55,16 +55,22 @@ export function jsxAttrName(name: string): string {
 const BOOLEAN_ATTRS = new Set(["disabled", "checked", "readonly", "required", "autofocus", "multiple", "selected", "hidden", "controls", "autoplay", "loop", "muted", "open"]);
 
 export interface JsxOptions {
-  /** How a class name is written: a string (global CSS, Tailwind) or `styles.name` (CSS Modules). */
+  /** How a class name is written as a JSX attribute value: `"name"`, or `{styles["name"]}` (CSS Modules). */
   classExpr: (cls: string) => string;
+  /** The same as an expression: `"name"` or `styles["name"]`. */
+  classValue: (cls: string) => string;
 }
 
 function jsxAttrs(n: ENode, opts: JsxOptions): string {
   const parts: string[] = [];
   for (const [k, v] of Object.entries(n.attrs)) {
+    if (n.attrExprs?.[k]) {
+      parts.push(`${jsxAttrName(k)}={${n.attrExprs[k]}}`);
+      continue;
+    }
     if (k === "class") {
-      // a module class is one name; a Tailwind list is a string
-      parts.push(`className=${opts.classExpr(v)}`);
+      // a module class is one name; a Tailwind list is a string; the root of a component adds the caller's own
+      parts.push(n.mergeClass ? `className={[${opts.classValue(v)}, props.className].filter(Boolean).join(" ")}` : `className=${opts.classExpr(v)}`);
       continue;
     }
     const name = jsxAttrName(k);
@@ -88,12 +94,26 @@ export function toJsx(nodes: readonly ENode[], opts: JsxOptions, indent = "     
   return nodes.map((n) => nodeJsx(n, opts, indent)).join("");
 }
 
+function propJsx(v: string | number | boolean): string {
+  return typeof v === "string" ? (/["\n{}]/.test(v) ? `{${JSON.stringify(v)}}` : `"${v}"`) : `{${JSON.stringify(v)}}`;
+}
+
 function nodeJsx(n: ENode, opts: JsxOptions, indent: string): string {
-  if (n.tag === "#text") return `${indent}${textJsx(n.text ?? "")}\n`;
+  if (n.showIf) {
+    const inner = nodeJsx({ ...n, showIf: undefined }, opts, `${indent}  `);
+    return `${indent}{${n.showIf} && (\n${inner}${indent})}\n`;
+  }
+  if (n.tag === "#text") return n.expr ? `${indent}{${n.expr}}\n` : `${indent}${textJsx(n.text ?? "")}\n`;
+  if (n.tag === "#component" && n.component) {
+    const props = Object.entries(n.component.props).map(([k, v]) => `${k}=${propJsx(v)}`);
+    const cls = n.attrs.class ? [`className=${opts.classExpr(n.attrs.class)}`] : [];
+    return `${indent}<${n.component.name}${[...cls, ...props].map((p) => ` ${p}`).join("")} />\n`;
+  }
   const attrs = jsxAttrs(n, opts);
   if (isVoid(n.tag) || n.children.length === 0) return `${indent}<${n.tag}${attrs} />\n`;
   if (n.children.length === 1 && n.children[0].tag === "#text") {
-    const inline = textJsx(n.children[0].text ?? "");
+    const child = n.children[0];
+    const inline = child.expr ? `{${child.expr}}` : textJsx(child.text ?? "");
     return `${indent}<${n.tag}${attrs}>${inline}</${n.tag}>\n`;
   }
   return `${indent}<${n.tag}${attrs}>\n${toJsx(n.children, opts, `${indent}  `)}${indent}</${n.tag}>\n`;

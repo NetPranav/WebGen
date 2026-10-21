@@ -60,7 +60,7 @@ describe("Phase 49: markup, styles and serialising", () => {
     assert.equal(jsxAttrName("data-id"), "data-id");
     assert.equal(jsxAttrName("viewBox"), "viewBox");
     const tree = parseMarkup('<div class="a"><p>plain</p><p>a &lt; b {c}</p><img src="x"/><span> padded </span></div>');
-    const jsx = toJsx(tree, { classExpr: (c) => `"${c}"` }, "");
+    const jsx = toJsx(tree, { classExpr: (c) => `"${c}"`, classValue: (c) => `"${c}"` }, "");
     assert.match(jsx, /<p>plain<\/p>/);
     assert.match(jsx, /<p>\{"a < b \{c\}"\}<\/p>/);
     assert.match(jsx, /<img src="x" \/>/);

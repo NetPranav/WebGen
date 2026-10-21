@@ -19,6 +19,18 @@ export interface ENode {
   children: ENode[];
   /** For text nodes: the text, as it appears in the markup (entities not decoded). */
   text?: string;
+  /** The layer this element draws, once the markup has been planned (the plan removes `data-element-id`). */
+  layerId?: string;
+  /** A text node written as a JSX expression (`props.label ?? "Save"`) instead of text: a component's text property. */
+  expr?: string;
+  /** Attributes written as JSX expressions (`{ src: 'props.image ?? "a.png"' }`): a component's picture property. */
+  attrExprs?: Record<string, string>;
+  /** The root of a component: its `className` joins the caller's (`props.className`). */
+  mergeClass?: boolean;
+  /** The element only exists when this expression is not false (`props.showIcon`): a component's visibility property. */
+  showIf?: string;
+  /** This node is a use of a component: its name and the props it passes (`tag` is `#component`). */
+  component?: { name: string; props: Record<string, string | number | boolean> };
 }
 
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);

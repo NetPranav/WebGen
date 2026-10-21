@@ -18,6 +18,7 @@ import { modesOf, hasTokens } from "../../tokens/tokens";
 import { PRESENTATION_ATTRS, classNameFor, diffDecls, renderingOf, tailwindUtility, toCss, type CssBlock, type Decl, type Rule } from "./css";
 import { parseMarkup, walk, type ENode } from "./markup";
 import { renderLayerMarkup } from "./render";
+import { componentize, type ComponentDef } from "./components";
 
 export type Styling = "css" | "modules" | "tailwind";
 
@@ -50,6 +51,8 @@ export interface SitePlan {
   warnings: string[];
   /** The mode ids besides the first, for `data-mode`. */
   extraModes: string[];
+  /** The component files (React targets). */
+  components: ComponentPlan[];
 }
 
 const ROOT_DROP = new Set(["position", "left", "top", "right", "bottom", "margin"]);
@@ -71,6 +74,12 @@ function normalizeRoot(n: ENode): void {
     out.push([k, v]);
   }
   n.style = [["position", "relative"], ["margin", "0 auto"], ["width", "100%"], ...(width ? ([["max-width", width]] as Decl[]) : []), ...out];
+}
+
+/** A component's root: it has no place of its own (an instance says where it sits). */
+function normalizeComponentRoot(n: ENode): void {
+  // (its `position` goes too: the instance always says absolute or relative, which is what its children are placed against)
+  n.style = n.style.filter(([k]) => !PLACEMENT_CSS.has(k));
 }
 
 /** `over` laid on `under`: its declarations win; a property reset to `initial` is gone. */
@@ -103,7 +112,62 @@ export function exportedPages(doc: MotionDocument): { id: string; name: string; 
   return frames.map((f, i) => ({ id: f.id, name: f.name, route: i === 0 ? "/" : `/${f.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `frame-${i + 1}`}`, title: f.name }));
 }
 
-export function buildPlan(source: MotionDocument, options: PlanOptions): SitePlan {
+/** The properties that say where an element sits in its parent, as CSS: an instance of a component keeps these of its own. */
+export const PLACEMENT_CSS = new Set(["position", "left", "top", "right", "bottom", "z-index", "margin", "margin-left", "margin-right", "margin-top", "margin-bottom", "flex", "flex-grow", "flex-shrink", "flex-basis", "align-self", "justify-self", "order", "grid-column", "grid-row", "transform", "rotate"]);
+
+/** What an instance root may change by itself and still be a plain use of its component: where it sits. */
+const PLACEMENT_PROPS = new Set(["frame.x", "frame.y", "positioning", "frame.rotation", "breakpoints.responsive", "layout.gridColumnStart", "layout.gridColumnSpan", "layout.gridRowStart", "layout.gridRowSpan", "constraints.horizontal", "constraints.vertical"]);
+
+export interface ComponentProp {
+  /** The prop's name in the component (camelCase). */
+  name: string;
+  type: "text" | "image" | "boolean";
+  /** The id of the component property it comes from. */
+  id: string;
+  /** What the component shows when the prop is left out. */
+  fallback: string | boolean;
+}
+
+export interface ComponentVariant {
+  /** The main layer this variant is drawn from. */
+  mainId: string;
+  values: Record<string, string>;
+  tree: ENode[];
+  blocks: CssBlock[];
+}
+
+export interface ComponentPlan {
+  id: string;
+  /** The component's name in PascalCase. */
+  name: string;
+  variantProps: { name: string; prop: string; values: string[] }[];
+  props: ComponentProp[];
+  variants: ComponentVariant[];
+  /** How many times pages use it. */
+  uses: number;
+}
+
+const camel = (s: string): string => {
+  const w = s.replace(/[^a-zA-Z0-9]+/g, " ").trim().split(" ").filter(Boolean);
+  const out = w.map((x, i) => (i === 0 ? x[0].toLowerCase() + x.slice(1) : x[0].toUpperCase() + x.slice(1))).join("");
+  return /^[a-z]/.test(out) ? out : `p${out}`;
+};
+const pascal = (s: string): string => {
+  const out = s.replace(/[^a-zA-Z0-9]+/g, " ").trim().split(" ").filter(Boolean).map((x) => x[0].toUpperCase() + x.slice(1)).join("");
+  return /^[A-Z]/.test(out) ? out : `C${out}`;
+};
+
+/** Makes a root's markup, class names and CSS from the document drawn at every breakpoint and mode. */
+interface RootPlan {
+  tree: ENode[];
+  blocks: CssBlock[];
+  /** The element key of each class, and the class of each key. */
+  classOf: Map<string, string>;
+  /** The key of the root's markup nodes by layer id (the first node that draws it). */
+  nodeOfLayer: Map<string, ENode>;
+}
+
+export function buildPlan(source: MotionDocument, options: PlanOptions & { components?: boolean }): SitePlan {
   const warnings: string[] = [];
   const pagesList = exportedPages(source);
   // every exported page follows the breakpoints, whether or not the frame was marked responsive
@@ -121,46 +185,41 @@ export function buildPlan(source: MotionDocument, options: PlanOptions): SitePla
   const modeIds = useModes ? modes.map((m) => m.id) : [modes[0].id];
   const siteAssets = new Set<string>();
   const routeOf = new Map(pagesList.map((p) => [p.id, p.route]));
+  const used = new Set<string>(); // class names, across the whole site
+  const layers = doc.layers;
 
-  const pages: PagePlan[] = pagesList.map((page) => {
-    const assets = new Set<string>();
-    const ext = options.hrefs === "files" ? (id: string) => `{{asset:${id}}}` : (id: string) => `{{asset:${id}}}`;
+  /**
+   * Draws `rootId` at every breakpoint and mode and turns it into a tree with classes and the rules for them. A page root is
+   * fluid; a component root loses its place (the instance has its own).
+   */
+  const planRoot = (rootId: string, kind: "page" | "component", fromRoute: string, hrefs: PlanOptions["hrefs"], assets: Set<string>): RootPlan => {
     const render = (bpId: string | null, modeId: string | null) => {
       const view = resolveDocumentAt(doc, bpId, modeId === modes[0].id ? null : modeId);
-      const html = renderLayerMarkup(view.layers, page.id, { assetUrl: (id) => (assets.add(id), siteAssets.add(id), ext(id)) });
+      const html = renderLayerMarkup(view.layers, rootId, { assetUrl: (id) => (assets.add(id), siteAssets.add(id), `{{asset:${id}}}`) }, kind === "page");
       const roots = parseMarkup(html);
-      normalizeRoot(roots[0]);
+      if (kind === "page") normalizeRoot(roots[0]);
+      else normalizeComponentRoot(roots[0]);
       return { roots, ...renderingOf(roots) };
     };
-
-    // the base rendering (widest breakpoint, first mode) is the tree that is written
     const baseView = render(null, modeIds[0]);
     const keyOf = baseView.keys;
-    const layers = doc.layers;
-    const used = new Set<string>();
-    const classOf = new Map<string, string>(); // element key to class name
+    const classOf = new Map<string, string>();
     const blocks: CssBlock[] = [];
     const baseRules: Rule[] = [];
     walk(baseView.roots, (n) => {
-      if (n.tag === "#text") return;
+      if (n.tag === "#text" || n.style.length === 0) return;
       const key = keyOf.get(n)!;
       const layerId = n.attrs["data-element-id"];
-      if (n.style.length === 0) return;
       const cls = classNameFor(layerId ? (layers[layerId]?.name ?? "el") : "el", layerId ?? key.replace(/[^a-zA-Z0-9]/g, ""), used);
       classOf.set(key, cls);
       baseRules.push({ selector: `.${cls}`, decls: n.style });
     });
     blocks.push({ wrapper: null, rules: baseRules });
 
-    // narrower breakpoints, then other modes: each compared with what the cascade already says
-    const state = new Map<string, Decl[] | null>(); // the declarations in force now for each element key (null: not drawn)
+    const state = new Map<string, Decl[] | null>();
     for (const [k, v] of baseView.rendering.styles) state.set(k, v);
     const bpStates: { bp: (typeof bps)[number]; rendering: ReturnType<typeof render> }[] = [];
-    for (const bp of bps) {
-      if (bp.id === base.id) continue;
-      bpStates.push({ bp, rendering: render(bp.id, modeIds[0]) });
-    }
-    // an element with nothing to say at the base (an inner shape) gets its class when a breakpoint or mode first has something to say
+    for (const bp of bps) if (bp.id !== base.id) bpStates.push({ bp, rendering: render(bp.id, modeIds[0]) });
     const classFor = (key: string): string => {
       let cls = classOf.get(key);
       if (!cls) {
@@ -175,7 +234,7 @@ export function buildPlan(source: MotionDocument, options: PlanOptions): SitePla
       for (const [key, decls] of next.rendering.styles) {
         seen.add(key);
         const before = prev.get(key);
-        if (before === undefined) continue; // only in this rendering: cannot happen for layers, ignore
+        if (before === undefined) continue;
         if (before === null) {
           const display = decls.find(([k]) => k === "display")?.[1] ?? "revert";
           rules.push({ selector: `${selectorPrefix}.${classFor(key)}`, decls: [...decls.filter(([k]) => k !== "display").map(toCss), ["display", display]] });
@@ -190,26 +249,19 @@ export function buildPlan(source: MotionDocument, options: PlanOptions): SitePla
         rules.push({ selector: `${selectorPrefix}.${classFor(key)}`, decls: [["display", "none"]] });
         prev.set(key, null);
       }
-      // what the cascade can't carry: text, and attributes that are not presentation attributes (a shape's size)
       const baseByKey = baseView.byKey;
       const plain = (a: Record<string, string>) => JSON.stringify(Object.entries(a).filter(([k]) => !PRESENTATION_ATTRS.has(k)));
       for (const [key, node] of next.byKey) {
         const b = baseByKey.get(key);
-        if (!b) continue;
-        if (b.tag !== "#text" && node.tag !== "#text") {
-          const same = plain(b.attrs) === plain(node.attrs) && JSON.stringify(b.children.filter((c) => c.tag === "#text").map((c) => c.text)) === JSON.stringify(node.children.filter((c) => c.tag === "#text").map((c) => c.text));
-          if (!same && !warnings.includes(`${warnKey}: ${key}`)) warnings.push(`${warnKey}: ${key}`);
-        }
+        if (!b || b.tag === "#text" || node.tag === "#text") continue;
+        const same = plain(b.attrs) === plain(node.attrs) && JSON.stringify(b.children.filter((c) => c.tag === "#text").map((c) => c.text)) === JSON.stringify(node.children.filter((c) => c.tag === "#text").map((c) => c.text));
+        if (!same && !warnings.includes(`${warnKey}: ${key}`)) warnings.push(`${warnKey}: ${key}`);
       }
       return rules;
     };
     for (const { bp, rendering } of bpStates) {
-      const rules = emitDiff("", state, rendering, `Text or attributes of an element differ at ${bp.name} and are exported as at ${base.name}`);
-      blocks.push({ wrapper: `@media (max-width: ${bp.width}px)`, rules });
+      blocks.push({ wrapper: `@media (max-width: ${bp.width}px)`, rules: emitDiff("", state, rendering, `Text or attributes of an element differ at ${bp.name} and are exported as at ${base.name}`) });
     }
-    // modes: at the base breakpoint, then at each narrower one. A mode rule beats the breakpoint rules (it is more specific),
-    // so at a narrower breakpoint it is compared with what the cascade gives in that mode: the breakpoint's styles with the
-    // base mode rules laid over them.
     if (modeIds.length > 1) {
       for (const modeId of modeIds.slice(1)) {
         const prev = new Map<string, Decl[] | null>(baseView.rendering.styles);
@@ -230,7 +282,7 @@ export function buildPlan(source: MotionDocument, options: PlanOptions): SitePla
       }
     }
 
-    // the written tree: classes instead of styles, section ids, links
+    const nodeOfLayer = new Map<string, ENode>();
     const finalize = (nodes: ENode[]): ENode[] =>
       nodes.map((n) => {
         if (n.tag === "#text") return n;
@@ -240,65 +292,96 @@ export function buildPlan(source: MotionDocument, options: PlanOptions): SitePla
         delete attrs["data-element-id"];
         delete attrs["data-archetype"];
         const cls = classOf.get(key);
-        let out: ENode = { ...n, attrs, style: [], children: finalize(n.children) };
+        let out: ENode = { ...n, attrs, style: [], children: finalize(n.children), ...(layerId ? { layerId } : {}) };
         if (cls) out.attrs.class = cls;
+        if (layerId) nodeOfLayer.set(layerId, out);
         const layer: Layer | undefined = layerId ? layers[layerId] : undefined;
         if (layer?.section) out.attrs.id = anchorOf(layer);
         if (layer?.link) {
           const dest = resolveLink(doc, layer.link);
           if (dest && dest.kind !== "frame") {
             let href: string | null = null;
-            const a: Record<string, string> = { class: "lnk" };
+            let blank = false;
             if (dest.kind === "url") {
               href = dest.url;
-              a.target = "_blank";
-              a.rel = "noopener noreferrer";
+              blank = true;
             } else {
               const to = routeOf.get(dest.pageId);
-              if (to) href = hrefBetween(page.route, to, options.hrefs, dest.kind === "anchor" ? dest.anchor : undefined);
+              if (to) href = hrefBetween(fromRoute, to, hrefs, dest.kind === "anchor" ? dest.anchor : undefined);
             }
-            if (href) out = { tag: "a", attrs: { class: "lnk", href, ...(a.target ? { target: a.target, rel: a.rel } : {}) }, style: [], children: [out] };
+            if (href) {
+              const wrap: ENode = { tag: "a", attrs: { class: "lnk", href, ...(blank ? { target: "_blank", rel: "noopener noreferrer" } : {}) }, style: [], children: [out] };
+              nodeOfLayer.set(layerId!, out);
+              out = wrap;
+            }
           }
         }
         return out;
       });
-    const tree = finalize(baseView.roots);
+    return { tree: finalize(baseView.roots), blocks, classOf, nodeOfLayer };
+  };
 
-    // Tailwind: the declarations become utilities on the element; modes and media become variants
-    let outBlocks = blocks;
-    if (options.styling === "tailwind") {
-      const utilities = new Map<string, string[]>();
-      for (const b of blocks) {
-        const variant = b.wrapper ? `max-[${b.wrapper.replace(/^@media \(max-width: /, "").replace(/px\)$/, "")}px]:` : "";
-        for (const r of b.rules) {
-          const m = /^(?:\[data-mode="([^"]+)"\] )?\.(.+)$/.exec(r.selector);
-          if (!m) continue;
-          const modeVariant = m[1] ? `[[data-mode=${m[1]}]_&]:` : "";
-          const list = utilities.get(m[2]) ?? [];
-          for (const [k, v] of r.decls) list.push(tailwindUtility(k, v, `${variant}${modeVariant}`));
-          utilities.set(m[2], list);
-        }
-      }
-      walk(tree, (n) => {
-        const c = n.attrs.class;
-        if (c && utilities.has(c)) n.attrs.class = utilities.get(c)!.join(" ");
-      });
-      outBlocks = [];
-    }
-    return { id: page.id, name: page.name, route: page.route, title: page.title, tree, blocks: outBlocks, assets };
+  const pageAssets = new Map<string, Set<string>>();
+  const roots = pagesList.map((p) => {
+    const assets = new Set<string>();
+    pageAssets.set(p.id, assets);
+    return { page: p, plan: planRoot(p.id, "page", p.route, options.hrefs, assets) };
   });
 
+  // components: React targets use a component file for every component an instance (or a main) on a page can call
+  const components = new Map<string, ComponentPlan>();
+  if (options.components) {
+    const defs = new Map<string, ComponentDef>();
+    for (const { page, plan } of roots) componentize(doc, plan, page.id, defs, components, planRoot, siteAssets, warnings);
+  }
+
+  const pages: PagePlan[] = roots.map(({ page, plan }) => {
+    let blocks = plan.blocks;
+    if (options.styling === "tailwind") {
+      applyTailwind([plan.tree], blocks);
+      blocks = [];
+    }
+    return { id: page.id, name: page.name, route: page.route, title: page.title, tree: plan.tree, blocks, assets: pageAssets.get(page.id)! };
+  });
+  const comps = [...components.values()];
+  if (options.styling === "tailwind") {
+    for (const c of comps) for (const v of c.variants) {
+      applyTailwind(v.tree, v.blocks);
+      v.blocks = [];
+    }
+  }
   const uploads: { id: string; family: string; mime: string }[] = [];
-  return finishFonts(doc, pages, doc.layers, uploads, siteAssets, warnings, modeIds.slice(1));
+  return finishFonts(doc, pages, doc.layers, uploads, siteAssets, warnings, modeIds.slice(1), comps);
+}
+
+/** Tailwind: the declarations become utilities on the element; modes and media become variants. */
+function applyTailwind(trees: ENode[][] | ENode[], blocks: CssBlock[]): void {
+  const utilities = new Map<string, string[]>();
+  for (const b of blocks) {
+    const variant = b.wrapper ? `max-[${b.wrapper.replace(/^@media \(max-width: /, "").replace(/px\)$/, "")}px]:` : "";
+    for (const r of b.rules) {
+      const m = /^(?:\[data-mode="([^"]+)"\] )?\.(.+)$/.exec(r.selector);
+      if (!m) continue;
+      const modeVariant = m[1] ? `[[data-mode=${m[1]}]_&]:` : "";
+      const list = utilities.get(m[2]) ?? [];
+      for (const [k, v] of r.decls) list.push(tailwindUtility(k, v, `${variant}${modeVariant}`));
+      utilities.set(m[2], list);
+    }
+  }
+  const forest = (Array.isArray(trees[0]) ? (trees as ENode[][]).flat() : (trees as ENode[]));
+  walk(forest, (n) => {
+    const c = n.attrs.class;
+    if (c && utilities.has(c)) n.attrs.class = utilities.get(c)!.join(" ");
+  });
 }
 
 import { fontPlan, googleFontsUrl } from "../../fonts/families";
 
-function finishFonts(doc: MotionDocument, pages: PagePlan[], layers: Record<string, Layer>, uploads: { id: string; family: string; mime: string }[], siteAssets: Set<string>, warnings: string[], extraModes: string[]): SitePlan {
+function finishFonts(doc: MotionDocument, pages: PagePlan[], layers: Record<string, Layer>, uploads: { id: string; family: string; mime: string }[], siteAssets: Set<string>, warnings: string[], extraModes: string[], components: ComponentPlan[] = []): SitePlan {
   const display: FontDisplay = doc.fontDisplay ?? "swap";
-  // only the layers of the exported pages: a frame that isn't exported doesn't bring its fonts
+  // only the layers of the exported pages and components: a frame that isn't exported doesn't bring its fonts
   const inPages: Record<string, Layer> = {};
-  const roots = new Set(pages.map((p) => p.id));
+  const roots = new Set([...pages.map((p) => p.id), ...components.flatMap((c) => c.variants.map((v) => v.mainId))]);
   for (const l of Object.values(layers)) {
     let cur: Layer | undefined = l;
     let guard = 0;
@@ -318,6 +401,6 @@ function finishFonts(doc: MotionDocument, pages: PagePlan[], layers: Record<stri
       siteAssets.add(u.id);
     }
   }
-  return { pages, fonts: { googleUrl: googleFontsUrl(plan, display), uploads, display }, assets: siteAssets, warnings, extraModes };
+  return { pages, fonts: { googleUrl: googleFontsUrl(plan, display), uploads, display }, assets: siteAssets, warnings, extraModes, components };
 }
 

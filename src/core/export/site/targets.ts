@@ -12,7 +12,8 @@ import { assetFamily } from "../../fonts/families";
 import type { AssetEntry } from "../../document/schema";
 import { cssText } from "./css";
 import { toHtml, toJsx } from "./serialize";
-import type { PagePlan, SitePlan, Styling } from "./plan";
+import type { ComponentPlan, PagePlan, SitePlan, Styling } from "./plan";
+import { walk, type ENode } from "./markup";
 import { hrefBetween } from "./plan";
 
 export type Target = "html" | "vite" | "next";
@@ -125,23 +126,13 @@ interface ReactPage {
   file: string;
 }
 
-function pageJsx(p: PagePlan, styling: Styling, names: Map<string, string>, hrefs: "routes"): string {
-  void hrefs;
-  const classExpr = styling === "modules" ? (c: string) => `{styles[${JSON.stringify(c)}]}` : (c: string) => (/["{}\n]/.test(c) ? `{${JSON.stringify(c)}}` : `"${c}"`);
-  return withAssetPaths(toJsx(p.tree, { classExpr }, "      "), "/assets/", names);
-}
-
-function pageClassExprForModules(plan: PagePlan): string {
-  // `lnk` lives in the global CSS next to the reset; every other class is in the page's module
-  void plan;
-  return "";
-}
-void pageClassExprForModules;
-
 function globalCss(input: TargetInput, names: Map<string, string>): string {
   const { plan } = input;
   const parts = [fontFaceRules(plan, input, (id) => `/assets/${names.get(id)}`), RESET];
-  if (input.styling === "css") parts.push(...plan.pages.map((p) => `/* ${p.name} (${p.route}) */\n${pageCss(p)}`));
+  if (input.styling === "css") {
+    parts.push(...plan.components.map((c) => `/* ${c.name} */\n${componentCss(c, names)}`));
+    parts.push(...plan.pages.map((p) => `/* ${p.name} (${p.route}) */\n${pageCss(p)}`));
+  }
   return withAssetPaths(parts.filter(Boolean).join("\n"), "/assets/", names);
 }
 
@@ -149,13 +140,53 @@ function moduleCss(p: PagePlan, names: Map<string, string>): string {
   return withAssetPaths(`/* ${p.name} (${p.route}) */\n${pageCss(p)}`, "/assets/", names);
 }
 
-/** A `.lnk` link wrapper is global, whatever the styling: in modules it is `lnk` in the global sheet, so the page markup says it as a plain string. */
+/** How class names are written in JSX for a styling: a string, or a property of the CSS Module (`lnk` is in the global sheet). */
+function jsxOptions(styling: Styling): { classExpr: (c: string) => string; classValue: (c: string) => string } {
+  const str = (c: string) => (/["{}\n]/.test(c) ? JSON.stringify(c) : `"${c}"`);
+  return styling === "modules"
+    ? { classExpr: (c) => (c === "lnk" ? '"lnk"' : `{styles[${JSON.stringify(c)}]}`), classValue: (c) => (c === "lnk" ? '"lnk"' : `styles[${JSON.stringify(c)}]`) }
+    : { classExpr: (c) => (/["{}\n]/.test(c) ? `{${JSON.stringify(c)}}` : `"${c}"`), classValue: str };
+}
+
 function jsxFor(p: PagePlan, input: TargetInput, names: Map<string, string>): string {
-  const classExpr =
-    input.styling === "modules"
-      ? (c: string) => (c === "lnk" ? '"lnk"' : `{styles[${JSON.stringify(c)}]}`)
-      : (c: string) => (/["{}\n]/.test(c) ? `{${JSON.stringify(c)}}` : `"${c}"`);
-  return withAssetPaths(toJsx(p.tree, { classExpr }, "      "), "/assets/", names);
+  return withAssetPaths(toJsx(p.tree, jsxOptions(input.styling), "      "), "/assets/", names);
+}
+
+/** The names of the components a page calls. */
+function componentsUsed(p: PagePlan): string[] {
+  const out = new Set<string>();
+  walk(p.tree, (n) => {
+    if (n.tag === "#component" && n.component) out.add(n.component.name);
+  });
+  return [...out].sort();
+}
+
+/** A component's file: its props as a TypeScript interface, and the markup of each variant. */
+function componentSource(c: ComponentPlan, input: TargetInput, names: Map<string, string>): string {
+  const opts = jsxOptions(input.styling);
+  const variantTypes = c.variantProps.map((v) => `  ${v.prop}?: ${v.values.map((x) => JSON.stringify(x)).join(" | ")};`);
+  const propTypes = c.props.map((p) => `  ${p.name}?: ${p.type === "boolean" ? "boolean" : "string"};`);
+  const iface = `export interface ${c.name}Props {\n${[...variantTypes, ...propTypes, "  className?: string;"].join("\n")}\n}\n`;
+  const body = (tree: ENode[]) => withAssetPaths(toJsx(tree, opts, "      "), "/assets/", names);
+  const head = input.styling === "modules" ? `import styles from "./${c.name}.module.css";\n\n` : "";
+  const usesProps = c.props.length > 0 || true;
+  void usesProps;
+  let fn: string;
+  if (c.variantProps.length === 0) {
+    fn = `  return (\n${body(c.variants[0].tree)}  );\n`;
+  } else {
+    const destructure = `  const { ${c.variantProps.map((v) => `${v.prop} = ${JSON.stringify(v.values[0])}`).join(", ")} } = props;\n`;
+    const arms = c.variants
+      .slice(1)
+      .map((v) => `  if (${c.variantProps.map((p) => `${p.prop} === ${JSON.stringify(v.values[p.name] ?? p.values[0])}`).join(" && ")}) {\n    return (\n${body(v.tree).replace(/^/gm, "  ")}    );\n  }\n`)
+      .join("");
+    fn = `${destructure}${arms}  return (\n${body(c.variants[0].tree)}  );\n`;
+  }
+  return `${head}${iface}\nexport default function ${c.name}(props: ${c.name}Props) {\n${fn}}\n`;
+}
+
+function componentCss(c: ComponentPlan, names: Map<string, string>): string {
+  return withAssetPaths(c.variants.map((v) => cssText(v.blocks)).join("\n"), "/assets/", names);
 }
 
 const TAILWIND_FILES = (): SiteFile[] => [
@@ -206,9 +237,14 @@ function viteTarget(input: TargetInput): SiteFile[] {
     content: `import { useEffect, useState } from "react";\n${pages.map((p) => `import ${p.component} from "./pages/${p.component}";`).join("\n")}\n\nconst routes = [\n${routes}\n];\n\n/** The route for a path: a trailing slash doesn't matter. */\nfunction match(path: string) {\n  const clean = path.length > 1 ? path.replace(/\\/+$/, "") : path;\n  return routes.find((r) => r.path === clean) ?? routes[0];\n}\n\nexport default function App() {\n  const [path, setPath] = useState(window.location.pathname);\n\n  useEffect(() => {\n    const onPop = () => setPath(window.location.pathname);\n    // links between pages are plain anchors: take them without a page load\n    const onClick = (e: MouseEvent) => {\n      const a = (e.target as Element).closest("a");\n      const href = a?.getAttribute("href");\n      if (!a || !href || !href.startsWith("/") || a.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;\n      e.preventDefault();\n      window.history.pushState({}, "", href);\n      setPath(window.location.pathname);\n      const hash = href.split("#")[1];\n      requestAnimationFrame(() => (hash ? document.getElementById(hash)?.scrollIntoView() : window.scrollTo(0, 0)));\n    };\n    window.addEventListener("popstate", onPop);\n    document.addEventListener("click", onClick);\n    return () => {\n      window.removeEventListener("popstate", onPop);\n      document.removeEventListener("click", onClick);\n    };\n  }, []);\n\n  const route = match(path);\n  useEffect(() => {\n    document.title = route.title;\n  }, [route]);\n  return route.element;\n}\n`,
   });
   for (const p of pages) {
-    const imports = styling === "modules" ? `import styles from "./${p.component}.module.css";\n\n` : "";
+    const used = componentsUsed(p.plan).map((n) => `import ${n} from "../components/${n}";\n`).join("");
+    const imports = `${used}${styling === "modules" ? `import styles from "./${p.component}.module.css";\n` : ""}${used || styling === "modules" ? "\n" : ""}`;
     out.push({ path: p.file, content: `${imports}export default function ${p.component}() {\n  return (\n${jsxFor(p.plan, input, names).replace(/^/gm, "")}  );\n}\n` });
     if (styling === "modules") out.push({ path: `src/pages/${p.component}.module.css`, content: moduleCss(p.plan, names) });
+  }
+  for (const c of plan.components) {
+    out.push({ path: `src/components/${c.name}.tsx`, content: componentSource(c, input, names) });
+    if (styling === "modules") out.push({ path: `src/components/${c.name}.module.css`, content: componentCss(c, names) });
   }
   out.push(...assetOut.map((f) => ({ ...f, path: f.path.replace("__ASSETS__", "public/assets") })));
   return out;
@@ -250,9 +286,15 @@ function nextTarget(input: TargetInput): SiteFile[] {
     let name = pascal(p.name);
     for (let n = 2; used.has(name); n++) name = `${pascal(p.name)}${n}`;
     used.add(name);
-    const imports = styling === "modules" ? `import styles from "./page.module.css";\n\n` : "";
+    const up = dir === "app" ? "../" : "../".repeat(dir.split("/").length);
+    const calls = componentsUsed(p).map((n) => `import ${n} from "${up}components/${n}";\n`).join("");
+    const imports = `${calls}${styling === "modules" ? `import styles from "./page.module.css";\n` : ""}${calls || styling === "modules" ? "\n" : ""}`;
     out.push({ path: `${dir}/page.tsx`, content: `${imports}export const metadata = { title: ${JSON.stringify(p.title)} };\n\nexport default function ${name}() {\n  return (\n${jsxFor(p, input, names)}  );\n}\n` });
     if (styling === "modules") out.push({ path: `${dir}/page.module.css`, content: moduleCss(p, names) });
+  }
+  for (const c of plan.components) {
+    out.push({ path: `components/${c.name}.tsx`, content: componentSource(c, input, names) });
+    if (styling === "modules") out.push({ path: `components/${c.name}.module.css`, content: componentCss(c, names) });
   }
   out.push(...assetOut.map((f) => ({ ...f, path: f.path.replace("__ASSETS__", "public/assets") })));
   return out;
