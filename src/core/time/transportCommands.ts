@@ -23,6 +23,7 @@ export function installTransportCommands(): () => void {
   const unregisters = [
     defineCommand({ id: "transport.togglePlay", title: "Play / Pause", category: "Transport", keybinding: "Space", when: timelineOnly, run: () => transport.togglePlay() }),
     defineCommand({ id: "transport.seekStart", title: "Go to Start", category: "Transport", keybinding: "Home", when: timelineOnly, run: () => transport.seek(0) }),
+    defineCommand({ id: "transport.seekEnd", title: "Go to End", category: "Transport", keybinding: "End", when: timelineOnly, run: () => transport.seek(Number.POSITIVE_INFINITY) }),
     defineCommand({ id: "transport.play", title: "Play", category: "Transport", run: () => transport.play() }),
     defineCommand({ id: "transport.pause", title: "Pause", category: "Transport", run: () => transport.pause() }),
     defineCommand({ id: "transport.stop", title: "Stop and Return to Start", category: "Transport", run: () => transport.stop() }),

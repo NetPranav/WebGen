@@ -5,6 +5,7 @@ import { inspectorTabsFor } from "@/core/workspace/layout";
 /** The tabs of the bottom drawer, before panels that are torn off or open full-page are filtered out. */
 export const ALL_BOTTOM_TABS: PanelTab[] = [
   { id: "content-browser", title: "Content Browser", closable: false },
+  { id: "timeline", title: "Layer Timeline", closable: false },
   { id: "sequencer", title: "Motion Sequencer", closable: false },
   { id: "export-code", title: "Export Preview", closable: false },
 ];

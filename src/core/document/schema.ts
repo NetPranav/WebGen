@@ -118,6 +118,12 @@ export const LayerSchema = z.object({
   children: z.array(IdSchema).describe("Child layer ids in paint order."),
   visible: z.boolean().optional(),
   locked: z.boolean().optional(),
+  /** Timeline switches (Phase 61), stored like `visible` and `locked`. With any layer soloed, only soloed layers (and what contains them) are drawn. */
+  solo: z.boolean().optional(),
+  /** Shy layers can be hidden from the timeline's list (a view filter; they still draw). */
+  shy: z.boolean().optional(),
+  /** Marks the layer for motion blur. Recorded only; the renderer draws it in a later phase. */
+  motionBlur: z.boolean().optional(),
   properties: LayerPropsSchema,
   /** Custom pins (Phase 7.5 / 88.2); the 10 preset pins always exist. */
   pins: PinsSchema.optional(),

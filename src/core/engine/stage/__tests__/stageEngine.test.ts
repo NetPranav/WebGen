@@ -86,7 +86,7 @@ describe("KernelAdapter", () => {
   function setup(fixture: ReturnType<typeof docWith>, element = fakeElement()) {
     const holder = { doc: fixture.doc };
     const adapter = new KernelAdapter();
-    adapter.mount({ node: () => element as unknown as Element, getDocument: () => holder.doc, compositionId: () => fixture.compositionId });
+    adapter.mount({ node: () => element as unknown as Element, getDocument: () => holder.doc, compositionId: () => fixture.compositionId, fps: () => 60, duration: () => 5 });
     return { adapter, element, holder };
   }
 

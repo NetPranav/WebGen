@@ -25,7 +25,9 @@ import { layerMenu } from "@/core/editing/layerMenu";
 import { selectionRoots } from "@/core/editing/editOps";
 import { CLIP_MARK, mirrorRead } from "@/core/editing/clipboard";
 import { frameIdOf } from "@/core/frames/frames";
-import { useLayers } from "@/core/store/useDocumentStore";
+import { useDocument, useLayers } from "@/core/store/useDocumentStore";
+import { motionIndex, motionLabel, type MotionSummary } from "@/core/timeline/model";
+import { useTimelineUiStore } from "@/core/store/useTimelineUiStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
 import { useLayersUiStore } from "@/core/store/useLayersUiStore";
@@ -84,6 +86,8 @@ interface RowProps {
   renaming: boolean;
   dragging: boolean;
   query: string;
+  /** What the layer animates (Phase 61), for the motion badge. */
+  motion: MotionSummary | undefined;
   onPointerDown: (e: React.PointerEvent, row: LayerRow) => void;
   onToggle: (row: LayerRow) => void;
   onContextMenu: (e: React.MouseEvent, row: LayerRow) => void;
@@ -91,7 +95,7 @@ interface RowProps {
   onCommitName: (row: LayerRow, name: string) => void;
 }
 
-const Row = memo(function Row({ row, top, selected, drop, renaming, dragging, query, onPointerDown, onToggle, onContextMenu, onRename, onCommitName }: RowProps) {
+const Row = memo(function Row({ row, top, selected, drop, renaming, dragging, query, motion, onPointerDown, onToggle, onContextMenu, onRename, onCommitName }: RowProps) {
   const Icon = ICONS[row.archetype] ?? Box;
   const dimmed = row.hidden || row.hiddenByAncestor;
   const locked = row.locked || row.lockedByAncestor;
@@ -160,6 +164,24 @@ const Row = memo(function Row({ row, top, selected, drop, renaming, dragging, qu
         </span>
       )}
       <span className="layers-row__spacer" />
+      {motion && (motion.clips > 0 || motion.states > 0) && (
+        <button
+          type="button"
+          className="layers-row__motion"
+          aria-label={`${row.name}: ${motionLabel(motion)}. Open in the timeline`}
+          title={`${motionLabel(motion)}. Click to open in the timeline.`}
+          data-motion-badge={row.id}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => {
+            useSelectionStore.getState().selectMultiple([row.id], "element");
+            useTimelineUiStore.getState().focusLayer(row.id);
+            void invokeCommand("view.timeline");
+          }}
+        >
+          {motion.clips > 0 ? motion.clips : "·"}
+          {motion.states > 0 ? ` +${motion.states}` : ""}
+        </button>
+      )}
       <button type="button" className={`layers-row__btn ${row.locked ? "layers-row__btn--on" : ""}`} aria-label={row.locked ? `Unlock ${row.name}` : `Lock ${row.name}`} aria-pressed={row.locked} onPointerDown={(e) => e.stopPropagation()} onClick={() => void invokeCommand("layer.setLocked", { ids: [row.id], locked: !row.locked })}>
         {row.locked ? <Lock size={12} /> : <LockOpen size={12} />}
       </button>
@@ -191,6 +213,11 @@ export const LayersPanel: React.FC = () => {
   }, [drag]);
 
   const rows = useMemo(() => buildRows(layers, expanded, query), [layers, expanded, query]);
+  // What each layer animates, for the motion badges (Phase 61). One pass over the clips and states, recomputed only when they change.
+  const clips = useDocument((d) => d.clips);
+  const states = useDocument((d) => d.states);
+  const behaviours = useDocument((d) => d.behaviours);
+  const motion = useMemo(() => motionIndex({ layers, clips, states, behaviours }), [layers, clips, states, behaviours]);
   const rowsRef = useRef(rows);
   const layersRef = useRef(layers);
   useEffect(() => {
@@ -365,6 +392,7 @@ export const LayersPanel: React.FC = () => {
               renaming={renamingId === row.id}
               dragging={dragging.has(row.id) && drag !== null}
               query={query}
+              motion={motion.get(row.id)}
               onPointerDown={onPointerDown}
               onToggle={onToggle}
               onContextMenu={onContextMenu}
