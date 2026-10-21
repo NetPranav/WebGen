@@ -38,6 +38,7 @@ import { SvgVectorSection } from "./sections/SvgVectorSection";
 import { MaterialInspectorSection } from "./sections/MaterialInspectorSection";
 import { EnvironmentInspector } from "./EnvironmentInspector";
 import { VectorBar } from "./VectorBar";
+import { OverridesPanel } from "./OverridesPanel";
 import { AutoLayoutPanel } from "./AutoLayoutPanel";
 import { ConstraintsPanel, GridPanel } from "./GridPanel";
 import { AlignBar } from "./AlignBar";
@@ -153,6 +154,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         {face === "pro" && <SectionRail items={railItems} onSelect={jumpToSection} />}
         <div className="panel-content">
         <AlignBar />
+        <OverridesPanel />
         <VectorBar />
         <AutoLayoutPanel />
         <GridPanel />

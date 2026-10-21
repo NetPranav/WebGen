@@ -38,7 +38,7 @@ const SIZING: { value: SizingMode; label: string }[] = [
 const Segmented: React.FC<{ label: string; value: string | undefined; options: { value: string; label: string }[]; onPick: (v: string) => void }> = ({ label, value, options, onPick }) => (
   <div role="group" aria-label={label} style={{ display: "flex", gap: 2 }}>
     {options.map((o) => (
-      <button key={o.value} type="button" className="panel-icon-btn" aria-pressed={value === o.value} aria-label={`${label}: ${o.label}`} title={`${label}: ${o.label}`} style={{ fontSize: 11, padding: "2px 6px", fontWeight: value === o.value ? 600 : 400, opacity: value === o.value ? 1 : 0.7 }} onClick={() => onPick(o.value)}>
+      <button key={o.value} type="button" className="panel-icon-btn panel-text-btn" aria-pressed={value === o.value} aria-label={`${label}: ${o.label}`} title={`${label}: ${o.label}`} style={{ fontSize: 11, padding: "2px 6px", fontWeight: value === o.value ? 600 : 400, opacity: value === o.value ? 1 : 0.7 }} onClick={() => onPick(o.value)}>
         {o.label}
       </button>
     ))}
@@ -73,11 +73,11 @@ export const AutoLayoutPanel: React.FC = () => {
       <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
         <strong style={{ fontSize: 11 }}>Auto layout</strong>
         {stacks.length > 0 ? (
-          <button type="button" className="panel-icon-btn" aria-label="Remove auto layout" title="Remove auto layout (Shift+Alt+A)" onClick={() => run("layout.removeAuto")}>
+          <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Remove auto layout" title="Remove auto layout (Shift+Alt+A)" onClick={() => run("layout.removeAuto")}>
             Remove
           </button>
         ) : showAdd ? (
-          <button type="button" className="panel-icon-btn" aria-label="Add auto layout" title="Add auto layout (Shift+A)" onClick={() => run("layout.addAuto")}>
+          <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Add auto layout" title="Add auto layout (Shift+A)" onClick={() => run("layout.addAuto")}>
             Add
           </button>
         ) : null}

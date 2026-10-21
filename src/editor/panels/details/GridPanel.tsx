@@ -20,7 +20,7 @@ const num = (v: unknown, d = 0) => (typeof v === "number" && Number.isFinite(v) 
 const Segmented: React.FC<{ label: string; value: string; options: { value: string; label: string }[]; onPick: (v: string) => void }> = ({ label, value, options, onPick }) => (
   <div role="group" aria-label={label} style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
     {options.map((o) => (
-      <button key={o.value} type="button" className="panel-icon-btn" aria-pressed={value === o.value} aria-label={`${label}: ${o.label}`} title={`${label}: ${o.label}`} style={{ fontSize: 11, padding: "2px 6px", fontWeight: value === o.value ? 600 : 400, opacity: value === o.value ? 1 : 0.7 }} onClick={() => onPick(o.value)}>
+      <button key={o.value} type="button" className="panel-icon-btn panel-text-btn" aria-pressed={value === o.value} aria-label={`${label}: ${o.label}`} title={`${label}: ${o.label}`} style={{ fontSize: 11, padding: "2px 6px", fontWeight: value === o.value ? 600 : 400, opacity: value === o.value ? 1 : 0.7 }} onClick={() => onPick(o.value)}>
         {o.label}
       </button>
     ))}
@@ -60,11 +60,11 @@ export const GridPanel: React.FC = () => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <strong style={{ fontSize: 11 }}>Grid</strong>
         {grids.length > 0 ? (
-          <button type="button" className="panel-icon-btn" aria-label="Remove grid" onClick={() => run("layout.removeGrid")}>
+          <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Remove grid" onClick={() => run("layout.removeGrid")}>
             Remove
           </button>
         ) : (
-          <button type="button" className="panel-icon-btn" aria-label="Add grid" onClick={() => run("layout.addGrid")}>
+          <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Add grid" onClick={() => run("layout.addGrid")}>
             Add
           </button>
         )}

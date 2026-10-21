@@ -18,7 +18,7 @@ import { listFrames, nextFramePosition } from "../frames/frames";
 import { alignBoxes, distributeBoxes, tidyBoxes, unionBounds, type AlignMode, type SpreadAxis } from "../geometry/align";
 import { moveBoxes, unionBox, type Box } from "../geometry/transform";
 import { getDocument } from "../store/documentState";
-import { documentCommands } from "../store/useDocumentStore";
+import { documentCommands, getResolvedDocument } from "../store/useDocumentStore";
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { cloneLayers, subtreeIds, topmost } from "./cloneLayers";
@@ -462,7 +462,9 @@ export function setLocked(ids: readonly string[], locked: boolean): number {
 
 /** Sets visibility on exactly these layers. One undo step. */
 export function setVisible(ids: readonly string[], visible: boolean): number {
-  const targets = ids.filter((id) => layers()[id] && (layers()[id].visible !== false) !== visible);
+  // what is hidden is what is hidden at the breakpoint being edited (Phase 43)
+  const seen = getResolvedDocument().layers;
+  const targets = ids.filter((id) => seen[id] && (seen[id].visible !== false) !== visible);
   if (targets.length === 0) return 0;
   transaction(visible ? "Show" : "Hide", () => targets.forEach((id) => documentCommands.setLayerFlags(id, { visible })));
   return targets.length;
@@ -472,7 +474,7 @@ export function setVisible(ids: readonly string[], visible: boolean): number {
 export function toggleHidden(ids: readonly string[]): boolean {
   const roots = selectionRoots(ids);
   if (roots.length === 0) return false;
-  const hide = !roots.every((id) => layers()[id].visible === false);
+  const hide = !roots.every((id) => getResolvedDocument().layers[id].visible === false);
   transaction(hide ? "Hide" : "Show", () => roots.forEach((id) => documentCommands.setLayerFlags(id, { visible: !hide })));
   if (hide) useSelectionStore.getState().clearSelection(); // a hidden layer can't stay selected
   return hide;

@@ -43,6 +43,8 @@ import { type ArchetypeId, type LayerProps, type PropValue } from "../document/r
 import { canonicalizeProps, canonicalizeTrackPath, coercePropertyValue, getPropertyDefinition, resolvePropertyPath } from "../document/properties";
 import { removeLayerDependents } from "../document/migrations";
 import { applyConstraintsToChildren } from "../layout/constrainChildren";
+import { appliedBreakpoints, breakpointsOf, isBase, resolveDocumentAt, resolveLayerAt, VISIBLE_KEY } from "../breakpoints/breakpoints";
+import { useBreakpointStore } from "./useBreakpointStore";
 import { syncCompositions } from "../document/compositions";
 import {
   validateMotionDocument,
@@ -569,13 +571,32 @@ export const documentCommands = {
     });
   },
 
-  /** Shallow-merges `patch` into the layer's props. An `undefined` value deletes that prop. */
+  /**
+   * Shallow-merges `patch` into the layer's props. An `undefined` value deletes that prop. While a smaller breakpoint
+   * is active (Phase 43) the changes go to the layer's overrides for it instead, so the base is untouched; a change
+   * to the value the layer already has there writes nothing, and a change back to the base value drops the override.
+   */
   updateProps(layerId: string, patch: Record<string, PropValue | undefined>, label?: string) {
     commit(label, (draft) => {
       const layer = requireLayer(draft, layerId);
       const props = layer.properties;
+      const list = breakpointsOf(draft);
+      const activeId = useBreakpointStore.getState().activeId;
+      const routed: Record<string, PropValue | undefined> = {};
+      let direct = patch;
+      if (!isBase(list, activeId)) {
+        direct = {};
+        for (const [key, value] of Object.entries(patch)) {
+          const res = resolvePropertyPath(key, layer.archetype);
+          const path = res.ok ? res.path : key;
+          // the canvas position of a top-level frame, and the responsive flag, are the document's, not a breakpoint's
+          const global = path === "breakpoints.responsive" || (layer.parentId === null && (path === "frame.x" || path === "frame.y" || path === "positioning"));
+          if (global) direct[key] = value;
+          else routed[path] = value;
+        }
+      }
       const defined: LayerProps = {};
-      for (const [key, value] of Object.entries(patch)) {
+      for (const [key, value] of Object.entries(direct)) {
         if (value !== undefined) {
           defined[key] = value;
           continue;
@@ -585,6 +606,23 @@ export const documentCommands = {
       }
       const before = { width: props["frame.width"], height: props["frame.height"] };
       Object.assign(props, canonicalProps(layer.archetype, defined, "updateProps"));
+      if (Object.keys(routed).length > 0) {
+        const applied = appliedBreakpoints(list, activeId);
+        const seen = resolveLayerAt(layer as Layer, applied).properties;
+        const slot = ((layer.overrides ??= {})[activeId!] ??= {});
+        for (const [path, value] of Object.entries(routed)) {
+          if (value === undefined) {
+            delete slot[path];
+            continue;
+          }
+          const canon = canonicalProps(layer.archetype, { [path]: value }, "updateProps")[path];
+          if (canon === undefined) continue;
+          if (JSON.stringify(canon) === JSON.stringify(props[path])) delete slot[path];
+          else if (JSON.stringify(canon) !== JSON.stringify(seen[path])) slot[path] = canon;
+        }
+        if (Object.keys(slot).length === 0) delete layer.overrides![activeId!];
+        if (Object.keys(layer.overrides!).length === 0) delete layer.overrides;
+      }
       // a frame that changed size: the layers pinned to it follow, in this same change (Phase 42)
       const after = { width: props["frame.width"], height: props["frame.height"] };
       if (typeof before.width === "number" && typeof before.height === "number" && typeof after.width === "number" && typeof after.height === "number" && (before.width !== after.width || before.height !== after.height)) {
@@ -603,7 +641,50 @@ export const documentCommands = {
 
   setLayerFlags(layerId: string, flags: Partial<Pick<Layer, "visible" | "locked">>, label?: string) {
     commit(label, (draft) => {
-      Object.assign(requireLayer(draft, layerId), flags);
+      const layer = requireLayer(draft, layerId);
+      const activeId = useBreakpointStore.getState().activeId;
+      // at a smaller breakpoint, showing or hiding a layer is that breakpoint's override (Phase 43)
+      if ("visible" in flags && !isBase(breakpointsOf(draft), activeId)) {
+        const { visible, ...rest } = flags;
+        Object.assign(layer, rest);
+        const baseVisible = layer.visible !== false;
+        const slot = ((layer.overrides ??= {})[activeId!] ??= {});
+        if ((visible !== false) === baseVisible) delete slot[VISIBLE_KEY];
+        else slot[VISIBLE_KEY] = visible !== false;
+        if (Object.keys(slot).length === 0) delete layer.overrides![activeId!];
+        if (Object.keys(layer.overrides!).length === 0) delete layer.overrides;
+        return;
+      }
+      Object.assign(layer, flags);
+    });
+  },
+
+  /** Replaces the document's breakpoints (widest first is the base). Overrides of breakpoints that are gone are dropped. */
+  setBreakpoints(list: { id: string; name: string; width: number }[], label = "Change breakpoints") {
+    commit(label, (draft) => {
+      const sorted = [...list].sort((a, b) => b.width - a.width);
+      draft.breakpoints = sorted;
+      const keep = new Set(sorted.map((b) => b.id));
+      for (const layer of Object.values(draft.layers)) {
+        if (!layer.overrides) continue;
+        for (const id of Object.keys(layer.overrides)) if (!keep.has(id)) delete layer.overrides[id];
+        if (Object.keys(layer.overrides).length === 0) delete layer.overrides;
+      }
+    });
+  },
+
+  /** Removes a breakpoint's overrides from layers (all of them, or just `keys`): a layer goes back to what it inherits there. */
+  resetOverrides(layerIds: readonly string[], breakpointId: string, keys?: readonly string[], label = "Reset overrides") {
+    commit(label, (draft) => {
+      for (const id of layerIds) {
+        const layer = draft.layers[id];
+        const slot = layer?.overrides?.[breakpointId];
+        if (!layer || !slot) continue;
+        if (keys) for (const k of keys) delete slot[k];
+        else delete layer.overrides![breakpointId];
+        if (layer.overrides![breakpointId] && Object.keys(slot).length === 0) delete layer.overrides![breakpointId];
+        if (Object.keys(layer.overrides!).length === 0) delete layer.overrides;
+      }
     });
   },
 
@@ -796,15 +877,24 @@ export type DocumentCommands = typeof documentCommands;
 
 /** Subscribe to a slice of the document. The selector must return a stable value (not a new array/object). */
 export function useDocument<T>(selector: (document: MotionDocument) => T): T {
-  return documentStore((state) => selector(state.document));
+  const activeId = useBreakpointStore((s) => s.activeId);
+  // the document as seen at the breakpoint being edited (the document itself at the base)
+  return documentStore((state) => selector(resolveDocumentAt(state.document, activeId)));
 }
 
 export function useLayer(layerId: string | null | undefined): Layer | undefined {
-  return documentStore((state) => (layerId ? state.document.layers[layerId] : undefined));
+  const activeId = useBreakpointStore((s) => s.activeId);
+  return documentStore((state) => (layerId ? resolveDocumentAt(state.document, activeId).layers[layerId] : undefined));
 }
 
 export function useLayers(): Record<string, Layer> {
-  return documentStore((state) => state.document.layers);
+  const activeId = useBreakpointStore((s) => s.activeId);
+  return documentStore((state) => resolveDocumentAt(state.document, activeId).layers);
+}
+
+/** The document as seen at the breakpoint being edited, for reads outside React that need what is drawn (hit testing, measuring). */
+export function getResolvedDocument(): MotionDocument {
+  return resolveDocumentAt(documentStore.getState().document, useBreakpointStore.getState().activeId);
 }
 
 /** The layer's clips in stack order; stable between renders while clips are unchanged. */

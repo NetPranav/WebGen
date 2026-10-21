@@ -123,6 +123,11 @@ export const LayerSchema = z.object({
   pins: PinsSchema.optional(),
   /** Free-form labels a rule can target as `tag:<name>` (Phase 7.5 / 89). */
   tags: z.array(TagSchema).optional(),
+  /**
+   * Properties that replace this layer's own at a breakpoint and below (Phase 43): breakpoint id to property path to
+   * value. The key `layer.visible` with `false` hides the layer there. Absent: no overrides.
+   */
+  overrides: z.record(z.string(), z.record(z.string(), PropValueSchema)).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -175,6 +180,8 @@ const MotionDocumentShape = z.object({
   exportSettings: ExportSettingsSchema,
   /** Imported files, by content hash (Phase 36). Absent in documents saved before assets: read it as empty. */
   assets: z.record(z.string(), AssetEntrySchema).optional(),
+  /** The breakpoints, widest (the base) first (Phase 43). Absent: Desktop 1440, Tablet 768, Mobile 375. */
+  breakpoints: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40), width: z.number().int().min(100).max(10000) })).max(12).optional(),
   /** How fonts show while they load (the CSS `font-display`; Phase 38). Absent: `swap`. */
   fontDisplay: z.enum(["swap", "block", "fallback", "optional", "auto"]).optional(),
 });

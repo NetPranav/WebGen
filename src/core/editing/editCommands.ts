@@ -9,6 +9,7 @@ import { isEditingPath } from "../store/useVectorEditStore";
 import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
 import { registerLayoutCommands } from "./layoutCommands";
+import { registerBreakpointCommands } from "../breakpoints/breakpointCommands";
 import { moveLayers } from "../layers/reparent";
 import { importAndPlace } from "../assets/assetImport";
 import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage } from "../paint/paintOps";
@@ -163,6 +164,7 @@ export function registerEditingCommands(): () => void {
   add(defineTypedCommand({ id: "fonts.setDisplay", title: "Set Font Loading", category: "Text", args: z.object({ display: z.enum(["swap", "block", "fallback", "optional", "auto"]) }), run: ({ display }) => { documentCommands.setFontDisplay(display); return { ok: true }; } }));
   add(registerTextCommands());
   add(registerLayoutCommands());
+  add(registerBreakpointCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());
 }

@@ -15,6 +15,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import "@/editor/styles/whiteboard.css";
 import { FloatingDock } from "./FloatingDock";
+import { BreakpointBar } from "./BreakpointBar";
 import { LiveZoomControls } from "./ZoomControls";
 import { OverlayLayer } from "./overlay/OverlayLayer";
 import { CanvasFrames, FrameBar, visibleFrames } from "./CanvasFrames";
@@ -42,7 +43,6 @@ import { unionBox } from "@/core/geometry/transform";
 import type { DocumentTransaction } from "@/core/store/useDocumentStore";
 import { docToScreen, type Rect } from "@/core/viewport/camera";
 import { setActiveStageFrame } from "@/core/render/StageRenderer";
-import { getDocument } from "@/core/store/documentState";
 import {
   Crosshair,
 } from "lucide-react";
@@ -53,7 +53,7 @@ import { useEnvironmentStore } from "@/core/store/useEnvironmentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { THEME_PALETTES } from "@/core/types/environment";
 import { useLatestRef } from "@/core/hooks/useLatestRef";
-import { useLayers, documentCommands } from "@/core/store/useDocumentStore";
+import { useLayers, documentCommands, getResolvedDocument } from "@/core/store/useDocumentStore";
 import { penControls } from "./tools/pathTools";
 import { isGrid, placesChildren, readStack } from "@/core/editing/layoutOps";
 import { gridInsertion } from "@/core/layout/grid";
@@ -170,7 +170,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   // pointer's place on the canvas is mapped to canvas space and looked up in a spatial index of the frames' layers.
   const hitTester = useMemo(
     () =>
-      new CanvasHitTester(getDocument, () => {
+      new CanvasHitTester(getResolvedDocument, () => {
         const surfaces = new Map<string, FrameSurface>();
         for (const [frameId, r] of getFrameRenderers()) {
           surfaces.set(frameId, { frameId, get layoutVersion() { return r.layoutVersion; }, measureNow: (ids) => r.measureNow(ids) });
@@ -188,7 +188,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const handleStageClick = useCallback(
     (layerId: string) => {
       selectEntity(layerId, "element");
-      const frameId = frameIdOf(getDocument().layers, layerId);
+      const frameId = frameIdOf(getResolvedDocument().layers, layerId);
       if (frameId) useCanvasViewStore.getState().setActiveFrame(frameId);
     },
     [selectEntity]
@@ -222,16 +222,16 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     const tool = useToolStore.getState().current;
     if (tool !== "select" && tool !== "deepSelect") return null;
     const zoom = useCameraStore.getState().camera.zoom;
-    return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / zoom, activeGradient());
+    return buildTransformModel(hitTester.ensure(), getResolvedDocument().layers, useSelectionStore.getState().selectedIds, 14 / zoom, activeGradient());
   }, [hitTester]);
   /** Every frame's ruler guides as lines in canvas space. */
-  const overlayGuides = useCallback(() => guideLines(hitTester.ensure(), getDocument().layers), [hitTester]);
+  const overlayGuides = useCallback(() => guideLines(hitTester.ensure(), getResolvedDocument().layers), [hitTester]);
   /** The distance HUD for the selection while Alt is held and no gesture is running. */
   const overlayHud = useCallback(() => {
     if (!useSnapStore.getState().alt || useToolStore.getState().gesturing || useCanvasViewStore.getState().mode !== "design") return [];
     const ids = useSelectionStore.getState().selectedIds;
     const index = hitTester.ensure();
-    const layers = getDocument().layers;
+    const layers = getResolvedDocument().layers;
     const model = buildTransformModel(index, layers, ids, 0);
     const env = model ? snapEnvironment(index, layers, model.ids) : null;
     if (!model || !env) return [];
@@ -250,7 +250,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       panOnBlank: () => environmentRef.current.viewport.pan.enabled && environmentRef.current.viewport.pan.trigger === "any_blank",
       pick: (world, deep) => {
         const hit = hitTester.pickAt(world, { deep });
-        return hit ? { id: hit.id, name: getDocument().layers[hit.id]?.name ?? hit.id, depth: hit.depth } : null;
+        return hit ? { id: hit.id, name: getResolvedDocument().layers[hit.id]?.name ?? hit.id, depth: hit.depth } : null;
       },
       containerAt: (world) => {
         const hit = hitTester.containerAt(world);
@@ -258,11 +258,11 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       },
       transformModel: () => {
         const camera = useCameraStore.getState().camera;
-        return buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom, activeGradient());
+        return buildTransformModel(hitTester.ensure(), getResolvedDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom, activeGradient());
       },
       handleAt: (screen) => {
         const camera = useCameraStore.getState().camera;
-        const model = buildTransformModel(hitTester.ensure(), getDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom, activeGradient());
+        const model = buildTransformModel(hitTester.ensure(), getResolvedDocument().layers, useSelectionStore.getState().selectedIds, 14 / camera.zoom, activeGradient());
         return model ? handleAtScreen(model, camera, screen) : null;
       },
       isSelected: (id) => useSelectionStore.getState().selectedIds.includes(id),
@@ -271,7 +271,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       },
       applyBoxes: (ids, boxes) => {
         const index = hitTester.ensure();
-        const layers = getDocument().layers;
+        const layers = getResolvedDocument().layers;
         const round = (n: number) => Math.round(n * 100) / 100;
         ids.forEach((id, i) => {
           const layer = layers[id];
@@ -312,7 +312,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       },
       snapMove: (ids, rect, off = false) => {
         const settings = useSnapStore.getState();
-        const env = snapEnvironment(hitTester.ensure(), getDocument().layers, ids);
+        const env = snapEnvironment(hitTester.ensure(), getResolvedDocument().layers, ids);
         const threshold = 6 / useCameraStore.getState().camera.zoom;
         if (!env) return { dx: 0, dy: 0 };
         const result = off
@@ -325,7 +325,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       },
       snapEdges: (ids, rect, edges, off = false) => {
         const settings = useSnapStore.getState();
-        const env = snapEnvironment(hitTester.ensure(), getDocument().layers, ids);
+        const env = snapEnvironment(hitTester.ensure(), getResolvedDocument().layers, ids);
         const threshold = 6 / useCameraStore.getState().camera.zoom;
         if (!env || off) {
           settings.clearFeedback();
@@ -338,7 +338,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       clearSnap: () => useSnapStore.getState().clearFeedback(),
       guideAt: (screen) => {
         const camera = useCameraStore.getState().camera;
-        for (const g of guideLines(hitTester.ensure(), getDocument().layers)) {
+        for (const g of guideLines(hitTester.ensure(), getResolvedDocument().layers)) {
           const s = docToScreen(camera, g.axis === "x" ? { x: g.pos, y: g.from } : { x: g.from, y: g.pos });
           const e = docToScreen(camera, g.axis === "x" ? { x: g.pos, y: g.to } : { x: g.to, y: g.pos });
           const near = g.axis === "x" ? Math.abs(s.x - screen.x) <= 4 && screen.y >= s.y && screen.y <= e.y : Math.abs(s.y - screen.y) <= 4 && screen.x >= s.x && screen.x <= e.x;
@@ -377,12 +377,12 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
           return;
         }
         store.selectMultiple(combineSelection(store.selectedIds, [layer.id], mode), "element");
-        const frameId = frameIdOf(getDocument().layers, layer.id);
+        const frameId = frameIdOf(getResolvedDocument().layers, layer.id);
         if (frameId) useCanvasViewStore.getState().setActiveFrame(frameId);
       },
       marquee: (start, end, startFrameId, mode) => {
         const rect = { x: Math.min(start.x, end.x), y: Math.min(start.y, end.y), width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) };
-        const layers = getDocument().layers;
+        const layers = getResolvedDocument().layers;
         const index = hitTester.ensure();
         const boxes = new Map<string, Rect>();
         const pool = startFrameId && layers[startFrameId] ? layers[startFrameId].children : rootIds(layers);
@@ -398,16 +398,16 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       parentId: () => parentIdRef.current,
       created: (layer) => {
         useSelectionStore.getState().select(layer.id, "element");
-        const frameId = frameIdOf(getDocument().layers, layer.id);
+        const frameId = frameIdOf(getResolvedDocument().layers, layer.id);
         if (frameId) useCanvasViewStore.getState().setActiveFrame(frameId);
         useToolStore.getState().setActive("select");
         // A text layer just drawn is typed into straight away.
-        if (getDocument().layers[layer.id]?.archetype === "text") useCanvasViewStore.getState().startTextEdit(layer.id);
+        if (getResolvedDocument().layers[layer.id]?.archetype === "text") useCanvasViewStore.getState().startTextEdit(layer.id);
       },
       setPanning: setIsPanning,
       requestOverlay: () => setToolOverlay(gestureToolRef.current?.drawOverlay?.() ?? null),
       stackDrop: (ids, world) => {
-        const layers = getDocument().layers;
+        const layers = getResolvedDocument().layers;
         const first = ids[0] ? layers[ids[0]] : undefined;
         const parent = first?.parentId ? layers[first.parentId] : undefined;
         if (!parent || !placesChildren(parent)) return null;
@@ -527,7 +527,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const zoomToSelection = useCallback(async () => {
     const id = useSelectionStore.getState().selectedId;
     if (!id) return;
-    const layers = getDocument().layers;
+    const layers = getResolvedDocument().layers;
     const frameId = frameIdOf(layers, id);
     const frame = frames.find((f) => f.id === frameId);
     const renderer = getStageRendererForLayer(id, layers);
@@ -796,7 +796,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     const r = el.getBoundingClientRect();
     const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - r.left, y: e.clientY - r.top });
     const hit = hitTester.pickAt(world, { deep: true });
-    const layer = hit ? getDocument().layers[hit.id] : undefined;
+    const layer = hit ? getResolvedDocument().layers[hit.id] : undefined;
     if (hit && layer && layer.archetype === "svgPath" && layer.locked !== true) {
       enterEdit(hit.id);
       return;
@@ -846,7 +846,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         // a tile dragged out of the Assets panel
         const tile = e.dataTransfer.getData("application/x-lazylayout-asset");
         if (tile && mode === "design") {
-          const entry = getDocument().assets?.[tile];
+          const entry = getResolvedDocument().assets?.[tile];
           if (entry) {
             const rect = containerRef.current!.getBoundingClientRect();
             const world = screenToDoc(useCameraStore.getState().camera, { x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -944,8 +944,9 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       <CanvasRulers hitTester={hitTester} containerRef={containerRef} />
       <CanvasContextMenu menu={contextMenu} onClose={closeContextMenu} />
       <AssetNotice />
-      <RenameBox currentName={(id) => getDocument().layers[id]?.name ?? id} />
+      <RenameBox currentName={(id) => getResolvedDocument().layers[id]?.name ?? id} />
       <FrameBar />
+      <BreakpointBar />
 
       {/* Floating Atlassian-Style Bottom Dock */}
       <FloatingDock
