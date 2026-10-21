@@ -123,6 +123,22 @@ describe("Phase 43: edits at a breakpoint are overrides", () => {
     assert.equal(getDocument().layers.b.overrides, undefined);
   });
 
+  it("hidden at Tablet and shown again at Mobile: Mobile keeps its own say; a value equal to Tablet's has no override", () => {
+    useBreakpointStore.getState().setActive("tablet");
+    setVisible(["b"], false);
+    documentCommands.updateProps("a", { "frame.x": 77 });
+    useBreakpointStore.getState().setActive("mobile");
+    assert.equal(getResolvedDocument().layers.b.visible, false); // inherited
+    setVisible(["b"], true);
+    assert.equal(getResolvedDocument().layers.b.visible, true);
+    assert.deepEqual(getDocument().layers.b.overrides, { tablet: { "layer.visible": false }, mobile: { "layer.visible": true } });
+    documentCommands.updateProps("a", { "frame.x": 77 }); // what Tablet already says
+    assert.equal(getDocument().layers.a.overrides!.mobile, undefined);
+    documentCommands.updateProps("a", { "frame.x": 100 }); // the base value again, but Tablet says 77: Mobile must say 100
+    assert.equal(seen("a")["frame.x"], 100);
+    assert.deepEqual(getDocument().layers.a.overrides!.mobile, { "frame.x": 100 });
+  });
+
   it("a top-level frame's canvas position and the responsive flag are not breakpoint overrides", () => {
     useBreakpointStore.getState().setActive("mobile");
     documentCommands.updateProps("pg", { "frame.x": 50, "frame.y": 60 });

@@ -45,7 +45,7 @@ export const MENU_MODEL: Record<MenuId, { label: string; entries: MenuEntry[] }>
       { kind: "item", label: "Export Project File (.lazy.json)", icon: Download, command: "file.exportProjectFile" },
       { kind: "item", label: "Import Project File...", icon: Upload, command: "file.importProjectFile" },
       sep,
-      { kind: "item", label: "Export Next.js + Prisma Code", icon: Sparkles, shortcut: "Ctrl+E", pending: "Phase 49" },
+      { kind: "item", label: "Export Site...", icon: Sparkles, shortcut: "Ctrl+E", command: "file.exportSite" },
       sep,
       { kind: "item", label: "Close Project", icon: LogOut, command: "file.closeProject" },
     ],

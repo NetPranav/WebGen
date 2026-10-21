@@ -33,6 +33,7 @@ import { useAiDock } from "./hooks/useAiDock";
 import { useProjectFiles } from "./hooks/useProjectFiles";
 import { useProjectLock } from "./hooks/useProjectLock";
 import { ReadOnlyBanner } from "./ReadOnlyBanner";
+import { ExportDialog } from "./ExportDialog";
 import { FontSync } from "../fonts/FontSync";
 import { useFullPageDock } from "./hooks/useFullPageDock";
 import { useShellCommands } from "./hooks/useShellCommands";
@@ -320,6 +321,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ headerSlot, rightPanel
       </div>
 
       <ReadOnlyBanner />
+      <ExportDialog />
       <FontSync />
       <DockTree
         ws={ws}

@@ -653,8 +653,8 @@ export const documentCommands = {
       detachOnEdit(draft as MotionDocument, layer as Layer, [...Object.keys(defined), ...Object.keys(direct).filter((k) => direct[k] === undefined)]);
       Object.assign(props, canonicalProps(layer.archetype, defined, "updateProps"));
       if (Object.keys(routed).length > 0) {
-        const applied = appliedBreakpoints(list, activeId);
-        const seen = resolveLayerAt(layer as Layer, applied).properties;
+        // what a larger breakpoint (or the base) already says: a value equal to it needs no override of its own
+        const inherited = resolveLayerAt(layer as Layer, appliedBreakpoints(list, activeId).filter((b) => b.id !== activeId)).properties;
         const slot = ((layer.overrides ??= {})[activeId!] ??= {});
         for (const [path, value] of Object.entries(routed)) {
           if (value === undefined) {
@@ -663,8 +663,8 @@ export const documentCommands = {
           }
           const canon = canonicalProps(layer.archetype, { [path]: value }, "updateProps")[path];
           if (canon === undefined) continue;
-          if (JSON.stringify(canon) === JSON.stringify(props[path])) delete slot[path];
-          else if (JSON.stringify(canon) !== JSON.stringify(seen[path])) slot[path] = canon;
+          if (JSON.stringify(canon) === JSON.stringify(inherited[path])) delete slot[path];
+          else slot[path] = canon;
         }
         if (Object.keys(slot).length === 0) delete layer.overrides![activeId!];
         if (Object.keys(layer.overrides!).length === 0) delete layer.overrides;
@@ -694,9 +694,10 @@ export const documentCommands = {
       if ("visible" in flags && !isBase(breakpointsOf(draft), activeId)) {
         const { visible, ...rest } = flags;
         Object.assign(layer, rest);
-        const baseVisible = layer.visible !== false;
+        // visible or hidden as the larger breakpoints (or the base) have it: no override; otherwise this breakpoint says so
+        const above = resolveLayerAt(layer as Layer, appliedBreakpoints(breakpointsOf(draft), activeId).filter((b) => b.id !== activeId));
         const slot = ((layer.overrides ??= {})[activeId!] ??= {});
-        if ((visible !== false) === baseVisible) delete slot[VISIBLE_KEY];
+        if ((visible !== false) === (above.visible !== false)) delete slot[VISIBLE_KEY];
         else slot[VISIBLE_KEY] = visible !== false;
         if (Object.keys(slot).length === 0) delete layer.overrides![activeId!];
         if (Object.keys(layer.overrides!).length === 0) delete layer.overrides;
