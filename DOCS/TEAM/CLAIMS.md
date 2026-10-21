@@ -12,12 +12,15 @@ Current schema: **v5** (on `main`).
 
 ## Decision records (`DOCS/INITIAL/decisions/`)
 
-Next free number: **0014** (0008 is the threat model and 0009 the render host; 0010–0013 are named in ROADMAP §6). (0006 is unused on purpose; v3 numbers clashed, see ROADMAP §6.)
+Next free number: **0018** (0008 is the threat model and 0009 the render host; 0010–0017 are named in ROADMAP §6, where 0014 is the MCP bridge and 0015–0017 were added by ROADMAP v4.1). (0006 is unused on purpose; v3 numbers clashed, see ROADMAP §6.)
 
 | Number | Lane | Title | PR |
 |---|---|---|---|
 | 0008 | A | Threat model for the stage and user content (Phase 16) | |
 | 0009 | A | Render host: live DOM frames, no HTML strings (Phase 18) | |
+| 0015 | A (proposed) | Path engine: curve-exact booleans and offsets (Phase 103) | |
+| 0016 | unassigned | Scene rasteriser: any layer to pixels (Phase 172) | |
+| 0017 | unassigned | Rigging and deformation (Phase 203) | |
 
 ## New AUDIT IDs
 
