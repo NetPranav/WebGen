@@ -254,7 +254,11 @@ test.describe("Phase 42: grids", () => {
     expect(await children(page, grid)).toEqual([ids.a, ids.b, ids.c, ids.d]);
     const a = await screen(ids.a);
     const d = await screen(ids.d);
-    await page.mouse.click(a.x + a.w / 2, a.y + a.h / 2);
+    // press on the layer that is to move: click until the one selected is the one meant (screen positions are whole pixels)
+    await expect(async () => {
+      await page.mouse.click(a.x + a.w / 2, a.y + a.h / 2);
+      expect(await page.evaluate(() => (window as unknown as { __LL_SELECTION__: () => string[] }).__LL_SELECTION__())).toEqual([ids.a]);
+    }).toPass({ timeout: 10_000 });
     await page.mouse.move(a.x + a.w / 2, a.y + a.h / 2);
     await page.mouse.down();
     await page.mouse.move(d.x + d.w / 2, d.y + d.h / 2, { steps: 6 });
