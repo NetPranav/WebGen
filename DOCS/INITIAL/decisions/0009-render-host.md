@@ -25,7 +25,7 @@ Until now the stage was an `<iframe srcDoc>` whose whole document was regenerate
 
 - loads it only through `afterTrackPanels.tsx`, gated by `edition === "full"` like the other After-track panels, and adds it to `npm run check:bundle-scope`, so "the design stage no longer imports it" is enforced against the built bundle, not just claimed;
 - makes its messaging follow rule R3. Every message names the editor's origin (`window.origin` inside the frame, `window.location.origin` outside), never `"*"`; the editor accepts a message only from that frame's `contentWindow`, only from its own origin, and only if it parses against a zod schema (`src/editor/runtime/frameBridge.ts`, tested with stand-in windows). A unit test scans all of `src/`, including the scripts inside template literals, and fails on any `postMessage` whose last argument is `"*"` or any `targetOrigin: "*"`;
-- keeps its HTML-string builders (`buildSandboxDocument`, `generateElementMarkup`). They are **no longer on the design path**. They remain in the full edition, with every interpolated value escaped (record 0008, F1), until the logic sandbox is rebuilt on the same render definitions in Phase 140; that debt is recorded, not hidden.
+- keeps its HTML-string builders (`buildSandboxDocument`, `generateElementMarkup`). They are **no longer on the design path**. They remain in the full edition, with every interpolated value escaped (record 0008, F1), until the logic sandbox is rebuilt on the same render definitions in Phase 195; that debt is recorded, not hidden.
 
 Play mode on the canvas uses `SandboxHost` in the full edition and the same `StageHost` in the initial edition (Play mode has no reachable entry point today; Phase 23 builds Design and Preview modes).
 

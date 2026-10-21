@@ -63,6 +63,21 @@ exists; this one records the *current status* of each gate, kept current as the 
   ROADMAP.md` Phase 25, "LazyLayout Bits") is re-implemented from LazyLayout's own primitives;
   the library records the source of an effect's *idea* where one exists, never copies
   third-party code. No license text applies because no third-party code is present.
+- **Exception (2026-10-21, the Lane A owner's decision):** `src/components/BranchedMenu.jsx` and
+  `src/components/BranchedMenu.css` are React Bits' `BranchedMenu-JS-CSS` (MIT + Commons Clause,
+  Copyright (c) 2026 David Haz), installed for the editor's own Layers panel. The licence allows
+  this ("as part of an application, website, or product"). The rules for these two files:
+  - they are used only inside LazyLayout's own interface;
+  - they are never offered to users as an insertable component, template, library effect or
+    export, and never sold or redistributed on their own (the Commons Clause);
+  - they keep the notice below;
+  - the licence scanner (ROADMAP Phase 262) allowlists exactly these two paths, and any other
+    React Bits code still fails it.
+  The policy above still holds for the Effects Library: no React Bits component, and no port of
+  one, ships as a LazyLayout effect.
+  Notice: "React Bits, MIT + Commons Clause License Condition v1.0, Copyright (c) 2026 David Haz.
+  The above copyright notice and this permission notice shall be included in all copies or
+  substantial portions of the Software." (full text: https://github.com/DavidHDev/react-bits/blob/main/LICENSE.md)
 - **Owner phase:** 25.
 
 ### GATE-03: User-imported code components (added 2026-09-26, ROADMAP v3.0)
@@ -93,6 +108,9 @@ exists; this one records the *current status* of each gate, kept current as the 
 - **Motion (`motion/react`, formerly Framer Motion), Three.js, `@react-three/fiber`,
   `@react-three/drei`:** MIT-licensed, no competitive-use restriction, installed and used
   directly with no open question (Phase 5, `DOCS/INITIAL/decisions/`).
+- **`polygon-clipping` (MIT, Phase 40 booleans), `@hugeicons/core-free-icons` and
+  `@hugeicons/react` (MIT, the icons BranchedMenu uses), `fflate` (MIT, ZIP in the export
+  tests):** permissive, no competitive-use restriction.
 - **The archived C++/Wasm kernel:** Not a licensing gate — its removal (`DOCS/INITIAL/
   decisions/0001-wasm.md`) was a performance decision (No-Go, mean 0.67x–1.93x vs. the 2x bar),
   unrelated to licensing.

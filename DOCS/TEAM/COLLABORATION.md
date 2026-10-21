@@ -36,7 +36,8 @@ Those are the only kinds of branches. Anything else on GitHub is old and can be 
 
 - **Inside a lane, the phase number is still the order** (Law 18). Take the lowest phase in your lane that isn't ✅.
 - A phase may start only when **every phase in its "Needs" line is ✅ on `main`**. This is ROADMAP §0 rule 7, and it's the only thing that links the two lanes. §2 lists every place where it matters.
-- Stage 3 onward (103+) isn't assigned yet. Agree on it before either of you starts it.
+- **Stage 3, Design depth (Phases 103–131, added in ROADMAP v4.1 on 2026-10-21), is proposed for Lane A** after Phase 52, with branch prefix `a/`. Every phase in it needs only Stage 1, so it never waits on Lane B. It becomes Lane A's once Lane B agrees, in the v4.1 PR or in a message.
+- Stage 4 onward (132+) isn't assigned yet. Agree on it before either of you starts it. v4.1 renumbered every phase from 103 on; Phases 1–102 kept their numbers, and the old-to-new table is at the end of ROADMAP §7.
 - Laws 1–20 and the Definition of Done (ROADMAP §3, §4) apply to both lanes. Nothing in this file relaxes them.
 
 ## 2. Where Lane B waits on Lane A
