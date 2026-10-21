@@ -216,7 +216,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 🚧 |
 | 43 | Breakpoints & overrides | 42 | v3 50.3 (properties half) | 1 | 🚧 |
 | 44 | Breakpoint canvas | 21, 43 | v3 50.4 | 1 | 🚧 |
-| 45 | Design tokens & styles | 35, 38 | v3 22.3 | 1 | 📋 |
+| 45 | Design tokens & styles | 35, 38 | v3 22.3 | 1 | 🚧 |
 | 46 | Components & instances | 29, 32 | v3 75.1, 75.5 (design) | 1 | 📋 |
 | 47 | Variants & component properties | 46 | v3 75.2 (static), 75.3 | 1 | 📋 |
 | 48 | Sections, pages & prototype links | 23, 47 | v3 76.1 (static), 77.1, 77.2, 77.4 | 1 | 📋 |
@@ -797,11 +797,12 @@ The document and World Environment have their own stores, After-track actions mo
 **Evidence so far (2026-10-21):** `tests/e2e/breakpoint-canvas.spec.ts` in 3 browsers: **All** draws Tablet and Mobile beside Desktop, each at its own width, a pinned layer where its constraint puts it at each width, and a change at the base shows in every view live; selecting a layer outlines it in every view; clicking a layer in a preview selects it and makes that breakpoint the one being edited (the previous one becomes a preview); dragging a view's right edge sets the breakpoint's width, the page reflows live and one undo puts it back; **a 200-layer page: 90th-percentile frame under 34 ms (50 ms on CI) while an edge is dragged for 40 moves**. **Design:** `StageHost` takes `breakpointId` and `ghost` (a preview registers no renderer and runs no engine); `useLayerAt` / `useDocumentAt` read the document at a breakpoint; previews sit in a row beneath the responsive frame so they never cover other frames; a preview takes clicks itself (the element under the pointer in its own frame). The real frame stays the only one with handles, hit testing and snapping. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 45 · Design tokens & styles
-**Needs:** 35, 38 · **Was:** v3 22.3 · **Closes:** AUD-20 (Tier 2: properties 34–40) · **Status:** 📋
-- [ ] Colour, text, effect and spacing styles (variables); light and dark modes; layers bind to tokens, and detached values are shown clearly. The inspector's Tokens tab becomes the real token manager.
+**Needs:** 35, 38 · **Was:** v3 22.3 · **Closes:** AUD-20 (Tier 2: properties 34–40) · **Status:** 🚧
+- [x] Colour, text, effect and spacing styles (variables); light and dark modes; layers bind to tokens, and detached values are shown clearly. The inspector's Tokens tab becomes the real token manager.
 
 **You'll see:** change one colour style and the whole design updates; switch to dark mode.
 **Done when:** a fixture restyles completely when the mode changes, and detached values stay put.
+**Evidence so far (2026-10-21):** `src/core/tokens/tokens.ts` (modes, variables, styles, `resolveLayerTokens`) and `tokenOps.ts` with 16 unit tests (a variable restyles every bound layer in each mode; a hand edit detaches and keeps the value; Detach and Unbind and Delete keep the look and undo in one step; modes added as copies and removed; tokens still apply at a breakpoint and an override wins; text and effect styles, follow, detach on edit, delete). `tests/e2e/tokens.spec.ts` in 3 browsers: **a fixture of bound fills, radii and text colours shows the other mode's values (computed from the real stage) when Dark is chosen and the detached layer keeps its own colour**; changing a colour in the Tokens tab updates every bound layer, each mode its own; editing Fill by hand detaches, the panel says "detached from surface/bg", Re-link follows it again; Bind and Detach from the inspector; a text style restyles two texts; deleting a variable keeps the look and one undo restores it and its bindings. **Design:** optional additive fields (`modes`, `variables`, `styles` on the document; `tokens`, `styleRefs` on a layer; no schema bump); tokens are applied for display on top of the layer's own properties and under a breakpoint's overrides, so the saved layer keeps its own value; the mode bar sits beside the breakpoint bar and the inspector has a Tokens tab. Not built: gradient/paint styles (a colour variable covers solid colours), spacing variables bound from the Simple face's fields (they bind from the Design tab's Variables & styles section), import/export of variable sets (Phase 49 emits the CSS variables). AUD-20 (the World Environment tiers) is not closed by this phase and stays open. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 46 · Components & instances
 **Needs:** 29, 32 · **Was:** v3 75.1, 75.5 (design) · **Closes:** AUD-44 (components, design) · **Status:** 📋

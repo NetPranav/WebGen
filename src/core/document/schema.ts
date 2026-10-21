@@ -134,6 +134,10 @@ export const LayerSchema = z.object({
    * value. The key `layer.visible` with `false` hides the layer there. Absent: no overrides.
    */
   overrides: z.record(z.string(), z.record(z.string(), PropValueSchema)).optional(),
+  /** Properties bound to variables (Phase 45): property path to the variable, and whether the layer has detached from it. */
+  tokens: z.record(z.string(), z.object({ variable: z.string(), detached: z.boolean().optional() })).optional(),
+  /** The text style and effect style this layer follows (Phase 45): style ids. */
+  styleRefs: z.object({ text: z.string().optional(), effect: z.string().optional() }).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -186,6 +190,14 @@ const MotionDocumentShape = z.object({
   exportSettings: ExportSettingsSchema,
   /** Imported files, by content hash (Phase 36). Absent in documents saved before assets: read it as empty. */
   assets: z.record(z.string(), AssetEntrySchema).optional(),
+  /** Modes for variables, the first is the default (Phase 45). Absent: Light and Dark. */
+  modes: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40) })).max(8).optional(),
+  /** Colour and number variables with a value for each mode (Phase 45). */
+  variables: z
+    .record(z.string(), z.object({ id: z.string(), name: z.string().min(1).max(120), type: z.enum(["color", "number"]), values: z.record(z.string(), z.union([z.string().max(200), z.number()])) }))
+    .optional(),
+  /** Text styles and effect styles (Phase 45). */
+  styles: z.record(z.string(), z.object({ id: z.string(), name: z.string().min(1).max(120), kind: z.enum(["text", "effect"]), props: z.record(z.string(), PropValueSchema) })).optional(),
   /** The breakpoints, widest (the base) first (Phase 43). Absent: Desktop 1440, Tablet 768, Mobile 375. */
   breakpoints: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40), width: z.number().int().min(100).max(10000) })).max(12).optional(),
   /** How fonts show while they load (the CSS `font-display`; Phase 38). Absent: `swap`. */

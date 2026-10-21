@@ -14,6 +14,7 @@ import { setActiveBreakpoint, updateBreakpoint } from "@/core/breakpoints/breakp
 import { documentStore } from "@/core/store/documentState";
 import { documentCommands } from "@/core/store/useDocumentStore";
 import { useBreakpointStore } from "@/core/store/useBreakpointStore";
+import { useModeStore } from "@/core/store/useModeStore";
 import { useBreakpointViewStore } from "@/core/store/useBreakpointViewStore";
 import { useCameraStore } from "@/core/store/useCameraStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
@@ -120,6 +121,7 @@ export const BreakpointViews: React.FC<{ frames: CanvasFrame[] }> = ({ frames })
   const showAll = useBreakpointViewStore((s) => s.showAll);
   const activeId = useBreakpointStore((s) => s.activeId);
   const doc = documentStore((s) => s.document);
+  const mode = useModeStore((s) => s.activeModeId);
   const list = breakpointsOf(doc);
   const base = list[0];
   const viewed = isBase(list, activeId) ? base.id : activeId!;
@@ -143,7 +145,7 @@ export const BreakpointViews: React.FC<{ frames: CanvasFrame[] }> = ({ frames })
             {list
               .filter((b) => b.id !== viewed)
               .map((b) => {
-                const seen = resolveDocumentAt(doc, b.id === base.id ? null : b.id).layers[frame.id];
+                const seen = resolveDocumentAt(doc, b.id === base.id ? null : b.id, mode).layers[frame.id];
                 const width = typeof seen?.properties["frame.width"] === "number" ? (seen.properties["frame.width"] as number) : b.width;
                 const height = typeof seen?.properties["frame.height"] === "number" ? (seen.properties["frame.height"] as number) : frame.height;
                 const left = x;

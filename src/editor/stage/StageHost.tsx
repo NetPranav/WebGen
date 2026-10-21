@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } fro
 import { getResolvedDocument, useDocumentAt } from "@/core/store/useDocumentStore";
 import { resolveDocumentAt } from "@/core/breakpoints/breakpoints";
 import { useBreakpointStore } from "@/core/store/useBreakpointStore";
+import { useModeStore } from "@/core/store/useModeStore";
 import { documentStore, getDocument } from "@/core/store/documentState";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import type { RenderContext } from "@/core/render";
@@ -72,7 +73,7 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
   const rootIds = useMemo(() => (rootKey ? rootKey.split(",") : []), [rootKey]);
 
   // the document as this stage draws it: at its own breakpoint, or at the one being edited
-  const seen = useCallback(() => (breakpointId === undefined ? getResolvedDocument() : resolveDocumentAt(getDocument(), breakpointId)), [breakpointId]);
+  const seen = useCallback(() => (breakpointId === undefined ? getResolvedDocument() : resolveDocumentAt(getDocument(), breakpointId, useModeStore.getState().activeModeId)), [breakpointId]);
   const [plan] = useState(() => {
     const store = createPlanStore();
     store.refresh(seen().layers, rootIds); // the first paint already has its content
@@ -86,9 +87,11 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
     // the document changed, or another breakpoint is being viewed (a layer hidden there, a frame at its width)
     const offDoc = documentStore.subscribe(() => plan.refresh(seen().layers, rootIds));
     const offBp = useBreakpointStore.subscribe(() => plan.refresh(seen().layers, rootIds));
+    const offMode = useModeStore.subscribe(() => plan.refresh(seen().layers, rootIds));
     return () => {
       offDoc();
       offBp();
+      offMode();
     };
   }, [plan, rootIds, seen]);
 

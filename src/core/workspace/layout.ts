@@ -21,6 +21,7 @@ export function presetsFor(edition: Edition): PresetId[] {
 /** The inspector's tabs (right dock). Debug is full-edition only. */
 export const INSPECTOR_TABS = [
   { id: "design", title: "Design", edition: "initial" },
+  { id: "tokens", title: "Tokens", edition: "initial" },
   { id: "motion", title: "Motion", edition: "initial" },
   { id: "code", title: "Code", edition: "initial" },
   { id: "debug", title: "Debug", edition: "full" },

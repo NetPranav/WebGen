@@ -45,6 +45,8 @@ import { removeLayerDependents } from "../document/migrations";
 import { applyConstraintsToChildren } from "../layout/constrainChildren";
 import { appliedBreakpoints, breakpointsOf, isBase, resolveDocumentAt, resolveLayerAt, VISIBLE_KEY } from "../breakpoints/breakpoints";
 import { useBreakpointStore } from "./useBreakpointStore";
+import { useModeStore } from "./useModeStore";
+import { STYLE_PROPS } from "../tokens/tokens";
 import { syncCompositions, type CompositionLayer, type Marker } from "../document/compositions";
 import {
   validateMotionDocument,
@@ -508,6 +510,31 @@ function canonicalClip<T extends { duration: number; tracks: Track[] }>(archetyp
   return coverKeyframes({ ...clip, tracks: canonicalTracks(archetype, clip.tracks, where) });
 }
 
+/**
+ * Before a hand edit lands on `paths` of `layer`: a property bound to a variable is marked detached (the edit is its new
+ * literal value), and a text or effect style that owns an edited property is let go after its values are copied into
+ * the layer, so the rest of the style's look stays where it was.
+ */
+function detachOnEdit(doc: MotionDocument, layer: Layer, paths: readonly string[]) {
+  if (layer.tokens) {
+    for (const key of paths) {
+      const res = resolvePropertyPath(key, layer.archetype);
+      const b = layer.tokens[res.ok ? res.path : key];
+      if (b && !b.detached) b.detached = true;
+    }
+  }
+  if (layer.styleRefs) {
+    for (const kind of ["text", "effect"] as const) {
+      const id = layer.styleRefs[kind];
+      if (!id || !paths.some((p) => (STYLE_PROPS[kind] as readonly string[]).includes(p))) continue;
+      const style = doc.styles?.[id];
+      if (style) for (const path of STYLE_PROPS[kind]) if (style.props[path] !== undefined) layer.properties[path] = style.props[path];
+      delete layer.styleRefs[kind];
+    }
+    if (!layer.styleRefs.text && !layer.styleRefs.effect) delete layer.styleRefs;
+  }
+}
+
 export const documentCommands = {
   /** Opens a transaction for a gesture (see the file header). Nested calls join the open one. */
   begin(label: string): DocumentTransaction {
@@ -605,6 +632,8 @@ export const documentCommands = {
         delete props[res.ok ? res.path : key];
       }
       const before = { width: props["frame.width"], height: props["frame.height"] };
+      // a property a person edits by hand stops following its variable or style, and keeps the value they gave it (Phase 45)
+      detachOnEdit(draft as MotionDocument, layer as Layer, [...Object.keys(defined), ...Object.keys(direct).filter((k) => direct[k] === undefined)]);
       Object.assign(props, canonicalProps(layer.archetype, defined, "updateProps"));
       if (Object.keys(routed).length > 0) {
         const applied = appliedBreakpoints(list, activeId);
@@ -657,6 +686,14 @@ export const documentCommands = {
       }
       Object.assign(layer, flags);
     });
+  },
+
+  /**
+   * Changes the document in one undo step with a recipe over the draft. The token operations (variables, styles,
+   * modes, bindings; Phase 45) are written this way: they touch layers and document fields together.
+   */
+  mutate(label: string, recipe: (draft: MotionDocument) => void) {
+    commit(label, (draft) => recipe(draft as MotionDocument));
   },
 
   /** Replaces the document's breakpoints (widest first is the base). Overrides of breakpoints that are gone are dropped. */
@@ -932,37 +969,42 @@ export type DocumentCommands = typeof documentCommands;
 /** Subscribe to a slice of the document. The selector must return a stable value (not a new array/object). */
 export function useDocument<T>(selector: (document: MotionDocument) => T): T {
   const activeId = useBreakpointStore((s) => s.activeId);
-  // the document as seen at the breakpoint being edited (the document itself at the base)
-  return documentStore((state) => selector(resolveDocumentAt(state.document, activeId)));
+  const mode = useModeStore((s) => s.activeModeId);
+  // the document as seen at the breakpoint and in the mode being edited (the document itself when neither changes anything)
+  return documentStore((state) => selector(resolveDocumentAt(state.document, activeId, mode)));
 }
 
 export function useLayer(layerId: string | null | undefined): Layer | undefined {
   const activeId = useBreakpointStore((s) => s.activeId);
-  return documentStore((state) => (layerId ? resolveDocumentAt(state.document, activeId).layers[layerId] : undefined));
+  const mode = useModeStore((s) => s.activeModeId);
+  return documentStore((state) => (layerId ? resolveDocumentAt(state.document, activeId, mode).layers[layerId] : undefined));
 }
 
 export function useLayers(): Record<string, Layer> {
   const activeId = useBreakpointStore((s) => s.activeId);
-  return documentStore((state) => resolveDocumentAt(state.document, activeId).layers);
+  const mode = useModeStore((s) => s.activeModeId);
+  return documentStore((state) => resolveDocumentAt(state.document, activeId, mode).layers);
 }
 
 /** `useLayer`, at a given breakpoint rather than the one being edited (a stage drawing a breakpoint of its own, Phase 44). `undefined` follows the one being edited. */
 export function useLayerAt(layerId: string | null | undefined, breakpointId: string | null | undefined): Layer | undefined {
   const activeId = useBreakpointStore((s) => s.activeId);
+  const mode = useModeStore((s) => s.activeModeId);
   const at = breakpointId === undefined ? activeId : breakpointId;
-  return documentStore((state) => (layerId ? resolveDocumentAt(state.document, at).layers[layerId] : undefined));
+  return documentStore((state) => (layerId ? resolveDocumentAt(state.document, at, mode).layers[layerId] : undefined));
 }
 
 /** `useDocument`, at a given breakpoint (`undefined`: the one being edited). */
 export function useDocumentAt<T>(selector: (document: MotionDocument) => T, breakpointId: string | null | undefined): T {
   const activeId = useBreakpointStore((s) => s.activeId);
+  const mode = useModeStore((s) => s.activeModeId);
   const at = breakpointId === undefined ? activeId : breakpointId;
-  return documentStore((state) => selector(resolveDocumentAt(state.document, at)));
+  return documentStore((state) => selector(resolveDocumentAt(state.document, at, mode)));
 }
 
 /** The document as seen at the breakpoint being edited, for reads outside React that need what is drawn (hit testing, measuring). */
 export function getResolvedDocument(): MotionDocument {
-  return resolveDocumentAt(documentStore.getState().document, useBreakpointStore.getState().activeId);
+  return resolveDocumentAt(documentStore.getState().document, useBreakpointStore.getState().activeId, useModeStore.getState().activeModeId);
 }
 
 /** The layer's clips in stack order; stable between renders while clips are unchanged. */

@@ -69,6 +69,7 @@ export function registerBuiltInPanels(): void {
   // ---- right ----
   // The inspector's tabs (Phase 15): Design · Motion · Code, and Debug in the full edition.
   registerPanel({ id: "design", title: "Design", zone: "right", edition: "initial", component: DetailsInspector, props: detailsProps });
+  registerPanel({ id: "tokens", title: "Tokens", zone: "right", edition: "initial", load: async () => (await import("@/editor/panels/tokens/TokenManager")).TokenManager });
   registerPanel({
     id: "motion",
     title: "Motion",

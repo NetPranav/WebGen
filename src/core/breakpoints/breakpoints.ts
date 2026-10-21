@@ -14,6 +14,7 @@
 import type { Layer, MotionDocument } from "../document/schema";
 import type { PropValue } from "../document/registry";
 import { constrainSpan, readHorizontal, readVertical } from "../layout/constraints";
+import { hasTokens, resolveLayerTokens } from "../tokens/tokens";
 
 export interface Breakpoint {
   id: string;
@@ -121,23 +122,41 @@ function constrainFrame(layers: Record<string, Layer>, frameId: string, from: { 
 
 const cache = new WeakMap<object, Map<string, MotionDocument>>();
 
+/** The document with every layer's tokens applied in a mode: the document itself when it has none. */
+function withTokens(doc: MotionDocument, modeId: string | null | undefined): MotionDocument {
+  if (!hasTokens(doc)) return doc;
+  const changed: Record<string, Layer> = {};
+  for (const layer of Object.values(doc.layers)) {
+    const next = resolveLayerTokens(layer, doc, modeId);
+    if (next !== layer) changed[layer.id] = next;
+  }
+  return Object.keys(changed).length > 0 ? { ...doc, layers: { ...doc.layers, ...changed } } : doc;
+}
+
 /**
- * The document as seen at a breakpoint. At the base, or when nothing in the document differs at that width, it is the
- * document itself (the same object, so nothing re-renders). Otherwise a copy whose layers have the breakpoint's
- * overrides applied, responsive top-level frames at the breakpoint's width, and constraints followed. Memoised.
+ * The document as seen at a breakpoint and in a mode. With no breakpoint to apply and no tokens in the document it is
+ * the document itself (the same object, so nothing re-renders). Otherwise a copy whose layers have their tokens
+ * applied, then the breakpoint's overrides on top, responsive top-level frames at the breakpoint's width, and
+ * constraints followed. Memoised.
  */
-export function resolveDocumentAt(doc: MotionDocument, activeId: string | null | undefined): MotionDocument {
+export function resolveDocumentAt(doc: MotionDocument, activeId: string | null | undefined, modeId?: string | null): MotionDocument {
   const list = breakpointsOf(doc);
-  if (isBase(list, activeId)) return doc;
-  const key = `${activeId}|${list.map((b) => `${b.id}:${b.width}`).join(",")}`;
+  const base = isBase(list, activeId);
+  if (base && !hasTokens(doc)) return doc;
+  const key = `${base ? "" : activeId}|${modeId ?? ""}|${list.map((b) => `${b.id}:${b.width}`).join(",")}`;
   let perDoc = cache.get(doc);
   if (!perDoc) cache.set(doc, (perDoc = new Map()));
   const hit = perDoc.get(key);
   if (hit) return hit;
+  const src = withTokens(doc, modeId);
+  if (base) {
+    perDoc.set(key, src);
+    return src;
+  }
 
   const applied = appliedBreakpoints(list, activeId);
   const active = list.find((b) => b.id === activeId)!;
-  const layers = doc.layers;
+  const layers = src.layers;
   const changed: Record<string, Layer> = {};
 
   // 1. responsive frames take the breakpoint's width, and their free children follow their constraints
@@ -151,12 +170,11 @@ export function resolveDocumentAt(doc: MotionDocument, activeId: string | null |
   }
   // 2. then every layer's overrides on top (a frame's own width override beats the breakpoint's width)
   for (const layer of Object.values(layers)) {
-    const base = changed[layer.id] ?? layer;
-    const resolved = resolveLayerAt(base, applied);
+    const b = changed[layer.id] ?? layer;
+    const resolved = resolveLayerAt(b, applied);
     if (resolved !== layer) changed[layer.id] = resolved;
   }
-  let result: MotionDocument = doc;
-  if (Object.keys(changed).length > 0) result = { ...doc, layers: { ...layers, ...changed } };
+  const result: MotionDocument = Object.keys(changed).length > 0 ? { ...src, layers: { ...layers, ...changed } } : src;
   perDoc.set(key, result);
   return result;
 }

@@ -52,15 +52,16 @@ describe("Phase 14: workspace layout model", () => {
   it("Logic, Data and Debug exist only in the full edition", () => {
     assert.deepEqual(presetsFor("initial"), ["design", "animate", "code"]);
     assert.deepEqual(presetsFor("full"), ["design", "animate", "code", "logic", "data", "debug"]);
-    assert.deepEqual(inspectorTabsFor("initial").map((t) => t.id), ["design", "motion", "code"]);
-    assert.deepEqual(inspectorTabsFor("full").map((t) => t.id), ["design", "motion", "code", "debug"]);
+    assert.deepEqual(inspectorTabsFor("initial").map((t) => t.id), ["design", "tokens", "motion", "code"]);
+    assert.deepEqual(inspectorTabsFor("full").map((t) => t.id), ["design", "tokens", "motion", "code", "debug"]);
   });
 
   it("an inspector tab that doesn't exist in this edition falls back to Design", () => {
     assert.equal(normalizeInspectorTab("motion", "initial"), "motion");
     assert.equal(normalizeInspectorTab("debug", "initial"), "design");
     assert.equal(normalizeInspectorTab("debug", "full"), "debug");
-    assert.equal(normalizeInspectorTab("tokens", "full"), "design");
+    assert.equal(normalizeInspectorTab("tokens", "initial"), "tokens");
+    assert.equal(normalizeInspectorTab("nonsense", "full"), "design");
   });
 
   it("applying a preset never mutates its input; an unknown preset changes nothing", () => {
