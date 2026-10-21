@@ -145,7 +145,18 @@ export const LayerSchema = z.object({
    * is the instance's root, and the properties (and `visible`, `tokens`, `styleRefs`, `overrides`) the instance
    * changed on its own, which the main no longer overwrites.
    */
-  instance: z.object({ component: z.string(), source: z.string(), root: z.boolean().optional(), overridden: z.array(z.string()).optional() }).optional(),
+  instance: z
+    .object({
+      component: z.string(),
+      source: z.string(),
+      root: z.boolean().optional(),
+      overridden: z.array(z.string()).optional(),
+      /** On an instance root of a variant set (Phase 47): the value chosen for each variant property. */
+      variant: z.record(z.string(), z.string()).optional(),
+    })
+    .optional(),
+  /** This main layer is a slot (Phase 47): its instances keep layers of their own inside it, which the main never touches. */
+  componentSlot: z.boolean().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -199,7 +210,25 @@ const MotionDocumentShape = z.object({
   /** Imported files, by content hash (Phase 36). Absent in documents saved before assets: read it as empty. */
   assets: z.record(z.string(), AssetEntrySchema).optional(),
   /** The design components: id, name and the layer that is the main component (Phase 46). */
-  designComponents: z.record(z.string(), z.object({ id: z.string(), name: z.string().min(1).max(120), mainId: z.string() })).optional(),
+  designComponents: z
+    .record(
+      z.string(),
+      z.object({
+        id: z.string(),
+        name: z.string().min(1).max(120),
+        /** The main component; for a variant set, the first variant's. */
+        mainId: z.string(),
+        /** A variant set (Phase 47): its properties (Size: S, M, L) and one main layer for each combination. */
+        variantProps: z.array(z.object({ name: z.string().min(1).max(60), values: z.array(z.string().min(1).max(60)).min(1).max(12) })).max(4).optional(),
+        variants: z.array(z.object({ mainId: z.string(), values: z.record(z.string(), z.string()) })).max(64).optional(),
+        /** Properties exposed on every instance (Phase 47): a name, a kind, and the layer (by name path from the main's root) and property it sets. */
+        properties: z
+          .array(z.object({ id: z.string(), name: z.string().min(1).max(60), type: z.enum(["text", "image", "boolean"]), path: z.array(z.string()).max(32), prop: z.string().min(1).max(120) }))
+          .max(40)
+          .optional(),
+      }),
+    )
+    .optional(),
   /** Modes for variables, the first is the default (Phase 45). Absent: Light and Dark. */
   modes: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40) })).max(8).optional(),
   /** Colour and number variables with a value for each mode (Phase 45). */

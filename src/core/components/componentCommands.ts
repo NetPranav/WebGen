@@ -5,6 +5,7 @@ import { defineCommand, defineTypedCommand, type ContextKeys } from "../commands
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
+import { addVariantProperty, exposeProperty, fillSlot, markSlot, removeProperty, setProperty, setVariant } from "./variantOps";
 import { createComponent, deleteComponent, detachInstances, goToMain, insertInstance, renameComponent, resetOverrides, swapInstance } from "./componentOps";
 
 const ids = () => useSelectionStore.getState().selectedIds;
@@ -19,8 +20,8 @@ export function registerComponentCommands(): () => void {
       id: "component.insert",
       title: "Insert Instance",
       category,
-      args: z.object({ component: z.string(), parentId: z.string().nullable().optional(), x: z.number().optional(), y: z.number().optional() }),
-      run: ({ component, parentId, x, y }) => ({ id: insertInstance(component, { parentId, at: x !== undefined && y !== undefined ? { x, y } : undefined }) }),
+      args: z.object({ component: z.string(), parentId: z.string().nullable().optional(), x: z.number().optional(), y: z.number().optional(), variant: z.record(z.string(), z.string()).optional() }),
+      run: ({ component, parentId, x, y, variant }) => ({ id: insertInstance(component, { parentId, at: x !== undefined && y !== undefined ? { x, y } : undefined, variant }) }),
     }),
     defineTypedCommand({
       id: "component.resetOverrides",
@@ -39,6 +40,37 @@ export function registerComponentCommands(): () => void {
     }),
     defineTypedCommand({ id: "component.goToMain", title: "Go to Main Component", category, args: z.object({ id: z.string().optional() }), run: ({ id }) => ({ id: goToMain(id ?? ids()[0] ?? "") }) }),
     defineTypedCommand({ id: "component.rename", title: "Rename Component", category, args: z.object({ component: z.string(), name: z.string().min(1).max(120) }), run: ({ component, name }) => ({ ok: renameComponent(component, name) }) }),
+    defineTypedCommand({
+      id: "component.addVariantProperty",
+      title: "Add Variant Property",
+      category,
+      args: z.object({ component: z.string(), name: z.string().min(1).max(60), values: z.array(z.string().min(1).max(60)).min(1).max(12) }),
+      run: ({ component, name, values }) => ({ ok: addVariantProperty(component, name, values) }),
+    }),
+    defineTypedCommand({
+      id: "component.setVariant",
+      title: "Change Variant",
+      category,
+      args: z.object({ values: z.record(z.string(), z.string()), ids: z.array(z.string()).optional() }),
+      run: ({ values, ids: only }) => ({ changed: setVariant(only ?? ids(), values) }),
+    }),
+    defineTypedCommand({
+      id: "component.exposeProperty",
+      title: "Expose Property",
+      category,
+      args: z.object({ kind: z.enum(["text", "image", "boolean"]), name: z.string().min(1).max(60).optional(), layer: z.string().optional() }),
+      run: ({ kind, name, layer }) => ({ id: exposeProperty(layer ?? ids()[0] ?? "", kind, name) }),
+    }),
+    defineTypedCommand({ id: "component.removeProperty", title: "Remove Property", category, args: z.object({ component: z.string(), property: z.string() }), run: ({ component, property }) => ({ ok: removeProperty(component, property) }) }),
+    defineTypedCommand({
+      id: "component.setProperty",
+      title: "Set Component Property",
+      category,
+      args: z.object({ property: z.string(), value: z.union([z.string().max(10000), z.boolean()]), id: z.string().optional() }),
+      run: ({ property, value, id }) => ({ ok: setProperty(id ?? ids()[0] ?? "", property, value) }),
+    }),
+    defineTypedCommand({ id: "component.markSlot", title: "Make Slot", category, args: z.object({ on: z.boolean(), layer: z.string().optional() }), run: ({ on, layer }) => ({ ok: markSlot(layer ?? ids()[0] ?? "", on) }) }),
+    defineTypedCommand({ id: "component.fillSlot", title: "Fill Slot", category, args: z.object({ slot: z.string(), ids: z.array(z.string()).optional() }), run: ({ slot, ids: only }) => ({ moved: fillSlot(slot, only ?? ids()) }) }),
     defineTypedCommand({ id: "component.delete", title: "Delete Component", category, args: z.object({ component: z.string() }), run: ({ component }) => ({ ok: deleteComponent(component) }) }),
   ];
   return () => offs.forEach((off) => off());
