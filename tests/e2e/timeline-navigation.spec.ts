@@ -14,6 +14,8 @@ type Doc = { compositions: Record<string, { workArea: { start: number; end: numb
 const workArea = async (page: Page) => (await page.evaluate(() => JSON.parse(JSON.stringify(window.__LL_ENGINE__!.document())) as Doc)).compositions.comp_main.workArea;
 const time = (page: Page) => page.evaluate(() => window.__LL_ENGINE__!.time());
 const rulerWidth = async (page: Page) => (await page.locator("[data-timeline-ruler]").boundingBox())!.width;
+// The needle's place along the ruler, so the panel scrolling the view (it follows the playhead) can't change it.
+const needleOffset = async (page: Page) => (await page.locator("[data-timeline-needle]").boundingBox())!.x - (await page.locator("[data-timeline-ruler]").boundingBox())!.x;
 const expectTime = async (page: Page, seconds: number) => expect.poll(() => time(page), { message: `the playhead should be at exactly ${seconds} s` }).toBeCloseTo(seconds, 9);
 
 async function setup(page: Page) {
@@ -94,11 +96,11 @@ test("Phase 63: a keyboard-only journey lands on exact times", async ({ page }) 
   await expect.poll(() => rulerWidth(page), { message: "zoom to work area is much wider than the default" }).toBeGreaterThan(full * 1.5);
   const fitted = await rulerWidth(page);
   const pps = fitted / 5;
-  // The two seconds of the work area now fill the view: the needle at 3 s sits 2 s × pps to the right of the one at 1 s.
+  // The needle at 3 s sits 2 s × pps further along the ruler than the one at 1 s.
   await key("i");
-  const needle1 = (await page.locator("[data-timeline-needle]").boundingBox())!.x;
+  const needle1 = await needleOffset(page);
   await key("o");
-  await expect.poll(async () => (await page.locator("[data-timeline-needle]").boundingBox())!.x - needle1).toBeCloseTo(2 * pps, 0);
+  await expect.poll(async () => (await needleOffset(page)) - needle1).toBeCloseTo(2 * pps, 0);
 
   // End: the end of the composition.
   await key("End");
