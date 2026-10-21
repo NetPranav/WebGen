@@ -18,7 +18,7 @@ import { createId } from "../ids";
 const PLACEMENT = new Set(["frame.x", "frame.y", "positioning", "frame.rotation", "breakpoints.responsive", "layout.gridColumnStart", "layout.gridColumnSpan", "layout.gridRowStart", "layout.gridRowSpan", "constraints.horizontal", "constraints.vertical"]);
 
 /** The fields besides properties that an instance can override, named as they appear in `overridden`. */
-export const FIELD_OVERRIDES = ["visible", "tokens", "styleRefs", "overrides"] as const;
+export const FIELD_OVERRIDES = ["visible", "tokens", "styleRefs", "overrides", "link"] as const;
 
 const clone = <T,>(v: T): T => (v === undefined ? v : (JSON.parse(JSON.stringify(v)) as T));
 
@@ -63,6 +63,8 @@ export function instantiate(doc: MotionDocument, componentId: string, sourceId: 
     ...(src.tokens ? { tokens: clone(src.tokens) } : {}),
     ...(src.styleRefs ? { styleRefs: clone(src.styleRefs) } : {}),
     ...(src.overrides ? { overrides: clone(src.overrides) } : {}),
+    ...(src.link ? { link: clone(src.link) } : {}),
+    ...(src.section ? { section: clone(src.section) } : {}),
     ...(src.componentSlot ? { componentSlot: true } : {}),
     instance: { component: componentId, source: sourceId, ...(isRoot ? { root: true } : {}) },
   };
@@ -137,6 +139,12 @@ function copyFields(dst: Layer, src: Layer, overridden: ReadonlySet<string>, roo
     if (src.overrides) dst.overrides = clone(src.overrides);
     else delete dst.overrides;
   }
+  if (src.section) dst.section = clone(src.section);
+  else delete dst.section;
+  if (!overridden.has("link")) {
+    if (src.link) dst.link = clone(src.link);
+    else delete dst.link;
+  }
 }
 
 /** Brings one instance layer (and below) in line with the main layer it mirrors, keeping what it overrides. */
@@ -172,7 +180,7 @@ export function syncInstanceLayer(doc: MotionDocument, instId: string): void {
 
 /** A cheap fingerprint of what an instance would copy from a layer. */
 function sig(l: Layer | undefined): string {
-  return l ? JSON.stringify([l.properties, l.children, l.visible, l.tokens, l.styleRefs, l.overrides, l.archetype]) : "";
+  return l ? JSON.stringify([l.properties, l.children, l.visible, l.tokens, l.styleRefs, l.overrides, l.archetype, l.link, l.componentSlot]) : "";
 }
 
 /** Every main layer of a component: the one, or one for each variant. */

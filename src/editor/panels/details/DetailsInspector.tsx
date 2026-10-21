@@ -39,6 +39,7 @@ import { MaterialInspectorSection } from "./sections/MaterialInspectorSection";
 import { EnvironmentInspector } from "./EnvironmentInspector";
 import { VectorBar } from "./VectorBar";
 import { OverridesPanel } from "./OverridesPanel";
+import { LinkPanel } from "./LinkPanel";
 import { ComponentPanel } from "./ComponentPanel";
 import { BindingsPanel } from "./BindingsPanel";
 import { AutoLayoutPanel } from "./AutoLayoutPanel";
@@ -157,6 +158,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         <div className="panel-content">
         <AlignBar />
         <ComponentPanel />
+        <LinkPanel />
         <OverridesPanel />
         <BindingsPanel />
         <VectorBar />

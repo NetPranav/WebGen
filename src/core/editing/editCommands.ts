@@ -12,6 +12,7 @@ import { registerLayoutCommands } from "./layoutCommands";
 import { registerBreakpointCommands } from "../breakpoints/breakpointCommands";
 import { registerTokenCommands } from "../tokens/tokenCommands";
 import { registerComponentCommands } from "../components/componentCommands";
+import { registerPageCommands } from "../pages/pageCommands";
 import { moveLayers } from "../layers/reparent";
 import { importAndPlace } from "../assets/assetImport";
 import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage } from "../paint/paintOps";
@@ -169,6 +170,7 @@ export function registerEditingCommands(): () => void {
   add(registerBreakpointCommands());
   add(registerTokenCommands());
   add(registerComponentCommands());
+  add(registerPageCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());
 }

@@ -63,6 +63,7 @@ export type ZoneId = "left" | "right" | "bottom";
 export const LEFT_TABS = [
   { id: "layers", title: "Layers" },
   { id: "assets", title: "Assets" },
+  { id: "pages", title: "Pages" },
 ] as const;
 
 /** A tab id from an old or edited layout (the retired "outliner") falls back to Layers. */

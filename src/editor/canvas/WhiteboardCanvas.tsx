@@ -17,6 +17,9 @@ import "@/editor/styles/whiteboard.css";
 import { FloatingDock } from "./FloatingDock";
 import { BreakpointBar } from "./BreakpointBar";
 import { BreakpointViews } from "./BreakpointViews";
+import { PreviewBar } from "./PreviewBar";
+import { usePreviewStore } from "@/core/store/usePreviewStore";
+import { previewFollow } from "@/core/pages/previewOps";
 import { LiveZoomControls } from "./ZoomControls";
 import { OverlayLayer } from "./overlay/OverlayLayer";
 import { CanvasFrames, FrameBar, visibleFrames } from "./CanvasFrames";
@@ -156,7 +159,6 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   const activePage = pages[activePageId] || Object.values(pages)[0];
   const rootContainer = activePage ? elements[activePage.rootElementId] : null;
   const frames = useFrames();
-  const shownFrames = useMemo(() => visibleFrames(frames), [frames]);
   const activeFrameId = useCanvasViewStore((state) => state.activeFrameId);
   // The frame new shapes and text go into: the one last picked, else the first.
   const activeFrame = frames.find((f) => f.id === activeFrameId) ?? frames[0];
@@ -164,6 +166,8 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   useEffect(() => restoreBackdrop(), []);
   const backdrop = useCanvasViewStore((state) => state.backdrop);
   const mode = useCanvasViewStore((state) => state.mode);
+  const previewFrame = usePreviewStore((s) => (mode === "preview" ? (s.entries[s.index]?.frameId ?? null) : null));
+  const shownFrames = useMemo(() => visibleFrames(frames, previewFrame), [frames, previewFrame]);
   // `getStageRenderer()` answers for the active frame.
   useEffect(() => setActiveStageFrame(activeFrame?.id ?? null), [activeFrame?.id]);
 
@@ -904,7 +908,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
           </div>
         ) : (
           <>
-            <CanvasFrames frames={frames} toolCapturesPointer={!isPlayMode && mode === "design"} onElementClick={mode === "design" ? handleStageClick : undefined} />
+            <CanvasFrames frames={frames} toolCapturesPointer={!isPlayMode && mode === "design"} onElementClick={mode === "design" ? handleStageClick : mode === "preview" ? previewFollow : undefined} />
             <BreakpointViews frames={frames} />
           </>
         )}
@@ -951,6 +955,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       <RenameBox currentName={(id) => getResolvedDocument().layers[id]?.name ?? id} />
       <FrameBar />
       <BreakpointBar />
+      <PreviewBar />
 
       {/* Floating Atlassian-Style Bottom Dock */}
       <FloatingDock

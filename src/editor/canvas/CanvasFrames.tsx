@@ -18,6 +18,7 @@ import { ChevronLeft, ChevronRight, Copy, Plus, Trash2 } from "lucide-react";
 import { invokeCommand } from "@/core/commands";
 import { FRAME_PRESETS } from "@/core/frames/frames";
 import { useSnapStore } from "@/core/store/useSnapStore";
+import { usePreviewStore } from "@/core/store/usePreviewStore";
 import { useCanvasViewStore, BACKDROPS, type Backdrop } from "@/core/store/useCanvasViewStore";
 import { StageHost } from "@/editor/stage/StageHost";
 import type { CanvasFrame } from "./useFrames";
@@ -138,13 +139,17 @@ function FrameTitle({ frame, index, count, active }: { frame: CanvasFrame; index
  * The frames that are drawn: all of them. (A lone empty frame used to be hidden so a new project looked blank, but
  * then no shape tool could draw anywhere: they need a frame under the pointer.)
  */
-export function visibleFrames(frames: CanvasFrame[]): CanvasFrame[] {
+export function visibleFrames(frames: CanvasFrame[], previewFrameId: string | null = null): CanvasFrame[] {
+  // Preview shows one page at a time, the way a site is seen (Phase 48)
+  if (previewFrameId && frames.some((f) => f.id === previewFrameId)) return frames.filter((f) => f.id === previewFrameId);
   return frames;
 }
 
 export const CanvasFrames: React.FC<CanvasFramesProps> = ({ frames, toolCapturesPointer, onElementClick }) => {
   const activeFrameId = useCanvasViewStore((s) => s.activeFrameId);
-  const shown = visibleFrames(frames);
+  const mode = useCanvasViewStore((s) => s.mode);
+  const previewFrame = usePreviewStore((s) => (mode === "preview" ? (s.entries[s.index]?.frameId ?? null) : null));
+  const shown = visibleFrames(frames, previewFrame);
   const active = activeFrameId && frames.some((f) => f.id === activeFrameId) ? activeFrameId : frames[0]?.id;
 
   return (

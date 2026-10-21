@@ -65,6 +65,7 @@ export function registerBuiltInPanels(): void {
   // ---- left ----
   registerPanel({ id: "layers", title: "Layers", zone: "left", edition: "initial", focusScope: "canvas", component: LayersPanel });
   registerPanel({ id: "assets", title: "Assets", zone: "left", edition: "initial", component: AssetsPanel });
+  registerPanel({ id: "pages", title: "Pages", zone: "left", edition: "initial", load: async () => (await import("@/editor/panels/pages/PagesPanel")).PagesPanel });
 
   // ---- right ----
   // The inspector's tabs (Phase 15): Design · Motion · Code, and Debug in the full edition.

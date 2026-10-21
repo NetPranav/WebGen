@@ -155,6 +155,12 @@ export const LayerSchema = z.object({
       variant: z.record(z.string(), z.string()).optional(),
     })
     .optional(),
+  /** This top-level frame is a page (Phase 48): its route (`/`, `/about`) and an optional title. */
+  page: z.object({ route: z.string().min(1).max(200), title: z.string().max(200).optional() }).optional(),
+  /** This layer is a section, a full-width band of a page (Phase 48), with an optional anchor name for links to it (`#pricing`). */
+  section: z.object({ anchor: z.string().max(80).optional() }).optional(),
+  /** Where clicking this layer goes in Preview and in the exported site (Phase 48). */
+  link: z.object({ kind: z.enum(["page", "anchor", "url", "frame"]), target: z.string().min(1).max(2000) }).optional(),
   /** This main layer is a slot (Phase 47): its instances keep layers of their own inside it, which the main never touches. */
   componentSlot: z.boolean().optional(),
 });
@@ -218,6 +224,8 @@ const MotionDocumentShape = z.object({
         name: z.string().min(1).max(120),
         /** The main component; for a variant set, the first variant's. */
         mainId: z.string(),
+        /** A section shared by every page, as the header or the footer (Phase 48). */
+        shared: z.enum(["header", "footer"]).optional(),
         /** A variant set (Phase 47): its properties (Size: S, M, L) and one main layer for each combination. */
         variantProps: z.array(z.object({ name: z.string().min(1).max(60), values: z.array(z.string().min(1).max(60)).min(1).max(12) })).max(4).optional(),
         variants: z.array(z.object({ mainId: z.string(), values: z.record(z.string(), z.string()) })).max(64).optional(),

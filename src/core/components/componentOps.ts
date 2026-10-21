@@ -49,7 +49,7 @@ export function createComponent(ids: readonly string[], name?: string): string |
  * Puts an instance of a component in a frame (the one being worked in, or `parentId`), at the middle of it or at `at`
  * (canvas space inside the parent). Returns the instance's id, selected. Not inside the main component itself.
  */
-export function insertInstance(componentId: string, options: { parentId?: string | null; at?: { x: number; y: number }; variant?: Record<string, string> } = {}): string | null {
+export function insertInstance(componentId: string, options: { parentId?: string | null; at?: { x: number; y: number }; variant?: Record<string, string>; index?: number; flow?: boolean } = {}): string | null {
   const doc = getDocument();
   const comp = doc.designComponents?.[componentId];
   // the variant asked for, or the first one
@@ -77,13 +77,16 @@ export function insertInstance(componentId: string, options: { parentId?: string
   const y = options.at?.y ?? Math.max(0, Math.round((ph - h) / 2));
   let out: string | null = null;
   documentCommands.mutate("Insert instance", (d) => {
-    const id = instantiate(d, componentId, sourceMain, target, undefined, true);
+    const id = instantiate(d, componentId, sourceMain, target, options.index, true);
     const root = d.layers[id];
     // an instance of a variant set remembers its choice for each property
     if (comp.variantProps) root.instance!.variant = Object.fromEntries(comp.variantProps.map((p) => [p.name, chosen?.values[p.name] ?? comp.variants?.[0]?.values[p.name] ?? p.values[0]]));
-    root.properties.positioning = "absolute";
-    root.properties["frame.x"] = x;
-    root.properties["frame.y"] = y;
+    // a flow instance (a shared section in a page's stack) is placed by its parent's layout; any other sits at x, y
+    if (!options.flow) {
+      root.properties.positioning = "absolute";
+      root.properties["frame.x"] = x;
+      root.properties["frame.y"] = y;
+    }
     out = id;
   });
   if (out) select([out]);
