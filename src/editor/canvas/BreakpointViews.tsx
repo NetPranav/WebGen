@@ -8,8 +8,8 @@
  * of every view can be dragged to change the breakpoint's width, and the page reflows live as you drag.
  */
 
-import React, { useEffect, useMemo, useState } from "react";
-import { appliedBreakpoints, breakpointsOf, isBase, isResponsiveFrame, resolveDocumentAt, type Breakpoint } from "@/core/breakpoints/breakpoints";
+import React, { useEffect, useState } from "react";
+import { breakpointsOf, isBase, isResponsiveFrame, resolveDocumentAt, type Breakpoint } from "@/core/breakpoints/breakpoints";
 import { setActiveBreakpoint, updateBreakpoint } from "@/core/breakpoints/breakpointOps";
 import { documentStore } from "@/core/store/documentState";
 import { documentCommands } from "@/core/store/useDocumentStore";
@@ -123,8 +123,7 @@ export const BreakpointViews: React.FC<{ frames: CanvasFrame[] }> = ({ frames })
   const list = breakpointsOf(doc);
   const base = list[0];
   const viewed = isBase(list, activeId) ? base.id : activeId!;
-  const pages = useMemo(() => frames.filter((f) => doc.layers[f.id] && isResponsiveFrame(doc.layers[f.id])), [frames, doc]);
-  void appliedBreakpoints;
+  const pages = frames.filter((f) => doc.layers[f.id] && isResponsiveFrame(doc.layers[f.id]));
   if (!showAll || pages.length === 0) return null;
   return (
     <>
