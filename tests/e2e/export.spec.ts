@@ -148,11 +148,6 @@ test.describe("Phase 49: static export looks like the canvas", () => {
       await out.waitForLoadState("load");
       const a = PNG.sync.read(await ref.screenshot({ clip: { x: 0, y: 0, width: w, height: H } }));
       const b = PNG.sync.read(await out.screenshot({ clip: { x: 0, y: 0, width: w, height: H } }));
-      if (process.env.EXPORT_DEBUG) {
-        const fs = await import("node:fs");
-        fs.writeFileSync(`test-results/export-ref-${w}.png`, PNG.sync.write(a));
-        fs.writeFileSync(`test-results/export-out-${w}.png`, PNG.sync.write(b));
-      }
       const whole = differing(a, b, { x: 0, y: 0, w, h: H });
       if (whole.n / whole.area > 0.005) failures.push(`${w}px: the page differs in ${((100 * whole.n) / whole.area).toFixed(2)}% of its pixels`);
       let checked = 0;
@@ -166,5 +161,74 @@ test.describe("Phase 49: static export looks like the canvas", () => {
       expect(checked, `cases checked at ${w}`).toBeGreaterThan(40);
     }
     expect(failures).toEqual([]);
+  });
+});
+
+test.describe("Phase 49: the Export dialog", () => {
+  test("File, Export Site: pick a target and styling, see the files, download a ZIP with them", async ({ page }) => {
+    await ready(page);
+    await build(page);
+    await page.getByRole("button", { name: "File", exact: true }).click();
+    await page.getByRole("menuitem", { name: /Export Site/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Export site" });
+    await expect(dialog).toBeVisible();
+    // Next.js is the first choice; its files are listed
+    await expect(dialog.getByRole("button", { name: "Show app/page.tsx" })).toBeVisible();
+    await dialog.getByRole("radio", { name: "Vite + React" }).check();
+    await expect(dialog.getByRole("button", { name: "Show src/App.tsx" })).toBeVisible();
+    await dialog.getByLabel("Styling", { exact: true }).selectOption("tailwind");
+    await expect(dialog.getByRole("button", { name: "Show tailwind.config.js" })).toBeVisible();
+    await dialog.getByRole("button", { name: "Show src/pages/Gallery.tsx" }).click();
+    await expect(dialog.getByLabel("File", { exact: true })).toContainText("export default function Gallery");
+    // plain HTML always uses one stylesheet
+    await dialog.getByRole("radio", { name: "HTML & CSS" }).check();
+    await expect(dialog.getByLabel("Styling", { exact: true })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Show index.html" })).toBeVisible();
+    const [download] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download ZIP" }).click()]);
+    expect(download.suggestedFilename()).toMatch(/-html\.zip$/);
+    const path = await download.path();
+    const { unzipSync } = await import("fflate");
+    const { readFileSync } = await import("node:fs");
+    const entries = unzipSync(new Uint8Array(readFileSync(path)));
+    expect(Object.keys(entries).sort()).toEqual(["README.md", "index.html", "styles.css"]);
+    expect(new TextDecoder().decode(entries["index.html"])).toContain("<title>Gallery</title>");
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test("the command is Export Site on Ctrl+E, and the typed command downloads too", async ({ page }) => {
+    await ready(page);
+    await build(page);
+    const ids = await page.evaluate(() => (window as unknown as { __LL_COMMANDS__: Reg }).__LL_COMMANDS__.all().filter((c) => c.id === "file.exportSite" || c.id === "export.site").map((c) => c.id));
+    expect(ids.sort()).toEqual(["export.site", "file.exportSite"]);
+    const [download] = await Promise.all([page.waitForEvent("download"), run(page, "export.site", { target: "next", styling: "modules" })]);
+    expect(download.suggestedFilename()).toMatch(/-next\.zip$/);
+  });
+});
+
+test.describe("Phase 49: the Code tab shows the real export of the selection", () => {
+  test("select a layer: HTML, JSX, CSS and Tailwind of that layer, the same code Export Site writes", async ({ page }) => {
+    await ready(page);
+    await build(page);
+    await run(page, "selection.set", { ids: ["gallery_button"] });
+    await page.locator(".dock-zone--right").getByText("Code", { exact: true }).first().click();
+    const code = page.getByTestId("export-code");
+    await expect(code).toContainText("<button");
+    await expect(code).toContainText("Primary Action");
+    await page.getByRole("tab", { name: "JSX" }).click();
+    await expect(code).toContainText("className=");
+    await page.getByRole("tab", { name: "CSS" }).click();
+    await expect(code).toContainText("display: inline-flex");
+    await page.getByRole("tab", { name: "Tailwind" }).click();
+    await expect(code).toContainText("[display:inline-flex]");
+    // the layer's narrower-breakpoint change (hidden at Tablet) is in its CSS
+    await page.getByRole("tab", { name: "CSS" }).click();
+    await expect(code).toContainText("@media (max-width: 768px)");
+    await expect(code).toContainText("display: none");
+    // another selection, another code
+    await run(page, "selection.set", { ids: ["gallery_badge"] });
+    await expect(code).toContainText("background-color: #cc3333"); // its change at 480
+    await page.getByRole("tab", { name: "HTML" }).click();
+    await expect(code).toContainText("Status Badge");
   });
 });

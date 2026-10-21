@@ -30,6 +30,8 @@ import { CrossFrameworkExporter } from "../../src/compiler/export/CrossFramework
 import { VanillaHtmlEmitter } from "../../src/compiler/emitters/vanilla/VanillaHtmlEmitter";
 import { referenceElements } from "./reference-elements";
 import type { Layer } from "../../src/core/document/schema";
+import { buildSiteExport, type SiteFile, type Styling } from "../../src/core/export/site";
+import { buildSiteFixture } from "./site-fixture";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(__dirname, "fixtures");
@@ -168,6 +170,37 @@ function buildVue(elements: Layer[]): { ok: boolean; output: string } {
   }
 }
 
+// ---------------------------------------------------------------- Site export (Phase 49)
+// The generated project files (not package.json / configs, which the pinned fixtures own) are written into the
+// fixture, then its own typecheck and build run. Entry files are restored and everything else removed afterwards.
+const SITE_PATHS = {
+  next: { keep: /^(app|components|public)\//, restore: ["app/layout.tsx", "app/page.tsx"], remove: ["app/about", "app/globals.css", "app/page.module.css", "components", "public", "out", ".next"] },
+  vite: { keep: /^(src|public)\//, restore: ["src/main.tsx"], remove: ["src/App.tsx", "src/pages", "src/styles.css", "src/components", "public", "dist"] },
+} as const;
+
+async function buildSite(target: "next" | "vite", styling: Styling): Promise<{ ok: boolean; output: string }> {
+  const spec = SITE_PATHS[target];
+  const fixture = new Fixture(join(FIXTURES, target === "next" ? "nextjs-app" : "vite-react"));
+  const originals = spec.restore.map((rel) => [rel, readFileSync(join(fixture.dir, rel), "utf8")] as const);
+  try {
+    const doc = buildSiteFixture();
+    const res = await buildSiteExport(doc, { target, styling });
+    const files: SiteFile[] = res.files.filter((f) => spec.keep.test(f.path));
+    for (const f of files) {
+      const abs = join(fixture.dir, f.path);
+      mkdirSync(dirname(abs), { recursive: true });
+      writeFileSync(abs, f.content);
+    }
+    const tc = npmScript(fixture.dir, "typecheck");
+    if (!tc.ok) return { ok: false, output: tc.output };
+    const build = npmScript(fixture.dir, "build");
+    return { ok: build.ok, output: build.output };
+  } finally {
+    for (const [rel, content] of originals) writeFileSync(join(fixture.dir, rel), content);
+    for (const rel of spec.remove) rmSync(join(fixture.dir, rel), { recursive: true, force: true });
+  }
+}
+
 // ---------------------------------------------------------------- Vanilla
 // No bundler for this target (it IS the target): a syntax check stands in
 // for "build", and a minimal DOM presence check stands in for "renders".
@@ -200,6 +233,15 @@ async function main() {
   console.log("\n== react-vite (Vite + React 19)");
   const viteResult = buildViteReact(referenceElements);
   check("compiles and builds", viteResult.ok, viteResult.output);
+
+  for (const styling of ["css", "modules"] as const) {
+    console.log(`\n== site export: Next.js (${styling})`);
+    const r = await buildSite("next", styling);
+    check("the exported site compiles and builds", r.ok, r.output);
+    console.log(`\n== site export: Vite + React (${styling})`);
+    const v = await buildSite("vite", styling);
+    check("the exported site compiles and builds", v.ok, v.output);
+  }
 
   console.log("\n== vue (Vite + Vue 3)");
   const vueResult = buildVue(referenceElements);

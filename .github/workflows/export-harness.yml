@@ -10,6 +10,8 @@ on:
   pull_request:
     paths:
       - "src/compiler/**"
+      - "src/core/export/**"
+      - "src/core/render/**"
       - "src/core/document/schema.ts"
       - "src/core/types/animations.ts"
       - "tests/export-harness/**"

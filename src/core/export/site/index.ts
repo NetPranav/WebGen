@@ -7,6 +7,8 @@
 import type { MotionDocument } from "../../document/schema";
 import { buildPlan, type SitePlan, type Styling } from "./plan";
 import { writeTarget, type AssetBytes, type SiteFile, type Target } from "./targets";
+import { cssText } from "./css";
+import { toHtml, toJsx } from "./serialize";
 
 export type { SiteFile, Styling, Target, SitePlan };
 export { buildPlan, exportedPages } from "./plan";
@@ -48,3 +50,28 @@ export async function buildSiteExport(doc: MotionDocument, options: SiteExportOp
 
 /** The files as text, for a viewer (binary files are named, not shown). */
 export const textOf = (f: SiteFile): string => (typeof f.content === "string" ? f.content : `(${f.content.byteLength} bytes)`);
+
+/** What the Code tab shows for a layer: its markup as HTML and as JSX, and its CSS (base rules, narrower breakpoints, other modes). */
+export interface LayerCode {
+  html: string;
+  jsx: string;
+  css: string;
+  tailwind: string;
+  warnings: string[];
+}
+
+export function exportLayerCode(doc: MotionDocument, layerId: string): LayerCode | null {
+  if (!doc.layers[layerId]) return null;
+  const plain = buildPlan(doc, { styling: "css", hrefs: "routes", only: layerId });
+  const tw = buildPlan(doc, { styling: "tailwind", hrefs: "routes", only: layerId });
+  const page = plain.pages[0];
+  if (!page) return null;
+  const strip = (t: string) => t.replace(/\{\{asset:([0-9a-f]{64})\}\}/g, (_m, id: string) => `assets/${id.slice(0, 12)}`);
+  return {
+    html: strip(toHtml(page.tree)),
+    jsx: strip(toJsx(page.tree, { classExpr: (c) => `"${c}"`, classValue: (c) => `"${c}"` }, "  ")),
+    css: strip(cssText(page.blocks)),
+    tailwind: strip(toJsx(tw.pages[0].tree, { classExpr: (c) => `"${c}"`, classValue: (c) => `"${c}"` }, "  ")),
+    warnings: plain.warnings,
+  };
+}

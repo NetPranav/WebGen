@@ -140,11 +140,11 @@ function loadModule(files: SiteFile[], path: string, cache = new Map<string, unk
   if (hit) return hit as { default: React.ComponentType };
   const src = String(files.find((f) => f.path === path)!.content);
   const out = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText;
-  const module = { exports: {} as Record<string, unknown> };
-  cache.set(path, module.exports);
+  const mod = { exports: {} as Record<string, unknown> };
+  cache.set(path, mod.exports);
   const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
   const req = (name: string): unknown => {
-    if (name === "react" || name === "react/jsx-runtime" || name === "react/jsx-dev-runtime") return require(name);
+    if (name === "react" || name === "react/jsx-runtime" || name === "react/jsx-dev-runtime") return require(name); // eslint-disable-line @typescript-eslint/no-require-imports
     if (name.endsWith(".module.css")) return { default: new Proxy({}, { get: (_t, k) => String(k) }), __esModule: true };
     if (name.startsWith(".")) {
       const parts = `${dir}/${name}`.split("/");
@@ -158,8 +158,8 @@ function loadModule(files: SiteFile[], path: string, cache = new Map<string, unk
     }
     throw new Error(`unexpected import ${name}`);
   };
-  new Function("require", "module", "exports", out)(req, module, module.exports);
-  return module.exports as { default: React.ComponentType };
+  new Function("require", "module", "exports", out)(req, mod, mod.exports);
+  return mod.exports as { default: React.ComponentType };
 }
 
 /** Tags, attributes without `class`, and text: what the page is made of, ignoring class names (a component's classes are its own). */

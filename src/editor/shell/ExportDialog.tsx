@@ -36,8 +36,10 @@ export const ExportDialog: React.FC = () => {
   useEffect(() => {
     if (!isOpen) return undefined;
     let live = true;
+    /* eslint-disable react-hooks/set-state-in-effect -- the export starts here; its state belongs to this run */
     setBusy(true);
     setError(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
     exportCurrentSite({ target, styling })
       .then((s) => {
         if (!live) return;

@@ -167,17 +167,19 @@ interface RootPlan {
   nodeOfLayer: Map<string, ENode>;
 }
 
-export function buildPlan(source: MotionDocument, options: PlanOptions & { components?: boolean }): SitePlan {
+export function buildPlan(source: MotionDocument, options: PlanOptions & { components?: boolean; /** Plan this layer alone, as a component-like root (the Code tab). */ only?: string }): SitePlan {
   const warnings: string[] = [];
-  const pagesList = exportedPages(source);
+  const pagesList = options.only && source.layers[options.only] ? [{ id: options.only, name: source.layers[options.only].name, route: "/", title: source.layers[options.only].name }] : exportedPages(source);
   // every exported page follows the breakpoints, whether or not the frame was marked responsive
-  const doc: MotionDocument = {
-    ...source,
-    layers: {
-      ...source.layers,
-      ...Object.fromEntries(pagesList.map((p) => [p.id, { ...source.layers[p.id], properties: { ...source.layers[p.id].properties, "breakpoints.responsive": true } }])),
-    },
-  };
+  const doc: MotionDocument = options.only
+    ? source
+    : {
+        ...source,
+        layers: {
+          ...source.layers,
+          ...Object.fromEntries(pagesList.map((p) => [p.id, { ...source.layers[p.id], properties: { ...source.layers[p.id].properties, "breakpoints.responsive": true } }])),
+        },
+      };
   const bps = breakpointsOf(doc);
   const base = baseBreakpoint(bps);
   const modes = modesOf(doc);
@@ -197,8 +199,11 @@ export function buildPlan(source: MotionDocument, options: PlanOptions & { compo
       const view = resolveDocumentAt(doc, bpId, modeId === modes[0].id ? null : modeId);
       const html = renderLayerMarkup(view.layers, rootId, { assetUrl: (id) => (assets.add(id), siteAssets.add(id), `{{asset:${id}}}`) }, kind === "page");
       const roots = parseMarkup(html);
-      if (kind === "page") normalizeRoot(roots[0]);
-      else normalizeComponentRoot(roots[0]);
+      // (a layer that is hidden at a breakpoint draws nothing there)
+      if (roots[0]) {
+        if (kind === "page") normalizeRoot(roots[0]);
+        else normalizeComponentRoot(roots[0]);
+      }
       return { roots, ...renderingOf(roots) };
     };
     const baseView = render(null, modeIds[0]);
@@ -325,7 +330,7 @@ export function buildPlan(source: MotionDocument, options: PlanOptions & { compo
   const roots = pagesList.map((p) => {
     const assets = new Set<string>();
     pageAssets.set(p.id, assets);
-    return { page: p, plan: planRoot(p.id, "page", p.route, options.hrefs, assets) };
+    return { page: p, plan: planRoot(p.id, options.only ? "component" : "page", p.route, options.hrefs, assets) };
   });
 
   // components: React targets use a component file for every component an instance (or a main) on a page can call

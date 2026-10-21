@@ -83,7 +83,7 @@ export function registerBuiltInPanels(): void {
       onOpenTimeline: () => c.showBottomTab("sequencer"),
     }),
   });
-  registerPanel({ id: "code", title: "Code", zone: "right", edition: "initial", load: async () => (await import("@/editor/panels/code-view")).LiveCodeInspector });
+  registerPanel({ id: "code", title: "Code", zone: "right", edition: "initial", load: async () => (await import("@/editor/panels/export/ExportCodePanel")).ExportCodePanel });
   registerPanel({ id: "debug", title: "Debug", zone: "right", edition: "full", load: async () => (await import("@/editor/panels/console/OutputConsole")).OutputConsole });
   // The Output Log drawer renders the console on its own.
   registerPanel({ id: "console", title: "Output Log", zone: "right", edition: "initial", load: async () => (await import("@/editor/panels/console/OutputConsole")).OutputConsole });
