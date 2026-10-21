@@ -5,8 +5,11 @@
  * the context menu and agents.
  */
 
+import { isEditingPath } from "../store/useVectorEditStore";
 import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
+import { registerLayoutCommands } from "./layoutCommands";
+import { registerBreakpointCommands } from "../breakpoints/breakpointCommands";
 import { moveLayers } from "../layers/reparent";
 import { importAndPlace } from "../assets/assetImport";
 import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage } from "../paint/paintOps";
@@ -68,7 +71,7 @@ export function registerEditingCommands(): () => void {
   add(defineCommand({ id: "edit.paste", title: "Paste", category, run: () => void clipboardText().then((t) => pasteText(t, { into: pasteTarget() })) }));
   add(defineCommand({ id: "edit.pasteInPlace", title: "Paste in Place", category, run: () => void clipboardText().then((t) => pasteText(t, { into: pasteTarget(), inPlace: true })) }));
   add(defineCommand({ id: "edit.duplicate", title: "Duplicate", category, keybinding: "Ctrl+D", when: onSelection, run: () => void duplicateLayers(ids()) }));
-  add(defineCommand({ id: "edit.delete", title: "Delete", category, keybinding: ["Delete", "Backspace"], when: onSelection, run: () => void deleteLayers(ids()) }));
+  add(defineCommand({ id: "edit.delete", title: "Delete", category, keybinding: ["Delete", "Backspace"], when: (ctx) => onSelection(ctx) && !isEditingPath(), run: () => void deleteLayers(ids()) }));
 
   for (const [name, s] of Object.entries(STEP)) {
     add(defineCommand({ id: `edit.nudge${name}`, title: `Nudge ${name}`, category, keybinding: `Arrow${name}`, when: onSelection, run: () => nudgeLayers(ids(), s.dx, s.dy) }));
@@ -160,6 +163,8 @@ export function registerEditingCommands(): () => void {
   add(defineTypedCommand({ id: "paint.setBlur", title: "Set Blur", category: "Layer", args: z.object({ ids: targets, layer: z.number().optional(), background: z.number().optional() }), run: ({ ids: t, layer, background }) => ({ changed: setBlur(t ?? ids(), { layer, background }) }) }));
   add(defineTypedCommand({ id: "fonts.setDisplay", title: "Set Font Loading", category: "Text", args: z.object({ display: z.enum(["swap", "block", "fallback", "optional", "auto"]) }), run: ({ display }) => { documentCommands.setFontDisplay(display); return { ok: true }; } }));
   add(registerTextCommands());
+  add(registerLayoutCommands());
+  add(registerBreakpointCommands());
   add(installClipboardEvents(window));
   return () => offs.forEach((off) => off());
 }

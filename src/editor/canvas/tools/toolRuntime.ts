@@ -24,8 +24,23 @@ import { dragHandle, worldToNorm } from "@/core/paint/gradientHandles";
 import type { Paint } from "@/core/paint/paints";
 import { moveBoxes, paramValue, resizeBoxes, rotateBoxes, rotationDelta, unionBox, type Box } from "@/core/geometry/transform";
 import { frameContains, type HandleHit, type TransformModel } from "../transformModel";
+import { createPathTools } from "./pathTools";
+
+/** One of the samples a browser coalesced into a pointer move (a 120 Hz pen reports two or more per frame). */
+export interface CoalescedSample {
+  world: Point;
+  /** `PointerEvent.timeStamp`, ms. */
+  time: number;
+  pressure: number;
+}
 
 export interface ToolPointer {
+  /** `PointerEvent.timeStamp`, ms. */
+  time?: number;
+  /** 0 to 1; 0.5 for a mouse. */
+  pressure?: number;
+  /** The samples behind this move, oldest first (empty when the browser has none). */
+  coalesced?: CoalescedSample[];
   /** Canvas (document) space. */
   world: Point;
   /** Relative to the canvas element, in screen px. */
@@ -107,6 +122,15 @@ export interface ToolContext {
   setPanning: (on: boolean) => void;
   /** Asks the canvas to redraw the tool's overlay. */
   requestOverlay: () => void;
+  /**
+   * For layers dragged inside an auto-layout frame (Phase 41): where they would land, shown as an insertion line.
+   * Null when they aren't all flow children of one stack, so the drag is a free move.
+   */
+  stackDrop: (ids: readonly string[], world: Point) => { parentId: string; index: number } | null;
+  /** Drops them there: one undo step. */
+  commitStackDrop: (ids: readonly string[], target: { parentId: string; index: number }) => void;
+  /** Hides the insertion line. */
+  clearStackDrop: () => void;
 }
 
 export interface Tool {
@@ -115,6 +139,8 @@ export interface Tool {
   /** Returns true when a gesture began: the canvas then captures the pointer until it ends. */
   onPointerDown?: (p: ToolPointer, ctx: ToolContext) => boolean;
   onPointerMove?: (p: ToolPointer, ctx: ToolContext) => void;
+  /** The pointer moved over the canvas with no gesture running (the pen's rubber band). */
+  onHover?: (p: ToolPointer, ctx: ToolContext) => void;
   onPointerUp?: (p: ToolPointer, ctx: ToolContext) => void;
   onPointerCancel?: (ctx: ToolContext) => void;
   /** A key pressed while this tool is current; true when it used it. */
@@ -188,6 +214,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
   let hit: PickedLayer | null = null;
   let marqueeFrame: string | null = null;
   let began = false;
+  let reorder: { parentId: string; index: number } | null = null;
   let start: { ids: string[]; boxes: Box[]; frame: Box; handle?: HandleHit; startValue?: number; gap?: { axis: "h" | "v"; size: number }; gradient?: { layerId: string; paintIndex: number; paint: Paint; box: Box; kind: string; stopIndex?: number } } | null = null;
 
   const moved = (p: ToolPointer, from: ToolPointer | null) => from !== null && Math.hypot(p.screen.x - from.screen.x, p.screen.y - from.screen.y) >= CLICK_SLOP;
@@ -199,6 +226,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
     began = false;
     start = null;
     guide = null;
+    reorder = null;
   };
   const snapshot = (model: TransformModel, handle?: HandleHit) => {
     start = { ids: model.ids, boxes: model.boxes, frame: model.frame, handle };
@@ -277,6 +305,13 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
       if (!start) return;
       const delta = { x: p.world.x - down.world.x, y: p.world.y - down.world.y };
       if (mode === "move") {
+        // inside an auto-layout frame the layers don't go where the pointer is: they take a place in the order
+        const drop = ctx.stackDrop(start.ids, p.world);
+        if (drop) {
+          reorder = drop;
+          return;
+        }
+        reorder = null;
         begin(ctx, "Move");
         let { x, y } = delta;
         const lockY = p.shiftKey && Math.abs(x) >= Math.abs(y);
@@ -334,8 +369,11 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
       const was = mode;
       const frameBg = marqueeFrame;
       const didBegin = began;
+      const dropTarget = reorder;
+      const ids = start?.ids ?? null;
       const grabbedGuide = guide;
       if (was === "pan") pan.end(ctx);
+      ctx.clearStackDrop();
       reset();
       ctx.requestOverlay();
       if (!from || was === "cancelled") return;
@@ -352,6 +390,10 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
         ctx.commitTransform();
         return;
       }
+      if (was === "move" && dropTarget && ids) {
+        ctx.commitStackDrop(ids, dropTarget);
+        return;
+      }
       if (was === "marquee") {
         ctx.marquee(from.world, p.world, frameBg, p.shiftKey ? "add" : "replace");
         return;
@@ -364,6 +406,7 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
     onPointerCancel: (ctx) => {
       if (mode === "pan") pan.end(ctx);
       ctx.clearSnap();
+      ctx.clearStackDrop();
       if (began) ctx.cancelTransform();
       reset();
       ctx.requestOverlay();
@@ -373,6 +416,12 @@ export function createSelectTool(id: "select" | "deepSelect"): Tool {
         ctx.clearSnap();
         ctx.cancelTransform();
         began = false;
+        mode = "cancelled";
+        return true;
+      }
+      if (e.key === "Escape" && reorder) {
+        ctx.clearStackDrop();
+        reorder = null;
         mode = "cancelled";
         return true;
       }
@@ -522,11 +571,15 @@ export function createCreationTool(id: ToolId): Tool {
 
 /** The tools that have behaviour on the canvas, by id. */
 export function createTools(): Partial<Record<ToolId, Tool>> {
+  // the pen and pencil live in their own module
+  const paths = createPathTools();
   const tools: Partial<Record<ToolId, Tool>> = {
     select: createSelectTool("select"),
     deepSelect: createSelectTool("deepSelect"),
     pan: createHandTool(),
   };
   for (const id of Object.keys(CREATION) as ToolId[]) tools[id] = createCreationTool(id);
+  tools.pen = paths.pen;
+  tools.pencil = paths.pencil;
   return tools;
 }

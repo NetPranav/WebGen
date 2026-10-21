@@ -68,7 +68,7 @@ export const RenderLayer: React.FC<RenderLayerProps> = ({ layerId, layers, ctx =
   const resolved = resolveProps(layer);
   const Definition = RENDER_DEFINITIONS[layer.archetype];
   const isFlexContainer = layer.archetype === "container" || layer.archetype === "form";
-  const childDirection = isFlexContainer && resolved.str("layout.flexDirection", "column") === "row" ? "row" : "column";
+  const childDirection = isFlexContainer && resolved.str("layout.display", "flex") === "grid" ? "grid" : isFlexContainer && resolved.str("layout.flexDirection", "column") === "row" ? "row" : "column";
   const childCtx: RenderContext = { ...ctx, parentDirection: childDirection };
 
   return (

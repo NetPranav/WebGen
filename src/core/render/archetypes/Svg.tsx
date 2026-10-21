@@ -3,6 +3,11 @@ import { layerBoxStyle } from "../geometry";
 import { clampNumber, clampText, safeFragmentHref, safePathData } from "../limits";
 import type { ArchetypeRenderProps } from "../types";
 import { InSvgContext } from "./svgContext";
+import { safeDashArray } from "../../paint/paints";
+
+const pick = <T extends string>(value: string, allowed: readonly T[], fallback: T): T => ((allowed as readonly string[]).includes(value) ? (value as T) : fallback);
+const CAPS = ["butt", "round", "square"] as const;
+const JOINS = ["miter", "round", "bevel"] as const;
 
 /**
  * Draws `inner` as an SVG child inside an `svgGroup`, or inside its own `<svg>` standing alone.
@@ -40,6 +45,12 @@ export const SvgPath: React.FC<ArchetypeRenderProps> = (p) => (
         stroke={p.resolved.str("svg.stroke", "#0f172a")}
         strokeWidth={clampNumber(p.resolved.num("svg.strokeWidth", 2), 0, 200, 2)}
         fill={p.resolved.str("svg.fill", "none")}
+        fillRule={p.resolved.str("svg.fillRule", "nonzero") === "evenodd" ? "evenodd" : "nonzero"}
+        strokeLinecap={pick<(typeof CAPS)[number]>(p.resolved.str("svg.strokeLinecap", "butt"), CAPS, "butt")}
+        strokeLinejoin={pick<(typeof JOINS)[number]>(p.resolved.str("svg.strokeLinejoin", "miter"), JOINS, "miter")}
+        strokeDasharray={safeDashArray(p.resolved.str("svg.strokeDasharray", "none"))}
+        // the path is drawn in a 200 x 200 space stretched to the frame: the stroke must keep its width in px however it is stretched
+        vectorEffect="non-scaling-stroke"
       />
     )}
   />

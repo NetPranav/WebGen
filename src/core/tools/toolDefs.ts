@@ -33,8 +33,8 @@ export const TOOL_DEFS: Record<ToolId, ToolDef> = {
   polygon: { id: "polygon", label: "Polygon Tool", shortcut: "Y", cursor: "crosshair", available: true },
   star: { id: "star", label: "Star Tool", shortcut: "Shift+Y", cursor: "crosshair", available: true },
   text: { id: "text", label: "Text Tool", shortcut: "T", cursor: "text", available: true },
-  pen: { id: "pen", label: "Pen Tool", shortcut: "P", cursor: "crosshair", available: false, phase: 40 },
-  pencil: { id: "pencil", label: "Pencil Tool", shortcut: "Shift+P", cursor: "crosshair", available: false, phase: 40 },
+  pen: { id: "pen", label: "Pen Tool", shortcut: "P", cursor: "crosshair", available: true },
+  pencil: { id: "pencil", label: "Pencil Tool", shortcut: "Shift+P", cursor: "crosshair", available: true },
   comment: { id: "comment", label: "Comment", shortcut: "C", cursor: "crosshair", available: false, phase: 193 },
 };
 

@@ -13,6 +13,7 @@ import { useSelectionStore } from "../store/useSelectionStore";
 import { useAssetUiStore } from "../store/useAssetUiStore";
 import { AssetError, getAssetStore } from "./AssetStore";
 import { assetSrc } from "./useAssetUrl";
+import { importSvgAsVectors, readSvgShapes } from "../editing/vectorOps";
 import { makeThumbnail } from "./thumbnails";
 
 export interface ImportOutcome {
@@ -91,6 +92,30 @@ export function placeImage(entry: AssetEntry, at?: { x: number; y: number; paren
   return id;
 }
 
+/**
+ * Places an SVG asset as editable vector layers (one path layer per shape) instead of one picture (ROADMAP Phase 40).
+ * Returns the new layer ids; empty when the asset isn't an SVG, has no shapes, or there is no frame to put them in.
+ */
+export async function placeAsVectors(entry: AssetEntry, at?: { x: number; y: number; parentId?: string | null; parentOrigin?: { x: number; y: number } }): Promise<string[]> {
+  if (entry.kind !== "svg") return [];
+  const record = await getAssetStore().get(entry.id);
+  if (!record) return [];
+  const read = readSvgShapes(await record.blob.text());
+  if (!read) return [];
+  const frames = listFrames(getDocument().layers);
+  const activeId = useCanvasViewStore.getState().activeFrameId;
+  const frame = frames.find((f) => f.id === (at?.parentId ?? activeId)) ?? frames[0];
+  if (!frame && !at?.parentId) return [];
+  const parentId = at?.parentId ?? frame!.id;
+  const origin = at?.parentOrigin ?? (frame ? { x: frame.x, y: frame.y } : { x: 0, y: 0 });
+  const size = placedSize({ width: read.width, height: read.height });
+  const k = size.width / read.width;
+  const centre = at ? { x: at.x, y: at.y } : frame ? { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 } : { x: 0, y: 0 };
+  const ids = importSvgAsVectors(await record.blob.text(), { id: parentId, origin }, { x: centre.x - size.width / 2, y: centre.y - size.height / 2 }, k);
+  if (ids.length > 0) useSelectionStore.getState().selectMultiple(ids, "element");
+  return ids;
+}
+
 /** Import, then place every picture among them. */
 export async function importAndPlace(files: readonly File[], at?: Parameters<typeof placeImage>[1]): Promise<ImportOutcome[]> {
   const outcomes = await importFiles(files);
@@ -110,6 +135,10 @@ export async function importAndPlace(files: readonly File[], at?: Parameters<typ
  */
 if (typeof window !== "undefined" && (window as unknown as { __LL_TEST__?: boolean }).__LL_TEST__) {
   (window as unknown as Record<string, unknown>).__LL_ASSETS__ = {
+    placeAsVectors: async (id: string) => {
+      const entry = getDocument().assets?.[id] ?? Object.values(getDocument().assets ?? {}).find((e) => e.id === id);
+      return entry ? placeAsVectors(entry) : [];
+    },
     list: async () => (await getAssetStore().list()).map((r) => ({ id: r.id, name: r.name, kind: r.kind, bytes: r.bytes, thumb: !!r.thumb })),
     totalBytes: () => getAssetStore().totalBytes(),
     text: async (id: string) => (await getAssetStore().get(id))?.blob.text() ?? null,

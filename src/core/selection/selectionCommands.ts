@@ -4,6 +4,8 @@
  * selection store that the canvas, the inspector and the status bar share.
  */
 
+import { editablePathSelection, isEditingPath } from "../store/useVectorEditStore";
+import { useDraftPathStore } from "../store/useDraftPathStore";
 import { editableTextSelection } from "../text/textCommands";
 import { z } from "zod";
 import { defineCommand, defineTypedCommand, type ContextKeys } from "../commands";
@@ -29,9 +31,9 @@ export function registerSelectionCommands(): () => void {
   const category = "Selection";
   const offs = [
     defineCommand({ id: "selection.all", title: "Select All", category, keybinding: "Ctrl+A", when: onCanvas, run: () => void apply(selectAll(layers(), current(), activeFrame())) }),
-    defineCommand({ id: "selection.none", title: "Select None", category, keybinding: "Escape", when: (ctx) => onCanvas(ctx) && current().length > 0 && !useToolStore.getState().gesturing, run: () => void useSelectionStore.getState().clearSelection() }),
+    defineCommand({ id: "selection.none", title: "Select None", category, keybinding: "Escape", when: (ctx) => onCanvas(ctx) && current().length > 0 && !useToolStore.getState().gesturing && useDraftPathStore.getState().kind !== "pen" && !isEditingPath(), run: () => void useSelectionStore.getState().clearSelection() }),
     defineCommand({ id: "selection.inverse", title: "Invert Selection", category, keybinding: "Ctrl+Shift+A", when: onCanvas, run: () => void apply(selectInverse(layers(), current(), activeFrame())) }),
-    defineCommand({ id: "selection.children", title: "Select Children", category, keybinding: "Enter", when: (ctx) => onCanvas(ctx) && current().length > 0 && editableTextSelection() === null, run: () => void apply(selectChildren(layers(), current())) }),
+    defineCommand({ id: "selection.children", title: "Select Children", category, keybinding: "Enter", when: (ctx) => onCanvas(ctx) && current().length > 0 && editableTextSelection() === null && editablePathSelection() === null && !isEditingPath(), run: () => void apply(selectChildren(layers(), current())) }),
     defineCommand({ id: "selection.parent", title: "Select Parent", category, keybinding: "Shift+Enter", when: (ctx) => onCanvas(ctx) && current().length > 0, run: () => void apply(selectParents(layers(), current())) }),
     defineTypedCommand({
       id: "selection.set",

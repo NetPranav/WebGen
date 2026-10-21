@@ -8,8 +8,7 @@ import type { Layer } from "../document/schema";
 import { frameIdOf, frameInfo } from "../frames/frames";
 import type { Box } from "../geometry/transform";
 import { getStageRendererForLayer } from "../render/StageRenderer";
-import { getDocument } from "../store/documentState";
-import { documentCommands } from "../store/useDocumentStore";
+import { documentCommands, getResolvedDocument } from "../store/useDocumentStore";
 import type { Point } from "../viewport/camera";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -35,7 +34,7 @@ function propsOrigin(layers: Record<string, Layer>, id: string): Point {
 
 /** A layer's box on the canvas (centre, own size, rotation), or null if it can't be found. */
 export function worldBox(id: string): Box | null {
-  const layers = getDocument().layers;
+  const layers = getResolvedDocument().layers;
   const layer = layers[id];
   if (!layer) return null;
   const rot = num(layer.properties["frame.rotation"]) ?? 0;
@@ -58,7 +57,7 @@ export function worldBox(id: string): Box | null {
 
 /** The top-left of a layer's parent in canvas space (0, 0 for a top-level frame). */
 export function parentOrigin(id: string): Point {
-  const layers = getDocument().layers;
+  const layers = getResolvedDocument().layers;
   const parentId = layers[id]?.parentId;
   if (!parentId) return { x: 0, y: 0 };
   const b = worldBox(parentId);
@@ -73,7 +72,7 @@ export function parentOrigin(id: string): Point {
  */
 export function writeBoxes(ids: readonly string[], boxes: readonly Box[], origin?: Point, options: { size?: boolean } = {}): void {
   ids.forEach((id, i) => {
-    const layer = getDocument().layers[id];
+    const layer = getResolvedDocument().layers[id];
     const box = boxes[i];
     if (!layer || !box) return;
     const o = origin ?? parentOrigin(id);

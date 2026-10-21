@@ -9,7 +9,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, ImagePlus, Trash2, Upload } from "lucide-react";
 import { getAssetStore } from "@/core/assets/AssetStore";
-import { importFiles, placeImage } from "@/core/assets/assetImport";
+import { importFiles, placeAsVectors, placeImage } from "@/core/assets/assetImport";
 import type { AssetEntry } from "@/core/document/schema";
 import { documentCommands, useDocument } from "@/core/store/useDocumentStore";
 import { useAssetUiStore } from "@/core/store/useAssetUiStore";
@@ -55,6 +55,11 @@ const Tile: React.FC<{ entry: AssetEntry; uses: number; version: number }> = ({ 
       <button type="button" className="asset-tile__thumb" aria-label={`Add ${entry.name} to the canvas`} disabled={entry.kind === "font"} onClick={() => placeImage(entry)}>
         {url ? <img src={url} alt="" /> : entry.kind === "font" ? <span className="asset-tile__font">Aa</span> : <FileText size={22} aria-hidden />}
       </button>
+      {entry.kind === "svg" && (
+        <button type="button" className="asset-tile__vectors" aria-label={`Place ${entry.name} as vectors`} title="Place as editable vector layers" onClick={() => void placeAsVectors(entry)}>
+          Vectors
+        </button>
+      )}
       <div className="asset-tile__name" title={entry.name}>{entry.name}</div>
       <div className="asset-tile__meta">
         {entry.width && entry.height ? `${Math.round(entry.width)} × ${Math.round(entry.height)} · ` : ""}

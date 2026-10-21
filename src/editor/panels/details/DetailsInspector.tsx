@@ -37,6 +37,10 @@ import { BackgroundSection } from "./sections/BackgroundSection";
 import { SvgVectorSection } from "./sections/SvgVectorSection";
 import { MaterialInspectorSection } from "./sections/MaterialInspectorSection";
 import { EnvironmentInspector } from "./EnvironmentInspector";
+import { VectorBar } from "./VectorBar";
+import { OverridesPanel } from "./OverridesPanel";
+import { AutoLayoutPanel } from "./AutoLayoutPanel";
+import { ConstraintsPanel, GridPanel } from "./GridPanel";
 import { AlignBar } from "./AlignBar";
 import { TextProperties } from "./TextProperties";
 import { SimpleFace } from "./simple/SimpleFace";
@@ -150,6 +154,11 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         {face === "pro" && <SectionRail items={railItems} onSelect={jumpToSection} />}
         <div className="panel-content">
         <AlignBar />
+        <OverridesPanel />
+        <VectorBar />
+        <AutoLayoutPanel />
+        <GridPanel />
+        <ConstraintsPanel />
         <div className="inspector-face-switch" role="tablist" aria-label="Inspector face">
           <button type="button" role="tab" aria-selected={face === "simple"} onClick={() => useInspectorFaceStore.getState().setFace("simple")}>Simple</button>
           <button type="button" role="tab" aria-selected={face === "pro"} onClick={() => useInspectorFaceStore.getState().setFace("pro")}>Pro</button>

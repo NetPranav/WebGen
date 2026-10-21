@@ -9,7 +9,8 @@
  * layer id to the editor.
  */
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { useDocument } from "@/core/store/useDocumentStore";
+import { getResolvedDocument, useDocument } from "@/core/store/useDocumentStore";
+import { useBreakpointStore } from "@/core/store/useBreakpointStore";
 import { documentStore, getDocument } from "@/core/store/documentState";
 import { useProjectStore } from "@/core/store/useProjectStore";
 import type { RenderContext } from "@/core/render";
@@ -67,17 +68,21 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
 
   const [plan] = useState(() => {
     const store = createPlanStore();
-    store.refresh(getDocument().layers, rootIds); // the first paint already has its content
+    store.refresh(getResolvedDocument().layers, rootIds); // the first paint already has its content
     return store;
   });
   const [renderer] = useState(() => new StageRenderer());
 
   // Keep the plan in step with the document: a structural change (ids, children, visibility, roots) updates it; a property edit doesn't.
   useLayoutEffect(() => {
-    plan.refresh(getDocument().layers, rootIds);
-    return documentStore.subscribe((state) => {
-      plan.refresh(state.document.layers, rootIds);
-    });
+    plan.refresh(getResolvedDocument().layers, rootIds);
+    // the document changed, or another breakpoint is being viewed (a layer hidden there, a frame at its width)
+    const offDoc = documentStore.subscribe(() => plan.refresh(getResolvedDocument().layers, rootIds));
+    const offBp = useBreakpointStore.subscribe(() => plan.refresh(getResolvedDocument().layers, rootIds));
+    return () => {
+      offDoc();
+      offBp();
+    };
   }, [plan, rootIds]);
 
   const [frameDoc, setFrameDoc] = useState<Document | null>(null);

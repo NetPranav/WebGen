@@ -29,7 +29,7 @@ export const StageContext = createContext<StageContextValue | null>(null);
 interface StoreRenderLayerProps {
   layerId: string;
   /** The parent's main axis; decides what `fill` means for this layer. */
-  parentDirection?: "row" | "column";
+  parentDirection?: "row" | "column" | "grid";
 }
 
 function StoreRenderLayerImpl({ layerId, parentDirection }: StoreRenderLayerProps) {
@@ -62,7 +62,7 @@ function StoreRenderLayerImpl({ layerId, parentDirection }: StoreRenderLayerProp
   if (!layer || !resolved || !childIds) return null;
   const Definition = RENDER_DEFINITIONS[layer.archetype];
   const isFlexContainer = layer.archetype === "container" || layer.archetype === "form";
-  const childDirection = isFlexContainer && resolved.str("layout.flexDirection", "column") === "row" ? "row" : "column";
+  const childDirection = isFlexContainer && resolved.str("layout.display", "flex") === "grid" ? "grid" : isFlexContainer && resolved.str("layout.flexDirection", "column") === "row" ? "row" : "column";
 
   return (
     <Definition layer={layer} resolved={resolved} ctx={ctx} nodeRef={nodeRef}>

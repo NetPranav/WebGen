@@ -94,3 +94,8 @@ documentStore.subscribe((state, prev) => {
     selectionType: kept.length > 0 ? selectionType : null,
   });
 });
+
+/** Test seam: with `window.__LL_TEST__` set before load, `window.__LL_SELECTION__()` is the ids of the selected layers. */
+if (typeof window !== "undefined" && (window as unknown as { __LL_TEST__?: boolean }).__LL_TEST__) {
+  (window as unknown as Record<string, unknown>).__LL_SELECTION__ = () => useSelectionStore.getState().selectedIds;
+}

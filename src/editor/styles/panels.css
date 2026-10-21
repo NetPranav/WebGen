@@ -82,6 +82,15 @@
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
+/* an icon button that carries words (Add, Reset, Left & right): as wide as its text */
+.panel-icon-btn.panel-text-btn {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
 .panel-icon-btn:hover {
   background-color: var(--surface-panel-hover);
   color: var(--text-primary);

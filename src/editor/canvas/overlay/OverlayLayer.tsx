@@ -11,7 +11,46 @@ import { screenToDoc, type Point } from "@/core/viewport/camera";
 import { OverlayController, type OverlayEnv } from "./OverlayController";
 import { useSnapStore } from "@/core/store/useSnapStore";
 import { useFontsStore } from "@/core/store/useFontsStore";
+import { useDraftPathStore } from "@/core/store/useDraftPathStore";
+import { nodesToPathData } from "@/core/paths/pathFit";
+import { penRubberBand } from "@/core/paths/penModel";
+import { useStackDropStore } from "@/core/store/useStackDropStore";
+import { GridOverlay } from "./GridOverlay";
+import { VectorEditLayer } from "../vector/VectorEditLayer";
 import type { TransformModel } from "../transformModel";
+
+/** The path being drawn (Phase 39): the pencil's stroke so far, or the pen's nodes with the rubber band to the pointer. */
+const DraftPath: React.FC = () => {
+  const { kind, points, nodes, closed, cursor } = useDraftPathStore();
+  const zoom = useCameraStore((s) => s.camera.zoom) || 1;
+  if (!kind) return null;
+  const px = 1 / zoom;
+  const d =
+    kind === "pencil"
+      ? points.map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join(" ")
+      : nodesToPathData(cursor && !closed ? penRubberBand({ nodes, closed }, cursor) : nodes, closed);
+  return (
+    <svg data-testid="draft-path" style={{ position: "absolute", left: 0, top: 0, width: 1, height: 1, overflow: "visible", pointerEvents: "none" }}>
+      <path d={d} fill="none" stroke="#2563eb" strokeWidth={1.5 * px} strokeLinecap="round" strokeLinejoin="round" />
+      {kind === "pen" &&
+        nodes.map((n, i) => (
+          <rect key={i} x={n.x - 3 * px} y={n.y - 3 * px} width={6 * px} height={6 * px} fill={i === 0 ? "#2563eb" : "#fff"} stroke="#2563eb" strokeWidth={px} />
+        ))}
+    </svg>
+  );
+};
+
+/** The line showing where a child dragged inside an auto-layout frame will land (Phase 41). */
+const StackDropLine: React.FC = () => {
+  const line = useStackDropStore((s) => s.line);
+  const zoom = useCameraStore((s) => s.camera.zoom) || 1;
+  if (!line) return null;
+  return (
+    <svg data-testid="stack-drop" style={{ position: "absolute", left: 0, top: 0, width: 1, height: 1, overflow: "visible", pointerEvents: "none" }}>
+      <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#2563eb" strokeWidth={2 / zoom} strokeLinecap="round" />
+    </svg>
+  );
+};
 
 interface OverlayLayerProps {
   hitTester: CanvasHitTester;
@@ -113,5 +152,13 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
     };
   }, [hitTester, canvasRef, onController]);
 
-  return <div ref={layerRef} className="canvas-overlay" aria-hidden="true" />;
+  return (
+    <>
+      <div ref={layerRef} className="canvas-overlay" aria-hidden="true" />
+      <DraftPath />
+      <VectorEditLayer />
+      <GridOverlay />
+      <StackDropLine />
+    </>
+  );
 };

@@ -318,6 +318,12 @@ const DEFS = {
   "layout.gridRows": num(1, null, "layout", FLEX, false),
   "layout.gridTemplateColumns": str("", "grid-template-columns", "layout", FLEX),
   "layout.gridTemplateRows": str("", "grid-template-rows", "layout", FLEX),
+  /** This container is an auto-layout frame (Phase 41): its children flow, and the editor offers stack controls. */
+  "layout.auto": typed(flag(false, "layout", FLEX)),
+  "layout.paddingTop": ranged(px(0, "padding-top", "layout", FLEX), { min: 0 }),
+  "layout.paddingRight": ranged(px(0, "padding-right", "layout", FLEX), { min: 0 }),
+  "layout.paddingBottom": ranged(px(0, "padding-bottom", "layout", FLEX), { min: 0 }),
+  "layout.paddingLeft": ranged(px(0, "padding-left", "layout", FLEX), { min: 0 }),
   "layout.padding": px(0, "padding", "layout", LAYOUT),
   "layout.paddingX": px(0, "padding-inline", "layout", LAYOUT),
   "layout.paddingY": px(0, "padding-block", "layout", LAYOUT),
@@ -326,6 +332,16 @@ const DEFS = {
   "layout.marginBottom": px(0, "margin-bottom", "layout", LAYOUT),
   "layout.alignSelf": oneOf(null, "auto", "align-self", "layout", LAYOUT),
   "layout.flex": str("", "flex", "layout", LAYOUT),
+  /** How a free layer follows its frame when the frame is resized (Phase 42); the editor applies it at the resize. */
+  /** A top-level frame whose width follows the breakpoint being viewed (Phase 43). */
+  "breakpoints.responsive": typed(flag(false, "layout", only("container"))),
+  "constraints.horizontal": typed(oneOf(["left", "right", "leftRight", "center", "scale"], "left", null, "layout", LAYOUT)),
+  "constraints.vertical": typed(oneOf(["top", "bottom", "topBottom", "center", "scale"], "top", null, "layout", LAYOUT)),
+  /** A child's cell in a grid container (Phase 42): 1-based start (0 = auto) and how many tracks it spans. */
+  "layout.gridColumnStart": ranged(num(0, "grid-column-start", "layout", LAYOUT, false), { min: 0, max: 200 }),
+  "layout.gridColumnSpan": ranged(num(1, null, "layout", LAYOUT, false), { min: 1, max: 200 }),
+  "layout.gridRowStart": ranged(num(0, "grid-row-start", "layout", LAYOUT, false), { min: 0, max: 200 }),
+  "layout.gridRowSpan": ranged(num(1, null, "layout", LAYOUT, false), { min: 1, max: 200 }),
   "layout.flexGrow": num(0, "flex-grow", "layout", LAYOUT, false),
   "layout.flexShrink": num(1, "flex-shrink", "layout", LAYOUT, false),
   "layout.position": oneOf(["static", "relative", "absolute", "fixed", "sticky"], "static", "position", "layout", LAYOUT),
@@ -411,6 +427,10 @@ const DEFS = {
   "svg.fill": color("none", "fill", "paint", SVG_STROKED),
   "svg.strokeDasharray": str("none", "stroke-dasharray", "paint", SVG_STROKED),
   "svg.strokeDashoffset": num(0, "stroke-dashoffset", "paint", SVG_STROKED),
+  /** The drawn path as nodes with handles, times and pressures, JSON (Phase 39); `svg.path` is what is drawn, this is what is edited and replayed. */
+  "svg.nodes": typed(str("", null, "paint", only("svgPath"))),
+  /** How overlapping parts of one path are filled; the boolean operations make compound paths that need `evenodd` (Phase 40). */
+  "svg.fillRule": typed(oneOf(["nonzero", "evenodd"], "nonzero", "fill-rule", "paint", only("svgPath"))),
   "svg.href": str("", null, "paint", only("svgUse")),
   "svg.viewBox": str("0 0 24 24", null, "layout", only("icon", "svgGroup")),
   "svg.filter.gaussianBlur": num(0, "filter", "paint", SVG_STROKED),

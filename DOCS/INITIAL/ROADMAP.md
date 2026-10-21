@@ -210,11 +210,11 @@ One row per phase, in execution order. Update the Status column together with th
 | 36 | Asset store & storage safety | 3 | v3 54.1, 54.2 | 1 | 🚧 |
 | 37 | Image layers | 36 | — (new) | 1 | 🚧 |
 | 38 | Fonts | 36 | v3 17.3 | 1 | 🚧 |
-| 39 | Pen & pencil | 24 | v3 35.1–35.4 | 1 | 📋 |
-| 40 | Vector editing & boolean operations | 39 | v3 16.1 | 1 | 📋 |
-| 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 📋 |
-| 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 📋 |
-| 43 | Breakpoints & overrides | 42 | v3 50.3 (properties half) | 1 | 📋 |
+| 39 | Pen & pencil | 24 | v3 35.1–35.4 | 1 | 🚧 |
+| 40 | Vector editing & boolean operations | 39 | v3 16.1 | 1 | 🚧 |
+| 41 | Auto-layout: stacks | 27, 32 | v3 50.1 (stacks) | 1 | 🚧 |
+| 42 | Grid layout & constraints | 41 | v3 50.1 (grid), 50.2 | 1 | 🚧 |
+| 43 | Breakpoints & overrides | 42 | v3 50.3 (properties half) | 1 | 🚧 |
 | 44 | Breakpoint canvas | 21, 43 | v3 50.4 | 1 | 📋 |
 | 45 | Design tokens & styles | 35, 38 | v3 22.3 | 1 | 📋 |
 | 46 | Components & instances | 29, 32 | v3 75.1, 75.5 (design) | 1 | 📋 |
@@ -748,40 +748,45 @@ The document and World Environment have their own stores, After-track actions mo
 
 
 ### Phase 39 · Pen & pencil
-**Needs:** 24 · **Was:** v3 35.1–35.4 · **Closes:** AUD-19 · **Status:** 📋
-- [ ] Pointer capture with coalesced events and pressure. Pencil: streamline smoothing, Ramer–Douglas–Peucker simplification and bezier fitting. Pen: click-to-place bezier nodes as in Figma. Both produce vector layers with caps, joins, dashes, and fills for closed paths.
-- [ ] Per-point timestamps are kept (Phase 181 uses them for draw-to-animate).
+**Needs:** 24 · **Was:** v3 35.1–35.4 · **Closes:** AUD-19 · **Status:** 🚧
+- [x] Pointer capture with coalesced events and pressure. Pencil: streamline smoothing, Ramer–Douglas–Peucker simplification and bezier fitting. Pen: click-to-place bezier nodes as in Figma. Both produce vector layers with caps, joins, dashes, and fills for closed paths.
+- [x] Per-point timestamps are kept (Phase 181 uses them for draw-to-animate).
 
 **You'll see:** working pen and pencil tools.
 **Done when:** a recorded 3-second scribble becomes a path of < 60 nodes within 1.5 px of the input; 120 Hz input renders at 60 fps.
+**Evidence so far:** the scribble gate is a unit test (`pathFit.test.ts`, 360 samples over 3 s). `tests/e2e/pen.spec.ts` covers the pencil, the pen (clicks, dragged handles, close, Backspace, Enter, Escape) and undo in 3 browsers. The 120 Hz / 60 fps check is not written yet, so the phase stays 🚧.
 
 ### Phase 40 · Vector editing & boolean operations
-**Needs:** 39 · **Was:** v3 16.1 · **Status:** 📋
-- [ ] Path edit mode (Enter or double-click): move nodes, drag bezier handles, add and remove nodes, close and open paths, mirrored handles. Boolean union, subtract, intersect and exclude; flatten. SVG import (sanitised) as editable vectors.
+**Needs:** 39 · **Was:** v3 16.1 · **Status:** 🚧
+- [x] Path edit mode (Enter or double-click): move nodes, drag bezier handles, add and remove nodes, close and open paths, mirrored handles. Boolean union, subtract, intersect and exclude; flatten. SVG import (sanitised) as editable vectors.
 
 **You'll see:** you can reshape any vector point by point.
 **Done when:** a 500-node imported SVG stays editable at 60 fps; boolean golden tests pass.
+**Evidence so far (2026-10-20):** boolean golden tests in `src/core/paths/__tests__/booleans.test.ts` (exact areas for union, subtract, intersect and exclude of squares, circles with holes, three-shape subtract, even-odd rings); path data and node-editing unit tests (`pathData.test.ts`, `pathEdit.test.ts`); `tests/e2e/vector.spec.ts` in 3 browsers: move, add, delete, close, smooth and handle drags (one undo step each), the four booleans and flatten through the inspector buttons, and a 500-node SVG placed as vectors (script removed by the sanitiser) edited with the 90th-percentile frame under 34 ms (50 ms on CI). **Design:** `svg.fillRule` (additive) for compound results; a boolean result with one outline is an editable path, with holes or several outlines a compound path (not node-editable); curves are flattened in the answer (corner nodes). Group transforms and gradients in imported SVGs are not applied. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 41 · Auto-layout: stacks
-**Needs:** 27, 32 · **Was:** v3 50.1 (stacks) · **Status:** 📋
-- [ ] Shift+A adds auto-layout: direction, gap, padding, alignment, wrap; hug, fill and fixed sizing; drag to reorder inside a stack. It maps 1:1 to CSS flex.
+**Needs:** 27, 32 · **Was:** v3 50.1 (stacks) · **Status:** 🚧
+- [x] Shift+A adds auto-layout: direction, gap, padding, alignment, wrap; hug, fill and fixed sizing; drag to reorder inside a stack. It maps 1:1 to CSS flex.
 
 **You'll see:** cards and buttons that resize to their content.
 **Done when:** a fixture with nested stacks lays out identically in 3 browsers at 5 widths.
+**Evidence so far (2026-10-20):** `src/core/layout/stack.ts` is the layout as pure functions (`computeStack`, `hugSize`, `inferStack`, `insertionIndex`), 15 unit tests; `src/core/editing/__tests__/layoutOps.test.ts` (10: Shift+A reads a row or column, in reading order, from where layers are; wraps loose layers in a hugging frame; one undo step; Shift+Alt+A pins children; stack settings; sizing; reorder; nested). `tests/e2e/auto-layout.spec.ts` in 3 browsers: **a fixture of nested stacks (header with space-between and a hug nav row, a wrapping body, a footer with a fill child) is within 0.5 px of `computeStack` for every box at 320, 480, 768, 1024 and 1440 px**; Shift+A through the inspector; direction, gap, alignment and sizing controls; dragging a child shows an insertion line and reorders (one undo step) and keeps it in the flow. **Design:** a frame is auto layout when `layout.auto` is true; children are `flow` with fixed/hug/fill sizing; Container now renders `justifyContent`, `alignItems`, `flexWrap` (lines packed at the start) and four paddings; a fixed size in a stack never shrinks (`flex-shrink: 0`); a resize of a flow child writes size only. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 42 · Grid layout & constraints
-**Needs:** 41 · **Was:** v3 50.1 (grid), 50.2 · **Status:** 📋
-- [ ] Grid containers (columns, rows, gaps, spans) mapped to CSS grid, and layout-grid overlays. Constraints for absolutely positioned children: left, right, both, centre or scale, and the same vertically.
+**Needs:** 41 · **Was:** v3 50.1 (grid), 50.2 · **Status:** 🚧
+- [x] Grid containers (columns, rows, gaps, spans) mapped to CSS grid, and layout-grid overlays. Constraints for absolutely positioned children: left, right, both, centre or scale, and the same vertically.
 
 **You'll see:** resizing a frame moves and stretches its children the way you set.
 **Done when:** constraint and grid golden tests pass when frames are resized.
+**Evidence so far (2026-10-20):** `src/core/layout/constraints.ts` (one rule per axis: start, end, both, center, scale) and `grid.ts` (track lists, `trackSpans`, `inferGrid`, `gridInsertion`) with unit tests, including the document store applying constraints in the same undo step as the resize and passing the change down to nested frames (`constraints.test.ts`, 15) and the grid operations (`layoutOps.test.ts`, 5 more). `tests/e2e/grid-constraints.spec.ts` in 3 browsers: **each constraint lands within 0.5 px of `constrainBox` at four sizes, and when the frame is resized through the inspector (one undo per field); a grid with column spans, row starts, gaps, padding and px/fr tracks is within 0.5 px of `trackSpans` at 320, 480, 768, 1024 and 1440 px**; Add grid reads two columns and the gaps from loose layers and draws the layout grid (a band per column, a line per row); spans through the inspector; dragging inside a grid reorders with an insertion line. **Design:** constraints are applied by the editor when a frame's size is written (Figma's way), not by CSS, so a document that never sets one is untouched (`constraints.horizontal/vertical`, default left and top); grid cells are `layout.gridColumnStart/Span`, `gridRowStart/Span`; a hug child sits at its cell's start, a fill child stretches. Constraints on a frame resized by a drag are applied step by step (a stretch clamped at 0 doesn't recover). Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 43 · Breakpoints & overrides
-**Needs:** 42 · **Was:** v3 50.3 (properties half) · **Status:** 📋
-- [ ] Document breakpoints (1440, 768, 375 and custom). Any property can be overridden per breakpoint, and layers can be hidden per breakpoint. The inspector marks overridden values and resets them (like Wix Studio's breakpoint bar).
+**Needs:** 42 · **Was:** v3 50.3 (properties half) · **Status:** 🚧
+- [x] Document breakpoints (1440, 768, 375 and custom). Any property can be overridden per breakpoint, and layers can be hidden per breakpoint. The inspector marks overridden values and resets them (like Wix Studio's breakpoint bar).
 
 **You'll see:** a breakpoint bar; changes at Mobile don't touch Desktop.
 **Done when:** an override applies only at its width, can be reset, and undoes in one step.
+**Evidence so far (2026-10-20):** `src/core/breakpoints/breakpoints.ts` is the rule as pure functions (which overrides apply, `resolveLayerAt`, `resolveDocumentAt` memoised, constraints carried from the base frame width to the breakpoint's), `breakpointOps.ts` and the `breakpoint.*` commands; `src/core/breakpoints/__tests__/breakpoints.test.ts` (16: cascade Tablet → Mobile, edits routed to overrides while a breakpoint is active, one undo step, no override when nothing differs or the base value is written back, reset one or all, hide at a breakpoint, a responsive frame at the breakpoint's width with pinned layers following and an override beating the pin, adding/renaming/removing breakpoints and their overrides). `tests/e2e/breakpoints.spec.ts` in 3 browsers: the bar; Mobile shows the page at 375; an X edit through the inspector at Mobile is an override (Desktop and the base untouched, the document still saves); Reset frame.x and Reset all; undo brings an override back; Tablet changes reach Mobile and Mobile's win; hide at Mobile; pinned layer follows; add a 1024 breakpoint, edit at it, remove it. **Design:** `Layer.overrides` (breakpoint id → property → value; the key `layer.visible` hides) and `MotionDocument.breakpoints` are optional and additive (no schema bump); the widest breakpoint is the base; `documentCommands.updateProps` and `setLayerFlags` send edits to the active breakpoint's overrides (a top-level frame's canvas position and `breakpoints.responsive` stay the document's); `useDocument`, `useLayer`, `useLayers` and `getResolvedDocument()` give the document as seen at the breakpoint (hit testing, measuring and the stage plan use it); a top-level frame follows the bar only when `breakpoints.responsive` is set (the bar's Responsive box; the first smaller breakpoint chosen turns it on for the selection's frame). Not built: breakpoints in the Pro face's property list beyond a dot, and Phase 44's side-by-side breakpoint canvas. Status stays 🚧 until CI passes in 3 browsers.
 
 ### Phase 44 · Breakpoint canvas
 **Needs:** 21, 43 · **Was:** v3 50.4 · **Status:** 📋
