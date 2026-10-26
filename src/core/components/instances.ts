@@ -301,3 +301,9 @@ export function markOverridden(layer: Layer, keys: readonly string[]): void {
   for (const k of keys) set.add(k);
   layer.instance.overridden = [...set].sort();
 }
+
+/** Properties a layer inside an instance (not its root) can't change: the main's layout places it (FigCraft port F9). */
+export const INSTANCE_LOCKED_PROPS = new Set(["frame.x", "frame.y", "frame.rotation", "positioning", "constraints.horizontal", "constraints.vertical", "layout.gridColumnStart", "layout.gridRowStart", "layout.gridColumnSpan", "layout.gridRowSpan"]);
+
+/** Whether `prop` of `layer` is locked by its instance (a layer inside an instance, not the instance itself). */
+export const lockedByInstance = (layer: Layer | undefined, prop: string): boolean => !!layer?.instance && !layer.instance.root && INSTANCE_LOCKED_PROPS.has(prop);

@@ -15,7 +15,8 @@ import { createComponent, insertInstance } from "../componentOps";
 import { subtreeIds } from "../instances";
 import { addVariantProperty } from "../variantOps";
 import { combineAsVariants, defaultVariantMain, lockedByInstance, pushChanges, setComponentDescription } from "../componentExtras";
-import { duplicateLayers } from "../../editing/editOps";
+import { duplicateLayers, nudgeLayers } from "../../editing/editOps";
+import { writeBoxes } from "../../editing/layerBoxes";
 
 const frame = (id: string, parentId: string, extra: Record<string, unknown> = {}, children: string[] = []): Layer =>
   createLayer({ id, archetype: "container", parentId, name: id, children, properties: { positioning: "absolute", "frame.x": 0, "frame.y": 0, "frame.width": 120, "frame.height": 40, "appearance.background.color": "#336699", ...extra } }) as Layer;
@@ -107,25 +108,45 @@ describe("FigCraft port F9: components", () => {
     assert.equal(set, c);
     assert.equal(C(c2), undefined);
     assert.equal(C(c3), undefined);
-    assert.deepEqual(C(c)!.variantProps, [{ name: "Variant", values: ["btn", "card", "chip"] }]);
+    assert.deepEqual(C(c)!.variantProps, [{ name: "Property 1", values: ["Default", "Variant2", "Variant3"] }]);
     assert.deepEqual(C(c)!.variants!.map((v) => v.mainId), ["btn", "card", "chip"]);
     assert.ok(["btn", "card", "chip"].every((m) => L(m).componentMain === c));
-    assert.equal(L("card").name, "btn, Variant=card");
+    assert.equal(L("card").name, "Property 1=Variant2");
     assert.equal(L(inst).instance!.component, c);
-    assert.deepEqual(L(inst).instance!.variant, { Variant: "card" });
+    assert.deepEqual(L(inst).instance!.variant, { "Property 1": "Variant2" });
     assert.equal(L(inst).instance!.source, "card");
     historyCommands.undo();
     assert.ok(C(c2) && C(c3) && !C(c)!.variantProps);
     assert.equal(combineAsVariants(["btn"]), null, "needs two");
   });
 
-  it("combine as variants: same-named components get distinct values; a set can't be combined again", () => {
+  it("combine as variants: names in Property=Value form keep it; layer order decides; a set or a nested main can't be combined", () => {
+    documentCommands.mutate("names", (d) => {
+      d.layers.card.name = "Size=L";
+      d.layers.btn.name = "Size=S";
+    });
     const c2 = createComponent(["card"])!;
-    documentCommands.mutate("rename", (d) => void (d.designComponents![c2].name = d.designComponents![c].name));
-    combineAsVariants([c, c2]);
-    assert.deepEqual(C(c)!.variantProps![0].values, ["btn", "btn 2"]);
+    combineAsVariants([c2, c]);
+    assert.deepEqual(C(c)!.variantProps, [{ name: "Size", values: ["S", "L"] }], "btn comes first in the page");
     const c3 = createComponent(["chip"])!;
     assert.equal(combineAsVariants([c, c3]), null, "a variant set isn't a separate component");
+    // a component inside another
+    setDocument(doc());
+    const outer = createComponent(["card"])!;
+    documentCommands.moveLayer("chip", "card", 0);
+    const inner = createComponent(["chip"]);
+    if (inner) assert.equal(combineAsVariants([outer, inner]), null);
+  });
+
+  it("arrow keys don't reorder a layer inside an instance; dragging it doesn't move it", () => {
+    const a = insertInstance(c, { at: { x: 0, y: 300 } })!;
+    const icon = mirror(a, "icon").id;
+    const before = [...L(a).children];
+    nudgeLayers([icon], 1, 0);
+    assert.deepEqual(L(a).children, before);
+    writeBoxes([icon], [{ cx: 500, cy: 500, w: 16, h: 16, rot: 30 }]);
+    assert.equal(L(icon).properties["frame.x"], 100);
+    assert.equal(L(icon).properties["frame.rotation"], undefined);
   });
 
   it("duplicating a main makes an instance of it, beside it", () => {

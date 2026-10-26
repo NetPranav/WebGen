@@ -3,8 +3,8 @@
  *
  * - **Push changes**: what an instance changed (on the selected layers, or the whole instance) goes to the main
  *   component, so every instance gets it; the instance then follows the main again.
- * - **Combine as variants**: two or more separate main components become one variant set (property "Variant", one
- *   value per component, named after it); their instances become instances of the set with that value.
+ * - **Combine as variants**: two or more separate main components become one variant set ("Property 1" = "Default",
+ *   "Variant2"…, or the `Property=Value` their names already say); their instances become instances of the set.
  * - **Descriptions** on components.
  * - **The default variant** is the top-left one (what a new instance shows).
  * - **What an instance can't change**: the position, rotation and constraints of the layers inside it (it can move as a
@@ -14,18 +14,13 @@
  * 6ea44e9. MIT, Copyright (c) 2026 ArtCraft Team and the FigCraft contributors. See THIRD_PARTY_NOTICES.md.
  */
 
-import type { Layer } from "../document/schema";
 import { documentCommands } from "../store/useDocumentStore";
 import { getDocument } from "../store/documentState";
-import { instanceRootOf, isInstanceLayer, subtreeIds } from "./instances";
+import { INSTANCE_LOCKED_PROPS, instanceRootOf, subtreeIds } from "./instances";
+
+export { INSTANCE_LOCKED_PROPS, lockedByInstance } from "./instances";
 
 const num = (v: unknown, d = 0) => (typeof v === "number" && Number.isFinite(v) ? v : d);
-
-/** Properties a layer inside an instance (not its root) can't change: the main's layout places it. */
-export const INSTANCE_LOCKED_PROPS = new Set(["frame.x", "frame.y", "frame.rotation", "positioning", "constraints.horizontal", "constraints.vertical", "layout.gridColumnStart", "layout.gridRowStart", "layout.gridColumnSpan", "layout.gridRowSpan"]);
-
-/** Whether `prop` of `layer` is locked by its instance (a layer inside an instance, not the instance itself). */
-export const lockedByInstance = (layer: Layer | undefined, prop: string): boolean => !!layer && isInstanceLayer(layer) && !layer.instance?.root && INSTANCE_LOCKED_PROPS.has(prop);
 
 /** Pushes instance overrides to the main component. Returns how many layers' changes went to the main. */
 export function pushChanges(ids: readonly string[]): number {
@@ -61,43 +56,49 @@ export function pushChanges(ids: readonly string[]): number {
   return pushed;
 }
 
-/** Combines separate main components (by main layer or component id) into one variant set. Returns the set's component id. */
+/**
+ * Combines separate main components (by main layer or component id) into one variant set, in layer order. Main names
+ * already in `Property=Value` form (all with the same property) keep it; otherwise, as FigCraft names them, the
+ * property is "Property 1" and the values "Default", "Variant2", "Variant3"…. Returns the set's component id.
+ */
 export function combineAsVariants(ids: readonly string[]): string | null {
   const doc = getDocument();
   const comps = doc.designComponents ?? {};
   const chosen: string[] = [];
   for (const id of ids) {
     const cid = comps[id] ? id : doc.layers[id]?.componentMain;
-    if (cid && comps[cid] && !comps[cid].variantProps && !chosen.includes(cid)) chosen.push(cid);
+    if (cid && comps[cid] && doc.layers[comps[cid].mainId] && !comps[cid].variantProps && !doc.layers[comps[cid].mainId].instance && !chosen.includes(cid)) chosen.push(cid);
   }
+  // a component inside another of the chosen ones can't join it
+  if (chosen.some((a) => chosen.some((b) => a !== b && subtreeIds(doc.layers, comps[b].mainId).includes(comps[a].mainId)))) return null;
   if (chosen.length < 2) return null;
-  const [first, ...rest] = chosen;
-  const used = new Set<string>();
-  const valueOf = (cid: string) => {
-    let v = comps[cid].name.slice(0, 60) || "Variant";
-    for (let k = 2; used.has(v); k++) v = `${comps[cid].name.slice(0, 55)} ${k}`;
-    used.add(v);
-    return v;
+  // layer order: by parent, then place among its siblings (FigCraft sorts by paint order)
+  const orderOf = (cid: string) => {
+    const m = doc.layers[comps[cid].mainId];
+    return [m.parentId ?? "", m.parentId ? doc.layers[m.parentId].children.indexOf(m.id) : 0] as const;
   };
-  const values = chosen.map(valueOf);
+  chosen.sort((a, b) => orderOf(a)[0].localeCompare(orderOf(b)[0]) || orderOf(a)[1] - orderOf(b)[1]);
+  const [first, ...rest] = chosen;
+  const parsed = chosen.map((cid) => /^\s*([^=,]{1,60}?)\s*=\s*([^=,]{1,60}?)\s*$/.exec(doc.layers[comps[cid].mainId].name));
+  const sameKey = parsed.every((p) => p && p[1] === parsed[0]![1]) && new Set(parsed.map((p) => p![2])).size === parsed.length;
+  const prop = sameKey ? parsed[0]![1] : "Property 1";
+  const values = chosen.map((_, k) => (sameKey ? parsed[k]![2] : k === 0 ? "Default" : `Variant${k + 1}`));
   documentCommands.mutate("Combine as variants", (d) => {
     const set = d.designComponents![first];
-    set.variantProps = [{ name: "Variant", values }];
-    set.variants = chosen.map((cid, i) => ({ mainId: d.designComponents![cid].mainId, values: { Variant: values[i] } }));
+    set.variantProps = [{ name: prop, values }];
+    set.variants = chosen.map((cid, i) => ({ mainId: d.designComponents![cid].mainId, values: { [prop]: values[i] } }));
     set.mainId = set.variants[0].mainId;
     chosen.forEach((cid, i) => {
       const main = d.layers[d.designComponents![cid].mainId];
-      if (main) {
-        main.componentMain = first;
-        main.name = `${set.name}, Variant=${values[i]}`;
-      }
+      main.componentMain = first;
+      main.name = `${prop}=${values[i]}`;
     });
     for (const l of Object.values(d.layers)) {
       if (!l.instance) continue;
       const i = chosen.indexOf(l.instance.component);
       if (i < 0) continue;
       l.instance.component = first;
-      if (l.instance.root) l.instance.variant = { Variant: values[i] };
+      if (l.instance.root) l.instance.variant = { [prop]: values[i] };
     }
     for (const cid of rest) delete d.designComponents![cid];
   });

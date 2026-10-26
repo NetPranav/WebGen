@@ -173,8 +173,8 @@ test("FigCraft port: push an instance's change to its main, combine two componen
   // both mains selected: combine them into one set
   await run(page, "selection.set", { ids: [a, b] });
   await page.getByRole("button", { name: "Combine as variants" }).click();
-  await expect.poll(() => D((d) => Object.values(d.designComponents ?? {}).map((c) => c.variantProps?.[0]?.values.join(",")).join("|"))).toBe("Primary,Secondary");
-  expect(await D((d, id) => d.layers[id].instance!.variant, inst)).toEqual({ Variant: "Primary" });
+  await expect.poll(() => D((d) => Object.values(d.designComponents ?? {}).map((c) => c.variantProps?.[0]?.values.join(",")).join("|"))).toBe("Default,Variant2");
+  expect(await D((d, id) => d.layers[id].instance!.variant, inst)).toEqual({ "Property 1": "Default" });
   await page.keyboard.press(`${MOD}+z`);
   await expect.poll(() => D((d) => Object.keys(d.designComponents ?? {}).length)).toBe(2);
 });

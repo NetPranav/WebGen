@@ -47,8 +47,7 @@ import { appliedBreakpoints, breakpointsOf, isBase, resolveDocumentAt, resolveLa
 import { useBreakpointStore } from "./useBreakpointStore";
 import { useModeStore } from "./useModeStore";
 import { STYLE_PROPS } from "../tokens/tokens";
-import { markOverridden, syncInstances } from "../components/instances";
-import { lockedByInstance } from "../components/componentExtras";
+import { lockedByInstance, markOverridden, syncInstances } from "../components/instances";
 import { syncCompositions, type CompositionLayer, type Marker } from "../document/compositions";
 import {
   validateMotionDocument,

@@ -251,6 +251,8 @@ export function nudgeLayers(ids: readonly string[], dx: number, dy: number): voi
     const parent = layer?.parentId ? l[layer.parentId] : undefined;
     return parent && parent.archetype === "container" && parent.properties["layout.auto"] === true && layer.properties.positioning !== "absolute" ? parent : null;
   };
+  // a layer inside an instance keeps the main's order and place (FigCraft port F9)
+  if (roots.some((id) => l[id]?.instance && !l[id].instance!.root)) return;
   if (roots.length > 0 && roots.every((id) => flowParent(id))) {
     transaction("Reorder", () => {
       for (const id of roots) {
