@@ -298,3 +298,14 @@ describe("Phase 49: every archetype of the render gallery exports", () => {
     void toText;
   });
 });
+
+describe("FigCraft port F8: the HTML writer keeps text as it is", () => {
+  it("text mixed with elements is written inline (a list marker before its words, styled runs); empty elements stay empty", async () => {
+    const { parseMarkup } = await import("../markup");
+    const { toHtml } = await import("../serialize");
+    const html = toHtml(parseMarkup('<div style="white-space:pre-wrap"><div><span>1.</span>Plan</div><div><b>bold</b> and <i>it</i></div></div><div></div>'));
+    assert.match(html, /<div><span>1\.<\/span>Plan<\/div>/);
+    assert.match(html, /<div><b>bold<\/b> and <i>it<\/i><\/div>/);
+    assert.match(html, /<div><\/div>\n$/, "no white space inside an empty element");
+  });
+});

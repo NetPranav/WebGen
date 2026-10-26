@@ -2,10 +2,13 @@ import type { CSSProperties } from "react";
 import { px } from "../geometry";
 import type { ResolvedProps } from "../types";
 import { variationCss } from "../../fonts/families";
+import { featureCss, parseFeatures } from "../../text/textFeatures";
 
 /**
  * The typography of a text layer as CSS: family, size, weight, style, line height, letter spacing, alignment,
  * decoration and case. The renderer and the in-place editor both use it, so what you type looks like what you get.
+ * FigCraft port F8: the decoration's style, thickness, offset and ink skipping, small caps, OpenType features,
+ * hanging punctuation and cap-height trim.
  */
 export function textTypography(resolved: ResolvedProps): CSSProperties {
   const align = resolved.str("typography.textAlign", "left");
@@ -33,5 +36,24 @@ export function textTypography(resolved: ResolvedProps): CSSProperties {
     ...(typeof ls === "number" && Number.isFinite(ls) && ls !== 0 ? { letterSpacing: `${ls}${lsUnit === "em" || lsUnit === "rem" ? lsUnit : "px"}` } : {}),
     ...(decoration === "underline" || decoration === "line-through" || decoration === "overline" ? { textDecorationLine: decoration } : {}),
     ...(transform === "uppercase" || transform === "lowercase" || transform === "capitalize" ? { textTransform: transform } : {}),
+    ...decorationLook(resolved),
+    ...(resolved.bool("typography.smallCaps", false) ? { fontVariantCaps: "small-caps" as const } : {}),
+    ...(featureCss(parseFeatures(resolved.get("typography.fontFeatures"))) ? { fontFeatureSettings: featureCss(parseFeatures(resolved.get("typography.fontFeatures"))) } : {}),
+    ...(resolved.bool("typography.hangingPunctuation", false) ? { hangingPunctuation: "first last" } : {}),
+    // cap-height trim: the box runs from the first line's cap height to the last line's baseline
+    ...(resolved.get("typography.leadingTrim") === "capHeight" ? ({ textBoxTrim: "trim-both", textBoxEdge: "cap alphabetic" } as CSSProperties) : {}),
   };
+}
+
+/** How the decoration line looks (FigCraft port F8): only what the layer sets, so older text draws as before. */
+function decorationLook(resolved: ResolvedProps): CSSProperties {
+  const out: CSSProperties = {};
+  const style = resolved.get("typography.decorationStyle");
+  if (style === "dotted" || style === "wavy") out.textDecorationStyle = style;
+  const thick = resolved.get("typography.decorationThickness");
+  if (typeof thick === "number" && Number.isFinite(thick) && thick > 0) out.textDecorationThickness = px(Math.min(100, thick));
+  const offset = resolved.get("typography.decorationOffset");
+  if (typeof offset === "number" && Number.isFinite(offset) && offset !== 0) out.textUnderlineOffset = px(Math.max(-100, Math.min(100, offset)));
+  if (resolved.get("typography.decorationSkipInk") === "none") out.textDecorationSkipInk = "none";
+  return out;
 }

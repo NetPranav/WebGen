@@ -18,9 +18,17 @@ function nodeHtml(n: ENode, indent: string): string {
   if (n.tag === "#text") return n.text ?? "";
   const open = `<${n.tag}${attrText(n)}`;
   if (isVoid(n.tag)) return `${indent}${open}>\n`;
-  const onlyText = n.children.every((c) => c.tag === "#text");
-  if (onlyText) return `${indent}${open}>${toHtml(n.children)}</${n.tag}>\n`;
+  // text mixed with elements (styled runs, a list marker before its words) is written as it is: an added line break
+  // or indent would show in text that keeps its white space
+  if (n.children.length === 0 || n.children.some((c) => c.tag === "#text")) return `${indent}${open}>${n.children.map(inlineHtml).join("")}</${n.tag}>\n`;
   return `${indent}${open}>\n${toHtml(n.children, `${indent}  `)}${indent}</${n.tag}>\n`;
+}
+
+/** A node with nothing added around it or inside it. */
+function inlineHtml(n: ENode): string {
+  if (n.tag === "#text") return n.text ?? "";
+  const open = `<${n.tag}${attrText(n)}>`;
+  return isVoid(n.tag) ? open : `${open}${n.children.map(inlineHtml).join("")}</${n.tag}>`;
 }
 
 // --- JSX -----------------------------------------------------------------------------

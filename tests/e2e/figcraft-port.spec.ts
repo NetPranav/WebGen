@@ -250,3 +250,28 @@ test("FigCraft port: effects added in the Pro inspector reach the stage: noise a
   await page.keyboard.press(`${MOD}+z`);
   await expect.poll(() => inStage(page, (doc, id) => doc.querySelectorAll(`[data-element-id="${id}"] > [data-effect-band]`).length, frame)).toBe(0);
 });
+
+test("FigCraft port: a numbered list nested from the inspector, and text put on a shape's path", async ({ page }) => {
+  await ready(page);
+  type D = { commands: { addLayer: (input: unknown) => string }; get: () => { layers: Record<string, { parentId: string | null; archetype: string }> } };
+  const { t, arc } = await page.evaluate(() => {
+    const d = (window as unknown as { __LL_DOC__: D }).__LL_DOC__;
+    const top = Object.entries(d.get().layers).find(([, l]) => l.parentId === null && l.archetype === "container")![0];
+    const t = d.commands.addLayer({ archetype: "text", parentId: top, name: "Steps", properties: { positioning: "absolute", "frame.x": 40, "frame.y": 300, "frame.width": 240, "frame.height": 120, "text.sizing": "fixed", "content.text": "Plan\nDraw\nShip", "typography.fontSize": 16 } });
+    const arc = d.commands.addLayer({ archetype: "ellipse", parentId: top, name: "Arc", properties: { positioning: "absolute", "frame.x": 320, "frame.y": 300, "frame.width": 200, "frame.height": 120 } });
+    return { t, arc };
+  });
+  await run(page, "selection.set", { ids: [t] });
+  await page.getByRole("tab", { name: "Pro" }).click();
+  await page.getByRole("radio", { name: "Numbers" }).click();
+  const markers = () => inStage(page, (doc, id) => Array.from(doc.querySelectorAll(`[data-element-id="${id}"] [data-list-marker]`)).map((m) => m.textContent).join(" "), t);
+  await expect.poll(markers).toBe("1. 2. 3.");
+  await run(page, "text.indentList", { by: 1, paragraphs: [1], ids: [t] });
+  await expect.poll(markers).toBe("1. a. 2.");
+  // the text and the ellipse selected: put the text on the ellipse's outline
+  await run(page, "selection.set", { ids: [t, arc] });
+  await page.getByRole("button", { name: "Put text on the selected shape's path" }).click();
+  await expect.poll(() => inStage(page, (doc, id) => doc.querySelector(`[data-element-id="${id}"] textPath`)?.textContent ?? "", t)).toBe("Plan Draw Ship");
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(() => inStage(page, (doc, id) => !!doc.querySelector(`[data-element-id="${id}"] textPath`), t)).toBe(false);
+});

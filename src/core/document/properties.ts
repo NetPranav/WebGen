@@ -297,6 +297,32 @@ const DEFS = {
   "typography.format.strike": flag(false, "paint", TYPOGRAPHY),
   "typography.format.code": flag(false, "layout", TYPOGRAPHY),
   "typography.split": oneOf(["none", "chars", "words", "lines"], "none", null, "layout", TYPOGRAPHY),
+  // FigCraft port F8: how a decoration line looks, small caps, OpenType features
+  "typography.decorationStyle": oneOf(["solid", "dotted", "wavy"], "solid", "text-decoration-style", "paint", TYPOGRAPHY),
+  /** The decoration's thickness (px); 0 is the font's own. */
+  "typography.decorationThickness": ranged(px(0, "text-decoration-thickness", "paint", TYPOGRAPHY), { min: 0, max: 100 }),
+  /** How far below the baseline an underline sits (px); 0 is the font's own. */
+  "typography.decorationOffset": ranged(px(0, "text-underline-offset", "paint", TYPOGRAPHY), { min: -100, max: 100 }),
+  /** Whether underlines break where descenders cross them (`auto`, the browser's own, does). */
+  "typography.decorationSkipInk": oneOf(["auto", "none"], "auto", "text-decoration-skip-ink", "paint", TYPOGRAPHY),
+  "typography.smallCaps": flag(false, "layout", TYPOGRAPHY),
+  /** OpenType feature toggles as JSON (`{"liga": false, "tnum": true}`), drawn as `font-feature-settings`. */
+  "typography.fontFeatures": typed(str("", "font-feature-settings", "layout", TYPOGRAPHY)),
+  // FigCraft port F8, text layers: paragraphs, lists, truncation, vertical alignment and trim, text on a path
+  "typography.paragraphSpacing": ranged(px(0, null, "layout", only("text")), { min: 0, max: 1000 }),
+  "typography.paragraphIndent": ranged(px(0, null, "layout", only("text")), { min: 0, max: 1000 }),
+  "typography.list": oneOf(["none", "bulleted", "numbered"], "none", null, "layout", only("text")),
+  /** Each paragraph's list settings as JSON (`[{"list":"numbered","indent":1}]`), when they differ from `typography.list`. */
+  "typography.listParagraphs": typed(str("", null, "layout", only("text"))),
+  "typography.listSpacing": ranged(px(0, null, "layout", only("text")), { min: 0, max: 1000 }),
+  "typography.hangingList": flag(false, "layout", only("text")),
+  "typography.hangingPunctuation": flag(false, "layout", only("text")),
+  /** Lines shown before an ellipsis (0: as many as fit). */
+  "typography.maxLines": ranged(num(0, null, "layout", only("text")), { min: 0, max: 1000 }),
+  "typography.verticalAlign": oneOf(["top", "middle", "bottom"], "top", null, "layout", only("text")),
+  "typography.leadingTrim": oneOf(["none", "capHeight"], "none", null, "layout", only("text")),
+  /** Text on a path as JSON (`{"d": "M…", "start": 0, "flip": false}`, the path in the layer's own space). */
+  "typography.textPath": typed(str("", null, "layout", only("text"))),
 
   // --- Content ---------------------------------------------------------------
   "content.text": str("", null, "layout", only("text", "svgText", "generic")),

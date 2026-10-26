@@ -93,6 +93,9 @@ export const GALLERY_CASES: GalleryCase[] = [
   text("text-empty", "Text, empty falls back to the layer name", { "content.text": "" }),
   { ...text("text-long", "Text, long and wrapping", { "content.text": "The quick brown fox jumps over the lazy dog. ".repeat(6), "frame.width": 260 }), expectSize: { width: 260, height: 0 } },
   text("text-hostile", "Text, HTML is shown, not run", { "content.text": '<img src=x onerror="document.title=\'pwned\'"> <b>bold?</b>' }),
+  // FigCraft port F8: a nested numbered list with paragraph spacing, and text following an arc
+  text("text-list", "Text, a numbered list nested one level", { "content.text": "Plan\nDraw\nOutline\nShip", "typography.list": "numbered", "typography.listParagraphs": JSON.stringify([{ list: "numbered", indent: 0 }, { list: "numbered", indent: 0 }, { list: "numbered", indent: 1 }, { list: "numbered", indent: 0 }]), "typography.listSpacing": 4, "frame.width": 200 }),
+  { ...text("text-on-path", "Text on a path (an arc)", { "content.text": "Text along a curve", "frame.width": 200, "frame.height": 100, "text.sizing": "fixed", "typography.textPath": JSON.stringify({ d: "M10 90 C60 10 140 10 190 90", start: 0 }) }), expectSize: { width: 200, height: 100 } },
   text("text-centered", "Text, centred, wide word", { "content.text": "Supercalifragilisticexpialidocious_and_more_and_more_and_more", "typography.textAlign": "center", "frame.width": 200 }),
   // ---- vector ----
   { id: "svg-path", archetype: "svgPath", label: "SVG path", properties: { "svg.path": "M10 100 C 40 10, 90 10, 120 100 S 180 190, 190 100", "frame.width": 160, "frame.height": 80 }, expectSize: { width: 160, height: 80 } },

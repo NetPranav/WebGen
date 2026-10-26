@@ -118,6 +118,17 @@ export function layerOutline(l: Layer, layers: Readonly<Record<string, Layer>>, 
   }
 }
 
+/**
+ * The line a layer draws along, in its own box (what text on a path follows, FigCraft port F8): a line's centre line,
+ * a path layer's path (open or closed), any other shape's outline. Null when it has none.
+ */
+export function layerSpine(l: Layer, layers: Readonly<Record<string, Layer>>): BezPath | null {
+  const { w, h } = layerSize(l);
+  if (l.archetype === "line") return new BezPath().moveTo({ x: 0, y: h / 2 }).lineTo({ x: w, y: h / 2 });
+  if (l.archetype === "svgPath") return pathLayerPath(l, "stroke")?.path ?? null;
+  return layerOutline(l, layers)?.path ?? null;
+}
+
 /** The layer's stroke settings as the outliner takes them (an archetype without an explicit alignment keeps its older placement). */
 function strokePropsOf(l: Layer): StrokeProps | null {
   const p = l.properties;

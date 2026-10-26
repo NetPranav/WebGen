@@ -12,6 +12,7 @@ import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
 import { runsText, serializeRuns, type TextRun } from "./runs";
+import { attachToPath, detachFromPath, indentList, setList, setListStart, setTextPath } from "./textOps";
 
 /** The one selected text layer that can be edited (not locked, not hidden inside a locked parent), or null. */
 export function editableTextSelection(): string | null {
@@ -89,6 +90,38 @@ export function registerTextCommands(): () => void {
         return { ok: true };
       },
     }),
+    // FigCraft port F8: lists and text on a path
+    defineTypedCommand({
+      id: "text.setList",
+      title: "Set List",
+      category,
+      args: z.object({ list: z.enum(["none", "bulleted", "numbered"]), paragraphs: z.array(z.number().int().min(0)).max(10_000).optional(), ids: z.array(z.string()).optional() }),
+      run: ({ list, paragraphs, ids }) => ({ changed: setList(ids ?? useSelectionStore.getState().selectedIds, list, paragraphs) }),
+    }),
+    defineTypedCommand({
+      id: "text.indentList",
+      title: "Indent List Items",
+      category,
+      args: z.object({ by: z.union([z.literal(1), z.literal(-1)]), paragraphs: z.array(z.number().int().min(0)).max(10_000).optional(), ids: z.array(z.string()).optional() }),
+      run: ({ by, paragraphs, ids }) => ({ changed: indentList(ids ?? useSelectionStore.getState().selectedIds, by, paragraphs) }),
+    }),
+    defineTypedCommand({ id: "text.setListStart", title: "Set List Start", category, args: z.object({ id: z.string(), paragraph: z.number().int().min(0), start: z.number().int().min(1) }), run: ({ id, paragraph, start }) => ({ ok: setListStart(id, paragraph, start) }) }),
+    defineTypedCommand({
+      id: "text.attachToPath",
+      title: "Put Text on Path",
+      category,
+      args: z.object({ text: z.string().optional(), path: z.string().optional(), start: z.number().min(0).max(1).optional(), flip: z.boolean().optional() }).default({}),
+      run: ({ text, path, start, flip }) => {
+        // with no ids: the selected text and the selected shape
+        const sel = useSelectionStore.getState().selectedIds;
+        const layers = getDocument().layers;
+        const t = text ?? sel.find((id) => layers[id]?.archetype === "text");
+        const p = path ?? sel.find((id) => layers[id] && layers[id].archetype !== "text");
+        return { ok: !!t && !!p && attachToPath(t, p, { start, flip }) };
+      },
+    }),
+    defineTypedCommand({ id: "text.setPath", title: "Set Text Path", category, args: z.object({ start: z.number().min(0).max(1).optional(), flip: z.boolean().optional(), ids: z.array(z.string()).optional() }), run: ({ start, flip, ids }) => ({ changed: setTextPath(ids ?? useSelectionStore.getState().selectedIds, { start, flip }) }) }),
+    defineTypedCommand({ id: "text.detachFromPath", title: "Take Text off Path", category, args: z.object({ ids: z.array(z.string()).optional() }).default({}), run: ({ ids }) => ({ changed: detachFromPath(ids ?? useSelectionStore.getState().selectedIds) }) }),
   ];
   return () => offs.forEach((off) => off());
 }
