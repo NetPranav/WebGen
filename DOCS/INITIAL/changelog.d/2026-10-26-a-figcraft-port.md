@@ -9,6 +9,7 @@ FigCraft's engine logic (MIT) is being translated into ours, batch by batch, und
 - **F4 vector networks:** points joined by any number of curves, filled by regions (`src/core/paths/vectorNetwork.ts`, stored on path layers as `svg.network`), points with their own corner radius, handle mirroring, cap and join, and the Paint Bucket tool (B) that fills or unfills any closed area. Commands `vector.makeNetwork`, `vector.paintBucket`, `vector.setPoint`; a "Make vector network" button.
 - **F5 booleans and the Shape Builder:** live boolean groups whose operands stay editable layers (`boolean.operation` on a frame, `boolean.operandOp` per operand; commands `boolean.makeGroup`, `boolean.setOperation`, `boolean.flattenGroup`), and the Shape Builder tool (Shift+M) that merges, or with Alt removes, the regions where selected shapes overlap (`shapeBuilder.regions`, `shapeBuilder.merge`, `shapeBuilder.remove`).
 - **F6 auto layout:** auto gaps Space around and Space evenly, Baseline alignment, wrapped lines packed where the cross alignment says or spread (`layout.alignContent`), inside strokes in or out of the layout (`layout.strokesIncluded`), first child on top (`layout.reverseZ`), a grid child's place in its cell (`layout.justifySelf`), Fill on a child fixing a hugging parent, arrow keys moving a child through its stack, and layout grids (columns, rows, square grid) drawn over frames (`frame.layoutGrids`, a Layout grids panel, `layout.setLayoutGrids`).
+- **F9 components:** Push changes to main, Combine as variants, duplicating a main component makes an instance of it, component descriptions (`designComponents[].description`), the top-left variant as the default for new instances, and layers inside an instance keep the main's place, rotation and constraints (their look and size can still change). Commands `component.pushChanges`, `component.combineAsVariants`, `component.setDescription`; buttons and a description box in the Component panel.
 - Paint editor: a blend menu per fill, Diamond in the type list, adjustment presets and sliders for image fills.
 - Render gallery cases for every new shape and paint.
 
@@ -17,5 +18,6 @@ FigCraft's engine logic (MIT) is being translated into ours, batch by batch, und
 - `paint.setFills` rejected the diamond gradient and dropped blend modes and image adjustments, so those F2 controls couldn't save.
 
 #### Not done
-- The rest of the plan (components, variables, effects, text, editing behaviours, Dev Mode, import): see the plan's status column.
+- Nested components and the instance-swap property (components still don't nest).
+- The rest of the plan (variables, effects, text, editing behaviours, Dev Mode, import): see the plan's status column.
 - Pattern fills: the cell maths is ported, but drawing a layer as a repeating tile needs a renderer change (CSS has no portable `element()`).

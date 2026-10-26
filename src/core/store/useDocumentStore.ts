@@ -48,6 +48,7 @@ import { useBreakpointStore } from "./useBreakpointStore";
 import { useModeStore } from "./useModeStore";
 import { STYLE_PROPS } from "../tokens/tokens";
 import { markOverridden, syncInstances } from "../components/instances";
+import { lockedByInstance } from "../components/componentExtras";
 import { syncCompositions, type CompositionLayer, type Marker } from "../document/compositions";
 import {
   validateMotionDocument,
@@ -619,6 +620,8 @@ export const documentCommands = {
       const list = breakpointsOf(draft);
       const activeId = useBreakpointStore.getState().activeId;
       const routed: Record<string, PropValue | undefined> = {};
+      // a layer inside an instance can't be moved or rotated: the main places it (FigCraft port F9)
+      if (layer.instance && !layer.instance.root) patch = Object.fromEntries(Object.entries(patch).filter(([k]) => !lockedByInstance(layer as Layer, resolvePropertyPath(k, layer.archetype).ok ? (resolvePropertyPath(k, layer.archetype) as { path: string }).path : k)));
       let direct = patch;
       if (!isBase(list, activeId)) {
         direct = {};

@@ -4,6 +4,7 @@
  * step; the instances follow their main in the same step as any edit to it (see `instances.ts`).
  */
 
+import { defaultVariantMain } from "./componentExtras";
 import { frameIdOf, listFrames } from "../frames/frames";
 import { groupLayers, transaction } from "../editing/editOps";
 import { getDocument } from "../store/documentState";
@@ -52,8 +53,9 @@ export function createComponent(ids: readonly string[], name?: string): string |
 export function insertInstance(componentId: string, options: { parentId?: string | null; at?: { x: number; y: number }; variant?: Record<string, string>; index?: number; flow?: boolean } = {}): string | null {
   const doc = getDocument();
   const comp = doc.designComponents?.[componentId];
-  // the variant asked for, or the first one
-  const chosen = comp && options.variant ? findVariant(comp, options.variant) : undefined;
+  // the variant asked for, or the default one: the top-left (FigCraft port F9)
+  const topLeft = comp?.variants?.length ? defaultVariantMain(componentId) : null;
+  const chosen = comp && options.variant ? findVariant(comp, options.variant) : topLeft ? comp?.variants?.find((v) => v.mainId === topLeft) : undefined;
   const sourceMain = chosen?.mainId ?? comp?.mainId;
   const main = sourceMain ? doc.layers[sourceMain] : undefined;
   if (!comp || !main || !sourceMain) return null;

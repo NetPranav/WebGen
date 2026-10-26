@@ -132,10 +132,12 @@ FigCraft's layout solver is not ported: the browser lays out our frames as CSS f
 
 | Feature | FigCraft source | Our target | We have (phase) | Kind | Status |
 |---|---|---|---|---|---|
-| Overrides that survive main edits, per-layer, nested | `engine/src/components.rs`, `nested_override_tests.rs` | `src/core/components/instances.ts` | Instances with overrides (46) | behaviour | 📋 |
-| Swap instance, reset overrides, detach, go to main, push changes | `engine/src/components.rs` | `componentCommands.ts` | Partly (46) | behaviour | 📋 |
-| Component properties: boolean, text, instance swap, variant; slots | `engine/src/components.rs` | `variantOps.ts` | Variants, properties, slots (47) | behaviour | 📋 |
-| Instance resizing rules | `engine/src/instance_resizing_tests.rs` | `instances.ts` | — | behaviour | 📋 |
+| Overrides that survive main edits, per-layer | `engine/src/components.rs` | `src/core/components/instances.ts` | Instances with overrides (46) | behaviour | ✅ (46) |
+| Nested instances (a component inside a component) and their overrides | `nested_override_tests.rs` | `instances.ts` | — (components don't nest, by design in 46) | behaviour | 📋 needs a model change |
+| Push changes to main, Combine as variants, duplicate a main as an instance, descriptions, top-left default variant | `engine/src/components.rs`, `docs/components-parity.md` | `componentExtras.ts`, `componentCommands.ts`, Component panel | Swap, reset, detach, go to main (46) | behaviour | ✅ |
+| Component properties: boolean, text, variant; slots | `engine/src/components.rs` | `variantOps.ts` | Variants, properties, slots (47) | behaviour | ✅ (47) |
+| Instance-swap property | `engine/src/components.rs` | `variantOps.ts` | — | behaviour | 📋 needs nesting |
+| Instance resizing rules: inner layers keep the main's place, rotation and constraints; their own size and resizing are overrides | `engine/src/instance_resizing_tests.rs` | `componentExtras.ts`, `updateProps` | Size overrides (46) | behaviour | ✅ |
 
 ### F10 · Styles and variables
 
@@ -240,6 +242,8 @@ When those phases start, their FigCraft sources are listed here so they can be p
 **2026-10-26: F1 and F2 ported.** Geometry (`bezpath.ts`, `shapes.ts`, `affine.ts`) with every FigCraft `geom` test (18 cases, all green); colour (`color.ts`) with FigCraft's colour, gradient, pattern, profile and named-colour tests (24 cases; one compares with a 1e-9 tolerance because FigCraft uses 32-bit floats). Render definitions draw per-corner radii, smoothing, rounded vertices, arcs, pies and rings; paints gain blend modes, the diamond gradient (checked point by point against FigCraft's |x|+|y| formula) and the seven image adjustments.
 
 **2026-10-26: browser check after F3** (same machine, 4 workers): 657 passed, 14 flaky, 12 failed. Two were real regressions caught here, both F2's: the new image adjustment fields reused the accessible names "Fill 1 saturation" and "Fill 1 contrast" of the Phase 37 controls, so the Phase 37 image tests couldn't find their fields (all three browsers); fixed by naming them "… adjustment". The rest are the baseline's frame-rate and timing tests, plus Phase 63's keyboard journey in Chromium (re-run on its own below).
+
+**2026-10-26: F9 components (part).** `componentExtras.ts`: push changes (a selected instance or one of its layers; the instance's own place stays its own), Combine as variants (property "Variant", a value per component, same names made distinct, instances re-pointed), duplicating a main inserts an instance (of that variant), component descriptions, the top-left variant as the default, and `updateProps` refusing position, rotation, constraint and grid-cell writes on layers inside an instance. Commands `component.pushChanges`, `component.combineAsVariants`, `component.setDescription`; Component panel buttons and a description box. Ported tests: the resizing and push cases; the Phase 46/47 unit and browser suites still pass. Left: nested instances and the instance-swap property, which need components to nest (Phase 46 refuses that by design) — a model change to `instances.ts` big enough to be its own step.
 
 **2026-10-26: F6 auto layout behaviour.** `stack.ts` gains space-around/space-evenly (`mainOffsets`), baseline, wrapped-line alignment and a cross gap; `layoutGrids.ts` (FigCraft `grid_lines`) with an overlay, panel and command; strokes in or out of the layout, first child on top, grid cell alignment, Fill fixing a hugging parent, arrow keys reordering a stack. Ported tests: FigCraft's gap rules, wrapped-line cases (13) and layout-grid tests, all green; the Phase 41/42 browser specs (auto layout, grids, editing, inspectors, layers, breakpoints, export) pass in all three browsers. Not ported: FigCraft's own solver (the browser lays out), auto gaps ignoring the gap value (we keep CSS: gap plus shared space, which gives FigCraft's numbers in its cases), the `fr`-track minimum.
 

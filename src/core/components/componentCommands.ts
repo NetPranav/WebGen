@@ -6,6 +6,7 @@ import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { useToolStore } from "../store/useToolStore";
 import { addVariantProperty, exposeProperty, fillSlot, markSlot, removeProperty, setProperty, setVariant } from "./variantOps";
+import { combineAsVariants, pushChanges, setComponentDescription } from "./componentExtras";
 import { createComponent, deleteComponent, detachInstances, goToMain, insertInstance, renameComponent, resetOverrides, swapInstance } from "./componentOps";
 
 const ids = () => useSelectionStore.getState().selectedIds;
@@ -71,6 +72,10 @@ export function registerComponentCommands(): () => void {
     }),
     defineTypedCommand({ id: "component.markSlot", title: "Make Slot", category, args: z.object({ on: z.boolean(), layer: z.string().optional() }), run: ({ on, layer }) => ({ ok: markSlot(layer ?? ids()[0] ?? "", on) }) }),
     defineTypedCommand({ id: "component.fillSlot", title: "Fill Slot", category, args: z.object({ slot: z.string(), ids: z.array(z.string()).optional() }), run: ({ slot, ids: only }) => ({ moved: fillSlot(slot, only ?? ids()) }) }),
+    // FigCraft port F9
+    defineTypedCommand({ id: "component.pushChanges", title: "Push Changes to Main Component", category, args: z.object({ ids: z.array(z.string()).optional() }).default({}), run: ({ ids: only }) => ({ pushed: pushChanges(only ?? ids()) }) }),
+    defineTypedCommand({ id: "component.combineAsVariants", title: "Combine as Variants", category, args: z.object({ ids: z.array(z.string()).optional() }).default({}), run: ({ ids: only }) => ({ component: combineAsVariants(only ?? ids()) }) }),
+    defineTypedCommand({ id: "component.setDescription", title: "Set Component Description", category, args: z.object({ component: z.string(), description: z.string().max(2000) }), run: ({ component, description }) => ({ ok: setComponentDescription(component, description) }) }),
     defineTypedCommand({ id: "component.delete", title: "Delete Component", category, args: z.object({ component: z.string() }), run: ({ component }) => ({ ok: deleteComponent(component) }) }),
   ];
   return () => offs.forEach((off) => off());

@@ -3,12 +3,13 @@
 /**
  * Components on the selection (ROADMAP Phase 46), in the Design inspector: for a main component its name, how many
  * instances it has and a way to make a component from a plain frame; for a layer of an instance, what it came from, the
- * properties it overrides (each can be reset), and reset, swap, detach and "go to main component".
+ * properties it overrides (each can be reset), and reset, swap, detach and "go to main component". FigCraft port F9
+ * adds a description, Combine as variants (two or more mains selected) and Push changes to main.
  */
 
 import React, { useState } from "react";
 import { invokeCommand } from "@/core/commands";
-import { instanceRootOf } from "@/core/components/instances";
+import { instanceRootOf, subtreeIds } from "@/core/components/instances";
 import { readProperty } from "@/core/components/variantOps";
 import { documentStore } from "@/core/store/documentState";
 import { useLayers } from "@/core/store/useDocumentStore";
@@ -89,6 +90,8 @@ export const ComponentPanel: React.FC = () => {
 
   if (first.componentMain && comp) {
     const count = Object.values(doc.layers).filter((l) => l.instance?.component === comp.id && l.instance.root).length;
+    const separate = new Set(ids.map((id) => layers[id]?.componentMain).filter((cid): cid is string => !!cid && !!doc.designComponents?.[cid] && !doc.designComponents[cid].variantProps));
+    const description = (comp as { description?: string }).description ?? "";
     return (
       <section aria-label="Component" style={box}>
         <strong>Main component</strong>
@@ -102,7 +105,22 @@ export const ComponentPanel: React.FC = () => {
           <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Delete component" onClick={() => run("component.delete", { component: comp.id })}>
             Delete component
           </button>
+          {separate.size > 1 && (
+            <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Combine as variants" onClick={() => run("component.combineAsVariants", { ids })}>
+              Combine as variants
+            </button>
+          )}
         </span>
+        <textarea
+          key={`${comp.id}:${description}`}
+          aria-label="Component description"
+          placeholder="Description"
+          defaultValue={description}
+          rows={2}
+          style={{ resize: "vertical", font: "inherit" }}
+          onBlur={(e) => e.target.value.trim() !== description && run("component.setDescription", { component: comp.id, description: e.target.value })}
+          onKeyDown={(e) => e.stopPropagation()}
+        />
         <VariantEditor componentId={comp.id} props={comp.variantProps ?? []} count={comp.variants?.length ?? 1} />
         <PropertyList componentId={comp.id} properties={comp.properties ?? []} />
       </section>
@@ -141,6 +159,7 @@ export const ComponentPanel: React.FC = () => {
   if (first.instance && comp) {
     const rootId = instanceRootOf(doc.layers, first.id);
     const overridden = raw?.instance?.overridden ?? [];
+    const pushable = (first.instance.root && rootId ? subtreeIds(doc.layers, rootId) : [first.id]).some((id) => (doc.layers[id]?.instance?.overridden ?? []).some((k) => !["frame.x", "frame.y", "positioning"].includes(k)));
     return (
       <section aria-label="Instance" style={box}>
         <strong>Instance of {comp.name}</strong>
@@ -209,6 +228,9 @@ export const ComponentPanel: React.FC = () => {
           </button>
           <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Detach instance" onClick={() => run("component.detach", { ids: [first.id] })}>
             Detach
+          </button>
+          <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Push changes to main component" disabled={!pushable} onClick={() => run("component.pushChanges", { ids: [first.id] })}>
+            Push changes
           </button>
         </span>
         {comps.length > 1 && (

@@ -26,6 +26,7 @@ import { MAX_CLIP_LAYERS, parseClip, serializeClip, type ClipPayload } from "./c
 import { parentOrigin, worldBox, writeBoxes } from "./layerBoxes";
 import { documentOrder, isSelectable } from "../selection/selectionOps";
 import { repairPageRoots } from "../frames/pageRoots";
+import { insertInstance } from "../components/componentOps";
 
 const DEFAULT_OFFSET = { dx: 16, dy: 16 };
 
@@ -180,6 +181,19 @@ export function duplicateLayers(ids: readonly string[]): string[] {
       if (original.parentId === null) {
         copies.push(duplicateFrame(id));
         continue;
+      }
+      // a main component duplicates as an instance of it, as in Figma (FigCraft port F9)
+      const comp = original.componentMain ? doc.designComponents?.[original.componentMain] : undefined;
+      if (comp) {
+        const absolute = original.properties.positioning === "absolute";
+        const at = { x: (typeof original.properties["frame.x"] === "number" ? original.properties["frame.x"] : 0) + offset.dx, y: (typeof original.properties["frame.y"] === "number" ? original.properties["frame.y"] : 0) + offset.dy };
+        const index = getDocument().layers[original.parentId].children.indexOf(id) + 1;
+        const variant = comp.variants?.find((v) => v.mainId === id)?.values;
+        const inst = insertInstance(comp.id, { parentId: original.parentId, index, flow: !absolute, ...(absolute ? { at } : {}), ...(variant ? { variant } : {}) });
+        if (inst) {
+          copies.push(inst);
+          continue;
+        }
       }
       const bundle = cloneLayers(getDocument().layers, getDocument().clips, [id], { layers: getDocument().layers, clips: getDocument().clips });
       const root = bundle.layers[0];

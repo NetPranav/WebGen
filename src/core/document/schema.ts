@@ -226,6 +226,8 @@ const MotionDocumentShape = z.object({
         mainId: z.string(),
         /** A section shared by every page, as the header or the footer (Phase 48). */
         shared: z.enum(["header", "footer"]).optional(),
+        /** What the component is for (FigCraft port F9). */
+        description: z.string().max(2000).optional(),
         /** A variant set (Phase 47): its properties (Size: S, M, L) and one main layer for each combination. */
         variantProps: z.array(z.object({ name: z.string().min(1).max(60), values: z.array(z.string().min(1).max(60)).min(1).max(12) })).max(4).optional(),
         variants: z.array(z.object({ mainId: z.string(), values: z.record(z.string(), z.string()) })).max(64).optional(),

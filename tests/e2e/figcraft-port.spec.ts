@@ -148,3 +148,33 @@ test("FigCraft port: a frame's layout grid draws on the canvas overlay", async (
   await run(page, "layout.setLayoutGrids", { ids: [id], grids: [] });
   await expect(page.getByTestId("layout-grids-overlay")).toHaveCount(0);
 });
+
+test("FigCraft port: push an instance's change to its main, combine two components as variants, duplicate a main as an instance", async ({ page }) => {
+  await ready(page);
+  type D = { commands: { addLayer: (input: unknown) => string; updateProps: (id: string, patch: Record<string, unknown>) => void }; get: () => { layers: Record<string, { children: string[]; properties: Record<string, unknown>; componentMain?: string; instance?: { component: string; source: string; root?: boolean; variant?: Record<string, string> } }>; designComponents?: Record<string, { variantProps?: { name: string; values: string[] }[] }> } };
+  const { a, b } = await page.evaluate(() => {
+    const d = (window as unknown as { __LL_DOC__: D }).__LL_DOC__;
+    const frame = d.commands.addLayer({ archetype: "container", parentId: null, name: "Page", properties: { positioning: "absolute", "frame.x": 3000, "frame.y": 0, "frame.width": 900, "frame.height": 700, "appearance.background.color": "#ffffff" } });
+    const mk = (name: string, x: number) => d.commands.addLayer({ archetype: "container", parentId: frame, name, properties: { positioning: "absolute", "frame.x": x, "frame.y": 20, "frame.width": 160, "frame.height": 48, "appearance.background.color": "#336699" } });
+    return { a: mk("Primary", 20), b: mk("Secondary", 300) };
+  });
+  const D = <T,>(fn: (d: ReturnType<D["get"]>, arg: string) => T, arg = "") => page.evaluate(({ src, arg }) => new Function("d", "arg", `return (${src})(d, arg)`)((window as unknown as { __LL_DOC__: D }).__LL_DOC__.get(), arg) as T, { src: fn.toString(), arg });
+  await run(page, "component.createFrom", { ids: [a] });
+  await run(page, "component.createFrom", { ids: [b] });
+  // an instance of Primary, recoloured, pushes its colour to the main
+  await run(page, "selection.set", { ids: [a] });
+  await run(page, "edit.duplicate");
+  const inst = await D((d, a) => Object.entries(d.layers).find(([, l]) => l.instance?.root && l.instance.source === a)?.[0] ?? "", a);
+  expect(inst).not.toBe("");
+  await page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.commands.updateProps(id, { "appearance.background.color": "#ff0000" }), inst);
+  await run(page, "selection.set", { ids: [inst] });
+  await page.getByRole("region", { name: "Instance" }).getByRole("button", { name: "Push changes to main component" }).click();
+  await expect.poll(() => D((d, a) => d.layers[a].properties["appearance.background.color"], a)).toBe("#ff0000");
+  // both mains selected: combine them into one set
+  await run(page, "selection.set", { ids: [a, b] });
+  await page.getByRole("button", { name: "Combine as variants" }).click();
+  await expect.poll(() => D((d) => Object.values(d.designComponents ?? {}).map((c) => c.variantProps?.[0]?.values.join(",")).join("|"))).toBe("Primary,Secondary");
+  expect(await D((d, id) => d.layers[id].instance!.variant, inst)).toEqual({ Variant: "Primary" });
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(() => D((d) => Object.keys(d.designComponents ?? {}).length)).toBe(2);
+});
