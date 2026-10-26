@@ -235,11 +235,11 @@ One row per phase, in execution order. Update the Status column together with th
 | 56 | Move playback onto the clock; retire the old Sequencer clock | 55 | v3 45.4 | 2 | ✅ |
 | 57 | Engine adapters & the kernel on the stage | 19, 56 | v3 10.1 (interface, kernel adapter) | 2 | ✅ |
 | 58 | CSS / Web Animations adapter | 57 | v3 10.1 (WAAPI) | 2 | ✅ |
-| 59 | Scrub vs play | 58 | v3 10.2 | 2 | 🚧 |
-| 60 | Parity overlay | 59 | v3 10.3 | 2 | 🚧 |
-| 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | 🚧 |
-| 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | 🚧 |
-| 63 | Timeline navigation | 62 | v3 52.3 | 2 | 🚧 |
+| 59 | Scrub vs play | 58 | v3 10.2 | 2 | ✅ |
+| 60 | Parity overlay | 59 | v3 10.3 | 2 | ✅ |
+| 61 | Timeline workspace: layout | 15, 54, 60 | v3 52.1, 23.1, 21.2 | 2 | ✅ |
+| 62 | Twirl-downs & stopwatches | 61 | v3 52.2 | 2 | ✅ |
+| 63 | Timeline navigation | 62 | v3 52.3 | 2 | ✅ |
 | 64 | Timeline at scale | 63 | v3 52.4 | 2 | 📋 |
 | 65 | Nested & interaction composition tabs | 64 | v3 52.5 | 2 | 📋 |
 | 66 | Keyframing | 65 | v3 23.2 | 2 | 📋 |
@@ -925,21 +925,21 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** WAAPI-routed reference animations match the kernel at 5 times (≤ 0.5% pixels).
 
 ### Phase 59 · Scrub vs play
-**Needs:** 58 · **Was:** v3 10.2 · **Status:** 🚧
+**Needs:** 58 · **Was:** v3 10.2 · **Status:**  ✅
 - [x] While scrubbing, every layer is driven by the kernel. On play, each layer hands over to its routed adapter at the current time with matching velocity. `StageAdapters` keeps a `playing` flag: not playing, the kernel draws every layer (the Web Animations are cancelled); playing, a routed layer becomes a Web Animation baked at the transport's time and rate (the kernel gives its inline styles back), and a speed change keeps the same animation; pausing hands the layer back to the kernel. `StageEngine` shows the time again on every play/pause change.
 
 **You'll see:** scrubbing and playing look the same at every frame.
 **Done when:** 10 reference animations show identical screenshots paused at 5 times from the kernel and from the running engine (≤ 0.5%).
 
 ### Phase 60 · Parity overlay
-**Needs:** 59 · **Was:** v3 10.3 · **Status:** 🚧
+**Needs:** 59 · **Was:** v3 10.3 · **Status:**  ✅
 - [x] A dev overlay samples running engines against `evaluate()` every N frames and raises `[PARITY_DRIFT]` beyond tolerance. `ParityMonitor` (`src/core/engine/stage/parity.ts`) runs in the scheduler's `stats` phase every 30 frames while an engine of its own is playing: it compares each running layer's computed lengths, numbers and transform matrix with `evaluate()` at the engine's own clock (0.5 px, 0.01 opacity, 0.005 matrix), and the engine's clock with the transport's (6 frames, two samples in a row). Drift is `console.warn`ed once per layer and property, kept in `parityStore`, and shown by the status-bar `ParityBadge` (grey idle, green OK, red drift with the details in its tooltip). Dev builds, tests and `?parity=1` only. Colours and `%` lengths aren't compared yet.
 
 **You'll see:** a parity badge in the status bar (dev builds) that turns red on drift.
 **Done when:** an injected wrong easing raises `[PARITY_DRIFT]`; correct playback stays green.
 
 ### Phase 61 · Timeline workspace: layout
-**Needs:** 15, 54, 60 · **Was:** v3 52.1, 23.1, 21.2 · **Status:** 🚧
+**Needs:** 15, 54, 60 · **Was:** v3 52.1, 23.1, 21.2 · **Status:**  ✅
 - [x] Left: the layer stack (same order, open groups and selection as the Layers panel) with switches: visible, solo, lock, shy, motion blur (these three new switches are optional layer fields, `solo`, `shy`, `motionBlur`, with no schema version bump), blend mode (`appearance.blendMode`) and a parent picker (the pick-whip is a menu for now; it re-parents the layer through `layer.move`). With any layer soloed the stage draws only soloed layers and what contains them. Motion blur is recorded only; the renderer draws it later.
 - [x] Right: a time ruler (timecode or frames), layer bars with in/out trimming (drag an end) and sliding (drag the middle), the work area (drag its ends, or set from the playhead), composition markers (layer markers come later), the current-time indicator (painted by the scheduler). Bars are the existing `compositions[id].layers[layerId]` time bars (sparse, frame-snapped).
 - [x] Motion badges in the Layers panel (clip count, states, engine); clicking one opens it in the timeline. The Animate preset opens the new **Layer Timeline** tab; the Motion Sequencer stays beside it until Phase 68.
@@ -948,14 +948,14 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** a 10-step journey (trim, set work area, add marker, solo, lock) asserts the document after each step.
 
 ### Phase 62 · Twirl-downs & stopwatches
-**Needs:** 61 · **Was:** v3 52.2 · **Status:** 🚧
+**Needs:** 61 · **Was:** v3 52.2 · **Status:**  ✅
 - [x] Layer → groups (Transform, Appearance, Effects, States, Behaviours, Links) → properties, each with a stopwatch that starts keyframing. `U` reveals animated properties, `UU` modified ones. In the Layer Timeline a layer's **P** twirl opens its six groups; Transform (position, scale, rotation, skew) and Appearance (opacity, corner radius, fill and border colour, border width) list their properties in plain words, each with a stopwatch; Effects, States, Behaviours and Links list what the layer has. A stopwatch turned on puts one keyframe at the playhead, holding the property's current value, in the layer's first clip in the composition (or a new clip called "Keyframes"); turned off it removes that property's tracks (and an empty "Keyframes" clip). Keyframes show as diamonds on the layer's time bar (click one to seek there) and an animated property shows its value at the playhead. `U` (timeline focus) toggles the animated-only view of the selected layers and a quick second press shows the modified ones. Editing keyframes (move, copy, easing) is Phases 66–67.
 
 **You'll see:** twirl down a layer and click a stopwatch to animate any property.
 **Done when:** stopwatch on/off round-trips through undo and save.
 
 ### Phase 63 · Timeline navigation
-**Needs:** 62 · **Was:** v3 52.3 · **Status:** 🚧
+**Needs:** 62 · **Was:** v3 52.3 · **Status:**  ✅
 - [x] Ruler scrubbing, zoom to work area, J/K/L shuttle, I/O to jump to in/out points, B/N to set the work area, Page Up/Down to step frames (Shift for 10). All are commands with timeline focus. Ruler scrubbing (61) and J/K/L (54) were already there. New: Page Down / Page Up (one frame; Shift: ten), `I` / `O` (the selected layers' earliest in and latest out; with nothing selected, the work area's start and end), `B` / `N` (work area start and end at the playhead), `=` / `-` (zoom ×1.25, 20 to 2,400 px/s), `\` (zoom to the work area, scrolled into view), Ctrl + wheel (zoom around the pointer), and `End` (to the end of the composition). The timeline's zoom is a store value (`pixelsPerSecond`); the panel reports its view width so the fit knows what to fill.
 
 **You'll see:** After Effects shortcuts work in the timeline.
