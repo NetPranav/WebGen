@@ -16,7 +16,7 @@ import { registerPageCommands } from "../pages/pageCommands";
 import { registerExportCommands } from "../export/site/exportCommands";
 import { moveLayers } from "../layers/reparent";
 import { importAndPlace } from "../assets/assetImport";
-import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage, setStrokes, setStrokeSettings } from "../paint/paintOps";
+import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage, setStrokes, setStrokeSettings, setEffects } from "../paint/paintOps";
 import { BLEND_MODES } from "../paint/color";
 import { makeNetwork, paintBucket, setNetworkPoint } from "./networkOps";
 import { flattenBooleanGroups, makeBooleanGroup, setBooleanOperation } from "./booleanGroups";
@@ -230,6 +230,8 @@ export function registerEditingCommands(): () => void {
   add(defineTypedCommand({ id: "shapeBuilder.merge", title: "Merge Regions", category: "Layer", args: picks, run: (p) => buildShapes(p.ids ?? ids(), toPick(p), true) }));
   add(defineTypedCommand({ id: "shapeBuilder.remove", title: "Remove Regions", category: "Layer", args: picks, run: (p) => buildShapes(p.ids ?? ids(), toPick(p), false) }));
   add(defineTypedCommand({ id: "paint.setShadows", title: "Set Shadows", category: "Layer", args: z.object({ ids: targets, shadows: z.array(shadowSchema).max(16) }), run: ({ ids: t, shadows }) => ({ changed: setShadows(t ?? ids(), shadows) }) }));
+  // FigCraft port F7: blurs (uniform or progressive), noise, texture and glass; each effect is checked and repaired by `parseEffect`
+  add(defineTypedCommand({ id: "paint.setEffects", title: "Set Effects", category: "Layer", args: z.object({ ids: targets, effects: z.array(z.record(z.string(), z.unknown())).max(16) }), run: ({ ids: t, effects }) => ({ changed: setEffects(t ?? ids(), effects) }) }));
   add(defineTypedCommand({ id: "paint.setStrokeStyle", title: "Set Stroke Style", category: "Layer", args: z.object({ ids: targets, style: z.enum(["solid", "dashed", "dotted"]) }), run: ({ ids: t, style }) => ({ changed: setStrokeStyle(t ?? ids(), style) }) }));
   add(defineTypedCommand({ id: "paint.replaceImage", title: "Replace Image", category: "Layer", args: z.object({ ids: targets, src: z.string(), natural: z.object({ w: z.number().positive(), h: z.number().positive() }).optional(), index: z.number().int().min(0).optional() }), run: ({ ids: t, src, natural, index }) => ({ changed: replaceImage(t ?? ids(), src, natural, index) }) }));
   add(defineTypedCommand({ id: "paint.setBlur", title: "Set Blur", category: "Layer", args: z.object({ ids: targets, layer: z.number().optional(), background: z.number().optional() }), run: ({ ids: t, layer, background }) => ({ changed: setBlur(t ?? ids(), { layer, background }) }) }));

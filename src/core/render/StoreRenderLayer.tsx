@@ -16,6 +16,7 @@ import { recordRender } from "./renderStats";
 import type { PlanStore } from "./planStore";
 import type { StageRenderer } from "./StageRenderer";
 import type { RenderContext } from "./types";
+import { StageEffectDefs } from "./effectsRender";
 
 /** What every layer of one stage shares. Stable for the life of the stage, except `ctx` (state variables). */
 export interface StageContextValue {
@@ -73,6 +74,8 @@ function StoreRenderLayerImpl({ layerId, parentDirection, stackZ }: StoreRenderL
       {childIds.map((childId, i) => (
         <StoreRenderLayer key={childId} layerId={childId} parentDirection={childDirection} stackZ={resolved.bool("layout.reverseZ", false) ? childIds.length - i : undefined} />
       ))}
+      {/* a frame defines its layers' effect filters (FigCraft port F7) */}
+      {layer.parentId === null && <StageEffectDefs rootId={layerId} breakpointId={breakpointId} />}
     </Definition>
   );
 }

@@ -240,6 +240,8 @@ const DEFS = {
   "paint.fills": typed(str("", null, "paint", only("container", "form", "generic", "button", "badge", "fab", "rectangle", "ellipse", "polygon", "star", "arrow"))),
   /** Drop and inner shadows. */
   "paint.shadows": typed(str("", "box-shadow", "paint", VISUAL)),
+  /** FigCraft port F7: blurs (uniform or progressive), noise, texture and glass, as a JSON list (`paint/effects.ts`). */
+  "paint.effects": typed(str("", null, "paint", VISUAL)),
   /** Blur of what shows through the layer, in px. */
   "paint.backgroundBlur": ranged(px(0, "backdrop-filter", "paint", VISUAL), { min: 0, max: 200 }),
   "appearance.radius": px(0, "border-radius", "paint", VISUAL),

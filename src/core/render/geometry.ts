@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Layer } from "../document/schema";
 import { getLayerGeometry } from "../document/properties";
 import { boxShadowCss, parseShadows } from "../paint/paints";
+import { blurOf, effectFilterId, glassCss, maxRadius, needsFilter, parseEffects } from "../paint/effects";
 import type { RenderContext, ResolvedProps } from "./types";
 
 /** Largest frame dimension the renderer will draw; a larger stored value is clamped. */
@@ -13,7 +14,7 @@ export const MAX_FRAME_PX = 20_000;
  * parent's layout and take their size from `sizing` (fixed: the frame size, hug: their content,
  * fill: grow along the parent's main axis or stretch across it). Rotation applies to both.
  */
-export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: RenderContext, options: { shadow?: "box" | "none" } = {}): CSSProperties {
+export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: RenderContext, options: { shadow?: "box" | "none"; /** The archetype draws progressive blurs itself (a frame's backdrop layers). */ bands?: boolean } = {}): CSSProperties {
   const g = getLayerGeometry(layer);
   const style: CSSProperties = { boxSizing: "border-box" };
   const px = (n: number, unit: string) => `${Math.min(MAX_FRAME_PX, Math.max(0, n))}${unit}`;
@@ -93,12 +94,34 @@ export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: Render
     const shadow = boxShadowCss(parseShadows(resolved.get("paint.shadows")));
     if (shadow) style.boxShadow = shadow;
   }
+  // FigCraft port F7: the effect list (`paint.effects`); a blur in it wins over the plain one
+  const effects = parseEffects(resolved.get("paint.effects"));
+  const filters: string[] = [];
+  const backdrops: string[] = [];
+  if (needsFilter(effects)) filters.push(`url(#${effectFilterId(layer.id)})`);
+  const layerBlur = blurOf(effects, "layerBlur");
   const blur = resolved.get("filter.blur");
-  if (typeof blur === "number" && blur > 0) style.filter = `blur(${Math.min(blur, 200)}px)`;
+  if (layerBlur) {
+    // a progressive one is drawn by the frame's backdrop layers; elsewhere it is the uniform blur half way up its ramp
+    if (layerBlur.blurType !== "progressive") filters.push(`blur(${Math.min(layerBlur.radius, 200)}px)`);
+    else if (!options.bands) filters.push(`blur(${Math.min((layerBlur.radius + layerBlur.startRadius) / 2, 200)}px)`);
+  } else if (typeof blur === "number" && blur > 0) filters.push(`blur(${Math.min(blur, 200)}px)`);
+  if (filters.length > 0) style.filter = filters.join(" ");
+  const bgBlur = blurOf(effects, "backgroundBlur");
   const backdrop = resolved.get("paint.backgroundBlur");
-  if (typeof backdrop === "number" && backdrop > 0) {
-    style.backdropFilter = `blur(${Math.min(backdrop, 200)}px)`;
-    (style as Record<string, unknown>).WebkitBackdropFilter = `blur(${Math.min(backdrop, 200)}px)`;
+  if (bgBlur) {
+    if (bgBlur.blurType !== "progressive") backdrops.push(`blur(${Math.min(bgBlur.radius, 200)}px)`);
+    else if (!options.bands) backdrops.push(`blur(${Math.min(maxRadius(bgBlur), 200)}px)`);
+  } else if (typeof backdrop === "number" && backdrop > 0) backdrops.push(`blur(${Math.min(backdrop, 200)}px)`);
+  const glass = effects.find((e) => e.visible && e.type === "glass");
+  if (glass && glass.type === "glass") {
+    const g = glassCss(glass);
+    backdrops.push(g.backdropFilter);
+    if (options.shadow !== "none") style.boxShadow = style.boxShadow ? `${style.boxShadow}, ${g.boxShadow}` : g.boxShadow;
+  }
+  if (backdrops.length > 0) {
+    style.backdropFilter = backdrops.join(" ");
+    (style as Record<string, unknown>).WebkitBackdropFilter = backdrops.join(" ");
   }
   return style;
 }

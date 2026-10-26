@@ -6,6 +6,7 @@ import { parseSides } from "../../paths/strokes";
 import { booleanGroupD, isBooleanOp } from "../../editing/layerOutline";
 import { useDocument } from "../../store/useDocumentStore";
 import { ShapePaint } from "../shapePaint";
+import { BlurBands } from "../effectsRender";
 
 /** `container` and `form`: a flex box that lays out its children. */
 export const Container: React.FC<ArchetypeRenderProps> = (props) => {
@@ -87,7 +88,7 @@ const FlexContainer: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, c
       data-archetype={layer.archetype}
       role={layer.archetype === "form" ? "form" : undefined}
       style={{
-        ...layerBoxStyle(layer, resolved, ctx),
+        ...layerBoxStyle(layer, resolved, ctx, { bands: true }),
         display,
         flexDirection: direction,
         gap: px(resolved.num("layout.gap", 0)),
@@ -108,9 +109,17 @@ const FlexContainer: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, c
       }}
     >
       {fill.overlay}
+      {/* FigCraft port F7: a progressive background blur under the content, a progressive layer blur over it */}
+      <BlurBands effects={effectsOf(resolved)} kind="backgroundBlur" />
       {children}
+      <BlurBands effects={effectsOf(resolved)} kind="layerBlur" />
     </div>
   );
+};
+
+const effectsOf = (resolved: ArchetypeRenderProps["resolved"]) => {
+  const v = resolved.get("paint.effects");
+  return typeof v === "string" && v ? v : undefined;
 };
 
 /**

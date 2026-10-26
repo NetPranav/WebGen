@@ -227,3 +227,26 @@ test("FigCraft port: a collection's mode chosen on a frame, an alias, and a pain
   await page.keyboard.press(`${MOD}+z`);
   await expect.poll(() => page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id].styleRefs?.fill ?? "", ids.outside)).toBe("");
 });
+
+test("FigCraft port: effects added in the Pro inspector reach the stage: noise as a filter, a progressive blur as backdrop layers", async ({ page }) => {
+  await ready(page);
+  const r = await drawRect(page, { x: 40, y: 60, w: 120, h: 80 });
+  await run(page, "selection.set", { ids: [r] });
+  await page.getByRole("tab", { name: "Pro" }).click();
+  await page.getByRole("combobox", { name: "Add effect" }).selectOption("noise");
+  await expect.poll(() => inStage(page, (doc, id) => getComputedStyle(doc.querySelector(`[data-element-id="${id}"]`)!).filter, r)).toContain("url(");
+  expect(await inStage(page, (doc, id) => !!doc.querySelector(`[data-effect-defs] filter[id="fx-${id}"] feTurbulence`), r)).toBe(true);
+  await page.getByRole("combobox", { name: "Effect 1 noise mode" }).selectOption("duo");
+  await expect.poll(() => inStage(page, (doc, id) => doc.querySelectorAll(`filter[id="fx-${id}"] feFlood`).length, r)).toBe(2);
+  // a frame with a progressive background blur draws its backdrop layers
+  const frame = await page.evaluate(() => {
+    const doc = (window as unknown as { __LL_DOC__: { get: () => { layers: Record<string, { parentId: string | null; archetype: string }> }; commands: { addLayer: (input: unknown) => string } } }).__LL_DOC__;
+    const top = Object.entries(doc.get().layers).find(([, l]) => l.parentId === null && l.archetype === "container")![0];
+    return doc.commands.addLayer({ archetype: "container", parentId: top, name: "Blurred", properties: { positioning: "absolute", "frame.x": 200, "frame.y": 60, "frame.width": 160, "frame.height": 100 } });
+  });
+  expect(frame).not.toBe("");
+  await run(page, "paint.setEffects", { ids: [frame], effects: [{ type: "backgroundBlur", blurType: "progressive", radius: 12 }] });
+  await expect.poll(() => inStage(page, (doc, id) => doc.querySelectorAll(`[data-element-id="${id}"] > [data-effect-band]`).length, frame)).toBe(5);
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(() => inStage(page, (doc, id) => doc.querySelectorAll(`[data-element-id="${id}"] > [data-effect-band]`).length, frame)).toBe(0);
+});

@@ -4,6 +4,7 @@ import { MAX_RENDERED_LAYERS, MAX_TREE_DEPTH } from "./limits";
 import { RENDER_DEFINITIONS } from "./definitions";
 import { resolveProps } from "./resolve";
 import type { RenderContext } from "./types";
+import { EffectDefs, effectEntries } from "./effectsRender";
 
 /**
  * What may be drawn: each renderable layer id mapped to the ids of its renderable children, in paint
@@ -55,10 +56,12 @@ interface RenderLayerProps {
   ctx?: RenderContext;
   /** From `RenderTree`; when omitted the layer and its descendants are planned here. */
   plan?: RenderPlan;
+  /** A root of the drawing: it defines the effect filters of everything it draws (FigCraft port F7), as its last child. */
+  root?: boolean;
 }
 
 /** Draws one layer and its children through the archetype's render definition. */
-export const RenderLayer: React.FC<RenderLayerProps> = ({ layerId, layers, ctx = {}, plan }) => {
+export const RenderLayer: React.FC<RenderLayerProps> = ({ layerId, layers, ctx = {}, plan, root }) => {
   const own = useMemo(() => (plan ? null : selectRenderable(layers, [layerId])), [plan, layers, layerId]);
   const permitted = plan ?? own!;
   const layer = layers[layerId];
@@ -77,9 +80,22 @@ export const RenderLayer: React.FC<RenderLayerProps> = ({ layerId, layers, ctx =
       {childIds.map((childId) => (
         <RenderLayer key={childId} layerId={childId} layers={layers} ctx={reverseZ ? { ...childCtx, stackZ: layer.children.length - layer.children.indexOf(childId) } : childCtx} plan={permitted} />
       ))}
+      {(root || !plan) && <EffectDefs entries={effectEntries(layers, subtreeOf(permitted, layerId))} />}
     </Definition>
   );
 };
+
+/** Every layer the plan draws under `rootId`, the root included. */
+function subtreeOf(plan: RenderPlan, rootId: string): string[] {
+  const out: string[] = [];
+  const stack = [rootId];
+  while (stack.length > 0 && out.length < MAX_RENDERED_LAYERS) {
+    const id = stack.pop()!;
+    out.push(id);
+    for (const k of plan.get(id) ?? []) stack.push(k);
+  }
+  return out;
+}
 
 /** Draws every top-level layer of a document, within one layer budget. */
 export const RenderTree: React.FC<{ layers: Record<string, Layer>; rootIds?: string[]; ctx?: RenderContext }> = ({ layers, rootIds, ctx }) => {
@@ -88,7 +104,7 @@ export const RenderTree: React.FC<{ layers: Record<string, Layer>; rootIds?: str
   return (
     <>
       {roots.map((id) => (
-        <RenderLayer key={id} layerId={id} layers={layers} ctx={ctx} plan={plan} />
+        <RenderLayer key={id} layerId={id} layers={layers} ctx={ctx} plan={plan} root />
       ))}
     </>
   );

@@ -10,6 +10,7 @@ import { resolveProps } from "../render/resolve";
 import { getDocument } from "../store/documentState";
 import { simplePaths } from "../inspector/simpleControls";
 import { safeImageSrc } from "../render/limits";
+import { parseEffect, parseEffects, serializeEffects, type Effect } from "./effects";
 import { DASH_PRESETS, effectiveFills, parseShadows, safeDashArray, serializeFills, serializeShadows, type Paint, type Shadow } from "./paints";
 
 const layers = () => getDocument().layers;
@@ -54,6 +55,20 @@ export function shadowsOf(id: string): Shadow[] {
 
 export function setShadows(ids: readonly string[], shadows: readonly Shadow[]): number {
   return setLayerProps(ids, { "paint.shadows": serializeShadows(shadows) }, "Shadow");
+}
+
+// --- Effects (FigCraft port F7) ------------------------------------------------------
+
+/** A layer's effect list: progressive blurs, noise, texture, glass (`paint.effects`). */
+export function effectsOf(id: string): Effect[] {
+  const layer = layers()[id];
+  return layer ? parseEffects(resolveProps(layer).get("paint.effects")) : [];
+}
+
+/** Sets the effect list of layers (each effect sanitised); an empty list removes it. */
+export function setEffects(ids: readonly string[], effects: readonly unknown[]): number {
+  const list = effects.map(parseEffect).filter((e): e is Effect => e !== null);
+  return setLayerProps(ids.filter((id) => layers()[id] && isPropertyLegalFor("paint.effects", layers()[id].archetype as never)), { "paint.effects": serializeEffects(list) }, "Effect");
 }
 
 export function setBlur(ids: readonly string[], blur: { layer?: number; background?: number }): number {

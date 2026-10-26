@@ -169,6 +169,30 @@ export const GALLERY_CASES: GalleryCase[] = [
     ],
     expectSize: { width: 120, height: 120 },
   },
+  // ---- FigCraft port F7: noise, texture, glass and a progressive blur (not screenshot goldens: grain differs by browser) ----
+  { id: "fx-noise-mono", archetype: "rectangle", label: "Noise, mono grains on a rectangle", properties: { "frame.width": 120, "frame.height": 80, "svg.fill": "#e2e8f0", "paint.effects": JSON.stringify([{ type: "noise", mode: "mono", size: 1, density: 0.6, color: "rgba(0, 0, 0, 0.5)" }]) }, expectSize: { width: 120, height: 80 } },
+  { id: "fx-noise-duo", archetype: "container", label: "Noise, duo grains on a frame", properties: { "frame.width": 120, "frame.height": 80, "appearance.background.color": "#6366f1", "appearance.radius": 12, "paint.effects": JSON.stringify([{ type: "noise", mode: "duo", size: 2, density: 0.5, color: "rgba(0, 0, 0, 0.4)", secondary: "rgba(255, 255, 255, 0.4)" }]) }, expectSize: { width: 120, height: 80 } },
+  { id: "fx-texture", archetype: "ellipse", label: "Texture: roughened edges on an ellipse", properties: { "frame.width": 100, "frame.height": 100, "svg.fill": "#0ea5e9", "paint.effects": JSON.stringify([{ type: "texture", size: 2, radius: 6, clipToShape: false }]) }, expectSize: { width: 100, height: 100 } },
+  {
+    id: "fx-glass",
+    archetype: "container",
+    label: "Glass over stripes (an approximation)",
+    properties: { "frame.width": 160, "frame.height": 100, "layout.padding": 0, "paint.fills": JSON.stringify([{ type: "linear", stops: [{ at: 0, color: "#f59e0b" }, { at: 0.5, color: "#ec4899" }, { at: 1, color: "#6366f1" }], from: { x: 0, y: 0 }, to: { x: 1, y: 1 } }]) },
+    children: [
+      { id: "fx-glass-pane", archetype: "container", label: "Pane", properties: { positioning: "absolute", "frame.x": 25, "frame.y": 20, "frame.width": 110, "frame.height": 60, "appearance.radius": 16, "paint.fills": JSON.stringify([{ type: "solid", color: "#ffffff", opacity: 0.15 }]), "paint.effects": JSON.stringify([{ type: "glass" }]) } },
+    ],
+    expectSize: { width: 160, height: 100 },
+  },
+  {
+    id: "fx-progressive-blur",
+    archetype: "container",
+    label: "Progressive background blur: sharp at the top, blurred at the bottom",
+    properties: { "frame.width": 160, "frame.height": 100, "layout.padding": 0, "paint.fills": JSON.stringify([{ type: "conic", stops: [{ at: 0, color: "#ef4444" }, { at: 0.25, color: "#22c55e" }, { at: 0.5, color: "#3b82f6" }, { at: 0.75, color: "#eab308" }, { at: 1, color: "#ef4444" }], center: { x: 0.5, y: 0.5 }, angle: 0 }]) },
+    children: [
+      { id: "fx-progressive-blur-pane", archetype: "container", label: "Pane", properties: { positioning: "absolute", "frame.x": 0, "frame.y": 0, "frame.width": 160, "frame.height": 100, "paint.effects": JSON.stringify([{ type: "backgroundBlur", blurType: "progressive", radius: 12, startRadius: 0, start: [0.5, 0], end: [0.5, 1] }]) } },
+    ],
+    expectSize: { width: 160, height: 100 },
+  },
   { id: "arrow", archetype: "arrow", label: "Arrow", expectSize: { width: 160, height: 32 } },
   { id: "arrow-big-head", archetype: "arrow", label: "Arrow, head larger than the box", properties: { "shape.headLength": 400, "shape.headWidth": 400 }, expectSize: { width: 160, height: 32 } },
   // ---- paint and effects (Phase 35): the cases the screenshot gate compares across browsers ----
