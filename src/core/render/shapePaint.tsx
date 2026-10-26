@@ -3,6 +3,8 @@ import type { Layer } from "../document/schema";
 import { parseColor, toCss } from "../paint/colorMath";
 import { effectiveFills, hasAdjustFilter, imageFilterCss, paintBlendCss, paintCss, parseShadows, safeDashArray, type GradientStop, type ImagePaint, type Paint, type Shadow } from "../paint/paints";
 import { adjustmentMatrix, adjustmentToneTable, type ImageAdjustments } from "../paint/color";
+import type { BezPath } from "../geometry/bezpath";
+import { StrokeLayer, strokeSettings } from "./strokePaint";
 import { useAssetUrlMap } from "../assets/useAssetUrl";
 import type { ResolvedProps } from "./types";
 
@@ -121,10 +123,18 @@ export interface ShapePaintProps {
   fillable?: boolean;
   /** Does the shape draw a stroke? (An arrow doesn't.) */
   strokable?: boolean;
+  /** The shape's outline as a path (FigCraft port F3: variable widths, per-side weights, arrowheads). */
+  outline?: BezPath | null;
+  /** Whether the outline is closed. Default true. */
+  closed?: boolean;
+  /** Rectangle corners, for per-side stroke weights. */
+  rect?: { radii: number[]; smoothing: number };
+  /** Maps outline coordinates into the drawing's. */
+  toDrawing?: (p: BezPath) => BezPath;
 }
 
 /** The fills, stroke and shadows of a shape, as the children of its `<svg>`. */
-export function ShapePaint({ layer, resolved, width, height, defaultFill, defaultStroke, defaultStrokeWidth, geometry, fillable = true, strokable = true }: ShapePaintProps) {
+export function ShapePaint({ layer, resolved, width, height, defaultFill, defaultStroke, defaultStrokeWidth, geometry, fillable = true, strokable = true, outline = null, closed = true, rect, toDrawing }: ShapePaintProps) {
   const id = layer.id.replace(/[^A-Za-z0-9_-]/g, "_");
   const fills: Paint[] = fillable ? effectiveFills(resolved.get("paint.fills"), resolved.str("svg.fill", defaultFill)) : [];
   const urlOf = useAssetUrlMap(fills.filter((p): p is ImagePaint => p.type === "image").map((p) => p.src));
@@ -217,7 +227,10 @@ export function ShapePaint({ layer, resolved, width, height, defaultFill, defaul
       painted.push(<g key={`b${i}`} style={{ mixBlendMode: blend as React.CSSProperties["mixBlendMode"] }}>{node}</g>);
     }
   });
-  if (strokable && strokeWidth > 0 && stroke !== "none" && parseColor(stroke) !== null) {
+  const advanced = strokable ? strokeSettings(resolved, defaultStroke, defaultStrokeWidth, !closed) : null;
+  if (advanced) {
+    painted.push(<StrokeLayer key="strokes" id={id} settings={advanced} width={width} height={height} geometry={geometry} outline={outline} closed={closed} rect={rect} toDrawing={toDrawing} />);
+  } else if (strokable && strokeWidth > 0 && stroke !== "none" && parseColor(stroke) !== null) {
     painted.push(
       <React.Fragment key="stroke">
         {geometry({

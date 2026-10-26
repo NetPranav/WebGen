@@ -21,6 +21,7 @@ import { useSelectionStore } from "@/core/store/useSelectionStore";
 import { ColorField } from "../controls/ColorField";
 import { PaintEditor } from "../paint/PaintEditor";
 import { EffectsEditor, StrokeStyleEditor } from "../paint/EffectsEditor";
+import { StrokeSettingsEditor } from "../paint/StrokeSettingsEditor";
 import { ImageSourcePicker } from "../paint/ImageSourcePicker";
 import { ScrubNumber } from "../controls/ScrubNumber";
 import "@/editor/styles/pro-face.css";
@@ -157,6 +158,7 @@ export const ProFace: React.FC = () => {
           <ImageSourcePicker />
           <PaintEditor />
           <StrokeStyleEditor />
+          <StrokeSettingsEditor />
           <EffectsEditor />
         </>
       )}

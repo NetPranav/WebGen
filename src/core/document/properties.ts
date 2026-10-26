@@ -191,6 +191,8 @@ const CAMERA3D = only("camera3D");
 const LIGHT3D = only("light3D");
 const SCENE3D = only("object3D", "camera3D", "light3D");
 const ALL = only(...ARCHETYPE_IDS);
+/** Stroke ends (FigCraft port F3), plus the three older names Phase 7.6 stored. */
+const CAP_OPTIONS = ["none", "round", "square", "lineArrow", "triangleArrow", "reversedTriangle", "circleFilled", "diamondFilled", "arrow", "triangle", "circle"] as const;
 
 const DEFS = {
   // --- Geometry (Phase 42.3): layout, what the canvas edits -----------------
@@ -461,9 +463,25 @@ const DEFS = {
   "shape.arcSweep": ranged(deg(360, null, "paint", only("ellipse")), { min: -360, max: 360 }),
   /** A ring's hole, as a fraction of the ellipse (0 is a solid pie or ellipse). */
   "shape.arcInnerRatio": ranged(num(0, null, "paint", only("ellipse")), { min: 0, max: 1 }),
-  /** Line and arrow ends. A line runs across its frame's width at mid-height; rotate the frame to angle it. */
-  "shape.startCap": typed(oneOf(["none", "arrow", "triangle", "circle", "square"], "none", null, "paint", only("line", "arrow"))),
-  "shape.endCap": typed(oneOf(["none", "arrow", "triangle", "circle", "square"], "none", null, "paint", only("line", "arrow"))),
+  /**
+   * Line, arrow and path ends. A line runs across its frame's width at mid-height; rotate the frame to angle it.
+   * FigCraft port F3 adds round, the five arrowheads and draws them; `arrow`, `triangle` and `circle` are the older
+   * names of line arrow, triangle arrow and circle, still read.
+   */
+  "shape.startCap": typed(oneOf(CAP_OPTIONS, "none", null, "paint", only("line", "arrow", "svgPath"))),
+  "shape.endCap": typed(oneOf(CAP_OPTIONS, "none", null, "paint", only("line", "arrow", "svgPath"))),
+
+  // --- Strokes (FigCraft port F3, `core/paths/strokes.ts`) -------------------------
+  /** Where the stroke sits: inside the edge, centred on it, or outside. Unset keeps each archetype's older drawing. */
+  "stroke.align": typed(oneOf(["inside", "center", "outside"], "inside", null, "paint", VISUAL)),
+  /** Per-side weights, "top right bottom left" in px (rectangles and frames). Empty: one weight all round. */
+  "stroke.sides": typed(str("", null, "paint", only("rectangle", "container", "form", "button", "badge", "fab", "generic"))),
+  /** Variable width: JSON points `[{t, scale, bias?}]` along the path (see `parseWidthProfile`). Empty: uniform. */
+  "stroke.widthProfile": typed(str("", null, "paint", only("line", "svgPath", "rectangle", "ellipse", "polygon", "star"))),
+  /** Corners sharper than this ratio bevel instead of mitring (default 4, about 29°). */
+  "stroke.miterLimit": ranged(num(4, "stroke-miterlimit", "paint", SVG_STROKED), { min: 1, max: 100 }),
+  /** More than one stroke: a list of paints like `paint.fills`, first on top. When set it replaces the plain stroke colour. */
+  "paint.strokes": typed(str("", null, "paint", only("rectangle", "ellipse", "polygon", "star", "line", "svgPath"))),
   "shape.headLength": ranged(px(16, null, "paint", only("arrow")), { min: 0 }),
   "shape.headWidth": ranged(px(16, null, "paint", only("arrow")), { min: 0 }),
   "shape.shaftWidth": ranged(px(4, null, "paint", only("arrow")), { min: 0 }),

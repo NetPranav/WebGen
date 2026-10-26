@@ -16,7 +16,9 @@ import { registerPageCommands } from "../pages/pageCommands";
 import { registerExportCommands } from "../export/site/exportCommands";
 import { moveLayers } from "../layers/reparent";
 import { importAndPlace } from "../assets/assetImport";
-import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage } from "../paint/paintOps";
+import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage, setStrokes, setStrokeSettings } from "../paint/paintOps";
+import { BLEND_MODES } from "../paint/color";
+import type { Paint } from "../paint/paints";
 import { setFill, setFrame, setOpacity, setRadius, setSimpleText, setStroke } from "../inspector/simpleOps";
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
 import { defineCommand, defineTypedCommand, getContextKeys, type ContextKeys } from "../commands";
@@ -147,19 +149,40 @@ export function registerEditingCommands(): () => void {
   // Phase 35: paint and effects as typed commands (agents get the same list the panels edit).
   const stop = z.object({ at: z.number(), color: z.string() });
   const pt = z.object({ x: z.number(), y: z.number() });
-  const paintBase = { opacity: z.number().min(0).max(1).default(1), visible: z.boolean().default(true) };
+  // FigCraft port F2: every paint may carry a blend mode; images take the seven adjustments; diamond is a gradient type
+  const paintBase = { opacity: z.number().min(0).max(1).default(1), visible: z.boolean().default(true), blend: z.enum(BLEND_MODES).optional() };
+  const adjust = z.object({ exposure: z.number(), contrast: z.number(), saturation: z.number(), temperature: z.number(), tint: z.number(), highlights: z.number(), shadows: z.number() }).partial().optional();
   const paintSchema = z.discriminatedUnion("type", [
     z.object({ type: z.literal("solid"), color: z.string(), ...paintBase }),
     z.object({ type: z.literal("linear"), stops: z.array(stop).min(2).max(32), from: pt, to: pt, ...paintBase }),
     z.object({ type: z.literal("radial"), stops: z.array(stop).min(2).max(32), center: pt, radius: pt, ...paintBase }),
     z.object({ type: z.literal("conic"), stops: z.array(stop).min(2).max(32), center: pt, angle: z.number(), ...paintBase }),
+    z.object({ type: z.literal("diamond"), stops: z.array(stop).min(2).max(32), center: pt, radius: pt, ...paintBase }),
     z.object({
       type: z.literal("image"), src: z.string().max(200_000), mode: z.enum(["fill", "fit", "crop", "tile"]).default("fill"),
       crop: z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }).default({ x: 0, y: 0, w: 1, h: 1 }), scale: z.number().default(1),
-      natural: z.object({ w: z.number(), h: z.number() }).optional(), brightness: z.number().default(1), contrast: z.number().default(1), saturation: z.number().default(1), ...paintBase,
+      natural: z.object({ w: z.number(), h: z.number() }).optional(), brightness: z.number().default(1), contrast: z.number().default(1), saturation: z.number().default(1), adjust, ...paintBase,
     }),
   ]);
-  add(defineTypedCommand({ id: "paint.setFills", title: "Set Fills", category: "Layer", args: z.object({ ids: targets, fills: z.array(paintSchema).max(16) }), run: ({ ids: t, fills }) => ({ changed: setFills(t ?? ids(), fills) }) }));
+  add(defineTypedCommand({ id: "paint.setFills", title: "Set Fills", category: "Layer", args: z.object({ ids: targets, fills: z.array(paintSchema).max(16) }), run: ({ ids: t, fills }) => ({ changed: setFills(t ?? ids(), fills as Paint[]) }) }));
+  // FigCraft port F3: several stroke paints, and the stroke's alignment, per-side weights, width profile, caps and miter limit
+  add(defineTypedCommand({ id: "paint.setStrokes", title: "Set Strokes", category: "Layer", args: z.object({ ids: targets, strokes: z.array(paintSchema).max(16) }), run: ({ ids: t, strokes }) => ({ changed: setStrokes(t ?? ids(), strokes as Paint[]) }) }));
+  const cap = z.enum(["none", "round", "square", "lineArrow", "triangleArrow", "reversedTriangle", "circleFilled", "diamondFilled"]);
+  add(defineTypedCommand({
+    id: "stroke.set",
+    title: "Set Stroke Settings",
+    category: "Layer",
+    args: z.object({
+      ids: targets,
+      align: z.enum(["inside", "center", "outside"]).nullable().optional(),
+      sides: z.tuple([z.number().min(0), z.number().min(0), z.number().min(0), z.number().min(0)]).nullable().optional(),
+      widthProfile: z.array(z.object({ t: z.number(), scale: z.number(), bias: z.number().optional() })).max(64).nullable().optional(),
+      capStart: cap.optional(),
+      capEnd: cap.optional(),
+      miterLimit: z.number().min(1).max(100).optional(),
+    }),
+    run: ({ ids: t, ...patch }) => ({ changed: setStrokeSettings(t ?? ids(), patch) }),
+  }));
   const shadowSchema = z.object({ kind: z.enum(["drop", "inner"]), x: z.number(), y: z.number(), blur: z.number().min(0), spread: z.number(), color: z.string(), visible: z.boolean().default(true) });
   add(defineTypedCommand({ id: "paint.setShadows", title: "Set Shadows", category: "Layer", args: z.object({ ids: targets, shadows: z.array(shadowSchema).max(16) }), run: ({ ids: t, shadows }) => ({ changed: setShadows(t ?? ids(), shadows) }) }));
   add(defineTypedCommand({ id: "paint.setStrokeStyle", title: "Set Stroke Style", category: "Layer", args: z.object({ ids: targets, style: z.enum(["solid", "dashed", "dotted"]) }), run: ({ ids: t, style }) => ({ changed: setStrokeStyle(t ?? ids(), style) }) }));

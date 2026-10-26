@@ -62,13 +62,13 @@ Port kind: **logic** (pure TS port with tests) · **render** (logic plus a rende
 
 | Feature | FigCraft source | Our target | We have (phase) | Kind | Status |
 |---|---|---|---|---|---|
-| Multiple strokes per layer (paints like fills) | `doc/src/props.rs` | `paint.strokes` property, render definitions | One border / `svg.stroke` (35) | render | 📋 |
-| Stroke alignment inside / centre / outside | `pathops/src/lib.rs` | strokes render (box-shadow / SVG outline) | — | render | 📋 |
-| Per-side weights | `pathops/src/sides_tests.rs` | strokes render | — | render | 📋 |
-| Dashes, caps, joins, miter limit | `doc/src/props.rs` | strokes | `svg.strokeDasharray`, caps, joins (25, 39) | render | 📋 |
-| Arrowheads (line, triangle, circle, diamond …) | `pathops/src/points.rs` | `src/core/paths/arrowheads.ts` | Arrow archetype (25) | logic | 📋 |
-| Variable-width strokes and width profiles | `pathops/src/width.rs` | `src/core/paths/strokeWidth.ts` | — | logic | 📋 |
-| Outline stroke (stroke → filled path) | `pathops/src/lib.rs` | `src/core/paths/outlineStroke.ts` + command | — | logic | 📋 |
+| Multiple strokes per layer (paints like fills) | `doc/src/props.rs` | `paint.strokes` property, render definitions | One border / `svg.stroke` (35) | render | ✅ shapes (`paint.strokes`, any paint type through a mask); frames keep one border colour |
+| Stroke alignment inside / centre / outside | `pathops/src/lib.rs` | `src/core/render/strokePaint.tsx`, `Container.tsx` | — | render | ✅ shapes (clip/mask), frames (border / outline) |
+| Per-side weights | `pathops/src/sides_tests.rs` | strokes render | — | render | ✅ rectangles (ring outline), frames (border widths; inside only) |
+| Dashes, caps, joins, miter limit | `doc/src/props.rs` | strokes | `svg.strokeDasharray`, caps, joins (25, 39) | render | ✅ (`stroke.miterLimit` added) |
+| Arrowheads (line, triangle, circle, diamond …) | `pathops/src/points.rs` | `src/core/paths/arrowheads.ts` | Arrow archetype (25) | logic | ✅ lines and pen paths |
+| Variable-width strokes and width profiles | `pathops/src/width.rs` | `src/core/paths/strokeWidth.ts` | — | logic | ✅ model, outliner, presets; on-canvas width tool is F12 |
+| Outline stroke (stroke → filled path) | `pathops/src/lib.rs` | `src/core/paths/outlineStroke.ts` + command | — | logic | 🚧 `strokeOutline` ported and tested; the command that replaces a layer's stroke with it lands with F4's vector layers |
 | Brushes (stretch, scatter) | `pathops/src/brush.rs` | `src/core/paths/brush.ts` | — | logic | 📋 |
 
 ### F4 · Vector networks
@@ -238,3 +238,5 @@ When those phases start, their FigCraft sources are listed here so they can be p
 **2026-10-26: baseline** (branch `a/figcraft-port` = `a/phase-49-export` + `origin/main`, before any ported code). `tsc` 0 errors; ESLint 0 errors, 28 warnings; unit tests 2,206 (2,203 pass, 0 fail, 3 skipped). Playwright, all three browsers, 4 workers on a shared laptop (load average ~40): **669 passed, 9 flaky (passed on retry), 5 failed, 4 skipped**. All 14 non-passes are frame-rate or timing tests known to fail under machine load (`breakpoint-canvas` and `layers` frame rate in Firefox; `breakpoint-canvas` frame rate, `hit-testing` locked/hidden, `vector` 500-node SVG frame rate in WebKit; flaky: overlay hover timing, incremental re-render, viewport fps, font timing, Alt distances, transform transaction). These are the comparison set: a later failure outside it is a regression until shown otherwise.
 
 **2026-10-26: F1 and F2 ported.** Geometry (`bezpath.ts`, `shapes.ts`, `affine.ts`) with every FigCraft `geom` test (18 cases, all green); colour (`color.ts`) with FigCraft's colour, gradient, pattern, profile and named-colour tests (24 cases; one compares with a 1e-9 tolerance because FigCraft uses 32-bit floats). Render definitions draw per-corner radii, smoothing, rounded vertices, arcs, pies and rings; paints gain blend modes, the diamond gradient (checked point by point against FigCraft's |x|+|y| formula) and the seven image adjustments.
+
+**2026-10-26: F3 strokes.** `geometry/measure.ts` (paths by length), `paths/pathOps.ts` (booleans between paths with fill rules, simplify, arrangement faces, union of faces: on `polygon-clipping`, flattened to 0.002 px, non-zero resolved face by face by winding), `paths/strokes.ts` (width profiles with presets, the variable-width outliner, dashes, arrowheads, aligned outlines, per-side rings), with FigCraft's width, side, rounded-side, measure and pathops tests (33 cases; tolerances that compared kurbo curves to 1e-6 are widened to what 0.002 px polygons allow, each noted). On the stage, `render/strokePaint.tsx` draws several stroke paints, alignment, per-side weights, widths and arrowheads through a mask; a layer without those settings draws exactly as before. Frames: inside is a border, centre and outside an outline. New typed commands `paint.setStrokes` and `stroke.set`; the Pro face gets a Stroke settings block. **Found while porting:** `paint.setFills`'s schema didn't know F2's diamond gradient and stripped blend modes and image adjustments, so the F2 controls couldn't save; fixed in the same change. Full unit suite: 2,302 tests, 0 failures (both editions).

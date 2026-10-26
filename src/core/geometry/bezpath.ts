@@ -401,8 +401,12 @@ export function arcToCubics(
 /** A full ellipse as a closed path starting at 3 o'clock, clockwise in y-down (kurbo `Ellipse::to_path`). */
 export function ellipsePath(center: Pt, radii: Pt, tolerance = 0.01): BezPath {
   const path = new BezPath();
-  path.moveTo(add(center, { x: radii.x, y: 0 }));
+  const start = add(center, { x: radii.x, y: 0 });
+  path.moveTo(start);
   arcToCubics(center, radii, 0, Math.PI * 2, 0, tolerance, (a, b, c) => path.curveTo(a, b, c));
+  // the last piece ends at sin(2π), a hair off the start: snap it so the outline closes exactly
+  const last = path.els[path.els.length - 1];
+  if (last?.t === "C") last.p3 = start;
   path.closePath();
   return path;
 }

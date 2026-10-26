@@ -4,6 +4,10 @@ import { clampNumber, clampText, safeFragmentHref, safePathData } from "../limit
 import type { ArchetypeRenderProps } from "../types";
 import { InSvgContext } from "./svgContext";
 import { safeDashArray } from "../../paint/paints";
+import { ShapePaint } from "../shapePaint";
+import { strokeSettings } from "../strokePaint";
+import { pathDataToBez } from "../../paths/bezBridge";
+import type { BezPath } from "../../geometry/bezpath";
 
 const pick = <T extends string>(value: string, allowed: readonly T[], fallback: T): T => ((allowed as readonly string[]).includes(value) ? (value as T) : fallback);
 const CAPS = ["butt", "round", "square"] as const;
@@ -33,8 +37,52 @@ const SvgShell: React.FC<ArchetypeRenderProps & { inner: (nodeRef: ArchetypeRend
   );
 };
 
+/**
+ * An `svgPath` with FigCraft-port strokes (several stroke paints, alignment, a variable width, arrowheads). The path
+ * is authored in a 200 × 200 space stretched to the frame, but a stroke keeps its width in px: so the stroke's outline
+ * is built in px (`core/paths/strokes.ts`) and mapped back into the 200 × 200 space.
+ */
+function AdvancedSvgPath(p: ArchetypeRenderProps & { d: string }) {
+  const width = clampNumber(p.resolved.num("frame.width", 100), 1, 10_000, 100);
+  const height = clampNumber(p.resolved.num("frame.height", 100), 1, 10_000, 100);
+  const unit = pathDataToBez(p.d);
+  const px = unit ? unit.map((q) => ({ x: (q.x * width) / 200, y: (q.y * height) / 200 })) : null;
+  const closed = !!unit && unit.els.some((e) => e.t === "Z");
+  const toDrawing = (b: BezPath) => b.map((q) => ({ x: (q.x * 200) / width, y: (q.y * 200) / height }));
+  return (
+    <SvgShell
+      {...p}
+      inner={() => (
+        <ShapePaint
+          layer={p.layer}
+          resolved={withProfile(p.resolved)}
+          width={200}
+          height={200}
+          defaultFill="none"
+          defaultStroke="#0f172a"
+          defaultStrokeWidth={2}
+          closed={closed}
+          outline={px}
+          toDrawing={toDrawing}
+          geometry={(a) => <path {...a} d={p.d} fillRule={p.resolved.str("svg.fillRule", "nonzero") === "evenodd" ? "evenodd" : "nonzero"} />}
+        />
+      )}
+    />
+  );
+}
+
+/** In a stretched space a native stroke would stretch with it: give the stroke a uniform width profile so it is drawn as an outline built in px. */
+function withProfile(resolved: ArchetypeRenderProps["resolved"]): ArchetypeRenderProps["resolved"] {
+  if (resolved.get("stroke.widthProfile")) return resolved;
+  const uniform = JSON.stringify([{ t: 0, scale: 1 }, { t: 1, scale: 1 }]);
+  return { ...resolved, get: (path: string) => (path === "stroke.widthProfile" ? uniform : resolved.get(path)) };
+}
+
 /** `svgPath`: the Pen and Pencil tools' output, and any imported path. */
-export const SvgPath: React.FC<ArchetypeRenderProps> = (p) => (
+export const SvgPath: React.FC<ArchetypeRenderProps> = (p) =>
+  strokeSettings(p.resolved, "#0f172a", 2, !/[zZ]/.test(p.resolved.str("svg.path", ""))) ? (
+    <AdvancedSvgPath {...p} d={safePathData(p.resolved.str("svg.path", "M0 0 L100 100"))} />
+  ) : (
   <SvgShell
     {...p}
     inner={(ref) => (
@@ -54,7 +102,7 @@ export const SvgPath: React.FC<ArchetypeRenderProps> = (p) => (
       />
     )}
   />
-);
+  );
 
 /** `svgText`: a text run in a group or on its own. */
 export const SvgText: React.FC<ArchetypeRenderProps> = (p) => {

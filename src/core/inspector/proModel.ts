@@ -44,7 +44,7 @@ export const PRO_GROUPS: readonly { id: GroupId; title: string }[] = [
 const GROUP_OF_PREFIX: Record<string, GroupId> = {
   frame: "frame", sizing: "frame", positioning: "frame", transform: "frame",
   layout: "layout",
-  appearance: "appearance", render: "appearance", filter: "appearance",
+  appearance: "appearance", render: "appearance", filter: "appearance", stroke: "appearance", paint: "appearance",
   typography: "typography", text: "typography",
   content: "content",
   svg: "vector", shape: "vector",
