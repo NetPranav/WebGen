@@ -22,12 +22,20 @@ const JUSTIFY: { value: Justify; label: string }[] = [
   { value: "center", label: "Centre" },
   { value: "flex-end", label: "End" },
   { value: "space-between", label: "Space between" },
+  // FigCraft port F6: the other two auto gaps
+  { value: "space-around", label: "Space around" },
+  { value: "space-evenly", label: "Space evenly" },
 ];
 const ALIGN: { value: AlignItems; label: string }[] = [
   { value: "flex-start", label: "Start" },
   { value: "center", label: "Centre" },
   { value: "flex-end", label: "End" },
   { value: "stretch", label: "Stretch" },
+  { value: "baseline", label: "Baseline" },
+];
+const LINES: { value: string; label: string }[] = [
+  { value: "auto", label: "Packed" },
+  { value: "space-between", label: "Spread" },
 ];
 const SIZING: { value: SizingMode; label: string }[] = [
   { value: "hug", label: "Hug" },
@@ -107,6 +115,17 @@ export const AutoLayoutPanel: React.FC = () => {
           </div>
           <Segmented label="Justify" value={same((s) => s.justify) as string | undefined} options={JUSTIFY} onPick={(v) => run("layout.setStack", { justify: v })} />
           <Segmented label="Align" value={same((s) => s.align) as string | undefined} options={ALIGN} onPick={(v) => run("layout.setStack", { align: v })} />
+          {same((s) => s.wrap) === true && <Segmented label="Wrapped lines" value={same((s) => s.alignContent ?? "auto") as string | undefined} options={LINES} onPick={(v) => run("layout.setStack", { alignContent: v })} />}
+          <div style={{ display: "flex", gap: 8, fontSize: 11 }}>
+            <label style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <input type="checkbox" aria-label="Strokes included in layout" checked={stacks.every((l) => l.properties["layout.strokesIncluded"] !== false)} onChange={(e) => run("layout.setStack", { strokesIncluded: e.target.checked })} />
+              Strokes in layout
+            </label>
+            <label style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <input type="checkbox" aria-label="First child on top" checked={stacks.every((l) => l.properties["layout.reverseZ"] === true)} onChange={(e) => run("layout.setStack", { reverseZ: e.target.checked })} />
+              First on top
+            </label>
+          </div>
         </>
       )}
       {inStack.length > 0 && (

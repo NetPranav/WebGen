@@ -100,7 +100,8 @@ const FlexContainer: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, c
         justifyContent: justify || undefined,
         ...(display === "grid" ? {} : { alignItems: align || undefined }),
         flexWrap: wrap,
-        alignContent: wrap ? "flex-start" : undefined,
+        // FigCraft port F6: wrapped lines sit where the cross alignment says (stretched for stretch), or spread out
+        alignContent: wrap ? (resolved.str("layout.alignContent", "auto") === "space-between" ? "space-between" : align === "center" || align === "flex-end" || align === "stretch" ? align : "flex-start") : undefined,
         ...fill.style,
         borderRadius: px(resolved.num("appearance.radius", 0)),
         ...border,
@@ -124,6 +125,10 @@ export function boxStroke(resolved: ArchetypeRenderProps["resolved"], width: num
   const sides = parseSides(resolved.get("stroke.sides"));
   if (!sides && (align === "center" || align === "outside")) {
     return { outlineStyle: style, outlineWidth: px(width), outlineColor: color, outlineOffset: px(align === "center" ? -width / 2 : 0) };
+  }
+  // an auto-layout frame whose inside stroke stays out of its layout (FigCraft port F6): drawn inside, taking no room
+  if (!sides && resolved.get("layout.auto") === true && resolved.get("layout.strokesIncluded") === false) {
+    return { outlineStyle: style, outlineWidth: px(width), outlineColor: color, outlineOffset: px(-width) };
   }
   if (sides) {
     const [t, r, b, l] = sides.map((v) => px(Math.min(200, v)));

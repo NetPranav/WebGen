@@ -44,9 +44,12 @@ export function readStack(layer: Layer): StackSpec {
     direction: str(p["layout.flexDirection"], "column") === "row" ? "row" : "column",
     gap: num(p["layout.gap"]),
     padding: { top: side("layout.paddingTop", all), right: side("layout.paddingRight", x), bottom: side("layout.paddingBottom", all), left: side("layout.paddingLeft", x) },
-    justify: (["flex-start", "center", "flex-end", "space-between"].includes(str(p["layout.justifyContent"])) ? str(p["layout.justifyContent"]) : "flex-start") as Justify,
-    align: (["flex-start", "center", "flex-end", "stretch"].includes(str(p["layout.alignItems"])) ? str(p["layout.alignItems"]) : "flex-start") as AlignItems,
+    justify: (["flex-start", "center", "flex-end", "space-between", "space-around", "space-evenly"].includes(str(p["layout.justifyContent"])) ? str(p["layout.justifyContent"]) : "flex-start") as Justify,
+    align: (["flex-start", "center", "flex-end", "stretch", "baseline"].includes(str(p["layout.alignItems"])) ? str(p["layout.alignItems"]) : "flex-start") as AlignItems,
     wrap: str(p["layout.flexWrap"], "nowrap") === "wrap",
+    ...(p["layout.alignContent"] === "space-between" ? { alignContent: "space-between" as const } : {}),
+    ...(typeof p["layout.rowGap"] === "number" && str(p["layout.flexDirection"], "column") === "row" ? { crossGap: num(p["layout.rowGap"]) } : {}),
+    ...(typeof p["layout.columnGap"] === "number" && str(p["layout.flexDirection"], "column") !== "row" ? { crossGap: num(p["layout.columnGap"]) } : {}),
   };
 }
 
@@ -65,6 +68,7 @@ export function stackProps(spec: StackSpec): Record<string, PropValue> {
     "layout.justifyContent": spec.justify,
     "layout.alignItems": spec.align,
     "layout.flexWrap": spec.wrap ? "wrap" : "nowrap",
+    ...(spec.alignContent && spec.alignContent !== "auto" ? { "layout.alignContent": spec.alignContent } : {}),
   };
 }
 
@@ -177,6 +181,10 @@ export interface StackPatch {
   justify?: Justify;
   align?: AlignItems;
   wrap?: boolean;
+  /** FigCraft port F6: how wrapped lines share the cross space, inside strokes in the layout, first child on top. */
+  alignContent?: "auto" | "space-between";
+  strokesIncluded?: boolean;
+  reverseZ?: boolean;
 }
 
 /** Changes the stack settings of the selected auto-layout frames. Returns how many changed. */
@@ -196,6 +204,10 @@ export function setStack(ids: readonly string[], patch: StackPatch): number {
       if (patch.justify) props["layout.justifyContent"] = patch.justify;
       if (patch.align) props["layout.alignItems"] = patch.align;
       if (patch.wrap !== undefined) props["layout.flexWrap"] = patch.wrap ? "wrap" : "nowrap";
+      // FigCraft port F6
+      if (patch.alignContent) props["layout.alignContent"] = patch.alignContent;
+      if (patch.strokesIncluded !== undefined) props["layout.strokesIncluded"] = patch.strokesIncluded;
+      if (patch.reverseZ !== undefined) props["layout.reverseZ"] = patch.reverseZ;
       documentCommands.updateProps(id, props);
     }
   });
@@ -225,6 +237,24 @@ export function setChildSizing(ids: readonly string[], patch: { horizontal?: Siz
         if (patch.vertical === "fixed" && b) props["frame.height"] = round(b.h);
       }
       documentCommands.updateProps(id, props);
+      // FigCraft port F6: a child that fills an axis its auto-layout parent hugs turns the parent fixed there
+      // (a frame can't both size to its children and have a child that sizes to it), at the size it has now
+      const parentId = getDocument().layers[id]?.parentId;
+      const parent = parentId ? getDocument().layers[parentId] : undefined;
+      if (parent && parentId && isAutoLayout(parent)) {
+        const ps = sizingOf(parent);
+        const pb = worldBox(parentId);
+        const fix: Record<string, PropValue | undefined> = {};
+        if (patch.horizontal === "fill" && ps.h === "hug") {
+          fix["sizing.horizontal"] = "fixed";
+          if (pb) fix["frame.width"] = round(pb.w);
+        }
+        if (patch.vertical === "fill" && ps.v === "hug") {
+          fix["sizing.vertical"] = "fixed";
+          if (pb) fix["frame.height"] = round(pb.h);
+        }
+        if (Object.keys(fix).length) documentCommands.updateProps(parentId, fix);
+      }
     }
   });
   return targets.length;

@@ -3,6 +3,9 @@
  * commands are what the inspector's controls and agents call.
  */
 
+import { serializeLayoutGrids } from "../layout/layoutGrids";
+import { setLayerProps } from "./editOps";
+import { getDocument } from "../store/documentState";
 import { z } from "zod";
 import { defineCommand, defineTypedCommand, type ContextKeys } from "../commands";
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
@@ -31,12 +34,26 @@ export function registerLayoutCommands(): () => void {
         direction: Direction.optional(),
         gap: z.number().min(0).max(1000).optional(),
         padding: z.union([z.number().min(0).max(1000), z.object({ top: z.number().min(0).max(1000).optional(), right: z.number().min(0).max(1000).optional(), bottom: z.number().min(0).max(1000).optional(), left: z.number().min(0).max(1000).optional() })]).optional(),
-        justify: z.enum(["flex-start", "center", "flex-end", "space-between"]).optional(),
-        align: z.enum(["flex-start", "center", "flex-end", "stretch"]).optional(),
+        justify: z.enum(["flex-start", "center", "flex-end", "space-between", "space-around", "space-evenly"]).optional(),
+        align: z.enum(["flex-start", "center", "flex-end", "stretch", "baseline"]).optional(),
+        alignContent: z.enum(["auto", "space-between"]).optional(),
+        strokesIncluded: z.boolean().optional(),
+        reverseZ: z.boolean().optional(),
         wrap: z.boolean().optional(),
         ids: z.array(z.string()).optional(),
       }),
       run: ({ ids: only, ...patch }) => ({ changed: setStack(only ?? ids(), patch) }),
+    }),
+    // FigCraft port F6: layout grids on frames (editor guides)
+    defineTypedCommand({
+      id: "layout.setLayoutGrids",
+      title: "Set Layout Grids",
+      category,
+      args: z.object({
+        ids: z.array(z.string()).optional(),
+        grids: z.array(z.object({ kind: z.enum(["grid", "columns", "rows"]), size: z.number().min(0).max(10_000), count: z.number().int().min(0).max(500), gutter: z.number().min(0).max(10_000), offset: z.number().min(0).max(10_000), align: z.enum(["stretch", "min", "center", "max"]), color: z.string().max(64), visible: z.boolean() })).max(16),
+      }),
+      run: ({ ids: only, grids }) => ({ changed: setLayerProps((only ?? ids()).filter((id) => getDocument().layers[id]?.archetype === "container"), { "frame.layoutGrids": serializeLayoutGrids(grids) }, "Layout grids") }),
     }),
     defineTypedCommand({
       id: "layout.setSizing",

@@ -43,6 +43,7 @@ import { LinkPanel } from "./LinkPanel";
 import { ComponentPanel } from "./ComponentPanel";
 import { BindingsPanel } from "./BindingsPanel";
 import { AutoLayoutPanel } from "./AutoLayoutPanel";
+import { LayoutGridsPanel } from "./LayoutGridsPanel";
 import { ConstraintsPanel, GridPanel } from "./GridPanel";
 import { AlignBar } from "./AlignBar";
 import { TextProperties } from "./TextProperties";
@@ -163,6 +164,7 @@ export const DetailsInspector: React.FC<DetailsInspectorProps> = ({
         <BindingsPanel />
         <VectorBar />
         <AutoLayoutPanel />
+        <LayoutGridsPanel />
         <GridPanel />
         <ConstraintsPanel />
         <div className="inspector-face-switch" role="tablist" aria-label="Inspector face">

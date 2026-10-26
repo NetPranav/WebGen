@@ -205,6 +205,8 @@ const DEFS = {
   "frame.rotation": deg(0, "rotate", "layout", VISUAL),
   // Phase 28: a frame's ruler guides, as JSON text: [{"axis":"x"|"y","pos":px relative to the frame}]. Only top-level frames use it.
   "frame.guides": str("[]", null, "layout", only("container")),
+  /** Layout grids shown over a frame (FigCraft port F6, `core/layout/layoutGrids.ts`): JSON; editor-only, never exported. */
+  "frame.layoutGrids": typed(str("", null, "none", only("container"))),
   /**
    * A live boolean group (FigCraft port F5): a container whose children are drawn as one shape, combined by this
    * operation (union, subtract, intersect, exclude). Empty: an ordinary container. See `core/editing/layerOutline.ts`.
@@ -318,6 +320,12 @@ const DEFS = {
   "layout.flexDirection": oneOf(["row", "column", "row-reverse", "column-reverse"], "column", "flex-direction", "layout", FLEX),
   "layout.flexWrap": oneOf(["nowrap", "wrap", "wrap-reverse"], "nowrap", "flex-wrap", "layout", FLEX),
   "layout.justifyContent": oneOf(null, "flex-start", "justify-content", "layout", FLEX),
+  /** Wrapped lines (FigCraft port F6): `auto` packs them where the cross alignment says, `space-between` spreads them. */
+  "layout.alignContent": typed(oneOf(["auto", "space-between"], "auto", null, "layout", FLEX)),
+  /** Whether the frame's own inside stroke takes up room in its auto layout, like padding (FigCraft port F6). */
+  "layout.strokesIncluded": typed(flag(true, "layout", FLEX)),
+  /** Canvas stacking: the first child paints on top instead of the last (FigCraft port F6). */
+  "layout.reverseZ": typed(flag(false, "paint", FLEX)),
   "layout.alignItems": oneOf(null, "stretch", "align-items", "layout", FLEX),
   "layout.gap": px(0, "gap", "layout", FLEX),
   "layout.gapUnit": unitOf(FLEX),
@@ -340,6 +348,8 @@ const DEFS = {
   "layout.marginTop": px(0, "margin-top", "layout", LAYOUT),
   "layout.marginBottom": px(0, "margin-bottom", "layout", LAYOUT),
   "layout.alignSelf": oneOf(null, "auto", "align-self", "layout", LAYOUT),
+  /** A grid child's horizontal place in its cell (FigCraft port F6); `layout.alignSelf` is the vertical one. Empty follows the grid. */
+  "layout.justifySelf": typed(oneOf(["", "start", "center", "end", "stretch"], "", "justify-self", "layout", LAYOUT)),
   "layout.flex": str("", "flex", "layout", LAYOUT),
   /** How a free layer follows its frame when the frame is resized (Phase 42); the editor applies it at the resize. */
   /** A top-level frame whose width follows the breakpoint being viewed (Phase 43). */

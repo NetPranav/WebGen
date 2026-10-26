@@ -136,3 +136,15 @@ test("FigCraft port: the paint bucket unfills and refills a closed path", async 
   await page.keyboard.press(`${MOD}+z`);
   await expect.poll(() => fillD(path)).toBe("");
 });
+
+test("FigCraft port: a frame's layout grid draws on the canvas overlay", async ({ page }) => {
+  await ready(page);
+  const id = await page.evaluate(() => {
+    const doc = (window as unknown as { __LL_DOC__: { get: () => { layers: Record<string, { parentId: string | null; archetype: string }> } } }).__LL_DOC__;
+    return Object.entries(doc.get().layers).find(([, l]) => l.parentId === null && l.archetype === "container")![0];
+  });
+  await run(page, "layout.setLayoutGrids", { ids: [id], grids: [{ kind: "columns", size: 0, count: 12, gutter: 20, offset: 0, align: "stretch", color: "rgba(255, 0, 0, 0.1)", visible: true }] });
+  await expect.poll(() => page.locator(`[data-layout-grids="${id}"] rect`).count()).toBe(12);
+  await run(page, "layout.setLayoutGrids", { ids: [id], grids: [] });
+  await expect(page.getByTestId("layout-grids-overlay")).toHaveCount(0);
+});

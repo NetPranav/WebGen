@@ -58,6 +58,15 @@ export function layerBoxStyle(layer: Layer, resolved: ResolvedProps, ctx: Render
   };
   axis("horizontal");
   axis("vertical");
+  // FigCraft port F6: a grid child's own place in its cell (horizontal; `layout.alignSelf` is the vertical one)
+  if (inGrid) {
+    const js = resolved.get("layout.justifySelf");
+    if (js === "start" || js === "center" || js === "end" || js === "stretch") style.justifySelf = js;
+    const as = resolved.get("layout.alignSelf");
+    if (as === "start" || as === "center" || as === "end" || as === "stretch") style.alignSelf = as;
+  }
+  // FigCraft port F6: a parent that paints its first child on top hands each child its place in the stacking order
+  if (typeof ctx.stackZ === "number") style.zIndex = ctx.stackZ;
   if (inGrid) {
     // the cell this layer sits in: a start (1-based) and how many tracks it spans
     const span = (path: string) => {

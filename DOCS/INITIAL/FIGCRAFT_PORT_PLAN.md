@@ -97,16 +97,16 @@ FigCraft's layout solver is not ported: the browser lays out our frames as CSS f
 
 | Feature | FigCraft source | Our target | We have (phase) | Kind | Status |
 |---|---|---|---|---|---|
-| Auto gap evenly / around | `layout/src/lib.rs` | `stack.ts`, CSS `space-evenly`/`space-around` | Between (41) | behaviour | 📋 |
-| Auto gap never negative; padding floor | `layout/src/lib.rs` | `stack.ts` | — | behaviour | 📋 |
-| Strokes included in layout (inside strokes only) | `layout/src/lib.rs` | `stack.ts`, render | — | behaviour | 📋 |
-| Vertical wrap, wrapped-line alignment (`align-content`) | `layout/src/lib.rs` | `stack.ts`, CSS | Horizontal wrap (41) | behaviour | 📋 |
-| Text baseline alignment | `layout/src/lib.rs` | CSS `align-items: baseline` | — | behaviour | 📋 |
-| Fill on a child turns a hugging parent Fixed | `engine/src/al_behaviour_tests.rs` | layout commands | — | behaviour | 📋 |
-| Grid `fr` tracks never smaller than content; cell alignment | `layout/src/lib.rs` | `grid.ts` | `fr` tracks (42) | behaviour | 📋 |
-| Canvas stacking (first on top) | `layout/src/lib.rs` | render (`z-index`) | — | behaviour | 📋 |
-| Layout grids (columns, rows, grid overlays) | `doc/src/props.rs`, `layout/src/lib.rs` | `src/core/layout/layoutGrids.ts`, overlay | — | data + overlay | 📋 |
-| Arrow keys move children through the flow | `engine/src/al_keys.rs` | editing commands | Drag reorder (41) | behaviour | 📋 |
+| Auto gap evenly / around | `layout/src/lib.rs` | `stack.ts`, CSS `space-evenly`/`space-around` | Between (41) | behaviour | ✅ |
+| Auto gap never negative; padding floor | `layout/src/lib.rs` | `stack.ts` | — | behaviour | ✅ (CSS gives both; checked in the stack oracle) |
+| Strokes included in layout (inside strokes only) | `layout/src/lib.rs` | `stack.ts`, render | — | behaviour | ✅ `layout.strokesIncluded` (off: an outline inset by its width) |
+| Vertical wrap, wrapped-line alignment (`align-content`) | `layout/src/lib.rs` | `stack.ts`, CSS | Horizontal wrap (41) | behaviour | ✅ `layout.alignContent`; lines packed by the cross alignment (FigCraft's all-fill rows stretch = our Stretch alignment) |
+| Text baseline alignment | `layout/src/lib.rs` | CSS `align-items: baseline` | — | behaviour | ✅ (CSS `baseline`; the oracle treats it as start) |
+| Fill on a child turns a hugging parent Fixed | `engine/src/al_behaviour_tests.rs` | layout commands | — | behaviour | ✅ |
+| Grid `fr` tracks never smaller than content; cell alignment | `layout/src/lib.rs` | `grid.ts` | `fr` tracks (42) | behaviour | ✅ cell alignment (`layout.justifySelf` + `alignSelf`); `fr` minimum kept as Phase 42 chose (`minmax(0, 1fr)`), a deliberate difference |
+| Canvas stacking (first on top) | `layout/src/lib.rs` | render (`z-index`) | — | behaviour | ✅ `layout.reverseZ` |
+| Layout grids (columns, rows, grid overlays) | `doc/src/props.rs`, `layout/src/lib.rs` | `src/core/layout/layoutGrids.ts`, overlay | — | data + overlay | ✅ `frame.layoutGrids`, canvas overlay, Layout grids panel, `layout.setLayoutGrids`; snap lines computed (`gridSnapLines`), not yet wired into snapping |
+| Arrow keys move children through the flow | `engine/src/al_keys.rs` | editing commands | Drag reorder (41) | behaviour | ✅ along the stack's direction |
 
 ### F7 · Effects
 
@@ -240,6 +240,8 @@ When those phases start, their FigCraft sources are listed here so they can be p
 **2026-10-26: F1 and F2 ported.** Geometry (`bezpath.ts`, `shapes.ts`, `affine.ts`) with every FigCraft `geom` test (18 cases, all green); colour (`color.ts`) with FigCraft's colour, gradient, pattern, profile and named-colour tests (24 cases; one compares with a 1e-9 tolerance because FigCraft uses 32-bit floats). Render definitions draw per-corner radii, smoothing, rounded vertices, arcs, pies and rings; paints gain blend modes, the diamond gradient (checked point by point against FigCraft's |x|+|y| formula) and the seven image adjustments.
 
 **2026-10-26: browser check after F3** (same machine, 4 workers): 657 passed, 14 flaky, 12 failed. Two were real regressions caught here, both F2's: the new image adjustment fields reused the accessible names "Fill 1 saturation" and "Fill 1 contrast" of the Phase 37 controls, so the Phase 37 image tests couldn't find their fields (all three browsers); fixed by naming them "… adjustment". The rest are the baseline's frame-rate and timing tests, plus Phase 63's keyboard journey in Chromium (re-run on its own below).
+
+**2026-10-26: F6 auto layout behaviour.** `stack.ts` gains space-around/space-evenly (`mainOffsets`), baseline, wrapped-line alignment and a cross gap; `layoutGrids.ts` (FigCraft `grid_lines`) with an overlay, panel and command; strokes in or out of the layout, first child on top, grid cell alignment, Fill fixing a hugging parent, arrow keys reordering a stack. Ported tests: FigCraft's gap rules, wrapped-line cases (13) and layout-grid tests, all green; the Phase 41/42 browser specs (auto layout, grids, editing, inspectors, layers, breakpoints, export) pass in all three browsers. Not ported: FigCraft's own solver (the browser lays out), auto gaps ignoring the gap value (we keep CSS: gap plus shared space, which gives FigCraft's numbers in its cases), the `fr`-track minimum.
 
 **2026-10-26: F4 vector networks and F5 booleans.** `paths/vectorNetwork.ts` (model, rounded points, fill and stroke paths, stroke runs, regions as areas, faces by a half-edge walk, the paint bucket, JSON storage) with every FigCraft `vector_regions_tests.rs` and `vector_faces.rs` case and the network cases of `doc/src/tests.rs` (23, all green on the first run). Path layers carry `svg.network`; the stage draws a network's fill by regions and stroke by runs; a Phase 40 path edit drops it. Paint Bucket tool (B) and commands `vector.makeNetwork`, `vector.paintBucket`, `vector.setPoint`. F5: `editing/layerOutline.ts` (a layer's fill outline and stroke band as paths), live boolean groups (`editing/booleanGroups.ts`: containers with `boolean.operation`, per-operand `boolean.operandOp`, flatten), and the Shape Builder (`editing/shapeBuilder.ts`, tool Shift+M), with the logic cases of FigCraft's `booleans_tests.rs` and `shapebuilder_tests.rs`. One difference from FigCraft: a shape that loses area to the Shape Builder becomes a new path layer (a new id) because a layer can't change kind in place; the result names the layer that now holds it. A boolean group's box doesn't refit to its operands as FigCraft's does (the result draws past it).
 

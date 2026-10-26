@@ -32,9 +32,11 @@ interface StoreRenderLayerProps {
   layerId: string;
   /** The parent's main axis; decides what `fill` means for this layer. */
   parentDirection?: "row" | "column" | "grid";
+  /** Set by a parent that paints its first child on top (`layout.reverseZ`, FigCraft port F6). */
+  stackZ?: number;
 }
 
-function StoreRenderLayerImpl({ layerId, parentDirection }: StoreRenderLayerProps) {
+function StoreRenderLayerImpl({ layerId, parentDirection, stackZ }: StoreRenderLayerProps) {
   const stage = useContext(StageContext);
   if (!stage) throw new Error("StoreRenderLayer must be rendered inside a StageContext");
   const { plan, renderer, ctx: stageCtx, breakpointId } = stage;
@@ -42,7 +44,7 @@ function StoreRenderLayerImpl({ layerId, parentDirection }: StoreRenderLayerProp
   const layer = useLayerAt(layerId, breakpointId);
   const childIds = useSyncExternalStore(plan.subscribe, () => plan.get(layerId), () => plan.get(layerId));
   const resolved = useMemo(() => (layer ? resolveProps(layer) : null), [layer]);
-  const ctx = useMemo<RenderContext>(() => ({ ...stageCtx, parentDirection }), [stageCtx, parentDirection]);
+  const ctx = useMemo<RenderContext>(() => ({ ...stageCtx, parentDirection, ...(stackZ !== undefined ? { stackZ } : {}) }), [stageCtx, parentDirection, stackZ]);
 
   // The registry always holds the element this layer is currently drawn into.
   const lastElement = useRef<Element | null>(null);
@@ -68,8 +70,8 @@ function StoreRenderLayerImpl({ layerId, parentDirection }: StoreRenderLayerProp
 
   return (
     <Definition layer={layer} resolved={resolved} ctx={ctx} nodeRef={nodeRef}>
-      {childIds.map((childId) => (
-        <StoreRenderLayer key={childId} layerId={childId} parentDirection={childDirection} />
+      {childIds.map((childId, i) => (
+        <StoreRenderLayer key={childId} layerId={childId} parentDirection={childDirection} stackZ={resolved.bool("layout.reverseZ", false) ? childIds.length - i : undefined} />
       ))}
     </Definition>
   );

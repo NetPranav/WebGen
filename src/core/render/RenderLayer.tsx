@@ -69,12 +69,13 @@ export const RenderLayer: React.FC<RenderLayerProps> = ({ layerId, layers, ctx =
   const Definition = RENDER_DEFINITIONS[layer.archetype];
   const isFlexContainer = layer.archetype === "container" || layer.archetype === "form";
   const childDirection = isFlexContainer && resolved.str("layout.display", "flex") === "grid" ? "grid" : isFlexContainer && resolved.str("layout.flexDirection", "column") === "row" ? "row" : "column";
-  const childCtx: RenderContext = { ...ctx, parentDirection: childDirection, layers };
+  const childCtx: RenderContext = { ...ctx, parentDirection: childDirection, layers, stackZ: undefined };
+  const reverseZ = resolved.bool("layout.reverseZ", false);
 
   return (
     <Definition layer={layer} resolved={resolved} ctx={ctx.layers ? ctx : { ...ctx, layers }}>
       {childIds.map((childId) => (
-        <RenderLayer key={childId} layerId={childId} layers={layers} ctx={childCtx} plan={permitted} />
+        <RenderLayer key={childId} layerId={childId} layers={layers} ctx={reverseZ ? { ...childCtx, stackZ: layer.children.length - layer.children.indexOf(childId) } : childCtx} plan={permitted} />
       ))}
     </Definition>
   );

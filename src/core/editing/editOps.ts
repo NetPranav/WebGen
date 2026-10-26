@@ -229,6 +229,29 @@ export function deleteLayers(ids: readonly string[]): number {
 /** Moves the selection by (dx, dy). A flow-placed layer becomes absolute at its place first. */
 export function nudgeLayers(ids: readonly string[], dx: number, dy: number): void {
   const roots = editableRoots(ids);
+  // FigCraft port F6: in an auto-layout stack, arrows along its direction move a child one place through the flow
+  // (instead of pulling it out of the stack to a free position); arrows across it do nothing
+  const l = layers();
+  const flowParent = (id: string) => {
+    const layer = l[id];
+    const parent = layer?.parentId ? l[layer.parentId] : undefined;
+    return parent && parent.archetype === "container" && parent.properties["layout.auto"] === true && layer.properties.positioning !== "absolute" ? parent : null;
+  };
+  if (roots.length > 0 && roots.every((id) => flowParent(id))) {
+    transaction("Reorder", () => {
+      for (const id of roots) {
+        const parent = flowParent(id)!;
+        const row = parent.properties["layout.flexDirection"] === "row";
+        const step = row ? Math.sign(dx) : Math.sign(dy);
+        if (step === 0) continue;
+        const kids = getDocument().layers[parent.id].children;
+        const at = kids.indexOf(id);
+        const to = Math.max(0, Math.min(kids.length - 1, at + step));
+        if (to !== at) documentCommands.moveLayer(id, parent.id, to);
+      }
+    });
+    return;
+  }
   const boxes = roots.map((id) => worldBox(id)).filter((b): b is Box => b !== null);
   if (boxes.length !== roots.length || roots.length === 0) return;
   transaction("Nudge", () => writeBoxes(roots, moveBoxes(boxes, dx, dy)));

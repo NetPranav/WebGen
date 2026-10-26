@@ -13,8 +13,12 @@
  */
 
 export type Direction = "row" | "column";
-export type Justify = "flex-start" | "center" | "flex-end" | "space-between";
-export type AlignItems = "flex-start" | "center" | "flex-end" | "stretch";
+/** Main-axis placement; the three `space-*` values are auto gaps (FigCraft port F6 adds around and evenly). */
+export type Justify = "flex-start" | "center" | "flex-end" | "space-between" | "space-around" | "space-evenly";
+/** Cross-axis placement; `baseline` lines text up by its first baseline (FigCraft port F6; geometry treats it as start). */
+export type AlignItems = "flex-start" | "center" | "flex-end" | "stretch" | "baseline";
+/** How wrapped lines share the free space across the flow (FigCraft port F6): packed where the cross alignment says, or spread. */
+export type AlignContent = "auto" | "space-between";
 export type SizingMode = "fixed" | "hug" | "fill";
 
 export interface Padding {
@@ -31,9 +35,36 @@ export interface StackSpec {
   justify: Justify;
   align: AlignItems;
   wrap: boolean;
+  /** Wrapped lines: packed per `align` (stretched when it is `stretch`), or the free space between them. Default auto. */
+  alignContent?: AlignContent;
+  /** Gap between wrapped lines; default `gap` (FigCraft's cross gap). */
+  crossGap?: number;
 }
 
 export const DEFAULT_STACK: StackSpec = { direction: "column", gap: 0, padding: { top: 0, right: 0, bottom: 0, left: 0 }, justify: "flex-start", align: "flex-start", wrap: false };
+
+/**
+ * Where the first child starts and the step between children along the main axis, from the free space. Auto gaps
+ * share the free space and never go below 0; a single child of "space between" sits at the start; "space around"
+ * makes gaps twice the edge space, "space evenly" equal to it (FigCraft `main_offsets`, port F6).
+ */
+export function mainOffsets(justify: Justify, free: number, n: number, gap: number): { start: number; step: number } {
+  const k = Math.max(1, n);
+  switch (justify) {
+    case "center": return { start: free / 2, step: gap };
+    case "flex-end": return { start: free, step: gap };
+    case "space-between": return n > 1 ? { start: 0, step: gap + Math.max(0, free) / (n - 1) } : { start: 0, step: gap };
+    case "space-around": {
+      const g = Math.max(0, free + gap * (n - 1)) / k;
+      return { start: g / 2, step: g };
+    }
+    case "space-evenly": {
+      const g = Math.max(0, free + gap * (n - 1)) / (k + 1);
+      return { start: g, step: g };
+    }
+    default: return { start: 0, step: gap };
+  }
+}
 
 export interface StackChild {
   /** The size it has when it sizes itself (fixed: its own size; hug: its content). */
@@ -136,9 +167,27 @@ export function computeStack(spec: StackSpec, size: { w: number; h: number }, ch
   const out: Rect[] = new Array(children.length);
   // each line's cross size: the tallest child; a lone line with no wrap takes the whole inner cross room
   const lineCross = lines.map((idx) => Math.max(0, ...idx.map((i) => (sizingCross(children[i]) === "fill" ? 0 : natCross(children[i])))));
-  // lines are packed at the start (`align-content: flex-start`); without wrap the one line is the whole cross room
-  const lineSizes = spec.wrap ? lineCross : [crossRoom];
+  const crossGap = spec.crossGap ?? spec.gap;
+  // FigCraft port F6: several lines share the free space across the flow: packed where the cross alignment says
+  // (stretched over it when the alignment is stretch), or (space-between) the space goes between them
+  let lineSizes = spec.wrap ? [...lineCross] : [crossRoom];
+  let lineGap = crossGap;
   let crossAt = 0;
+  if (spec.wrap && lines.length === 1) lineSizes = [crossRoom];
+  else if (spec.wrap && lines.length > 1) {
+    const used = lineCross.reduce((a, b) => a + b, 0);
+    const between = lines.length - 1;
+    const spread = (crossRoom - used) / between;
+    if (spec.alignContent === "space-between" && spread > 0) lineGap = spread;
+    else {
+      // no room to spread: the rows touch, then sit where the alignment says (even past the edges, as CSS does)
+      if (spec.alignContent === "space-between") lineGap = 0;
+      const free = crossRoom - used - lineGap * between;
+      if (free > 0 && spec.align === "stretch") lineSizes = lineCross.map((c) => c + free / lines.length);
+      else if (spec.align === "center") crossAt = free / 2;
+      else if (spec.align === "flex-end") crossAt = free;
+    }
+  }
   lines.forEach((idx, li) => {
     const lc = lineSizes[li];
     const fixedMain = idx.reduce((s, i) => s + (sizingMain(children[i]) === "fill" ? 0 : natMain(children[i])), 0);
@@ -151,9 +200,9 @@ export function computeStack(spec: StackSpec, size: { w: number; h: number }, ch
     let at = 0;
     let between = spec.gap;
     if (fills === 0) {
-      if (spec.justify === "center") at = left / 2;
-      else if (spec.justify === "flex-end") at = left;
-      else if (spec.justify === "space-between" && idx.length > 1) between = spec.gap + left / (idx.length - 1);
+      const o = mainOffsets(spec.justify, left, idx.length, spec.gap);
+      at = o.start;
+      between = o.step;
     }
     idx.forEach((i) => {
       const c = children[i];
@@ -170,7 +219,7 @@ export function computeStack(spec: StackSpec, size: { w: number; h: number }, ch
       out[i] = row ? { x: mainPos, y: crossPos, w: m, h: x } : { x: crossPos, y: mainPos, w: x, h: m };
       at += m + between;
     });
-    crossAt += lc + spec.gap;
+    crossAt += lc + lineGap;
   });
   return out;
 }
