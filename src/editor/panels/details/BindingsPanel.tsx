@@ -3,7 +3,9 @@
 /**
  * Tokens on the selection (ROADMAP Phase 45), in the Design inspector: which properties follow a variable, shown as
  * bound or detached (a detached one keeps its value and says which variable it came from, with a way back), a way to
- * bind a property to a variable, and the text and effect styles the selection follows.
+ * bind a property to a variable, and the text and effect styles the selection follows. FigCraft port F10: string and
+ * boolean variables (text, font, visibility), pickers offer only variables in scope, fill, stroke and grid styles, and
+ * the mode a frame shows for each collection.
  */
 
 import React, { useState } from "react";
@@ -11,7 +13,7 @@ import { invokeCommand } from "@/core/commands";
 import { documentStore } from "@/core/store/documentState";
 import { useLayers } from "@/core/store/useDocumentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
-import { type VariableType } from "@/core/tokens/tokens";
+import { collectionsOf, inScope, scopeOfPath, type StyleSlot, type VariableType } from "@/core/tokens/tokens";
 
 const run = (command: string, args: unknown) => void invokeCommand(command, args);
 
@@ -31,7 +33,20 @@ const BINDABLE: Record<VariableType, { path: string; label: string }[]> = {
     { path: "typography.fontSize", label: "Font size" },
     { path: "appearance.opacity", label: "Opacity" },
   ],
+  string: [
+    { path: "content.text", label: "Text" },
+    { path: "typography.fontFamily", label: "Font family" },
+  ],
+  boolean: [{ path: "visible", label: "Visibility" }],
 };
+
+const SLOTS: { slot: StyleSlot; kind: string; label: string; none: string }[] = [
+  { slot: "text", kind: "text", label: "Text style", none: "No text style" },
+  { slot: "effect", kind: "effect", label: "Effect style", none: "No effect style" },
+  { slot: "fill", kind: "paint", label: "Fill style", none: "No fill style" },
+  { slot: "stroke", kind: "paint", label: "Stroke style", none: "No stroke style" },
+  { slot: "grid", kind: "grid", label: "Grid style", none: "No grid style" },
+];
 
 const box: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 4, padding: "6px 8px", borderBottom: "1px solid var(--border-subtle, rgba(128,128,128,0.2))", fontSize: 11 };
 
@@ -47,10 +62,12 @@ export const BindingsPanel: React.FC = () => {
   const first = layers[ids[0]];
   const bound = Object.entries(first.tokens ?? {});
   const chosen = doc.variables?.[variableId] ?? variables[0];
-  const options = chosen ? BINDABLE[chosen.type] : [];
+  // only the properties the chosen variable's scopes allow on this layer
+  const options = chosen ? BINDABLE[chosen.type].filter((o) => inScope(chosen, scopeOfPath(o.path, first.archetype))) : [];
   const target = options.some((o) => o.path === path) ? path : (options[0]?.path ?? "");
-  const textStyles = styles.filter((s) => s.kind === "text");
-  const effectStyles = styles.filter((s) => s.kind === "effect");
+  const refs = (first.styleRefs ?? {}) as Partial<Record<StyleSlot, string>>;
+  const own = (first as { variableModes?: Record<string, string> }).variableModes ?? {};
+  const collections = collectionsOf(doc).filter((c) => c.modes.length > 1 && variables.some((v) => (v.collection ?? "default") === c.id));
   return (
     <section aria-label="Tokens on the selection" style={box}>
       <strong>Variables &amp; styles</strong>
@@ -102,28 +119,42 @@ export const BindingsPanel: React.FC = () => {
           </button>
         </div>
       )}
-      {(["text", "effect"] as const).map((kind) => {
-        const list = kind === "text" ? textStyles : effectStyles;
+      {SLOTS.map(({ slot, kind, label, none }) => {
+        const list = styles.filter((st) => st.kind === kind);
         if (list.length === 0) return null;
-        const current = first.styleRefs?.[kind];
+        const current = refs[slot];
         return (
-          <div key={kind} style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <select aria-label={kind === "text" ? "Text style" : "Effect style"} value={current ?? ""} onChange={(e) => (e.target.value ? run("style.apply", { id: e.target.value, ids }) : run("style.detach", { kind, ids }))}>
-              <option value="">{kind === "text" ? "No text style" : "No effect style"}</option>
-              {list.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+          <div key={slot} style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <select aria-label={label} value={current ?? ""} onChange={(e) => (e.target.value ? run("style.apply", { id: e.target.value, ids, slot }) : run("style.detach", { kind: slot, ids }))}>
+              <option value="">{none}</option>
+              {list.map((st) => (
+                <option key={st.id} value={st.id}>
+                  {st.name}
                 </option>
               ))}
             </select>
             {current && (
-              <button type="button" className="panel-icon-btn panel-text-btn" aria-label={`Detach ${kind} style`} onClick={() => run("style.detach", { kind, ids })}>
+              <button type="button" className="panel-icon-btn panel-text-btn" aria-label={`Detach ${slot} style`} onClick={() => run("style.detach", { kind: slot, ids })}>
                 Detach
               </button>
             )}
           </div>
         );
       })}
+      {first.archetype === "container" &&
+        collections.map((c) => (
+          <label key={c.id} style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between" }}>
+            {c.name} mode
+            <select aria-label={`${c.name} mode`} value={own[c.id] ?? ""} onChange={(e) => run("token.setLayerMode", { collection: c.id, mode: e.target.value || null, ids })}>
+              <option value="">Auto</option>
+              {c.modes.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
     </section>
   );
 };

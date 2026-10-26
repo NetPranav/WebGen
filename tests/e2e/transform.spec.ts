@@ -5,12 +5,14 @@
  * The pure geometry of every manipulation is tested to the pixel in src/core/geometry/__tests__/transform.test.ts.
  */
 import { test, expect, type Page } from "@playwright/test";
+import { waitHydrated } from "./support/editor";
 
 const DEEP = process.platform === "darwin" ? "Meta" : "Control";
 const SHAPES = ["m_rect", "m_ellipse", "m_star", "m_poly"];
 
 async function openShapesLab(page: Page) {
   await page.goto("/editor/canvas-lab", { waitUntil: "domcontentloaded" });
+  await waitHydrated(page);
   await page.getByRole("button", { name: "Load one frame with shapes" }).click();
   await page.waitForFunction(() => !!document.querySelector<HTMLIFrameElement>(".canvas-frame iframe")?.contentDocument?.querySelector('[data-element-id="m_poly"]'), null, { timeout: 60_000 });
   await page.waitForTimeout(600);

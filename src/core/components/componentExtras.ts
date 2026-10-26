@@ -42,7 +42,7 @@ export function pushChanges(ids: readonly string[]): number {
       if (!inst || !main || over.length === 0) continue;
       for (const key of over) {
         if (key === "visible") main.visible = inst.visible;
-        else if (key === "tokens" || key === "styleRefs" || key === "overrides" || key === "link") (main as Record<string, unknown>)[key] = structuredClone((inst as Record<string, unknown>)[key]);
+        else if (key === "tokens" || key === "styleRefs" || key === "overrides" || key === "link" || key === "variableModes") (main as Record<string, unknown>)[key] = structuredClone((inst as Record<string, unknown>)[key]);
         else if (inst.instance!.root && INSTANCE_LOCKED_PROPS.has(key)) continue; // the instance's own place stays its own
         else if (key in inst.properties) main.properties[key] = structuredClone(inst.properties[key]);
         else delete main.properties[key];

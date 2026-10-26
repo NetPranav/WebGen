@@ -4,10 +4,11 @@
  * numbers for every case are in src/core/geometry/__tests__/snap.test.ts; this drives the real canvas.
  */
 import { test, expect, type Page } from "@playwright/test";
-import { openEditor, waitSaved } from "./support/editor";
+import { openEditor, waitSaved, waitHydrated } from "./support/editor";
 
 async function openShapesLab(page: Page) {
   await page.goto("/editor/canvas-lab", { waitUntil: "domcontentloaded" });
+  await waitHydrated(page);
   await page.getByRole("button", { name: "Load one frame with shapes" }).click();
   await page.waitForFunction(() => !!document.querySelector<HTMLIFrameElement>(".canvas-frame iframe")?.contentDocument?.querySelector('[data-element-id="m_poly"]'), null, { timeout: 60_000 });
   await page.waitForTimeout(600);

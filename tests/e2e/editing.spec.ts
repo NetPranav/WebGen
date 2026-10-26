@@ -4,13 +4,14 @@
  * select all and nudge) asserting the exact result after each step; and a copy in one tab pastes into another.
  */
 import { test, expect, type Page } from "@playwright/test";
-import { openEditor, waitSaved } from "./support/editor";
+import { openEditor, waitSaved, waitHydrated } from "./support/editor";
 
 const MOD = process.platform === "darwin" ? "Meta" : "Control";
 const CANVAS = ".whiteboard-stage";
 
 async function openShapesLab(page: Page) {
   await page.goto("/editor/canvas-lab", { waitUntil: "domcontentloaded" });
+  await waitHydrated(page);
   await page.getByRole("button", { name: "Load one frame with shapes" }).click();
   await page.waitForFunction(() => !!document.querySelector<HTMLIFrameElement>(".canvas-frame iframe")?.contentDocument?.querySelector('[data-element-id="m_poly"]'), null, { timeout: 60_000 });
   await page.waitForTimeout(600);

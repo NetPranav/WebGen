@@ -18,7 +18,7 @@ import { createId } from "../ids";
 const PLACEMENT = new Set(["frame.x", "frame.y", "positioning", "frame.rotation", "breakpoints.responsive", "layout.gridColumnStart", "layout.gridColumnSpan", "layout.gridRowStart", "layout.gridRowSpan", "constraints.horizontal", "constraints.vertical"]);
 
 /** The fields besides properties that an instance can override, named as they appear in `overridden`. */
-export const FIELD_OVERRIDES = ["visible", "tokens", "styleRefs", "overrides", "link"] as const;
+export const FIELD_OVERRIDES = ["visible", "tokens", "styleRefs", "overrides", "link", "variableModes"] as const;
 
 const clone = <T,>(v: T): T => (v === undefined ? v : (JSON.parse(JSON.stringify(v)) as T));
 
@@ -62,6 +62,7 @@ export function instantiate(doc: MotionDocument, componentId: string, sourceId: 
     properties: clone(src.properties),
     ...(src.tokens ? { tokens: clone(src.tokens) } : {}),
     ...(src.styleRefs ? { styleRefs: clone(src.styleRefs) } : {}),
+    ...(src.variableModes ? { variableModes: clone(src.variableModes) } : {}),
     ...(src.overrides ? { overrides: clone(src.overrides) } : {}),
     ...(src.link ? { link: clone(src.link) } : {}),
     ...(src.section ? { section: clone(src.section) } : {}),
@@ -94,6 +95,7 @@ export function cloneSubtree(doc: MotionDocument, sourceId: string, parentId: st
     properties: clone(src.properties),
     ...(src.tokens ? { tokens: clone(src.tokens) } : {}),
     ...(src.styleRefs ? { styleRefs: clone(src.styleRefs) } : {}),
+    ...(src.variableModes ? { variableModes: clone(src.variableModes) } : {}),
     ...(src.overrides ? { overrides: clone(src.overrides) } : {}),
     ...(src.componentSlot ? { componentSlot: true } : {}),
   };
@@ -134,6 +136,11 @@ function copyFields(dst: Layer, src: Layer, overridden: ReadonlySet<string>, roo
   if (!overridden.has("styleRefs")) {
     if (src.styleRefs) dst.styleRefs = clone(src.styleRefs);
     else delete dst.styleRefs;
+  }
+  // the modes a frame of the main chose (FigCraft port F10); an instance root's own choice is its own
+  if (!overridden.has("variableModes") && !root) {
+    if (src.variableModes) dst.variableModes = clone(src.variableModes);
+    else delete dst.variableModes;
   }
   if (!overridden.has("overrides")) {
     if (src.overrides) dst.overrides = clone(src.overrides);
@@ -180,7 +187,7 @@ export function syncInstanceLayer(doc: MotionDocument, instId: string): void {
 
 /** A cheap fingerprint of what an instance would copy from a layer. */
 function sig(l: Layer | undefined): string {
-  return l ? JSON.stringify([l.properties, l.children, l.visible, l.tokens, l.styleRefs, l.overrides, l.archetype, l.link, l.componentSlot]) : "";
+  return l ? JSON.stringify([l.properties, l.children, l.visible, l.tokens, l.styleRefs, l.overrides, l.archetype, l.link, l.componentSlot, l.variableModes]) : "";
 }
 
 /** Every main layer of a component: the one, or one for each variant. */

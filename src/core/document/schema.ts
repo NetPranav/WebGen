@@ -136,8 +136,10 @@ export const LayerSchema = z.object({
   overrides: z.record(z.string(), z.record(z.string(), PropValueSchema)).optional(),
   /** Properties bound to variables (Phase 45): property path to the variable, and whether the layer has detached from it. */
   tokens: z.record(z.string(), z.object({ variable: z.string(), detached: z.boolean().optional() })).optional(),
-  /** The text style and effect style this layer follows (Phase 45): style ids. */
-  styleRefs: z.object({ text: z.string().optional(), effect: z.string().optional() }).optional(),
+  /** The styles this layer follows (Phase 45: text and effect; FigCraft port F10: fill, stroke and grid): style ids. */
+  styleRefs: z.object({ text: z.string().optional(), effect: z.string().optional(), fill: z.string().optional(), stroke: z.string().optional(), grid: z.string().optional() }).optional(),
+  /** The mode this frame shows for each variable collection, for everything inside it (FigCraft port F10): collection id to mode id. */
+  variableModes: z.record(z.string(), z.string().max(40)).optional(),
   /** This layer is the main component with this id (Phase 46): the one place the component is edited. */
   componentMain: z.string().optional(),
   /**
@@ -241,12 +243,45 @@ const MotionDocumentShape = z.object({
     .optional(),
   /** Modes for variables, the first is the default (Phase 45). Absent: Light and Dark. */
   modes: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40) })).max(8).optional(),
-  /** Colour and number variables with a value for each mode (Phase 45). */
-  variables: z
-    .record(z.string(), z.object({ id: z.string(), name: z.string().min(1).max(120), type: z.enum(["color", "number"]), values: z.record(z.string(), z.union([z.string().max(200), z.number()])) }))
+  /** More variable collections, each with its own modes (FigCraft port F10). The default collection is `modes`. */
+  collections: z
+    .array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(60), modes: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40) })).min(1).max(8) }))
+    .max(20)
     .optional(),
-  /** Text styles and effect styles (Phase 45). */
-  styles: z.record(z.string(), z.object({ id: z.string(), name: z.string().min(1).max(120), kind: z.enum(["text", "effect"]), props: z.record(z.string(), PropValueSchema) })).optional(),
+  /**
+   * Variables with a value for each mode (Phase 45: colour and number). FigCraft port F10: string and boolean types, a
+   * value that is an alias of another variable, a collection, a description, scopes, code syntax.
+   */
+  variables: z
+    .record(
+      z.string(),
+      z.object({
+        id: z.string(),
+        name: z.string().min(1).max(120),
+        type: z.enum(["color", "number", "string", "boolean"]),
+        values: z.record(z.string(), z.union([z.string().max(2000), z.number(), z.boolean(), z.object({ alias: z.string() })])),
+        collection: z.string().max(40).optional(),
+        description: z.string().max(2000).optional(),
+        scopes: z.array(z.string().max(40)).max(20).optional(),
+        codeSyntax: z.object({ WEB: z.string().max(200).optional(), iOS: z.string().max(200).optional(), ANDROID: z.string().max(200).optional() }).optional(),
+        hidden: z.boolean().optional(),
+      }),
+    )
+    .optional(),
+  /** Styles (Phase 45: text and effect; FigCraft port F10: paint and grid, a description, and variables bound inside them). */
+  styles: z
+    .record(
+      z.string(),
+      z.object({
+        id: z.string(),
+        name: z.string().min(1).max(120),
+        kind: z.enum(["text", "effect", "paint", "grid"]),
+        props: z.record(z.string(), PropValueSchema),
+        description: z.string().max(2000).optional(),
+        bound: z.record(z.string().max(120), z.string()).optional(),
+      }),
+    )
+    .optional(),
   /** The breakpoints, widest (the base) first (Phase 43). Absent: Desktop 1440, Tablet 768, Mobile 375. */
   breakpoints: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40), width: z.number().int().min(100).max(10000) })).max(12).optional(),
   /** How fonts show while they load (the CSS `font-display`; Phase 38). Absent: `swap`. */

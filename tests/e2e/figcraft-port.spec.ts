@@ -178,3 +178,52 @@ test("FigCraft port: push an instance's change to its main, combine two componen
   await page.keyboard.press(`${MOD}+z`);
   await expect.poll(() => D((d) => Object.keys(d.designComponents ?? {}).length)).toBe(2);
 });
+
+test("FigCraft port: a collection's mode chosen on a frame, an alias, and a paint style reach the stage", async ({ page }) => {
+  await ready(page);
+  type D = { commands: { addLayer: (input: unknown) => string }; get: () => { layers: Record<string, { styleRefs?: Record<string, string> }> } };
+  const ids = await page.evaluate(() => {
+    const d = (window as unknown as { __LL_DOC__: D }).__LL_DOC__;
+    const page = d.commands.addLayer({ archetype: "container", parentId: null, name: "Page", properties: { positioning: "absolute", "frame.x": 3000, "frame.y": 0, "frame.width": 800, "frame.height": 500, "appearance.background.color": "#ffffff" } });
+    const box = (name: string, parentId: string, x: number) => d.commands.addLayer({ archetype: "container", parentId, name, properties: { positioning: "absolute", "frame.x": x, "frame.y": 20, "frame.width": 300, "frame.height": 200, "appearance.background.color": "#888888" } });
+    const dark = box("Dark area", page, 10);
+    const inside = box("Inside", dark, 10);
+    const outside = box("Outside", page, 400);
+    return { page, dark, inside, outside };
+  });
+  // a Theme collection, a colour in it, and an alias of that colour bound to two boxes
+  const theme = (await run(page, "token.createCollection", { name: "Theme", modes: ["Light", "Dark"] })) as { id: string };
+  const bg = (await run(page, "token.createVariable", { name: "bg", type: "color", values: { light: "#ffffff", dark: "#000000" }, collection: theme.id })) as { id: string };
+  const surface = (await run(page, "token.createVariable", { name: "surface", type: "color", values: {}, collection: theme.id })) as { id: string };
+  expect((await run(page, "token.setAlias", { id: surface.id, mode: "light", alias: bg.id })) as { ok: boolean }).toEqual({ ok: true });
+  await run(page, "token.setAlias", { id: surface.id, mode: "dark", alias: bg.id });
+  await run(page, "token.bind", { path: "appearance.background.color", variable: surface.id, ids: [ids.inside, ids.outside] });
+  // each frame draws in its own iframe
+  const bgOf = (id: string) =>
+    page.evaluate((id) => {
+      const d = Array.from(document.querySelectorAll("iframe")).map((f) => f.contentDocument).find((c) => c?.querySelector(`[data-element-id="${id}"]`));
+      const el = d?.querySelector<HTMLElement>(`[data-element-id="${id}"]`);
+      return el ? d!.defaultView!.getComputedStyle(el).backgroundColor : null;
+    }, id);
+  await expect.poll(() => bgOf(ids.inside)).toBe("rgb(255, 255, 255)");
+  // the frame chooses Dark in the inspector: what is inside it follows, the box outside doesn't
+  await run(page, "selection.set", { ids: [ids.dark] });
+  await page.getByRole("combobox", { name: "Theme mode" }).selectOption("dark");
+  await expect.poll(() => bgOf(ids.inside)).toBe("rgb(0, 0, 0)");
+  expect(await bgOf(ids.outside)).toBe("rgb(255, 255, 255)");
+  // a paint style from a box, applied to another from the inspector
+  await run(page, "style.create", { kind: "paint", name: "Brand", from: ids.dark });
+  await run(page, "selection.set", { ids: [ids.outside] });
+  await run(page, "token.unbind", { path: "appearance.background.color", ids: [ids.outside] });
+  await page.getByRole("combobox", { name: "Fill style" }).selectOption({ label: "Brand" });
+  // (a fill list draws as background layers)
+  const imageOf = (id: string) =>
+    page.evaluate((id) => {
+      const d = Array.from(document.querySelectorAll("iframe")).map((f) => f.contentDocument).find((c) => c?.querySelector(`[data-element-id="${id}"]`));
+      const el = d?.querySelector<HTMLElement>(`[data-element-id="${id}"]`);
+      return el ? `${d!.defaultView!.getComputedStyle(el).backgroundImage} ${d!.defaultView!.getComputedStyle(el).backgroundColor}` : "";
+    }, id);
+  await expect.poll(() => imageOf(ids.outside)).toContain("rgb(136, 136, 136)");
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(() => page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id].styleRefs?.fill ?? "", ids.outside)).toBe("");
+});

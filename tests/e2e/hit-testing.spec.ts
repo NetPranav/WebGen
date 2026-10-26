@@ -5,6 +5,7 @@
  * The index's speed (p95 < 1 ms with 1,000 layers) is a unit test: src/core/hit/__tests__/hitTest.test.ts.
  */
 import { test, expect, type Page } from "@playwright/test";
+import { waitHydrated } from "./support/editor";
 
 const CANVAS = ".whiteboard-stage";
 
@@ -13,6 +14,7 @@ const DEEP = process.platform === "darwin" ? "Meta" : "Control";
 
 async function openLab(page: Page) {
   await page.goto("/editor/canvas-lab", { waitUntil: "domcontentloaded" });
+  await waitHydrated(page);
   await page.getByRole("button", { name: "Load 5 frames × 200 layers" }).click();
   await page.waitForFunction(() => {
     const frames = Array.from(document.querySelectorAll<HTMLIFrameElement>(".canvas-frame iframe"));

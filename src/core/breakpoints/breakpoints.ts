@@ -14,7 +14,7 @@
 import type { Layer, MotionDocument } from "../document/schema";
 import type { PropValue } from "../document/registry";
 import { constrainSpan, readHorizontal, readVertical } from "../layout/constraints";
-import { hasTokens, resolveLayerTokens } from "../tokens/tokens";
+import { hasTokens, inheritedModes, resolveLayerTokens } from "../tokens/tokens";
 
 export interface Breakpoint {
   id: string;
@@ -126,8 +126,10 @@ const cache = new WeakMap<object, Map<string, MotionDocument>>();
 function withTokens(doc: MotionDocument, modeId: string | null | undefined): MotionDocument {
   if (!hasTokens(doc)) return doc;
   const changed: Record<string, Layer> = {};
+  // the modes frames chose for what is inside them (FigCraft port F10)
+  const chosen = inheritedModes(doc.layers);
   for (const layer of Object.values(doc.layers)) {
-    const next = resolveLayerTokens(layer, doc, modeId);
+    const next = resolveLayerTokens(layer, doc, modeId, chosen.get(layer.id));
     if (next !== layer) changed[layer.id] = next;
   }
   return Object.keys(changed).length > 0 ? { ...doc, layers: { ...doc.layers, ...changed } } : doc;

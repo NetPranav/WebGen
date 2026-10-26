@@ -4,11 +4,13 @@
  * click reach the page (a button in a frame).
  */
 import { test, expect, type Page } from "@playwright/test";
+import { waitHydrated } from "./support/editor";
 
 const CANVAS = ".whiteboard-stage";
 
 async function openLab(page: Page) {
   await page.goto("/editor/canvas-lab", { waitUntil: "domcontentloaded" });
+  await waitHydrated(page);
   await page.getByRole("button", { name: "Load 5 frames × 200 layers" }).click();
   await page.waitForFunction(() => {
     const frames = Array.from(document.querySelectorAll<HTMLIFrameElement>(".canvas-frame iframe"));

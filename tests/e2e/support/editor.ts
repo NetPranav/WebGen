@@ -14,6 +14,17 @@ export async function openEditor(page: Page, url = "/editor") {
   await waitSaved(page);
 }
 
+/**
+ * Waits until React has hydrated the page (its props are on the DOM nodes): a click that lands before that is lost,
+ * which under load left lab pages unloaded until the test timed out.
+ */
+export async function waitHydrated(page: Page, selector = "main button") {
+  await page.waitForFunction((sel) => {
+    const el = document.querySelector(sel);
+    return !!el && Object.keys(el).some((k) => k.startsWith("__reactProps"));
+  }, selector, { timeout: 60_000 });
+}
+
 /** The Save button shows a dot while changes are unsaved. */
 export async function waitSaved(page: Page) {
   await page.waitForTimeout(150);

@@ -46,7 +46,7 @@ import { applyConstraintsToChildren } from "../layout/constrainChildren";
 import { appliedBreakpoints, breakpointsOf, isBase, resolveDocumentAt, resolveLayerAt, VISIBLE_KEY } from "../breakpoints/breakpoints";
 import { useBreakpointStore } from "./useBreakpointStore";
 import { useModeStore } from "./useModeStore";
-import { STYLE_PROPS } from "../tokens/tokens";
+import { STYLE_SLOTS, slotProps, slotTriggers, type StyleSlot } from "../tokens/tokens";
 import { lockedByInstance, markOverridden, syncInstances } from "../components/instances";
 import { syncCompositions, type CompositionLayer, type Marker } from "../document/compositions";
 import {
@@ -527,14 +527,14 @@ function detachOnEdit(doc: MotionDocument, layer: Layer, paths: readonly string[
     }
   }
   if (layer.styleRefs) {
-    for (const kind of ["text", "effect"] as const) {
-      const id = layer.styleRefs[kind];
-      if (!id || !paths.some((p) => (STYLE_PROPS[kind] as readonly string[]).includes(p))) continue;
-      const style = doc.styles?.[id];
-      if (style) for (const path of STYLE_PROPS[kind]) if (style.props[path] !== undefined) layer.properties[path] = style.props[path];
-      delete layer.styleRefs[kind];
+    // editing what a style gives the layer lets go of the style, keeping its values (text and effect: Phase 45; fill, stroke and grid: FigCraft port F10)
+    const refs = layer.styleRefs as Partial<Record<StyleSlot, string>>;
+    for (const slot of STYLE_SLOTS) {
+      if (!refs[slot] || !paths.some((p) => slotTriggers(slot, layer.archetype).includes(p))) continue;
+      Object.assign(layer.properties, slotProps(doc, layer, slot));
+      delete refs[slot];
     }
-    if (!layer.styleRefs.text && !layer.styleRefs.effect) delete layer.styleRefs;
+    if (STYLE_SLOTS.every((s) => !refs[s])) delete layer.styleRefs;
   }
 }
 
@@ -691,6 +691,8 @@ export const documentCommands = {
     commit(label, (draft) => {
       const layer = requireLayer(draft, layerId);
       if ("visible" in flags) markOverridden(layer as Layer, ["visible"]);
+      // showing or hiding a layer by hand lets go of a boolean variable bound to its visibility (FigCraft port F10)
+      if ("visible" in flags && layer.tokens?.visible && !layer.tokens.visible.detached) layer.tokens.visible.detached = true;
       const activeId = useBreakpointStore.getState().activeId;
       // at a smaller breakpoint, showing or hiding a layer is that breakpoint's override (Phase 43)
       if ("visible" in flags && !isBase(breakpointsOf(draft), activeId)) {

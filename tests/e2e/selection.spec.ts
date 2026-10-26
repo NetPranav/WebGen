@@ -5,12 +5,13 @@
  * each with 10 groups of 20 text layers.
  */
 import { test, expect, type Page } from "@playwright/test";
-import { openEditor, waitSaved } from "./support/editor";
+import { openEditor, waitSaved, waitHydrated } from "./support/editor";
 
 const DEEP = process.platform === "darwin" ? "Meta" : "Control";
 
 async function openLab(page: Page) {
   await page.goto("/editor/canvas-lab", { waitUntil: "domcontentloaded" });
+  await waitHydrated(page);
   await page.getByRole("button", { name: "Load 5 frames × 200 layers" }).click();
   await page.waitForFunction(() => {
     const frames = Array.from(document.querySelectorAll<HTMLIFrameElement>(".canvas-frame iframe"));

@@ -4,7 +4,7 @@
  * canvas set equal gaps, and the inspector's buttons run the same commands.
  */
 import { test, expect, type Page } from "@playwright/test";
-import { openEditor, waitSaved } from "./support/editor";
+import { openEditor, waitSaved, waitHydrated } from "./support/editor";
 
 const MOD = process.platform === "darwin" ? "Meta" : "Control";
 
@@ -13,6 +13,7 @@ async function openShapesLab(page: Page) {
     (window as unknown as { __LL_TEST__: boolean }).__LL_TEST__ = true;
   });
   await page.goto("/editor/canvas-lab", { waitUntil: "domcontentloaded" });
+  await waitHydrated(page);
   // a click before hydration does nothing: click again until the shapes are there
   await expect(async () => {
     await page.getByRole("button", { name: "Load one frame with shapes" }).click();

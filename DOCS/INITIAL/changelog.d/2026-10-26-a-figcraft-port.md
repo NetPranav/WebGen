@@ -10,14 +10,17 @@ FigCraft's engine logic (MIT) is being translated into ours, batch by batch, und
 - **F5 booleans and the Shape Builder:** live boolean groups whose operands stay editable layers (`boolean.operation` on a frame, `boolean.operandOp` per operand; commands `boolean.makeGroup`, `boolean.setOperation`, `boolean.flattenGroup`), and the Shape Builder tool (Shift+M) that merges, or with Alt removes, the regions where selected shapes overlap (`shapeBuilder.regions`, `shapeBuilder.merge`, `shapeBuilder.remove`).
 - **F6 auto layout:** auto gaps Space around and Space evenly, Baseline alignment, wrapped lines packed where the cross alignment says or spread (`layout.alignContent`), inside strokes in or out of the layout (`layout.strokesIncluded`), first child on top (`layout.reverseZ`), a grid child's place in its cell (`layout.justifySelf`), Fill on a child fixing a hugging parent, arrow keys moving a child through its stack, and layout grids (columns, rows, square grid) drawn over frames (`frame.layoutGrids`, a Layout grids panel, `layout.setLayoutGrids`).
 - **F9 components:** Push changes to main, Combine as variants, duplicating a main component makes an instance of it, component descriptions (`designComponents[].description`), the top-left variant as the default for new instances, and layers inside an instance keep the main's place, rotation and constraints (their look and size can still change). Commands `component.pushChanges`, `component.combineAsVariants`, `component.setDescription`; buttons and a description box in the Component panel.
+- **F10 variables and styles:** variable collections, each with its own modes (add, duplicate, reorder — the first is the default — rename, remove); string and boolean variables (text, font family, visibility); aliases (a value that is another variable, cycles refused); scopes (which properties the picker offers a variable for); descriptions and code syntax per platform; a frame choosing a collection's mode for everything inside it, which instances take from their main; paint styles (fill or stroke) and grid styles beside text and effect styles; variables bound inside styles, resolved in each layer's modes. New `token.*` commands for collections, modes, aliases and frame modes; the Tokens tab and the inspector's bindings panel show them.
 - Paint editor: a blend menu per fill, Diamond in the type list, adjustment presets and sliders for image fills.
 - Render gallery cases for every new shape and paint.
 
 #### Fixed
+- Eight canvas-lab browser specs could click a lab button before React hydrated; the click was lost and the test timed out under load. They now wait for hydration.
 - The image adjustment fields reused the names of the brightness/contrast/saturation fields (found by the Phase 37 browser tests).
 - `paint.setFills` rejected the diamond gradient and dropped blend modes and image adjustments, so those F2 controls couldn't save.
 
 #### Not done
 - Nested components and the instance-swap property (components still don't nest).
-- The rest of the plan (variables, effects, text, editing behaviours, Dev Mode, import): see the plan's status column.
+- Variable bindings by paint-list index on layers, style folders, and variables import/export (F10 leftovers).
+- The rest of the plan (effects, text, editing behaviours, Dev Mode, import): see the plan's status column.
 - Pattern fills: the cell maths is ported, but drawing a layer as a repeating tile needs a renderer change (CSS has no portable `element()`).
