@@ -2,7 +2,8 @@ import React from "react";
 import type { CSSProperties } from "react";
 import type { Layer } from "../document/schema";
 import { getLayerGeometry } from "../document/properties";
-import { effectiveFills, fillLayers, imageFilterCss, imageLayout, paintCss, parseFills, type ImagePaint } from "../paint/paints";
+import { effectiveFills, fillLayers, hasAdjustFilter, imageFilterCss, imageLayout, paintBlendCss, paintCss, parseFills, type ImagePaint } from "../paint/paints";
+import { AdjustFilter } from "./shapePaint";
 import { useAssetUrlMap } from "../assets/useAssetUrl";
 import type { ResolvedProps } from "./types";
 
@@ -25,6 +26,7 @@ export function useFillStyle(layer: Layer, resolved: ResolvedProps, plainColor: 
   const style: CSSProperties = {
     backgroundColor: "transparent",
     ...(layers ? { backgroundImage: layers.image, backgroundSize: layers.size, backgroundPosition: layers.position, backgroundRepeat: layers.repeat } : {}),
+    ...(layers?.blend ? { backgroundBlendMode: layers.blend } : {}),
     ...(filtered.length ? { isolation: "isolate" as const } : {}),
   };
   const overlay =
@@ -34,17 +36,25 @@ export function useFillStyle(layer: Layer, resolved: ResolvedProps, plainColor: 
           const url = urlOf(p.src);
           if (!url) return null;
           const l = imageLayout(p);
+          const adjustId = `${layer.id.replace(/[^A-Za-z0-9_-]/g, "_")}__adjust${i}`;
+          const blend = paintBlendCss(p);
           return (
+            <React.Fragment key={i}>
+            {hasAdjustFilter(p) && (
+              <svg width="0" height="0" aria-hidden="true" style={{ position: "absolute" }}>
+                <defs><AdjustFilter id={adjustId} adjust={p.adjust!} /></defs>
+              </svg>
+            )}
             <span
-              key={i}
               {...{ [FILL_LAYER_ATTR]: "image" }}
               aria-hidden="true"
               style={{
                 position: "absolute", inset: 0, zIndex: -1, pointerEvents: "none", borderRadius: "inherit",
                 backgroundImage: paintCss(p, g.frame.width, g.frame.height, urlOf) ?? undefined, backgroundSize: l.size, backgroundPosition: l.position, backgroundRepeat: l.repeat,
-                filter: imageFilterCss(p), opacity: p.opacity,
+                filter: imageFilterCss(p, adjustId), opacity: p.opacity, ...(blend !== "normal" ? { mixBlendMode: blend as CSSProperties["mixBlendMode"] } : {}),
               }}
             />
+            </React.Fragment>
           );
         })}
       </>

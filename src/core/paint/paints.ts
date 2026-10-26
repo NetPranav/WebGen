@@ -9,11 +9,16 @@
  *
  * This module parses and validates them (a hostile file can't make the renderer slow or inject style), and turns
  * them into CSS. Pure: no DOM, no store.
+ *
+ * FigCraft port F2 added: a blend mode per paint, the diamond gradient (drawn exactly as four quadrant gradients),
+ * and the seven image adjustments (exposure, contrast, saturation, temperature, tint, highlights, shadows), whose
+ * maths is `core/paint/color.ts`.
  * ============================================================================
  */
 
 import { safeImageSrc } from "../render/limits";
 import { parseColor, toCss, withOpacity } from "./colorMath";
+import { BLEND_MODES, blendCss, isIdentityAdjustment, sanitizeAdjustments, type BlendMode, type ImageAdjustments } from "./color";
 
 export interface Point {
   x: number;
@@ -29,11 +34,15 @@ interface PaintBase {
   /** 0 to 1. */
   opacity: number;
   visible: boolean;
+  /** How the paint blends with what is under it (FigCraft port F2). Absent is normal. */
+  blend?: BlendMode;
 }
 export type SolidPaint = PaintBase & { type: "solid"; color: string };
 export type LinearPaint = PaintBase & { type: "linear"; stops: GradientStop[]; from: Point; to: Point };
 export type RadialPaint = PaintBase & { type: "radial"; stops: GradientStop[]; center: Point; radius: Point };
 export type ConicPaint = PaintBase & { type: "conic"; stops: GradientStop[]; center: Point; angle: number };
+/** A diamond gradient (FigCraft port F2): the colour depends on |dx|/rx + |dy|/ry from the centre, so it spreads as a diamond. */
+export type DiamondPaint = PaintBase & { type: "diamond"; stops: GradientStop[]; center: Point; radius: Point };
 /**
  * A picture as a fill (Phase 37). `fill` covers the box, `fit` shows all of it, `crop` shows the part named by
  * `crop` (fractions of the picture: the box is the window), `tile` repeats it at `scale` times its own size.
@@ -60,10 +69,12 @@ export type ImagePaint = PaintBase & {
   brightness: number;
   contrast: number;
   saturation: number;
+  /** The seven adjustments, each -1..1 (FigCraft port F2); absent is none. Drawn by an SVG colour filter. */
+  adjust?: ImageAdjustments;
 };
-export type Paint = SolidPaint | LinearPaint | RadialPaint | ConicPaint | ImagePaint;
+export type Paint = SolidPaint | LinearPaint | RadialPaint | ConicPaint | DiamondPaint | ImagePaint;
 export type PaintType = Paint["type"];
-export const PAINT_TYPES: readonly PaintType[] = ["solid", "linear", "radial", "conic", "image"];
+export const PAINT_TYPES: readonly PaintType[] = ["solid", "linear", "radial", "conic", "diamond", "image"];
 
 export const FULL_CROP: ImageCrop = { x: 0, y: 0, w: 1, h: 1 };
 
@@ -98,6 +109,7 @@ export function newPaint(type: PaintType, color = "#cbd5e1"): Paint {
     case "linear": return { ...base, type, stops, from: { x: 0.5, y: 0 }, to: { x: 0.5, y: 1 } };
     case "radial": return { ...base, type, stops, center: { x: 0.5, y: 0.5 }, radius: { x: 0.5, y: 0.5 } };
     case "conic": return { ...base, type, stops, center: { x: 0.5, y: 0.5 }, angle: 0 };
+    case "diamond": return { ...base, type, stops, center: { x: 0.5, y: 0.5 }, radius: { x: 0.5, y: 0.5 } };
   }
 }
 
@@ -117,7 +129,8 @@ function parseStops(v: unknown): GradientStop[] | null {
 function parsePaint(v: unknown): Paint | null {
   if (typeof v !== "object" || v === null) return null;
   const o = v as Record<string, unknown>;
-  const base = { opacity: num(o.opacity, 1, 0, 1), visible: o.visible !== false };
+  const blend = typeof o.blend === "string" && (BLEND_MODES as readonly string[]).includes(o.blend) && o.blend !== "normal" && o.blend !== "passThrough" ? (o.blend as BlendMode) : undefined;
+  const base = { opacity: num(o.opacity, 1, 0, 1), visible: o.visible !== false, ...(blend ? { blend } : {}) };
   switch (o.type) {
     case "solid": {
       const color = safeColor(o.color);
@@ -136,6 +149,11 @@ function parsePaint(v: unknown): Paint | null {
       const stops = parseStops(o.stops);
       return stops ? { ...base, type: "conic", stops, center: point(o.center, { x: 0.5, y: 0.5 }), angle: num(o.angle, 0, -720, 720) } : null;
     }
+    case "diamond": {
+      const stops = parseStops(o.stops);
+      const r = point(o.radius, { x: 0.5, y: 0.5 });
+      return stops ? { ...base, type: "diamond", stops, center: point(o.center, { x: 0.5, y: 0.5 }), radius: { x: Math.abs(r.x) || 0.01, y: Math.abs(r.y) || 0.01 } } : null;
+    }
     case "image": {
       const mode = IMAGE_MODES.includes(o.mode as ImageMode) ? (o.mode as ImageMode) : "fill";
       const c = typeof o.crop === "object" && o.crop !== null ? (o.crop as Record<string, unknown>) : {};
@@ -148,11 +166,19 @@ function parsePaint(v: unknown): Paint | null {
         crop: { x: num(c.x, 0, 0, 1 - w), y: num(c.y, 0, 0, 1 - h), w, h },
         scale: num(o.scale, 1, 0.05, 20), ...(natural ? { natural } : {}),
         brightness: num(o.brightness, 1, 0, 3), contrast: num(o.contrast, 1, 0, 3), saturation: num(o.saturation, 1, 0, 3),
+        ...(adjustOf(o.adjust) ? { adjust: adjustOf(o.adjust)! } : {}),
       };
     }
     default:
       return null;
   }
+}
+
+/** Stored adjustments, sanitised; null when absent or all zero. */
+function adjustOf(v: unknown): ImageAdjustments | null {
+  if (typeof v !== "object" || v === null) return null;
+  const a = sanitizeAdjustments(v as Record<string, unknown>);
+  return isIdentityAdjustment(a) ? null : a;
 }
 
 /** Reads `paint.fills`. Returns null when it is absent, empty, malformed or too big (the layer then uses its plain colour). Invalid paints inside a valid list are skipped. */
@@ -176,18 +202,20 @@ const pt = (p: Point) => ({ x: r3(p.x), y: r3(p.y) });
 export function serializeFills(fills: readonly Paint[]): string {
   return JSON.stringify(
     fills.slice(0, MAX_PAINTS).map((p) => {
-      const base = { type: p.type, ...(p.opacity !== 1 ? { opacity: r3(p.opacity) } : {}), ...(p.visible ? {} : { visible: false }) };
+      const base = { type: p.type, ...(p.opacity !== 1 ? { opacity: r3(p.opacity) } : {}), ...(p.visible ? {} : { visible: false }), ...(p.blend && p.blend !== "normal" ? { blend: p.blend } : {}) };
       switch (p.type) {
         case "solid": return { ...base, color: p.color };
         case "linear": return { ...base, stops: p.stops.map((s) => ({ at: r3(s.at), color: s.color })), from: pt(p.from), to: pt(p.to) };
         case "radial": return { ...base, stops: p.stops.map((s) => ({ at: r3(s.at), color: s.color })), center: pt(p.center), radius: pt(p.radius) };
         case "conic": return { ...base, stops: p.stops.map((s) => ({ at: r3(s.at), color: s.color })), center: pt(p.center), angle: r3(p.angle) };
+        case "diamond": return { ...base, stops: p.stops.map((s) => ({ at: r3(s.at), color: s.color })), center: pt(p.center), radius: pt(p.radius) };
         case "image":
           return {
             ...base, src: p.src, mode: p.mode,
             ...(p.mode === "crop" ? { crop: { x: r3(p.crop.x), y: r3(p.crop.y), w: r3(p.crop.w), h: r3(p.crop.h) } } : {}),
             ...(p.scale !== 1 ? { scale: r3(p.scale) } : {}), ...(p.natural ? { natural: p.natural } : {}),
             ...(p.brightness !== 1 ? { brightness: r3(p.brightness) } : {}), ...(p.contrast !== 1 ? { contrast: r3(p.contrast) } : {}), ...(p.saturation !== 1 ? { saturation: r3(p.saturation) } : {}),
+            ...(p.adjust && !isIdentityAdjustment(p.adjust) ? { adjust: Object.fromEntries(Object.entries(p.adjust).filter(([, v]) => v !== 0).map(([k, v]) => [k, r3(v)])) } : {}),
           };
       }
     }),
@@ -241,6 +269,8 @@ export function paintCss(p: Paint, w: number, h: number, assetUrl?: (src: string
       return `radial-gradient(${f(p.radius.x * W)}px ${f(p.radius.y * H)}px at ${f(p.center.x * W)}px ${f(p.center.y * H)}px, ${stopList(p.stops, p.opacity, (s) => `${f(s.at * 100)}%`)})`;
     case "conic":
       return `conic-gradient(from ${f(p.angle)}deg at ${f(p.center.x * W)}px ${f(p.center.y * H)}px, ${stopList(p.stops, p.opacity, (s) => `${f(s.at * 360)}deg`)})`;
+    case "diamond":
+      return diamondCss(p, W, H).map((q) => q.image).join(", ");
     case "image": {
       const url = p.src ? (assetUrl ? assetUrl(p.src) : p.src) : null;
       return url ? `url("${url.replace(/["\\]/g, "\\$&").replace(/[\n\r]/g, "")}")` : null;
@@ -248,14 +278,63 @@ export function paintCss(p: Paint, w: number, h: number, assetUrl?: (src: string
   }
 }
 
-/** Does this image paint change the picture's colours? Those can't be a `background-image`: they are drawn by a layer of their own. */
-export const hasImageFilter = (p: Paint): boolean => p.type === "image" && (p.brightness !== 1 || p.contrast !== 1 || p.saturation !== 1);
-
-/** `brightness() contrast() saturate()` for an image paint, or "" when it is unchanged. */
-export function imageFilterCss(p: Paint): string {
-  if (p.type !== "image" || !hasImageFilter(p)) return "";
-  return `brightness(${f(p.brightness)}) contrast(${f(p.contrast)}) saturate(${f(p.saturation)})`;
+/**
+ * A diamond gradient as four quadrant layers, each a CSS linear gradient (FigCraft port F2). In a quadrant the
+ * diamond's iso-lines |dx|/rx + |dy|/ry = c are straight and parallel, so each quadrant *is* a linear gradient: this
+ * is exact, not an approximation. Every layer is one quadrant's background tile (size and position in px, no repeat).
+ */
+export function diamondCss(p: DiamondPaint, W: number, H: number): { image: string; size: string; position: string }[] {
+  const cx = p.center.x * W;
+  const cy = p.center.y * H;
+  const rx = Math.max(1e-6, p.radius.x * W);
+  const ry = Math.max(1e-6, p.radius.y * H);
+  // the four tiles: (x0, y0, x1, y1) and which way is "out" from the centre
+  const quads: [number, number, number, number, number, number][] = [
+    [0, 0, cx, cy, -1, -1],
+    [cx, 0, W, cy, 1, -1],
+    [cx, cy, W, H, 1, 1],
+    [0, cy, cx, H, -1, 1],
+  ];
+  const out: { image: string; size: string; position: string }[] = [];
+  for (const [x0, y0, x1, y1, sx, sy] of quads) {
+    const w = x1 - x0;
+    const h = y1 - y0;
+    if (w <= 1e-6 || h <= 1e-6) continue;
+    // n = (sx/rx, sy/ry): the direction the value grows; as a CSS angle (0deg up, clockwise)
+    const nx = sx / rx;
+    const ny = sy / ry;
+    const nl = Math.hypot(nx, ny);
+    const ux = nx / nl;
+    const uy = ny / nl;
+    const theta = Math.atan2(ux, -uy);
+    const length = Math.abs(w * Math.sin(theta)) + Math.abs(h * Math.cos(theta));
+    // tile centre relative to the diamond centre, projected on the gradient direction
+    const c = (x0 + w / 2 - cx) * ux + (y0 + h / 2 - cy) * uy;
+    const along = (sigma: number) => ((sigma / nl - c) / length + 0.5) * 100;
+    out.push({ image: `linear-gradient(${f((theta * 180) / Math.PI)}deg, ${stopList(p.stops, p.opacity, (s) => `${f(along(s.at))}%`)})`, size: `${f(w)}px ${f(h)}px`, position: `${f(x0)}px ${f(y0)}px` });
+  }
+  return out;
 }
+
+/** Does this image paint change the picture's colours? Those can't be a `background-image`: they are drawn by a layer of their own. */
+export const hasImageFilter = (p: Paint): boolean => p.type === "image" && (p.brightness !== 1 || p.contrast !== 1 || p.saturation !== 1 || (!!p.adjust && !isIdentityAdjustment(p.adjust)));
+
+/** Whether the paint needs the SVG adjustment filter (FigCraft's seven adjustments), not only CSS filter functions. */
+export const hasAdjustFilter = (p: Paint): p is ImagePaint => p.type === "image" && !!p.adjust && !isIdentityAdjustment(p.adjust);
+
+/**
+ * The CSS filter for an image paint, or "" when it is unchanged: `brightness() contrast() saturate()`, then the
+ * adjustment filter by reference when the paint has adjustments (`adjustFilterId` names the SVG filter drawn next to it).
+ */
+export function imageFilterCss(p: Paint, adjustFilterId?: string): string {
+  if (p.type !== "image" || !hasImageFilter(p)) return "";
+  const basic = p.brightness !== 1 || p.contrast !== 1 || p.saturation !== 1 ? `brightness(${f(p.brightness)}) contrast(${f(p.contrast)}) saturate(${f(p.saturation)})` : "";
+  const adjust = hasAdjustFilter(p) && adjustFilterId ? `url(#${adjustFilterId})` : "";
+  return [basic, adjust].filter(Boolean).join(" ");
+}
+
+/** The CSS keyword for a paint's blend mode. */
+export const paintBlendCss = (p: Paint): string => (p.blend ? blendCss(p.blend) : "normal");
 
 /** How a picture sits in its box as CSS `background-size`, `-position` and `-repeat`. A crop is the box showing the named part of the picture. */
 export function imageLayout(p: ImagePaint): { size: string; position: string; repeat: string } {
@@ -279,6 +358,8 @@ export interface FillLayers {
   size: string;
   position: string;
   repeat: string;
+  /** `background-blend-mode`, one per layer; absent when every paint is normal. */
+  blend?: string;
 }
 
 /** The four background lists for fills, top first, and the image paints that need a layer of their own for their colour filters. */
@@ -288,10 +369,21 @@ export function fillLayers(fills: readonly Paint[], w: number, h: number, assetU
   const positions: string[] = [];
   const repeats: string[] = [];
   const filtered: ImagePaint[] = [];
+  const blends: string[] = [];
   for (const p of fills) {
     if (!p.visible) continue;
     if (hasImageFilter(p)) {
       filtered.push(p as ImagePaint);
+      continue;
+    }
+    if (p.type === "diamond") {
+      for (const q of diamondCss(p, w > 0 ? w : 100, h > 0 ? h : 100)) {
+        images.push(q.image);
+        sizes.push(q.size);
+        positions.push(q.position);
+        repeats.push("no-repeat");
+        blends.push(paintBlendCss(p));
+      }
       continue;
     }
     const css = paintCss(p, w, h, assetUrl);
@@ -301,8 +393,10 @@ export function fillLayers(fills: readonly Paint[], w: number, h: number, assetU
     sizes.push(l.size);
     positions.push(l.position);
     repeats.push(l.repeat);
+    blends.push(paintBlendCss(p));
   }
-  return { layers: images.length ? { image: images.join(", "), size: sizes.join(", "), position: positions.join(", "), repeat: repeats.join(", ") } : undefined, filtered };
+  const blend = blends.some((b) => b !== "normal") ? blends.join(", ") : undefined;
+  return { layers: images.length ? { image: images.join(", "), size: sizes.join(", "), position: positions.join(", "), repeat: repeats.join(", "), ...(blend ? { blend } : {}) } : undefined, filtered };
 }
 
 /** The `background-image` for a list of fills (first is on top), or undefined when none is visible. */

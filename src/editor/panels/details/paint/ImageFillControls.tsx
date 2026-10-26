@@ -4,6 +4,9 @@
  * The picture controls of an image fill (ROADMAP Phase 37): which picture (any imported file, or import one now),
  * how it sits (fill, fit, crop, tile), the tile size, and its brightness, contrast and saturation. "Crop" puts the
  * picture's outline on the canvas to drag; "Replace" is simply choosing another picture.
+ *
+ * FigCraft port F2 adds the seven adjustments (exposure, contrast, saturation, temperature, tint, highlights,
+ * shadows, each -100..100) and their presets.
  */
 
 import React, { useRef } from "react";
@@ -11,11 +14,16 @@ import { importFiles } from "@/core/assets/assetImport";
 import { assetSrc } from "@/core/assets/useAssetUrl";
 import type { AssetEntry } from "@/core/document/schema";
 import { IMAGE_MODES, type ImageMode, type ImagePaint } from "@/core/paint/paints";
+import { ADJUSTMENT_KEYS, ADJUSTMENT_PRESETS, NO_ADJUSTMENTS, isIdentityAdjustment, type ImageAdjustments } from "@/core/paint/color";
 import { useDocument } from "@/core/store/useDocumentStore";
 
 const MODE_LABEL: Record<ImageMode, string> = { fill: "Fill", fit: "Fit", crop: "Crop", tile: "Tile" };
 
 const pct = (n: number) => Math.round(n * 100);
+
+const ADJUST_LABEL: Record<keyof ImageAdjustments, string> = {
+  exposure: "Exposure", contrast: "Contrast", saturation: "Saturation", temperature: "Temperature", tint: "Tint", highlights: "Highlights", shadows: "Shadows",
+};
 
 export const ImageFillControls: React.FC<{ label: string; paint: ImagePaint; onChange: (next: ImagePaint) => void }> = ({ label, paint, onChange }) => {
   const assets = useDocument((d) => d.assets);
@@ -86,6 +94,40 @@ export const ImageFillControls: React.FC<{ label: string; paint: ImagePaint; onC
         {filter("contrast", "Contrast")}
         {filter("saturation", "Saturation")}
       </div>
+      <div className="effects-block__row" role="group" aria-label={`${label} adjustment presets`}>
+        {ADJUSTMENT_PRESETS.map((p) => (
+          <button key={p.id} type="button" className="effects-chip" onClick={() => onChange(setAdjust(paint, p.adjustments))}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <div className="image-fill__row">
+        {ADJUSTMENT_KEYS.map((k) => (
+          <label key={k} className="image-fill__num">
+            <span>{ADJUST_LABEL[k]}</span>
+            <input
+              type="number"
+              aria-label={`${label} ${ADJUST_LABEL[k].toLowerCase()}`}
+              min={-100}
+              max={100}
+              value={Math.round((paint.adjust?.[k] ?? 0) * 100)}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isFinite(n)) onChange(setAdjust(paint, { ...(paint.adjust ?? NO_ADJUSTMENTS), [k]: Math.min(1, Math.max(-1, n / 100)) }));
+              }}
+            />
+          </label>
+        ))}
+      </div>
     </div>
   );
 };
+
+/** The paint with these adjustments; all zero removes them. */
+function setAdjust(paint: ImagePaint, adjust: ImageAdjustments): ImagePaint {
+  if (isIdentityAdjustment(adjust)) {
+    const { adjust: _drop, ...rest } = paint;
+    return rest;
+  }
+  return { ...paint, adjust: { ...adjust } };
+}

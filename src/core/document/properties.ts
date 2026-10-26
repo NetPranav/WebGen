@@ -454,6 +454,13 @@ const DEFS = {
   "shape.innerRadius": ranged(num(0.5, null, "paint", only("star")), { min: 0, max: 1 }),
   /** Corner rounding of polygon and star vertices. */
   "shape.vertexRadius": ranged(px(0, null, "paint", only("polygon", "star")), { min: 0 }),
+  /** Corner smoothing, 0 to 1: the continuous-curvature corner (0.6 is the iOS look). FigCraft port F1 (`core/geometry/shapes.ts`). */
+  "shape.cornerSmoothing": ranged(num(0, null, "paint", only("rectangle", "polygon", "star")), { min: 0, max: 1 }),
+  /** Ellipse arcs, pies and rings (FigCraft port F1): where the arc starts, clockwise from 3 o'clock, and how far it sweeps. */
+  "shape.arcStart": ranged(deg(0, null, "paint", only("ellipse")), { min: -360, max: 360 }),
+  "shape.arcSweep": ranged(deg(360, null, "paint", only("ellipse")), { min: -360, max: 360 }),
+  /** A ring's hole, as a fraction of the ellipse (0 is a solid pie or ellipse). */
+  "shape.arcInnerRatio": ranged(num(0, null, "paint", only("ellipse")), { min: 0, max: 1 }),
   /** Line and arrow ends. A line runs across its frame's width at mid-height; rotate the frame to angle it. */
   "shape.startCap": typed(oneOf(["none", "arrow", "triangle", "circle", "square"], "none", null, "paint", only("line", "arrow"))),
   "shape.endCap": typed(oneOf(["none", "arrow", "triangle", "circle", "square"], "none", null, "paint", only("line", "arrow"))),

@@ -61,7 +61,8 @@ export function handlesFor(p: Paint, box: { w: number; h: number }): GradientHan
       out.push({ kind: "from", at: p.from }, { kind: "to", at: p.to });
       return out;
     }
-    case "radial": {
+    case "radial":
+    case "diamond": {
       // the stops sit along the horizontal radius, which is where the gradient's colour changes
       const out: GradientHandle[] = p.stops.map((s, i) => ({ kind: "stop", stopIndex: i, at: { x: p.center.x + s.at * p.radius.x, y: p.center.y } }));
       out.push(
@@ -135,7 +136,8 @@ export function dragHandle(p: Paint, handle: Pick<GradientHandle, "kind" | "stop
       }
       return p;
     }
-    case "radial": {
+    case "radial":
+    case "diamond": {
       if (handle.kind === "center") return { ...p, center: pt };
       if (handle.kind === "radiusX") return { ...p, radius: { ...p.radius, x: Math.max(0.01, Math.abs(pt.x - p.center.x)) } };
       if (handle.kind === "radiusY") return { ...p, radius: { ...p.radius, y: Math.max(0.01, Math.abs(pt.y - p.center.y)) } };

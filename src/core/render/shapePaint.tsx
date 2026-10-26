@@ -1,7 +1,8 @@
 import React from "react";
 import type { Layer } from "../document/schema";
 import { parseColor, toCss } from "../paint/colorMath";
-import { effectiveFills, imageFilterCss, paintCss, parseShadows, safeDashArray, type GradientStop, type ImagePaint, type Paint, type Shadow } from "../paint/paints";
+import { effectiveFills, hasAdjustFilter, imageFilterCss, paintBlendCss, paintCss, parseShadows, safeDashArray, type GradientStop, type ImagePaint, type Paint, type Shadow } from "../paint/paints";
+import { adjustmentMatrix, adjustmentToneTable, type ImageAdjustments } from "../paint/color";
 import { useAssetUrlMap } from "../assets/useAssetUrl";
 import type { ResolvedProps } from "./types";
 
@@ -85,6 +86,26 @@ function ShadowFilter({ id, shadows }: { id: string; shadows: readonly Shadow[] 
   );
 }
 
+/**
+ * FigCraft's seven image adjustments as an SVG filter (FigCraft port F2): the exact colour matrix for exposure,
+ * contrast, saturation, temperature and tint, then a tone table for highlights and shadows.
+ */
+export function AdjustFilter({ id, adjust }: { id: string; adjust: ImageAdjustments }) {
+  const table = adjustmentToneTable(adjust);
+  return (
+    <filter id={id} colorInterpolationFilters="sRGB" x="0" y="0" width="100%" height="100%">
+      <feColorMatrix type="matrix" values={adjustmentMatrix(adjust).join(" ")} />
+      {table && (
+        <feComponentTransfer>
+          <feFuncR type="table" tableValues={table.join(" ")} />
+          <feFuncG type="table" tableValues={table.join(" ")} />
+          <feFuncB type="table" tableValues={table.join(" ")} />
+        </feComponentTransfer>
+      )}
+    </filter>
+  );
+}
+
 export interface ShapePaintProps {
   layer: Layer;
   resolved: ResolvedProps;
@@ -122,6 +143,7 @@ export function ShapePaint({ layer, resolved, width, height, defaultFill, defaul
     if (!p.visible) return;
     const i = fills.length - 1 - k;
     const gid = `${id}__f${i}`;
+    const before = painted.length;
     switch (p.type) {
       case "solid":
         painted.push(<React.Fragment key={`f${i}`}>{geometry({ fill: p.color, fillOpacity: p.opacity, stroke: "none" })}</React.Fragment>);
@@ -145,7 +167,9 @@ export function ShapePaint({ layer, resolved, width, height, defaultFill, defaul
       case "image": {
         const url = p.src ? urlOf(p.src) : null;
         if (!url) break;
-        const filter = imageFilterCss(p) || undefined;
+        const adjustId = `${gid}__adjust`;
+        if (hasAdjustFilter(p)) defs.push(<AdjustFilter key={adjustId} id={adjustId} adjust={p.adjust!} />);
+        const filter = imageFilterCss(p, adjustId) || undefined;
         const W = width;
         const H = height;
         const nw = (p.natural?.w ?? 128) * p.scale;
@@ -174,7 +198,8 @@ export function ShapePaint({ layer, resolved, width, height, defaultFill, defaul
         painted.push(<React.Fragment key={`f${i}`}>{geometry({ fill: `url(#${gid})`, stroke: "none" })}</React.Fragment>);
         break;
       }
-      case "conic": {
+      case "conic":
+      case "diamond": {
         const css = paintCss(p, width, height);
         defs.push(<clipPath key={gid} id={gid}>{geometry({ fill: "#000", stroke: "none" })}</clipPath>);
         painted.push(
@@ -184,6 +209,12 @@ export function ShapePaint({ layer, resolved, width, height, defaultFill, defaul
         );
         break;
       }
+    }
+    // a fill with a blend mode blends with everything drawn under it (FigCraft port F2)
+    const blend = paintBlendCss(p);
+    if (blend !== "normal" && painted.length > before) {
+      const node = painted.pop();
+      painted.push(<g key={`b${i}`} style={{ mixBlendMode: blend as React.CSSProperties["mixBlendMode"] }}>{node}</g>);
     }
   });
   if (strokable && strokeWidth > 0 && stroke !== "none" && parseColor(stroke) !== null) {

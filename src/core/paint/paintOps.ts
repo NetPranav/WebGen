@@ -71,7 +71,7 @@ export function fillSummary(id: string): string {
   const fills = fillsOf(id).filter((p) => p.visible);
   if (fills.length === 0) return "None";
   if (fills.length === 1 && fills[0].type === "solid") return fills[0].color;
-  if (fills.some((p) => p.type === "linear" || p.type === "radial" || p.type === "conic")) return "Gradient";
+  if (fills.some((p) => p.type === "linear" || p.type === "radial" || p.type === "conic" || p.type === "diamond")) return "Gradient";
   if (fills.some((p) => p.type === "image")) return "Picture";
   return "Multiple fills";
 }

@@ -16,12 +16,13 @@ import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
 import { fillsOf, hasFills } from "@/core/paint/paintOps";
 import { addPaint, addStop, changeType, movePaint, moveStop, removePaint, removeStop, reverseStops, setStopColor, updatePaint } from "@/core/paint/paintEdits";
 import { paintCss, PAINT_TYPES, type GradientStop, type Paint, type PaintType } from "@/core/paint/paints";
+import { BLEND_MODES, blendLabel, type BlendMode } from "@/core/paint/color";
 import { ColorPicker } from "./ColorPicker";
 import { ImageFillControls } from "./ImageFillControls";
 import { useAssetUrlMap } from "@/core/assets/useAssetUrl";
 import { SwatchPopover } from "./SwatchPopover";
 
-const TYPE_LABEL: Record<PaintType, string> = { solid: "Solid", linear: "Linear", radial: "Radial", conic: "Conic", image: "Image" };
+const TYPE_LABEL: Record<PaintType, string> = { solid: "Solid", linear: "Linear", radial: "Radial", conic: "Conic", diamond: "Diamond", image: "Image" };
 
 type GradientPaint = Exclude<Paint, { type: "solid" | "image" }>;
 
@@ -172,6 +173,20 @@ const PaintRow: React.FC<{ fills: Paint[]; index: number; count: number; active:
           />
           <span aria-hidden>%</span>
         </label>
+        <select
+          className="paint-row__blend"
+          aria-label={`${label} blend mode`}
+          value={paint.blend ?? "normal"}
+          onChange={(e) => {
+            const blend = e.target.value as BlendMode;
+            change((p) => {
+              const { blend: _old, ...rest } = p;
+              return (blend === "normal" ? rest : { ...rest, blend }) as Paint;
+            });
+          }}
+        >
+          {BLEND_MODES.filter((m) => m !== "passThrough").map((m) => <option key={m} value={m}>{blendLabel(m)}</option>)}
+        </select>
         <button type="button" className="paint-row__btn" aria-label={`Move ${label} up`} disabled={index === 0} onClick={() => write(movePaint(fills, index, -1))}><ArrowUp size={12} /></button>
         <button type="button" className="paint-row__btn" aria-label={`Move ${label} down`} disabled={index === count - 1} onClick={() => write(movePaint(fills, index, 1))}><ArrowDown size={12} /></button>
         <button type="button" className="paint-row__btn" aria-label={`Remove ${label}`} onClick={() => write(removePaint(fills, index))}><Trash2 size={12} /></button>
