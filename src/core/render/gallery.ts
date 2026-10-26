@@ -142,6 +142,33 @@ export const GALLERY_CASES: GalleryCase[] = [
   { id: "line-arrow", archetype: "line", label: "Line, triangle arrow at the end, round start", properties: { "shape.endCap": "triangleArrow", "shape.startCap": "circleFilled", "svg.strokeWidth": 3, "frame.width": 180, "frame.height": 24 }, expectSize: { width: 180, height: 24 } },
   { id: "line-tapered", archetype: "line", label: "Line, tapered both ends", properties: { "stroke.widthProfile": JSON.stringify([{ t: 0, scale: 0 }, { t: 0.2, scale: 1 }, { t: 0.8, scale: 1 }, { t: 1, scale: 0 }]), "svg.strokeWidth": 10, "frame.width": 180, "frame.height": 12 }, expectSize: { width: 180, height: 12 } },
   { id: "container-stroke-outside", archetype: "container", label: "Frame, 4 px outside stroke", properties: { "appearance.border.width": 4, "appearance.border.style": "solid", "appearance.border.color": "#0f766e", "stroke.align": "outside", "appearance.radius": 12, "frame.width": 140, "frame.height": 80, "sizing.horizontal": "fixed", "sizing.vertical": "fixed", "appearance.background.color": "#f0fdfa" }, expectSize: { width: 140, height: 80 } },
+  // ---- FigCraft port F4: a vector network (a square with a diagonal, one triangle filled, one rounded point) ----
+  {
+    id: "svg-network",
+    archetype: "svgPath",
+    label: "Vector network, one of two faces filled, a rounded point",
+    properties: {
+      "frame.width": 120,
+      "frame.height": 120,
+      "svg.fill": "#a78bfa",
+      "svg.stroke": "#4c1d95",
+      "svg.strokeWidth": 2,
+      "svg.network": '{"vertices":[{"x":20,"y":20},{"x":180,"y":20,"radius":30},{"x":180,"y":180},{"x":20,"y":180}],"segments":[{"a":0,"b":1},{"a":1,"b":2},{"a":2,"b":3},{"a":3,"b":0},{"a":0,"b":2}],"regions":[{"loops":[[0,1,4]]}]}',
+    },
+    expectSize: { width: 120, height: 120 },
+  },
+  // ---- FigCraft port F5: a live boolean group (a square minus a circle), its operands hidden but kept ----
+  {
+    id: "boolean-subtract",
+    archetype: "container",
+    label: "Live boolean group: a square minus a circle",
+    properties: { "boolean.operation": "subtract", "frame.width": 120, "frame.height": 120, "sizing.horizontal": "fixed", "sizing.vertical": "fixed", "paint.fills": JSON.stringify([{ type: "solid", color: "#0ea5e9" }]) },
+    children: [
+      { id: "boolean-subtract-square", archetype: "rectangle", label: "square", properties: { positioning: "absolute", "frame.x": 0, "frame.y": 0, "frame.width": 90, "frame.height": 90 } },
+      { id: "boolean-subtract-circle", archetype: "ellipse", label: "circle", properties: { positioning: "absolute", "frame.x": 40, "frame.y": 40, "frame.width": 80, "frame.height": 80 } },
+    ],
+    expectSize: { width: 120, height: 120 },
+  },
   { id: "arrow", archetype: "arrow", label: "Arrow", expectSize: { width: 160, height: 32 } },
   { id: "arrow-big-head", archetype: "arrow", label: "Arrow, head larger than the box", properties: { "shape.headLength": 400, "shape.headWidth": 400 }, expectSize: { width: 160, height: 32 } },
   // ---- paint and effects (Phase 35): the cases the screenshot gate compares across browsers ----

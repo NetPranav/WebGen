@@ -106,6 +106,7 @@ function pathProps(nodes: readonly PathNode[], closed: boolean, strokeWidth: num
     "frame.height": built.frame.height,
     "svg.path": built.d,
     "svg.nodes": serializePathNodes(built.nodes, closed),
+    "svg.network": "",
   };
 }
 
@@ -150,6 +151,7 @@ export function booleanLayers(op: BooleanOp, ids: readonly string[], boxOf: (id:
       "frame.height": frame.height,
       "svg.path": ringsToPathData(unit),
       "svg.nodes": "",
+      "svg.network": "",
       "svg.fillRule": "evenodd",
     };
   }
@@ -214,6 +216,7 @@ export function applyPathEdit(layerId: string, box: LayerBox, nodes: readonly Pa
       "frame.height": built.frame.height,
       "svg.path": built.d,
       "svg.nodes": serializePathNodes(built.nodes, closed),
+      "svg.network": "",
     },
     "Edit path",
   );

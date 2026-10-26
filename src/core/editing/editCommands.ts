@@ -18,6 +18,9 @@ import { moveLayers } from "../layers/reparent";
 import { importAndPlace } from "../assets/assetImport";
 import { setFills, setShadows, setBlur, setStrokeStyle, replaceImage, setStrokes, setStrokeSettings } from "../paint/paintOps";
 import { BLEND_MODES } from "../paint/color";
+import { makeNetwork, paintBucket, setNetworkPoint } from "./networkOps";
+import { flattenBooleanGroups, makeBooleanGroup, setBooleanOperation } from "./booleanGroups";
+import { arrangement, buildShapes } from "./shapeBuilder";
 import type { Paint } from "../paint/paints";
 import { setFill, setFrame, setOpacity, setRadius, setSimpleText, setStroke } from "../inspector/simpleOps";
 import { ALIGN_MODES, type AlignMode } from "../geometry/align";
@@ -184,6 +187,48 @@ export function registerEditingCommands(): () => void {
     run: ({ ids: t, ...patch }) => ({ changed: setStrokeSettings(t ?? ids(), patch) }),
   }));
   const shadowSchema = z.object({ kind: z.enum(["drop", "inner"]), x: z.number(), y: z.number(), blur: z.number().min(0), spread: z.number(), color: z.string(), visible: z.boolean().default(true) });
+  // FigCraft port F4: vector networks on path layers
+  add(defineTypedCommand({ id: "vector.makeNetwork", title: "Make Vector Network", category: "Layer", args: z.object({ ids: targets }).default({}), run: ({ ids: t }) => ({ changed: makeNetwork(t ?? ids()) }) }));
+  add(defineTypedCommand({
+    id: "vector.paintBucket",
+    title: "Fill or Unfill Area",
+    category: "Layer",
+    args: z.object({ id: z.string(), x: z.number().finite(), y: z.number().finite(), want: z.boolean().optional() }),
+    run: ({ id, x, y, want }) => ({ filled: paintBucket(id, { x, y }, want) }),
+  }));
+  add(defineTypedCommand({
+    id: "vector.setPoint",
+    title: "Set Point Style",
+    category: "Layer",
+    args: z.object({
+      id: z.string(),
+      index: z.number().int().min(0),
+      radius: z.number().min(0).optional(),
+      mirror: z.enum(["none", "angle", "angleAndLength"]).nullable().optional(),
+      cap: z.enum(["none", "round", "square", "lineArrow", "triangleArrow", "reversedTriangle", "circleFilled", "diamondFilled"]).nullable().optional(),
+      join: z.enum(["miter", "round", "bevel"]).nullable().optional(),
+    }),
+    run: ({ id, index, ...patch }) => ({ changed: setNetworkPoint(id, index, patch) }),
+  }));
+  // FigCraft port F5: live boolean groups and the Shape Builder
+  const boolOp = z.enum(["union", "subtract", "intersect", "exclude"]);
+  add(defineTypedCommand({ id: "boolean.makeGroup", title: "Make Live Boolean Group", category: "Layer", args: z.object({ ids: targets, operation: boolOp.default("union") }).default({ operation: "union" }), run: ({ ids: t, operation }) => ({ id: makeBooleanGroup(t ?? ids(), operation) }) }));
+  add(defineTypedCommand({ id: "boolean.setOperation", title: "Set Boolean Operation", category: "Layer", args: z.object({ ids: targets, operation: boolOp }), run: ({ ids: t, operation }) => ({ result: setBooleanOperation(t ?? ids(), operation) }) }));
+  add(defineTypedCommand({ id: "boolean.flattenGroup", title: "Flatten Boolean Group", category: "Layer", args: z.object({ ids: targets }).default({}), run: ({ ids: t }) => ({ ids: flattenBooleanGroups(t ?? ids()) }) }));
+  add(defineTypedCommand({
+    id: "shapeBuilder.regions",
+    title: "Shape Builder Regions",
+    category: "Layer",
+    args: z.object({ ids: targets }).default({}),
+    run: ({ ids: t }) => {
+      const a = arrangement(t ?? ids());
+      return { sources: a.sources, regions: a.regions.map((r, index) => ({ index, path: r.path.toSvg(2), sources: r.sources, parts: r.parts, bounds: [r.bounds.x0, r.bounds.y0, r.bounds.x1 - r.bounds.x0, r.bounds.y1 - r.bounds.y0], point: r.point ? [r.point.x, r.point.y] : null })) };
+    },
+  }));
+  const picks = z.object({ ids: targets, regions: z.array(z.number().int().min(0)).max(10_000).optional(), points: z.array(z.tuple([z.number().finite(), z.number().finite()])).max(10_000).optional() });
+  const toPick = (p: z.infer<typeof picks>) => ({ regions: p.regions, points: p.points?.map(([x, y]) => ({ x, y })) });
+  add(defineTypedCommand({ id: "shapeBuilder.merge", title: "Merge Regions", category: "Layer", args: picks, run: (p) => buildShapes(p.ids ?? ids(), toPick(p), true) }));
+  add(defineTypedCommand({ id: "shapeBuilder.remove", title: "Remove Regions", category: "Layer", args: picks, run: (p) => buildShapes(p.ids ?? ids(), toPick(p), false) }));
   add(defineTypedCommand({ id: "paint.setShadows", title: "Set Shadows", category: "Layer", args: z.object({ ids: targets, shadows: z.array(shadowSchema).max(16) }), run: ({ ids: t, shadows }) => ({ changed: setShadows(t ?? ids(), shadows) }) }));
   add(defineTypedCommand({ id: "paint.setStrokeStyle", title: "Set Stroke Style", category: "Layer", args: z.object({ ids: targets, style: z.enum(["solid", "dashed", "dotted"]) }), run: ({ ids: t, style }) => ({ changed: setStrokeStyle(t ?? ids(), style) }) }));
   add(defineTypedCommand({ id: "paint.replaceImage", title: "Replace Image", category: "Layer", args: z.object({ ids: targets, src: z.string(), natural: z.object({ w: z.number().positive(), h: z.number().positive() }).optional(), index: z.number().int().min(0).optional() }), run: ({ ids: t, src, natural, index }) => ({ changed: replaceImage(t ?? ids(), src, natural, index) }) }));

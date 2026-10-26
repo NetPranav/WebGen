@@ -3,9 +3,62 @@ import { layerBoxStyle, px } from "../geometry";
 import type { ArchetypeRenderProps } from "../types";
 import { useFillStyle } from "../paintStyle";
 import { parseSides } from "../../paths/strokes";
+import { booleanGroupD, isBooleanOp } from "../../editing/layerOutline";
+import { useDocument } from "../../store/useDocumentStore";
+import { ShapePaint } from "../shapePaint";
 
 /** `container` and `form`: a flex box that lays out its children. */
-export const Container: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, children, nodeRef }) => {
+export const Container: React.FC<ArchetypeRenderProps> = (props) => {
+  const { layer, resolved, ctx } = props;
+  const isBoolean = isBooleanOp(resolved.get("boolean.operation"));
+  // a boolean group redraws when an operand changes: on the stage through the store (cached by the layers it reads), elsewhere from the map
+  const storeD = useDocument((d) => (isBoolean && !ctx.layers ? booleanGroupD(layer.id, d.layers) : ""));
+  if (isBoolean) return <BooleanGroup {...props} d={ctx.layers ? booleanGroupD(layer.id, ctx.layers) : storeD} />;
+  return <FlexContainer {...props} />;
+};
+
+/**
+ * A live boolean group (FigCraft port F5): one shape, the combination of its operands' outlines, painted with the
+ * group's fills, border and shadows. The operands stay in the tree (hidden) so the canvas can still measure and pick
+ * them; only the combined shape is seen.
+ */
+function BooleanGroup({ layer, resolved, ctx, children, nodeRef, d }: ArchetypeRenderProps & { d: string }) {
+  const width = Math.max(1, resolved.num("frame.width", 100));
+  const height = Math.max(1, resolved.num("frame.height", 100));
+  const borderWidth = Math.min(200, resolved.num("appearance.border.width", 0));
+  const borderStyle = resolved.str("appearance.border.style", "none");
+  const stroked = borderWidth > 0 && borderStyle !== "none";
+  return (
+    <div
+      ref={nodeRef}
+      data-element-id={layer.id}
+      data-archetype={layer.archetype}
+      data-boolean={resolved.str("boolean.operation", "")}
+      // the group is the size of its frame (its operands are hidden and absolutely placed, so they size nothing)
+      style={{ position: "relative", ...layerBoxStyle(layer, resolved, ctx, { shadow: "none" }), width, height, flexShrink: 0 }}
+    >
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ position: "absolute", left: 0, top: 0, overflow: "visible", pointerEvents: "none" }} aria-hidden="true">
+        {d && (
+          <ShapePaint
+            layer={layer}
+            resolved={resolved}
+            width={width}
+            height={height}
+            defaultFill={resolved.str("appearance.background.color", "#d9d9d9")}
+            defaultStroke={stroked ? resolved.str("appearance.border.color", "#000000") : "none"}
+            defaultStrokeWidth={stroked ? borderWidth : 0}
+            geometry={(a) => <path {...a} d={d} fillRule="evenodd" />}
+          />
+        )}
+      </svg>
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, visibility: "hidden" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const FlexContainer: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, children, nodeRef }) => {
   const display = resolved.str("layout.display", "flex") === "grid" ? "grid" : "flex";
   const direction = resolved.str("layout.flexDirection", "column") === "row" ? "row" : "column";
   const padding = resolved.num("layout.padding", 0);

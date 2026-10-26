@@ -104,10 +104,10 @@ export const ImageFillControls: React.FC<{ label: string; paint: ImagePaint; onC
       <div className="image-fill__row">
         {ADJUSTMENT_KEYS.map((k) => (
           <label key={k} className="image-fill__num">
-            <span>{ADJUST_LABEL[k]}</span>
+            <span>{ADJUST_LABEL[k]} ±</span>
             <input
               type="number"
-              aria-label={`${label} ${ADJUST_LABEL[k].toLowerCase()}`}
+              aria-label={`${label} adjust ${ADJUST_LABEL[k].toLowerCase()}`}
               min={-100}
               max={100}
               value={Math.round((paint.adjust?.[k] ?? 0) * 100)}

@@ -7,7 +7,7 @@
  */
 
 import React from "react";
-import { PenLine, Spline, SquaresExclude, SquaresIntersect, SquaresSubtract, SquaresUnite } from "lucide-react";
+import { Combine, Network, PenLine, Spline, SquaresExclude, SquaresIntersect, SquaresSubtract, SquaresUnite } from "lucide-react";
 import { invokeCommand } from "@/core/commands";
 import { useDocument } from "@/core/store/useDocumentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
@@ -22,7 +22,21 @@ export const VectorBar: React.FC = () => {
   const sources = ids.filter((id) => SOURCES.has(layers[id]?.archetype ?? ""));
   const single = ids.length === 1 && layers[ids[0]]?.archetype === "svgPath";
   const flattenable = sources.some((id) => layers[id].archetype !== "svgPath");
-  if (!single && sources.length === 0 && !editing) return null;
+  // FigCraft port F4: a path without a network can become one (then the paint bucket fills any closed area of it)
+  const liveable = ids.filter((id) => layers[id] && ["rectangle", "ellipse", "polygon", "star", "svgPath", "container"].includes(layers[id].archetype)).length >= 2;
+  const groupSelected = ids.some((id) => !!layers[id]?.properties["boolean.operation"]);
+  const networkable = ids.some((id) => layers[id]?.archetype === "svgPath" && !layers[id].properties["svg.network"]);
+  // the operation of a selected boolean group, or of selected operands (they share one, else "mixed")
+  const opOf = (id: string) => {
+    const l = layers[id];
+    const parent = l?.parentId ? layers[l.parentId] : undefined;
+    if (l?.properties["boolean.operation"]) return String(l.properties["boolean.operation"]);
+    if (parent?.properties["boolean.operation"]) return String(l?.properties["boolean.operandOp"] || parent.properties["boolean.operation"]);
+    return null;
+  };
+  const ops = ids.map(opOf);
+  const shownOp = ops.length > 0 && ops[0] !== null && ops.every((o) => o === ops[0]) ? ops[0] : ops.some((o) => o !== null) ? "mixed" : null;
+  if (!single && sources.length === 0 && !editing && !groupSelected && !shownOp) return null;
   const button = (command: string, label: string, Icon: React.ComponentType<{ size?: number }>, enabled: boolean) => (
     <button key={command} type="button" className="panel-icon-btn" title={label} aria-label={label} disabled={!enabled} data-command={command} onClick={() => void invokeCommand(command)}>
       <Icon size={14} />
@@ -38,6 +52,25 @@ export const VectorBar: React.FC = () => {
       {button("boolean.exclude", "Exclude selection", SquaresExclude, !editing && sources.length >= 2)}
       <span style={{ width: 8 }} aria-hidden />
       {button("vector.flatten", "Flatten to path", Spline, !editing && flattenable)}
+      {button("vector.makeNetwork", "Make vector network", Network, !editing && networkable)}
+      <span style={{ width: 8 }} aria-hidden />
+      {/* FigCraft port F5: a live boolean group keeps its operands editable; the plain buttons above bake the result */}
+      {button("boolean.makeGroup", "Live boolean group (union)", Combine, !editing && liveable)}
+      {button("boolean.flattenGroup", "Flatten boolean group", Spline, !editing && groupSelected)}
+      {shownOp && (
+        <select
+          aria-label="Boolean operation"
+          value={shownOp}
+          onChange={(e) => void invokeCommand("boolean.setOperation", { operation: e.target.value })}
+          style={{ marginLeft: 4 }}
+        >
+          {shownOp === "mixed" && <option value="mixed" disabled>Mixed</option>}
+          <option value="union">Union</option>
+          <option value="subtract">Subtract</option>
+          <option value="intersect">Intersect</option>
+          <option value="exclude">Exclude</option>
+        </select>
+      )}
     </div>
   );
 };

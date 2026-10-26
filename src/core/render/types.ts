@@ -21,6 +21,11 @@ export interface RenderContext {
    * so the top-level layer is drawn at the element's origin instead of at its own `frame.x` / `frame.y`.
    */
   frameAtOrigin?: boolean;
+  /**
+   * Every layer, when the tree is drawn from a map rather than the live store (the exporter, the gallery, tests): a
+   * boolean group reads its operands from here (FigCraft port F5). On the stage the group subscribes to the store.
+   */
+  layers?: Readonly<Record<string, import("../document/schema").Layer>>;
 }
 
 /** Every render definition has this shape: draw `layer` from its resolved props (Phase 17, Law 11). */

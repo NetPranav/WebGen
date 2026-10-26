@@ -25,6 +25,7 @@ import type { Paint } from "@/core/paint/paints";
 import { moveBoxes, paramValue, resizeBoxes, rotateBoxes, rotationDelta, unionBox, type Box } from "@/core/geometry/transform";
 import { frameContains, type HandleHit, type TransformModel } from "../transformModel";
 import { createPathTools } from "./pathTools";
+import { tryRunCommand } from "@/core/commands";
 
 /** One of the samples a browser coalesced into a pointer move (a 120 Hz pen reports two or more per frame). */
 export interface CoalescedSample {
@@ -569,6 +570,94 @@ export function createCreationTool(id: ToolId): Tool {
   };
 }
 
+/**
+ * The paint bucket (FigCraft port F4): a click inside a closed area of a path layer fills it, or unfills it when it is
+ * filled; dragging on keeps doing what the first click did. The point goes to the layer's own 200 × 200 path space.
+ */
+export function createPaintBucketTool(): Tool {
+  let target: string | null = null;
+  let want: boolean | undefined;
+  const hit = (p: ToolPointer, ctx: ToolContext, first: boolean) => {
+    const picked = first ? ctx.pick(p.world, true) : null;
+    if (first) {
+      if (!picked || getDocument().layers[picked.id]?.archetype !== "svgPath") return false;
+      ctx.select(picked);
+      target = picked.id;
+    }
+    const tm = ctx.transformModel();
+    const box = tm && target ? tm.boxes[tm.ids.indexOf(target)] : undefined;
+    if (!box || !target) return false;
+    // the canvas point in the layer's unrotated box, then in its 200 × 200 path space
+    const r = (-box.rot * Math.PI) / 180;
+    const dx = p.world.x - box.cx;
+    const dy = p.world.y - box.cy;
+    const lx = dx * Math.cos(r) - dy * Math.sin(r) + box.w / 2;
+    const ly = dx * Math.sin(r) + dy * Math.cos(r) + box.h / 2;
+    const out = tryRunCommand("vector.paintBucket", { id: target, x: (lx / Math.max(1e-6, box.w)) * 200, y: (ly / Math.max(1e-6, box.h)) * 200, ...(want === undefined ? {} : { want }) });
+    const filled = out.ok ? (out.result as { filled?: boolean | null } | undefined)?.filled : undefined;
+    if (first && typeof filled === "boolean") want = filled;
+    return true;
+  };
+  return {
+    id: "paintBucket",
+    cursor: "cell",
+    onPointerDown: (p, ctx) => {
+      want = undefined;
+      return hit(p, ctx, true);
+    },
+    onPointerMove: (p, ctx) => void (target && hit(p, ctx, false)),
+    onPointerUp: () => {
+      target = null;
+      want = undefined;
+    },
+    onPointerCancel: () => {
+      target = null;
+      want = undefined;
+    },
+  };
+}
+
+/**
+ * The Shape Builder (FigCraft port F5): with shapes selected, a click or a drag across the regions where they overlap
+ * merges those regions into a new shape; with Alt held, it removes them. Each gesture is one command, so one undo step.
+ * A click outside every region selects the layer there, so shapes can be picked without changing tools.
+ */
+export function createShapeBuilderTool(): Tool {
+  let points: Point[] = [];
+  let remove = false;
+  let start: ToolPointer | null = null;
+  return {
+    id: "shapeBuilder",
+    cursor: "crosshair",
+    onPointerDown: (p) => {
+      start = p;
+      remove = p.altKey;
+      points = [p.world];
+      return true;
+    },
+    onPointerMove: (p) => {
+      const last = points[points.length - 1];
+      if (!last) return;
+      // sample the drag every few px so a fast stroke doesn't skip a region
+      const steps = Math.min(500, Math.max(1, Math.ceil(Math.hypot(p.world.x - last.x, p.world.y - last.y) / 3)));
+      for (let k = 1; k <= steps; k++) points.push({ x: last.x + ((p.world.x - last.x) * k) / steps, y: last.y + ((p.world.y - last.y) * k) / steps });
+    },
+    onPointerUp: (p, ctx) => {
+      const pts = points;
+      points = [];
+      const out = tryRunCommand(remove ? "shapeBuilder.remove" : "shapeBuilder.merge", { points: pts.slice(0, 10_000).map((q) => [q.x, q.y]) });
+      const picked = out.ok && out.result !== null;
+      // nothing under the gesture: a click picks the layer there
+      if (!picked && start && Math.hypot(p.screen.x - start.screen.x, p.screen.y - start.screen.y) < CLICK_SLOP) ctx.select(ctx.pick(p.world, true), p.shiftKey ? "toggle" : "replace");
+      start = null;
+    },
+    onPointerCancel: () => {
+      points = [];
+      start = null;
+    },
+  };
+}
+
 /** The tools that have behaviour on the canvas, by id. */
 export function createTools(): Partial<Record<ToolId, Tool>> {
   // the pen and pencil live in their own module
@@ -581,5 +670,7 @@ export function createTools(): Partial<Record<ToolId, Tool>> {
   for (const id of Object.keys(CREATION) as ToolId[]) tools[id] = createCreationTool(id);
   tools.pen = paths.pen;
   tools.pencil = paths.pencil;
+  tools.paintBucket = createPaintBucketTool();
+  tools.shapeBuilder = createShapeBuilderTool();
   return tools;
 }

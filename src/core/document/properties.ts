@@ -205,6 +205,13 @@ const DEFS = {
   "frame.rotation": deg(0, "rotate", "layout", VISUAL),
   // Phase 28: a frame's ruler guides, as JSON text: [{"axis":"x"|"y","pos":px relative to the frame}]. Only top-level frames use it.
   "frame.guides": str("[]", null, "layout", only("container")),
+  /**
+   * A live boolean group (FigCraft port F5): a container whose children are drawn as one shape, combined by this
+   * operation (union, subtract, intersect, exclude). Empty: an ordinary container. See `core/editing/layerOutline.ts`.
+   */
+  "boolean.operation": typed(oneOf(["", "union", "subtract", "intersect", "exclude"], "", null, "paint", only("container", "form"))),
+  /** In a boolean group, how this operand combines with the ones below it; empty takes the group's operation. */
+  "boolean.operandOp": typed(oneOf(["", "union", "subtract", "intersect", "exclude"], "", null, "paint", only("rectangle", "ellipse", "polygon", "star", "svgPath", "container", "form"))),
   "sizing.horizontal": oneOf(["fixed", "hug", "fill"], "hug", null, "layout", VISUAL),
   "sizing.vertical": oneOf(["fixed", "hug", "fill"], "hug", null, "layout", VISUAL),
   positioning: oneOf(["absolute", "flow"], "flow", "position", "layout", VISUAL),
@@ -431,6 +438,12 @@ const DEFS = {
   "svg.strokeDashoffset": num(0, "stroke-dashoffset", "paint", SVG_STROKED),
   /** The drawn path as nodes with handles, times and pressures, JSON (Phase 39); `svg.path` is what is drawn, this is what is edited and replayed. */
   "svg.nodes": typed(str("", null, "paint", only("svgPath"))),
+  /**
+   * A vector network (FigCraft port F4, `core/paths/vectorNetwork.ts`), JSON in the same 200 × 200 space as `svg.path`:
+   * points joined by any number of segments, filled by regions. When set it is what the layer draws; a Phase 40 path
+   * edit drops it.
+   */
+  "svg.network": typed(str("", null, "paint", only("svgPath"))),
   /** How overlapping parts of one path are filled; the boolean operations make compound paths that need `evenodd` (Phase 40). */
   "svg.fillRule": typed(oneOf(["nonzero", "evenodd"], "nonzero", "fill-rule", "paint", only("svgPath"))),
   "svg.href": str("", null, "paint", only("svgUse")),

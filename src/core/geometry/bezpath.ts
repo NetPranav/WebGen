@@ -410,3 +410,56 @@ export function ellipsePath(center: Pt, radii: Pt, tolerance = 0.01): BezPath {
   path.closePath();
   return path;
 }
+
+// ---------------------------------------------------------------------------
+// Cubic curves (kurbo `CubicBez`): evaluation, derivative, sub-segments, arc length and its inverse
+// ---------------------------------------------------------------------------
+
+export interface Cubic {
+  p0: Pt;
+  p1: Pt;
+  p2: Pt;
+  p3: Pt;
+}
+
+export const cubicSeg = (c: Cubic): Segment => ({ kind: "cubic", ...c });
+export const cubicEval = (c: Cubic, t: number): Pt => segmentEval(cubicSeg(c), t);
+export const cubicReverse = (c: Cubic): Cubic => ({ p0: c.p3, p1: c.p2, p2: c.p1, p3: c.p0 });
+
+/** The derivative at `t`. */
+export function cubicDeriv(c: Cubic, t: number): Pt {
+  const mt = 1 - t;
+  return {
+    x: 3 * (mt * mt * (c.p1.x - c.p0.x) + 2 * mt * t * (c.p2.x - c.p1.x) + t * t * (c.p3.x - c.p2.x)),
+    y: 3 * (mt * mt * (c.p1.y - c.p0.y) + 2 * mt * t * (c.p2.y - c.p1.y) + t * t * (c.p3.y - c.p2.y)),
+  };
+}
+
+/** The part of the curve between `t0` and `t1`, as a cubic of its own. */
+export function cubicSubsegment(c: Cubic, t0: number, t1: number): Cubic {
+  const p0 = cubicEval(c, t0);
+  const p3 = cubicEval(c, t1);
+  const d = t1 - t0;
+  const d0 = cubicDeriv(c, t0);
+  const d1 = cubicDeriv(c, t1);
+  return { p0, p1: { x: p0.x + (d0.x * d) / 3, y: p0.y + (d0.y * d) / 3 }, p2: { x: p3.x - (d1.x * d) / 3, y: p3.y - (d1.y * d) / 3 }, p3 };
+}
+
+/** Arc length, to `accuracy`. */
+export const cubicArclen = (c: Cubic, accuracy = 1e-6): number => segmentArclen(cubicSeg(c), accuracy);
+
+/** The parameter at which the arc length from the start is `len` (bisection). */
+export function cubicInvArclen(c: Cubic, len: number, accuracy = 1e-6): number {
+  const total = cubicArclen(c, accuracy);
+  if (len <= 0) return 0;
+  if (len >= total) return 1;
+  let lo = 0;
+  let hi = 1;
+  for (let k = 0; k < 60; k++) {
+    const mid = (lo + hi) / 2;
+    if (cubicArclen(cubicSubsegment(c, 0, mid), accuracy) < len) lo = mid;
+    else hi = mid;
+    if (hi - lo < 1e-12) break;
+  }
+  return (lo + hi) / 2;
+}

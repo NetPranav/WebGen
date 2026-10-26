@@ -7,6 +7,7 @@ import { safeDashArray } from "../../paint/paints";
 import { ShapePaint } from "../shapePaint";
 import { strokeSettings } from "../strokePaint";
 import { pathDataToBez } from "../../paths/bezBridge";
+import { fillPath as networkFill, fillRule as networkRule, parseNetwork, strokePath as networkStroke } from "../../paths/vectorNetwork";
 import type { BezPath } from "../../geometry/bezpath";
 
 const pick = <T extends string>(value: string, allowed: readonly T[], fallback: T): T => ((allowed as readonly string[]).includes(value) ? (value as T) : fallback);
@@ -42,10 +43,10 @@ const SvgShell: React.FC<ArchetypeRenderProps & { inner: (nodeRef: ArchetypeRend
  * is authored in a 200 × 200 space stretched to the frame, but a stroke keeps its width in px: so the stroke's outline
  * is built in px (`core/paths/strokes.ts`) and mapped back into the 200 × 200 space.
  */
-function AdvancedSvgPath(p: ArchetypeRenderProps & { d: string }) {
+function AdvancedSvgPath(p: ArchetypeRenderProps & { d: string; strokeD?: string; rule?: "nonzero" | "evenodd" }) {
   const width = clampNumber(p.resolved.num("frame.width", 100), 1, 10_000, 100);
   const height = clampNumber(p.resolved.num("frame.height", 100), 1, 10_000, 100);
-  const unit = pathDataToBez(p.d);
+  const unit = pathDataToBez(p.strokeD ?? p.d);
   const px = unit ? unit.map((q) => ({ x: (q.x * width) / 200, y: (q.y * height) / 200 })) : null;
   const closed = !!unit && unit.els.some((e) => e.t === "Z");
   const toDrawing = (b: BezPath) => b.map((q) => ({ x: (q.x * 200) / width, y: (q.y * 200) / height }));
@@ -64,7 +65,7 @@ function AdvancedSvgPath(p: ArchetypeRenderProps & { d: string }) {
           closed={closed}
           outline={px}
           toDrawing={toDrawing}
-          geometry={(a) => <path {...a} d={p.d} fillRule={p.resolved.str("svg.fillRule", "nonzero") === "evenodd" ? "evenodd" : "nonzero"} />}
+          geometry={(a) => <path {...a} d={a.fill === "none" && p.strokeD ? p.strokeD : p.d} fillRule={p.rule ?? (p.resolved.str("svg.fillRule", "nonzero") === "evenodd" ? "evenodd" : "nonzero")} />}
         />
       )}
     />
@@ -78,9 +79,39 @@ function withProfile(resolved: ArchetypeRenderProps["resolved"]): ArchetypeRende
   return { ...resolved, get: (path: string) => (path === "stroke.widthProfile" ? uniform : resolved.get(path)) };
 }
 
+/**
+ * A path layer with a vector network (FigCraft port F4): the fill is drawn from its regions (by their fill rule), the
+ * stroke from its segments chained into runs, both in the layer's 200 × 200 space.
+ */
+function NetworkSvgPath(p: ArchetypeRenderProps & { fillD: string; strokeD: string; rule: "nonzero" | "evenodd" }) {
+  if (strokeSettings(p.resolved, "#0f172a", 2, !/[zZ]/.test(p.strokeD))) return <AdvancedSvgPath {...p} d={p.fillD} strokeD={p.strokeD} rule={p.rule} />;
+  return (
+    <SvgShell
+      {...p}
+      inner={(ref) => (
+        <g ref={ref as React.Ref<SVGGElement>} data-element-id={p.layer.id} data-network="">
+          <path d={p.fillD} fill={p.resolved.str("svg.fill", "none")} fillRule={p.rule} stroke="none" />
+          <path
+            d={p.strokeD}
+            fill="none"
+            stroke={p.resolved.str("svg.stroke", "#0f172a")}
+            strokeWidth={clampNumber(p.resolved.num("svg.strokeWidth", 2), 0, 200, 2)}
+            strokeLinecap={pick<(typeof CAPS)[number]>(p.resolved.str("svg.strokeLinecap", "butt"), CAPS, "butt")}
+            strokeLinejoin={pick<(typeof JOINS)[number]>(p.resolved.str("svg.strokeLinejoin", "miter"), JOINS, "miter")}
+            strokeDasharray={safeDashArray(p.resolved.str("svg.strokeDasharray", "none"))}
+            vectorEffect="non-scaling-stroke"
+          />
+        </g>
+      )}
+    />
+  );
+}
+
 /** `svgPath`: the Pen and Pencil tools' output, and any imported path. */
-export const SvgPath: React.FC<ArchetypeRenderProps> = (p) =>
-  strokeSettings(p.resolved, "#0f172a", 2, !/[zZ]/.test(p.resolved.str("svg.path", ""))) ? (
+export const SvgPath: React.FC<ArchetypeRenderProps> = (p) => {
+  const net = parseNetwork(p.resolved.get("svg.network"));
+  if (net) return <NetworkSvgPath {...p} fillD={networkFill(net).toSvg(3)} strokeD={networkStroke(net).toSvg(3)} rule={networkRule(net)} />;
+  return strokeSettings(p.resolved, "#0f172a", 2, !/[zZ]/.test(p.resolved.str("svg.path", ""))) ? (
     <AdvancedSvgPath {...p} d={safePathData(p.resolved.str("svg.path", "M0 0 L100 100"))} />
   ) : (
   <SvgShell
@@ -103,6 +134,7 @@ export const SvgPath: React.FC<ArchetypeRenderProps> = (p) =>
     )}
   />
   );
+};
 
 /** `svgText`: a text run in a group or on its own. */
 export const SvgText: React.FC<ArchetypeRenderProps> = (p) => {

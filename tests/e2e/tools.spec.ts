@@ -38,7 +38,7 @@ test("Phase 24: the dock shows only the tools that exist, and a button switches 
   await ready(page);
   const dock = page.getByRole("toolbar", { name: "Confluence Whiteboard Tools" });
   const names = await dock.getByRole("button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(names).toEqual(["Select Tool", "Hand Tool (Pan)", "Frame Tool", "Rectangle Tool", "Ellipse Tool", "Line Tool", "Arrow Tool", "Polygon Tool", "Star Tool", "Text Tool", "Pen Tool", "Pencil Tool"]);
+  expect(names).toEqual(["Select Tool", "Hand Tool (Pan)", "Frame Tool", "Rectangle Tool", "Ellipse Tool", "Line Tool", "Arrow Tool", "Polygon Tool", "Star Tool", "Text Tool", "Pen Tool", "Pencil Tool", "Paint Bucket", "Shape Builder"]);
   for (const hidden of ["Comment", "Add Node / Asset"]) {
     await expect(dock.getByRole("button", { name: hidden }), `${hidden} isn't built yet, so it has no button`).toHaveCount(0);
   }
@@ -52,7 +52,7 @@ test("Phase 24: the dock shows only the tools that exist, and a button switches 
 
 test("Phase 24: a shortcut switches the tool", async ({ page }) => {
   await ready(page);
-  for (const [key, id] of [["h", "pan"], ["r", "rectangle"], ["o", "ellipse"], ["l", "line"], ["f", "frame"], ["t", "text"], ["v", "select"]] as const) {
+  for (const [key, id] of [["h", "pan"], ["r", "rectangle"], ["o", "ellipse"], ["l", "line"], ["f", "frame"], ["t", "text"], ["b", "paintBucket"], ["v", "select"]] as const) {
     await page.keyboard.press(key);
     await expectTool(page, id, `key ${key}`);
   }
