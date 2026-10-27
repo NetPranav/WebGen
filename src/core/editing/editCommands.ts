@@ -5,6 +5,12 @@
  * the context menu and agents.
  */
 
+import { worldBox, writeBoxes } from "./layerBoxes";
+import { transaction } from "./editOps";
+import { editRotationOrigin, originPoint, setRotationOrigin } from "./rotationOrigin";
+import { rotateBoxes, unionBox } from "../geometry/transform";
+import { anchorName, anchorOf, scaleAnchor, scaleSelection, setScaleAnchor } from "./scaleLayers";
+import { renameLayers, reorderSelection, selectionColors, selectWithColor, setSelectionPaint, setSelectionSpacing } from "./selectionTools";
 import { isEditingPath } from "../store/useVectorEditStore";
 import { z } from "zod";
 import { registerTextCommands } from "../text/textCommands";
@@ -230,6 +236,76 @@ export function registerEditingCommands(): () => void {
   add(defineTypedCommand({ id: "shapeBuilder.merge", title: "Merge Regions", category: "Layer", args: picks, run: (p) => buildShapes(p.ids ?? ids(), toPick(p), true) }));
   add(defineTypedCommand({ id: "shapeBuilder.remove", title: "Remove Regions", category: "Layer", args: picks, run: (p) => buildShapes(p.ids ?? ids(), toPick(p), false) }));
   add(defineTypedCommand({ id: "paint.setShadows", title: "Set Shadows", category: "Layer", args: z.object({ ids: targets, shadows: z.array(shadowSchema).max(16) }), run: ({ ids: t, shadows }) => ({ changed: setShadows(t ?? ids(), shadows) }) }));
+  // FigCraft port F12: working on a whole selection
+  add(defineTypedCommand({
+    id: "selection.rename",
+    title: "Rename Layers",
+    category: "Layer",
+    args: z.object({ ids: targets, find: z.string().max(1000).optional(), regex: z.boolean().optional(), replace: z.string().max(1000).optional(), pattern: z.string().max(1000).optional(), start: z.number().optional() }),
+    run: ({ ids: t, ...settings }) => renameLayers(t ?? ids(), settings),
+  }));
+  add(defineTypedCommand({
+    id: "arrange.spacing",
+    title: "Set Selection Spacing",
+    category: "Layer",
+    args: z.object({ ids: targets, horizontal: z.number().finite().optional(), vertical: z.number().finite().optional() }),
+    run: ({ ids: t, horizontal, vertical }) => ({ ok: setSelectionSpacing(t ?? ids(), { horizontal, vertical }) }),
+  }));
+  add(defineTypedCommand({ id: "transform.scale", title: "Scale Layers", category: "Layer", args: z.object({ ids: targets, factor: z.number().positive().max(1000), anchor: z.string().optional() }), run: ({ ids: t, factor, anchor }) => ({ changed: scaleSelection(t ?? ids(), factor, anchor ? (anchorOf(anchor) ?? undefined) : undefined) }) }));
+  add(defineTypedCommand({
+    id: "tool.scaleAnchor",
+    title: "Scale Tool Anchor",
+    category: "Layer",
+    args: z.object({ anchor: z.string().optional() }).default({}),
+    run: ({ anchor }) => {
+      if (anchor !== undefined) {
+        const a = anchorOf(anchor);
+        if (!a) throw new Error(`unknown anchor "${anchor}" (tl, t, tr, l, c, r, bl, b, br)`);
+        setScaleAnchor(a);
+      }
+      return { anchor: anchorName(scaleAnchor()) };
+    },
+  }));
+  // FigCraft port F12: the rotation origin, and turning the selection about it
+  const selFrame = (t: readonly string[]) => {
+    const boxes = t.map((i) => worldBox(i)).filter((b): b is NonNullable<typeof b> => !!b);
+    return boxes.length === 0 ? null : { frame: boxes.length === 1 ? boxes[0] : unionBox(boxes)!, first: boxes[0], boxes };
+  };
+  add(defineCommand({ id: "transform.rotationOrigin", title: "Show Rotation Origin", category: "Layer", keybinding: "Alt+R", when: onSelection, run: () => void editRotationOrigin(ids()) }));
+  add(defineTypedCommand({
+    id: "transform.setRotationOrigin",
+    title: "Set Rotation Origin",
+    category: "Layer",
+    args: z.object({ x: z.number().finite().optional(), y: z.number().finite().optional(), editing: z.boolean().optional() }).default({}),
+    run: ({ x, y, editing }) => {
+      const t = ids();
+      const f = selFrame(t);
+      if (!f) return { ok: false };
+      if (editing !== undefined) editRotationOrigin(t, editing);
+      if (x !== undefined && y !== undefined) setRotationOrigin(t, { x, y }, f.first);
+      else if (editing === undefined) setRotationOrigin(t, null, f.first);
+      return { ok: true, origin: originPoint(t, f.frame, f.first) };
+    },
+  }));
+  add(defineTypedCommand({
+    id: "transform.rotate",
+    title: "Rotate Selection",
+    category: "Layer",
+    args: z.object({ ids: targets, degrees: z.number().finite().min(-3600).max(3600) }),
+    run: ({ ids: t0, degrees }) => {
+      const t = (t0 ?? ids()).filter((i) => getDocument().layers[i] && getDocument().layers[i].locked !== true);
+      const f = selFrame(t);
+      if (!f) return { changed: 0 };
+      const pivot = originPoint(t, f.frame, f.first);
+      transaction("Rotate", () => writeBoxes(t, rotateBoxes(f.boxes, pivot, degrees)));
+      return { changed: t.length };
+    },
+  }));
+  add(defineTypedCommand({ id: "arrange.reorder", title: "Reorder Selection", category: "Layer", args: z.object({ ids: targets, source: z.string(), target: z.string(), swap: z.boolean().optional() }), run: ({ ids: t, source, target, swap }) => ({ ok: reorderSelection(t ?? ids(), source, target, swap) }) }));
+  const paintTarget = z.object({ id: z.string(), prop: z.string(), index: z.number().int().min(0).optional() });
+  add(defineTypedCommand({ id: "selection.colors", title: "Selection Colours", category: "Layer", args: z.object({ ids: targets }).default({}), run: ({ ids: t }) => ({ colors: selectionColors(t ?? ids()) }) }));
+  add(defineTypedCommand({ id: "selection.setPaint", title: "Change Selection Colour", category: "Layer", args: z.object({ targets: z.array(paintTarget).max(10_000), paint: paintSchema }), run: ({ targets: t, paint }) => ({ changed: setSelectionPaint(t, paint as Paint) }) }));
+  add(defineTypedCommand({ id: "selection.selectColor", title: "Select Layers with Colour", category: "Layer", args: z.object({ targets: z.array(paintTarget).max(10_000) }), run: ({ targets: t }) => ({ ids: selectWithColor(t) }) }));
   // FigCraft port F7: blurs (uniform or progressive), noise, texture and glass; each effect is checked and repaired by `parseEffect`
   add(defineTypedCommand({ id: "paint.setEffects", title: "Set Effects", category: "Layer", args: z.object({ ids: targets, effects: z.array(z.record(z.string(), z.unknown())).max(16) }), run: ({ ids: t, effects }) => ({ changed: setEffects(t ?? ids(), effects) }) }));
   add(defineTypedCommand({ id: "paint.setStrokeStyle", title: "Set Stroke Style", category: "Layer", args: z.object({ ids: targets, style: z.enum(["solid", "dashed", "dotted"]) }), run: ({ ids: t, style }) => ({ changed: setStrokeStyle(t ?? ids(), style) }) }));

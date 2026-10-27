@@ -168,12 +168,16 @@ function duplicateOffset(ids: readonly string[]): { dx: number; dy: number } {
   return DEFAULT_OFFSET;
 }
 
-/** Duplicates the selection beside the originals (frames to the right). Returns the copies' ids. */
-export function duplicateLayers(ids: readonly string[]): string[] {
+/**
+ * Duplicates the selection beside the originals (frames to the right). With `inPlace` the copies sit exactly on the
+ * originals (an Alt-drag copies, then moves the copies: FigCraft port F12); a later Duplicate of those copies repeats
+ * the step they were moved by. Returns the copies' ids.
+ */
+export function duplicateLayers(ids: readonly string[], options: { inPlace?: boolean } = {}): string[] {
   const roots = editableRoots(ids);
   if (roots.length === 0) return [];
   const doc = getDocument();
-  const offset = duplicateOffset(roots);
+  const offset = options.inPlace ? { dx: 0, dy: 0 } : duplicateOffset(roots);
   const copies: string[] = [];
   transaction("Duplicate", () => {
     for (const id of roots) {

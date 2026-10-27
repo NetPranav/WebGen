@@ -1,5 +1,6 @@
 "use client";
 
+import { useRotationOriginStore } from "@/core/editing/rotationOrigin";
 import React, { useEffect, useRef } from "react";
 import type { CanvasHitTester } from "@/core/hit/CanvasHitTester";
 import { documentStore, getDocument } from "@/core/store/documentState";
@@ -100,7 +101,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       layerName: (id) => getDocument().layers[id]?.name ?? id,
       transformModel: () => transformModelRef.current(),
       snapFeedback: () => ({ lines: useSnapStore.getState().lines, spacing: useSnapStore.getState().spacing }),
-      hudMarks: () => hudRef.current(),
+      hudMarks: (hovered) => hudRef.current(hovered),
       guides: () => guidesRef.current(),
     });
     onController?.(controller);
@@ -131,6 +132,8 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       if (pointer && s.camera !== p.camera) controller.invalidate();
     });
     const offSnap = useSnapStore.subscribe(() => controller.invalidate());
+    // the rotation origin (FigCraft port F12) shown, hidden or moved
+    const offOrigin = useRotationOriginStore.subscribe(() => controller.invalidate());
     const offFonts = useFontsStore.subscribe(() => controller.invalidate(true)); // a font loaded: text changed size
 
     const offTool = useToolStore.subscribe((s, p) => {
@@ -141,6 +144,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
     return () => {
       offTool();
       offSnap();
+      offOrigin();
       offFonts();
       canvas.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("mouseleave", onLeave);

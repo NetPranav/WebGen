@@ -86,7 +86,7 @@ describe("Phase 24: tool state machine", () => {
 
 describe("Phase 24: the dock shows only tools that exist", () => {
   it("lists exactly the available, non-spring tools in order", () => {
-    assert.deepEqual(dockTools().map((t) => t.id), ["select", "pan", "frame", "rectangle", "ellipse", "line", "arrow", "polygon", "star", "text", "pen", "pencil", "paintBucket", "shapeBuilder"]);
+    assert.deepEqual(dockTools().map((t) => t.id), ["select", "pan", "frame", "rectangle", "ellipse", "line", "arrow", "polygon", "star", "text", "pen", "pencil", "paintBucket", "shapeBuilder", "scale"]);
   });
 
   it("every tool not built yet names its phase and has no dock button", () => {

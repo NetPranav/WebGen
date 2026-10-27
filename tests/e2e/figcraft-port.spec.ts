@@ -275,3 +275,96 @@ test("FigCraft port: a numbered list nested from the inspector, and text put on 
   await page.keyboard.press(`${MOD}+z`);
   await expect.poll(() => inStage(page, (doc, id) => !!doc.querySelector(`[data-element-id="${id}"] textPath`), t)).toBe(false);
 });
+
+test("FigCraft port: Alt-drag copies, the Scale tool scales strokes with the layer, Alt-hover measures to another layer, batch rename", async ({ page }) => {
+  await ready(page);
+  // a plain frame to work in (the demo's root is an auto-layout stack, where a drag reorders instead of moving)
+  await page.evaluate(() => {
+    const d = (window as unknown as { __LL_DOC__: { get: () => { layers: Record<string, { parentId: string | null; archetype: string }> }; commands: { addLayer: (input: unknown) => string } } }).__LL_DOC__;
+    const top = Object.entries(d.get().layers).find(([, l]) => l.parentId === null && l.archetype === "container")![0];
+    d.commands.addLayer({ archetype: "container", parentId: top, name: "Board", properties: { positioning: "absolute", "frame.x": 0, "frame.y": 0, "frame.width": 700, "frame.height": 500, "appearance.background.color": "#ffffff" } });
+  });
+  await page.waitForTimeout(300);
+  // big enough on screen that a press in the middle misses the corner-radius handle
+  const a = await drawRect(page, { x: 40, y: 60, w: 300, h: 200 });
+  const g = await frameGeom(page);
+  const at = (x: number, y: number) => ({ x: g.left + x * g.zoom, y: g.top + y * g.zoom });
+  type D = { get: () => { layers: Record<string, { name: string; properties: Record<string, unknown> }> } };
+  const props = (id: string) => page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id].properties, id);
+  const x0 = Number((await props(a))["frame.x"]);
+  const y0 = Number((await props(a))["frame.y"]);
+  // Alt-drag: a copy moves, the original stays
+  const before = await layerIds(page);
+  let p = at(x0 + 150, y0 + 100);
+  await page.mouse.move(p.x, p.y);
+  await page.keyboard.down("Alt");
+  await page.mouse.down();
+  await page.mouse.move(p.x + 100 * g.zoom, p.y, { steps: 4 });
+  await page.mouse.move(p.x + 360 * g.zoom, p.y, { steps: 4 });
+  await page.mouse.up();
+  await page.keyboard.up("Alt");
+  const copy = await newLayer(page, before);
+  expect(Number((await props(a))["frame.x"])).toBe(x0);
+  expect(Math.abs(Number((await props(copy))["frame.x"]) - x0 - 360)).toBeLessThan(12);
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(async () => (await layerIds(page)).includes(copy)).toBe(false);
+  // the Scale tool: dragging the bottom-right handle to twice the size doubles the stroke too
+  await run(page, "selection.set", { ids: [a] });
+  await page.evaluate((id) => (window as unknown as { __LL_DOC__: { commands: { updateProps: (id: string, p: Record<string, unknown>) => void } } }).__LL_DOC__.commands.updateProps(id, { "svg.strokeWidth": 3, "svg.stroke": "#000000" }), a);
+  await page.keyboard.press("k");
+  p = at(x0 + 300, y0 + 200);
+  await page.mouse.move(p.x, p.y);
+  await page.mouse.down();
+  await page.mouse.move(p.x + 150 * g.zoom, p.y + 100 * g.zoom, { steps: 3 });
+  await page.mouse.move(p.x + 300 * g.zoom, p.y + 200 * g.zoom, { steps: 3 });
+  await page.mouse.up();
+  await expect.poll(async () => Math.round(Number((await props(a))["frame.width"]) / 10) * 10).toBe(600);
+  expect(Math.round(Number((await props(a))["svg.strokeWidth"]))).toBe(6);
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(async () => (await props(a))["svg.strokeWidth"]).toBe(3);
+  await page.keyboard.press("v");
+  // Alt held over another layer: the HUD measures from the selection to it (Cmd too: the layer nested in the frame under the pointer)
+  const b = await drawRect(page, { x: 400, y: 60, w: 120, h: 200 });
+  await run(page, "selection.set", { ids: [a] });
+  const bx = Number((await props(b))["frame.x"]);
+  p = at(bx + 60, y0 + 100);
+  await page.mouse.move(p.x, p.y);
+  await page.keyboard.down(MOD);
+  await page.keyboard.down("Alt");
+  // (a layer just drawn is measured a moment later: the pointer nudges until the hover finds it)
+  const gap = bx - (x0 + Number((await props(a))["frame.width"]));
+  let nudge = 0;
+  await expect.poll(async () => {
+    await page.mouse.move(p.x + (nudge++ % 2) * 2, p.y + 2);
+    const labels = await page.locator(".canvas-overlay__spacing:not([hidden]) span").allTextContents();
+    return labels.some((t) => Math.abs(Number(t) - gap) < 0.5);
+  }).toBe(true);
+  await page.keyboard.up("Alt");
+  await page.keyboard.up(MOD);
+  // batch rename from the Pro inspector, numbered in stacking order
+  await run(page, "selection.set", { ids: [a, b] });
+  await page.getByRole("tab", { name: "Pro" }).click();
+  await page.getByLabel("Rename: whole name").fill("Card $n");
+  await page.getByRole("button", { name: "Rename selected layers" }).click();
+  await expect.poll(() => page.evaluate(({ a, b }) => { const l = (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers; return [l[a].name, l[b].name]; }, { a, b })).toEqual(["Card 1", "Card 2"]);
+});
+
+test("FigCraft port: the rotation origin moved to a corner turns the layer about it", async ({ page }) => {
+  await ready(page);
+  const a = await drawRect(page, { x: 100, y: 100, w: 100, h: 50 });
+  await run(page, "selection.set", { ids: [a] });
+  type D = { get: () => { layers: Record<string, { properties: Record<string, unknown> }> } };
+  const props = () => page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id].properties, a);
+  const { x, y } = { x: Number((await props())["frame.x"]), y: Number((await props())["frame.y"]) };
+  await run(page, "transform.setRotationOrigin", { editing: true });
+  await expect(page.locator(".canvas-overlay__origin")).toBeVisible();
+  // the top-left corner, on the page: the frame's own origin plus the layer's place
+  const origin = (await run(page, "transform.setRotationOrigin", {})) as { origin: { x: number; y: number } };
+  await run(page, "transform.setRotationOrigin", { x: origin.origin.x - 50, y: origin.origin.y - 25 });
+  await run(page, "transform.rotate", { degrees: 90 });
+  await expect.poll(async () => Math.round(Number((await props())["frame.rotation"]))).toBe(90);
+  // a quarter turn about the top-left corner: the centre swings from (50, 25) to (−25, 50) relative to that corner
+  const after = await props();
+  expect(Math.round(Number(after["frame.x"]) + 50 - x)).toBe(-25);
+  expect(Math.round(Number(after["frame.y"]) + 25 - y)).toBe(50);
+});

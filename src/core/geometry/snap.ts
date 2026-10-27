@@ -56,6 +56,8 @@ export interface SpacingMark {
   at: number;
   value: number;
   equal?: boolean;
+  /** A dashed extension line, no label (FigCraft port F12). */
+  dashed?: boolean;
 }
 
 export interface SnapResult {

@@ -62,6 +62,8 @@ import { penControls } from "./tools/pathTools";
 import { isGrid, placesChildren, readStack } from "@/core/editing/layoutOps";
 import { gridInsertion } from "@/core/layout/grid";
 import { worldBox } from "@/core/editing/layerBoxes";
+import { duplicateLayers } from "@/core/editing/editOps";
+import { between } from "@/core/geometry/measureDistances";
 import { insertionIndex, insertionLine } from "@/core/layout/stack";
 import { moveLayers } from "@/core/layers/reparent";
 import { useStackDropStore } from "@/core/store/useStackDropStore";
@@ -232,15 +234,19 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   /** Every frame's ruler guides as lines in canvas space. */
   const overlayGuides = useCallback(() => guideLines(hitTester.ensure(), getResolvedDocument().layers), [hitTester]);
   /** The distance HUD for the selection while Alt is held and no gesture is running. */
-  const overlayHud = useCallback(() => {
+  const overlayHud = useCallback((hovered: string | null) => {
     if (!useSnapStore.getState().alt || useToolStore.getState().gesturing || useCanvasViewStore.getState().mode !== "design") return [];
     const ids = useSelectionStore.getState().selectedIds;
     const index = hitTester.ensure();
     const layers = getResolvedDocument().layers;
     const model = buildTransformModel(index, layers, ids, 0);
-    const env = model ? snapEnvironment(index, layers, model.ids) : null;
-    if (!model || !env) return [];
+    if (!model) return [];
     const u = unionBox(model.boxes)!;
+    // FigCraft port F12: Alt over another layer measures from the selection to it
+    const target = hovered && !ids.includes(hovered) ? index.get(hovered)?.bounds : undefined;
+    if (target) return between({ x0: u.cx - u.w / 2, y0: u.cy - u.h / 2, x1: u.cx + u.w / 2, y1: u.cy + u.h / 2 }, { x0: target.x, y0: target.y, x1: target.x + target.width, y1: target.y + target.height });
+    const env = snapEnvironment(index, layers, model.ids);
+    if (!env) return [];
     return distanceMarks({ x: u.cx - u.w / 2, y: u.cy - u.h / 2, width: u.w, height: u.h }, env.others, env.parent);
   }, [hitTester]);
   useEffect(() => restoreSnapSettings(), []);
@@ -274,6 +280,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       beginTransform: (label) => {
         transformTxRef.current = documentCommands.begin(label);
       },
+      duplicateInPlace: (ids) => duplicateLayers(ids, { inPlace: true }),
       applyBoxes: (ids, boxes) => {
         const index = hitTester.ensure();
         const layers = getResolvedDocument().layers;

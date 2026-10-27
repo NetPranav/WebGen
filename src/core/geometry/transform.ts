@@ -185,13 +185,16 @@ function normalizeDeg(deg: number): number {
 /**
  * Rotates boxes about `pivot` by `delta` degrees. A single box turns about its own centre and its rotation is
  * `start + delta`; with `snap` (Shift) the resulting rotation is a multiple of 15. Several boxes turn together
- * about the selection's centre: each centre orbits the pivot and each rotation grows by the same delta.
+ * about the selection's centre: each centre orbits the pivot and each rotation grows by the same delta. A pivot
+ * away from a single box's centre (a moved rotation origin, FigCraft port F12) swings the box around it.
  */
 export function rotateBoxes(boxes: readonly Box[], pivot: Point, delta: number, snap = false): Box[] {
   if (boxes.length === 1) {
     const b = boxes[0];
     const rot = snap ? snapAngle(b.rot + delta) : b.rot + delta;
-    return [roundBox({ ...b, rot: normalizeDeg(rot) })];
+    if (Math.abs(pivot.x - b.cx) < 1e-9 && Math.abs(pivot.y - b.cy) < 1e-9) return [roundBox({ ...b, rot: normalizeDeg(rot) })];
+    const v = rotateVec(b.cx - pivot.x, b.cy - pivot.y, rot - b.rot);
+    return [roundBox({ ...b, cx: pivot.x + v.x, cy: pivot.y + v.y, rot: normalizeDeg(rot) })];
   }
   const d = snap ? snapAngle(delta) : delta;
   return boxes.map((b) => {
@@ -212,7 +215,7 @@ export function rotationDelta(pivot: Point, from: Point, to: Point): number {
 // Parameter handles (corner radius, star points and inner radius, polygon sides)
 // ---------------------------------------------------------------------------
 
-export type ParamHandleKind = "radius" | "innerRadius" | "count";
+export type ParamHandleKind = "radius" | "innerRadius" | "count" | "arcSweep" | "arcStart" | "arcRatio";
 
 export interface ParamHandle {
   kind: ParamHandleKind;
@@ -220,7 +223,12 @@ export interface ParamHandle {
   prop: string;
   /** Local position inside the box (origin at its top-left, unrotated px). */
   at: Point;
+  /** An arc's start angle (degrees), which the sweep handle measures from. */
+  base?: number;
 }
+
+/** Ellipses smaller than this on screen (px) show no arc handles (FigCraft `arc_handles::MIN_PX`). */
+const ARC_MIN_PX = 40;
 
 const RADIUS_INSET = 12;
 
@@ -241,9 +249,38 @@ export function paramHandles(archetype: string, box: Box, props: Record<string, 
     }
     case "polygon":
       return [{ kind: "count", prop: "shape.sides", at: { x: box.w / 2, y: -inset } }];
+    case "ellipse": {
+      // FigCraft port F12, the arc handles: Sweep (on the edge where the arc ends), Start (once there is an arc),
+      // Ratio (at the inner edge, half way round, once there is an arc or a ring); hidden on a small ellipse
+      const zoom = 14 / Math.max(1e-6, inset);
+      if (Math.min(box.w, box.h) * zoom < ARC_MIN_PX) return [];
+      const start = num(props["shape.arcStart"], 0);
+      const sweep = Math.max(-360, Math.min(360, num(props["shape.arcSweep"], 360)));
+      const inner = Math.max(0, Math.min(1, num(props["shape.arcInnerRatio"], 0)));
+      const full = Math.abs(sweep) >= 360 - 1e-9;
+      const rx = box.w / 2;
+      const ry = box.h / 2;
+      const point = (deg: number, k: number) => ({ x: rx * (1 + k * Math.cos((deg * Math.PI) / 180)), y: ry * (1 + k * Math.sin((deg * Math.PI) / 180)) });
+      const edge = (deg: number) => {
+        const e = point(deg, 1);
+        const len = Math.hypot(rx - e.x, ry - e.y);
+        const t = len <= 1e-12 ? 0 : Math.min(inset * 0.75, len / 2) / len;
+        return { x: e.x + (rx - e.x) * t, y: e.y + (ry - e.y) * t };
+      };
+      const out: ParamHandle[] = [{ kind: "arcSweep", prop: "shape.arcSweep", at: edge(start + sweep), base: start }];
+      if (!full) out.push({ kind: "arcStart", prop: "shape.arcStart", at: edge(start) });
+      if (!full || inner > 0) out.push({ kind: "arcRatio", prop: "shape.arcInnerRatio", at: point(start + sweep / 2, inner) });
+      return out;
+    }
     default:
       return [];
   }
+}
+
+/** The sweep ending at `d` degrees round from the start (0..360) nearest to `prev`: `d` or `d − 360` (FigCraft `nearest_sweep`). */
+export function nearestSweep(prev: number, d: number): number {
+  const cands = [d, d - 360, d + 360, d - 720].filter((c) => c >= -360 && c <= 360);
+  return cands.reduce((best, c) => (Math.abs(c - prev) < Math.abs(best - prev) ? c : best), cands[0] ?? d);
 }
 
 /** A handle's position in world space. */
@@ -273,6 +310,21 @@ export function paramValue(handle: ParamHandle, box: Box, p: Point, startValue: 
     case "count": {
       const dx = local(p).x - local(startPoint).x;
       return Math.min(Math.max(Math.round(startValue + dx / 24), 3), 64);
+    }
+    // FigCraft port F12, the arc handles: angles clockwise from the right (y down), in degrees
+    case "arcSweep":
+    case "arcStart":
+    case "arcRatio": {
+      const ux = l.x / Math.max(1e-9, box.w / 2) - 1;
+      const uy = l.y / Math.max(1e-9, box.h / 2) - 1;
+      const angle = (Math.atan2(uy, ux) * 180) / Math.PI;
+      if (handle.kind === "arcRatio") return r2(Math.min(0.99, Math.max(0, Math.hypot(ux, uy))));
+      if (handle.kind === "arcStart") return r2(((angle % 360) + 360) % 360);
+      const d = (((angle - (handle.base ?? 0)) % 360) + 360) % 360;
+      const sweep = nearestSweep(startValue, d);
+      // brought back near the start, the ellipse closes again
+      const px = (Math.min(Math.abs(sweep), 360 - Math.abs(sweep)) * Math.PI) / 180 * Math.min(box.w, box.h) / 2;
+      return Math.abs(sweep) > 180 && px <= inset / 2 ? (sweep < 0 ? -360 : 360) : r2(sweep);
     }
   }
 }

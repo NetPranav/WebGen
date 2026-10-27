@@ -14,6 +14,7 @@ import { frameScheduler } from "@/core/time/scheduler";
 import type { Point, Rect } from "@/core/viewport/camera";
 import type { TransformModel } from "../transformModel";
 import type { SnapLine, SpacingMark } from "@/core/geometry/snap";
+import { distanceLabel } from "@/core/geometry/measureDistances";
 
 export interface OverlayEnv {
   hitTester: CanvasHitTester;
@@ -29,7 +30,8 @@ export interface OverlayEnv {
   /** The guide lines a gesture snapped to and the spacing marks it shows (from the snap store). */
   snapFeedback: () => { lines: readonly SnapLine[]; spacing: readonly SpacingMark[] };
   /** The distance HUD for the selection while Alt is held and nothing is being dragged. */
-  hudMarks: () => readonly SpacingMark[];
+  /** The Alt distance HUD; `hovered` is the layer under the pointer (FigCraft port F12: measured from the selection). */
+  hudMarks: (hovered: string | null) => readonly SpacingMark[];
   /** Every frame's ruler guides, in canvas space: a vertical guide is `axis: "x"`; `from` / `to` span the frame. */
   guides: () => readonly { axis: "x" | "y"; pos: number; from: number; to: number; id: string }[];
 }
@@ -44,6 +46,8 @@ export class OverlayController {
   private readonly selection: Box[] = [];
   private readonly transform: HTMLDivElement;
   private readonly params: HTMLDivElement[] = [];
+  /** The rotation origin's handle (FigCraft port F12). */
+  private readonly origin: HTMLDivElement;
   private readonly gapHandles: { root: HTMLDivElement; label: HTMLSpanElement }[] = [];
   private readonly gradientHandles: HTMLDivElement[] = [];
   private readonly gradientLines: HTMLDivElement[] = [];
@@ -62,6 +66,10 @@ export class OverlayController {
   constructor(private readonly container: HTMLElement, private readonly env: OverlayEnv) {
     this.hover = this.makeBox("canvas-overlay__hover", false);
     this.hover.root.hidden = true;
+    this.origin = document.createElement("div");
+    this.origin.className = "canvas-overlay__origin";
+    this.origin.hidden = true;
+    this.container.appendChild(this.origin);
     // The transform frame: an outline that turns with the selection, with eight handles on it.
     this.transform = document.createElement("div");
     this.transform.className = "canvas-overlay__transform";
@@ -157,6 +165,12 @@ export class OverlayController {
       s.height = `${f.h}px`;
       s.transform = f.rot ? `rotate(${f.rot}deg)` : "";
       this.transform.dataset.rotation = String(f.rot);
+    }
+    const oh = model?.originHandle ?? null;
+    this.origin.hidden = !oh;
+    if (oh) {
+      this.origin.style.left = `${oh.x}px`;
+      this.origin.style.top = `${oh.y}px`;
     }
     const params = model?.params ?? [];
     while (this.params.length < params.length) {
@@ -258,7 +272,7 @@ export class OverlayController {
       }
       el.dataset.kind = l.kind;
     });
-    const spacing = [...fb.spacing, ...this.env.hudMarks()];
+    const spacing = [...fb.spacing, ...this.env.hudMarks(this.hoveredId)];
     while (this.marks.length < spacing.length) {
       const root = document.createElement("div");
       root.className = "canvas-overlay__spacing";
@@ -285,7 +299,10 @@ export class OverlayController {
       }
       m.root.dataset.axis = mark.axis;
       m.root.dataset.equal = mark.equal ? "true" : "false";
-      m.label.textContent = String(Math.round(mark.value));
+      m.root.dataset.dashed = mark.dashed ? "true" : "false";
+      // up to two decimals, no trailing zeros (FigCraft port F12); an extension line has no label
+      m.label.textContent = mark.dashed ? "" : distanceLabel(mark.value);
+      m.label.hidden = !!mark.dashed;
     });
     const guides = this.env.guides();
     this.fill(this.guideLines, guides.length, "canvas-overlay__guide");
@@ -338,6 +355,7 @@ export class OverlayController {
     this.hover.root.remove();
     this.transform.remove();
     this.params.forEach((d) => d.remove());
+    this.origin.remove();
     this.gapHandles.forEach((g) => g.root.remove());
     this.gradientHandles.forEach((d) => d.remove());
     this.gradientLines.forEach((d) => d.remove());

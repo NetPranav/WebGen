@@ -1119,6 +1119,18 @@
   pointer-events: none;
 }
 
+/* FigCraft port F12: the rotation origin's handle (Alt+R), a ring with a dot, one screen size at any zoom */
+.canvas-overlay__origin {
+  position: absolute;
+  width: calc(12px / var(--canvas-zoom, 1));
+  height: calc(12px / var(--canvas-zoom, 1));
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: calc(1.5px / var(--canvas-zoom, 1)) solid var(--accent-primary, #6366f1);
+  background: radial-gradient(circle, var(--accent-primary, #6366f1) 25%, #fff 30%);
+  pointer-events: none;
+}
+
 /* Spacing handles (Phase 30): a pill in the middle of the gap between neighbouring selected layers, one screen size at any zoom. */
 .canvas-overlay__gap {
   position: absolute;
@@ -1188,6 +1200,12 @@
 
 .canvas-overlay__spacing[data-equal="true"] {
   border-color: #a855f7;
+}
+
+/* FigCraft port F12: a dashed extension line from a measured gap to the box it measures to */
+.canvas-overlay__spacing[data-dashed="true"] {
+  border-style: dashed;
+  opacity: 0.8;
 }
 
 .canvas-overlay__spacing span {

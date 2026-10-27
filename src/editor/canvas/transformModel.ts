@@ -11,6 +11,7 @@ import { handlesFor, normToWorld, type GradientHandle } from "@/core/paint/gradi
 import type { Paint } from "@/core/paint/paints";
 import type { Camera, Point } from "@/core/viewport/camera";
 import { docToScreen } from "@/core/viewport/camera";
+import { originHandle, originPoint } from "@/core/editing/rotationOrigin";
 
 export interface TransformModel {
   ids: string[];
@@ -23,6 +24,10 @@ export interface TransformModel {
   gaps: GapHandle[];
   /** The handles of the gradient fill being edited (single selection only), with their place on the canvas. */
   gradient: GradientModel | null;
+  /** Where the selection turns (FigCraft port F12): its moved rotation origin, else the frame's centre. */
+  origin: Point;
+  /** The rotation origin's handle while it shows (Alt+R). */
+  originHandle: Point | null;
 }
 
 export interface GradientModel {
@@ -81,7 +86,7 @@ export function buildTransformModel(index: HitIndex, layers: Record<string, Laye
     const box = boxes[0];
     gradient = { layerId: editing.layerId, paintIndex: editing.index, paint: editing.paint, box, handles: handlesFor(editing.paint, box).map((handle) => ({ handle, world: normToWorld(box, handle.at) })) };
   }
-  return { ids, boxes, frame, params, gaps: spacingHandles(boxes), gradient };
+  return { ids, boxes, frame, params, gaps: spacingHandles(boxes), gradient, origin: originPoint(ids, frame, boxes[0]), originHandle: originHandle(ids, frame, boxes[0]) };
 }
 
 /**
@@ -111,7 +116,7 @@ export function spacingHandles(boxes: readonly Box[]): GapHandle[] {
 }
 
 function defaultParam(prop: string): number {
-  return prop === "shape.innerRadius" ? 0.5 : prop === "shape.points" ? 5 : prop === "shape.sides" ? 6 : 0;
+  return prop === "shape.innerRadius" ? 0.5 : prop === "shape.points" ? 5 : prop === "shape.sides" ? 6 : prop === "shape.arcSweep" ? 360 : 0;
 }
 
 export type HandleHit =
@@ -119,7 +124,8 @@ export type HandleHit =
   | { kind: "rotate" }
   | { kind: "param"; index: number }
   | { kind: "gap"; index: number }
-  | { kind: "gradient"; index: number };
+  | { kind: "gradient"; index: number }
+  | { kind: "origin" };
 
 /** Screen-px radii. */
 const PARAM_RADIUS = 8;
@@ -134,6 +140,11 @@ const GRADIENT_RADIUS = 9;
  */
 export function handleAtScreen(model: TransformModel, camera: Camera, screen: Point): HandleHit | null {
   const toScreen = (p: Point) => docToScreen(camera, p);
+  // the rotation origin's handle, while it shows, sits on top of everything
+  if (model.originHandle) {
+    const s = toScreen(model.originHandle);
+    if (Math.hypot(s.x - screen.x, s.y - screen.y) <= PARAM_RADIUS) return { kind: "origin" };
+  }
   // a gradient's handles come first: they sit on top of the layer they shape
   if (model.gradient) {
     for (let i = model.gradient.handles.length - 1; i >= 0; i--) {
