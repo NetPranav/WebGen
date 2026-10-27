@@ -16,7 +16,8 @@
 
 import { documentCommands } from "../store/useDocumentStore";
 import { getDocument } from "../store/documentState";
-import { INSTANCE_LOCKED_PROPS, instanceRootOf, subtreeIds } from "./instances";
+import type { Layer, MotionDocument } from "../document/schema";
+import { INSTANCE_LOCKED_PROPS, containedComponents, instanceRootOf, markOverridden, namePathOf, resolveNamePath, subtreeIds, swapMainOf, syncInstanceLayer } from "./instances";
 
 export { INSTANCE_LOCKED_PROPS, lockedByInstance } from "./instances";
 
@@ -46,6 +47,8 @@ export function pushChanges(ids: readonly string[]): number {
         else if (inst.instance!.root && INSTANCE_LOCKED_PROPS.has(key)) continue; // the instance's own place stays its own
         else if (key in inst.properties) main.properties[key] = structuredClone(inst.properties[key]);
         else delete main.properties[key];
+        // the main's layer is itself part of a nested instance: what it took is its own override there
+        if (main.instance) markOverridden(main as Layer, [key]);
       }
       // the instance follows the main again for what it pushed (its own place excepted)
       inst.instance!.overridden = over.filter((k) => inst.instance!.root && INSTANCE_LOCKED_PROPS.has(k));
@@ -129,3 +132,99 @@ export function defaultVariantMain(componentId: string): string | null {
 
 /** The instance root of a layer, for callers that only know a layer. */
 export const rootOf = (id: string): string | null => instanceRootOf(getDocument().layers, id);
+
+// --- nested components (FigCraft port F9) -------------------------------------------------
+
+/** Does a layer hold a main component below it? */
+export function holdsMain(layers: Record<string, Layer>, id: string): boolean {
+  return subtreeIds(layers, id).some((x) => x !== id && !!layers[x]?.componentMain);
+}
+
+/** The component whose main a layer is inside (or is), if any. */
+export function mainAround(layers: Record<string, Layer>, id: string): string | null {
+  for (let cur: Layer | undefined = layers[id], g = 0; cur && g < 10_000; cur = cur.parentId ? layers[cur.parentId] : undefined, g++) if (cur.componentMain) return cur.componentMain;
+  return null;
+}
+
+/** For a nested instance (a copy inside another instance that mirrors an instance, or one swapped), its own component; else null. */
+export function innerComponentOf(doc: Pick<MotionDocument, "layers">, id: string): string | null {
+  const l = doc.layers[id];
+  if (!l?.instance || l.instance.root) return null;
+  if (l.instance.swap) return l.instance.swap;
+  const src = doc.layers[l.instance.source]?.instance;
+  return src?.root ? src.component : null;
+}
+
+/** The main a nested instance shows (its swap's, or its own component's variant), for Go to main; null for anything else. */
+export function innerMainOf(doc: MotionDocument, id: string): string | null {
+  const l = doc.layers[id];
+  if (!l?.instance || l.instance.root) return null;
+  if (l.instance.swap) return swapMainOf(doc, l.instance.swap)?.id ?? null;
+  const src = doc.layers[l.instance.source]?.instance;
+  return src?.root ? src.source : null;
+}
+
+/**
+ * Points the layers below `rootId` at the layers with the same name paths under `newRoot` (from under `oldRoot`),
+ * keeping them and their overrides; the ones with no counterpart lose their overrides (and go when the instance syncs).
+ */
+function repoint(d: MotionDocument, rootId: string, oldRoot: string, newRoot: string, component?: string) {
+  for (const id of subtreeIds(d.layers, rootId)) {
+    if (id === rootId) continue;
+    const l = d.layers[id];
+    if (!l.instance) continue;
+    const path = namePathOf(d.layers, oldRoot, l.instance.source);
+    const target = path ? resolveNamePath(d.layers, newRoot, path) : undefined;
+    if (target) {
+      l.instance.source = target.id;
+      if (component) l.instance.component = component;
+    } else delete l.instance.overridden;
+  }
+}
+
+/**
+ * Swaps a nested instance in place (FigCraft port F9): a copy inside another instance shows another component (its
+ * overrides kept on layers with the same name path; swapping back to its own component resets it), and an instance
+ * inside a main becomes an instance of the other component keeping its layers' ids, so the outer instances' overrides
+ * on them survive. Returns the layer's id, null when refused (a component can't contain itself), or undefined when the
+ * layer isn't nested (the caller swaps it the usual way).
+ */
+export function swapInPlace(id: string, componentId: string): string | null | undefined {
+  const doc = getDocument();
+  const comp = doc.designComponents?.[componentId];
+  const l = doc.layers[id];
+  if (!l?.instance || !comp) return undefined;
+  const inner = innerComponentOf(doc, id);
+  const root = l.instance.root ? id : null;
+  const around = mainAround(doc.layers, id);
+  if (!inner && !(root && around)) return undefined;
+  // a component can't contain itself
+  const outerComponent = inner ? doc.layers[instanceRootOf(doc.layers, id) ?? ""]?.instance?.component : undefined;
+  if (componentId === outerComponent || (around && (around === componentId || containedComponents(doc, componentId).has(around)))) return null;
+  if (inner) {
+    const original = doc.layers[l.instance.source]?.instance?.root ? doc.layers[l.instance.source].instance!.component : null;
+    const oldRoot = l.instance.swap ? swapMainOf(doc, l.instance.swap)?.id : l.instance.source;
+    const back = componentId === original;
+    const newRoot = back ? l.instance.source : comp.mainId;
+    if (!oldRoot || (!back && componentId === l.instance.swap)) return null;
+    documentCommands.mutate("Swap instance", (d) => {
+      repoint(d, id, oldRoot, newRoot);
+      const meta = d.layers[id].instance!;
+      if (back) delete meta.swap;
+      else meta.swap = componentId;
+      syncInstanceLayer(d, id);
+    });
+    return id;
+  }
+  if (l.instance.component === componentId) return null;
+  const oldRoot = l.instance.source;
+  documentCommands.mutate("Swap instance", (d) => {
+    repoint(d, id, oldRoot, comp.mainId, componentId);
+    const meta = d.layers[id].instance!;
+    meta.component = componentId;
+    meta.source = comp.mainId;
+    delete meta.variant;
+    syncInstanceLayer(d, id);
+  });
+  return id;
+}

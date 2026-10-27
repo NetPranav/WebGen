@@ -11,6 +11,7 @@ import React, { useState } from "react";
 import { invokeCommand } from "@/core/commands";
 import { instanceRootOf, subtreeIds } from "@/core/components/instances";
 import { readProperty } from "@/core/components/variantOps";
+import { innerComponentOf, mainAround } from "@/core/components/componentExtras";
 import { documentStore } from "@/core/store/documentState";
 import { useLayers } from "@/core/store/useDocumentStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
@@ -163,6 +164,21 @@ export const ComponentPanel: React.FC = () => {
     return (
       <section aria-label="Instance" style={box}>
         <strong>Instance of {comp.name}</strong>
+        {(() => {
+          // FigCraft port F9: a nested instance shows its own component, and one inside a main can be exposed as a swap property
+          const inner = innerComponentOf(doc, first.id);
+          const around = first.instance?.root ? mainAround(doc.layers, first.id) : null;
+          return (
+            <>
+              {inner && <span data-nested-of={inner}>Nested: {doc.designComponents?.[inner]?.name ?? "a component"}</span>}
+              {around && around !== comp.id && (
+                <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Expose as swap property" onClick={() => run("component.exposeProperty", { kind: "instance", layer: first.id })}>
+                  Expose swap
+                </button>
+              )}
+            </>
+          );
+        })()}
         {overridden.length > 0 ? (
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 2 }}>
             {overridden.map((k) => (
@@ -192,6 +208,19 @@ export const ComponentPanel: React.FC = () => {
         {rootId &&
           comp.properties?.map((p) => {
             const value = readProperty(rootId, p.id);
+            if (p.type === "instance")
+              return (
+                <label key={p.id} style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between" }}>
+                  {p.name}
+                  <select aria-label={p.name} value={typeof value === "string" ? value : ""} onChange={(e) => run("component.setProperty", { property: p.id, value: e.target.value, id: rootId })}>
+                    {comps.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              );
             return p.type === "boolean" ? (
               <label key={p.id} style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <input type="checkbox" aria-label={p.name} checked={value !== false} onChange={(e) => run("component.setProperty", { property: p.id, value: e.target.checked, id: rootId })} />

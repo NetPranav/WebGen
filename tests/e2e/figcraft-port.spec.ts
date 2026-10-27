@@ -473,3 +473,43 @@ test("FigCraft port: an SVG file placed as an editable design keeps its groups, 
   await page.keyboard.press(`${MOD}+z`);
   await expect.poll(() => page.evaluate((id) => !!(window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id], placed!.frame)).toBe(false);
 });
+
+test("FigCraft port: a component inside a component: the icon's edit reaches the button's instances, and the nested icon swaps from the inspector", async ({ page }) => {
+  await ready(page);
+  type D = { commands: { addLayer: (input: unknown) => string; updateProps: (id: string, p: Record<string, unknown>) => void }; get: () => { layers: Record<string, { parentId: string | null; archetype: string; children: string[]; properties: Record<string, unknown>; instance?: { source: string; swap?: string } }> } };
+  const ids = await page.evaluate(() => {
+    const d = (window as unknown as { __LL_DOC__: D }).__LL_DOC__;
+    const top = Object.entries(d.get().layers).find(([, l]) => l.parentId === null && l.archetype === "container")![0];
+    const mk = (name: string, parentId: string, x: number, w: number, color: string) => d.commands.addLayer({ archetype: "container", parentId, name, properties: { positioning: "absolute", "frame.x": x, "frame.y": 20, "frame.width": w, "frame.height": 40, "layout.padding": 0, "appearance.background.color": color } });
+    const icon = mk("Icon", top, 20, 40, "#111111");
+    const iconShape = mk("Shape", icon, 0, 20, "#222222");
+    const star = mk("Star", top, 80, 40, "#ffcc00");
+    mk("Shape", star, 0, 20, "#ff8800");
+    const btn = mk("Button", top, 160, 200, "#ffffff");
+    return { top, icon, iconShape, star, btn };
+  });
+  const iconC = ((await run(page, "component.createFrom", { ids: [ids.icon] })) as { id: string }).id;
+  const starC = ((await run(page, "component.createFrom", { ids: [ids.star] })) as { id: string }).id;
+  const nested = ((await run(page, "component.insert", { component: iconC, parentId: ids.btn, x: 8, y: 0 })) as { id: string }).id;
+  const btnC = ((await run(page, "component.createFrom", { ids: [ids.btn] })) as { id: string }).id;
+  expect(btnC).toBeTruthy();
+  const inst = ((await run(page, "component.insert", { component: btnC, parentId: ids.top, x: 160, y: 300 })) as { id: string }).id;
+  const layers = () => page.evaluate(() => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers);
+  const copyOf = async (root: string, source: string) => {
+    const L = await layers();
+    const walk = (id: string): string | null => (L[id].instance?.source === source ? id : L[id].children.map(walk).find(Boolean) ?? null);
+    return walk(root)!;
+  };
+  const inested = await copyOf(inst, nested);
+  // the icon's main changes: the copy in the button's main and in the button's instance follow
+  await page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.commands.updateProps(id, { "appearance.background.color": "#00aa00" }), ids.iconShape);
+  await expect.poll(async () => (await layers())[(await layers())[inested].children[0]].properties["appearance.background.color"]).toBe("#00aa00");
+  // swap the nested icon to the star from the inspector
+  await run(page, "selection.set", { ids: [inested] });
+  await expect(page.getByRole("region", { name: "Instance" }).getByText("Nested: Icon")).toBeVisible();
+  await page.getByRole("region", { name: "Instance" }).getByLabel("Swap instance").selectOption(starC);
+  await expect.poll(async () => (await layers())[inested].instance?.swap).toBe(starC);
+  await expect.poll(async () => (await layers())[(await layers())[inested].children[0]].properties["appearance.background.color"]).toBe("#ff8800");
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(async () => (await layers())[inested].instance?.swap ?? null).toBe(null);
+});

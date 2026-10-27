@@ -6,7 +6,13 @@
  * layers each remember the main layer they mirror (`instance.source`). When the main changes, every instance is brought
  * in line in the same change: properties, visibility, bindings and children follow, except the properties an instance
  * has changed itself (`instance.overridden`), which stay as they are. These are the operations on a document draft;
- * the editor's commands in `componentOps.ts` wrap them in one undo step. Components do not nest in this version.
+ * the editor's commands in `componentOps.ts` wrap them in one undo step.
+ *
+ * Nesting (FigCraft port F9): a main may hold instances of other components. An instance of it copies them like any
+ * layer (its copies mirror the outer main's layers, whose own `instance` says what they are inside it); a copy can be
+ * swapped to another component (`instance.swap`), and its layers then mirror that component's main. Mains sync in
+ * containment order (an inner main's change reaches its copy in the outer main before the outer instances follow),
+ * and a component that would contain itself is refused.
  * ============================================================================
  */
 
@@ -49,7 +55,7 @@ export function hasNestedComponent(layers: Record<string, Layer>, rootId: string
 }
 
 /** Copies `source` as a new layer of an instance (and its children, recursively) under `parentId`. Returns the new layer's id. */
-export function instantiate(doc: MotionDocument, componentId: string, sourceId: string, parentId: string | null, index: number | undefined, isRoot: boolean): string {
+export function instantiate(doc: MotionDocument, componentId: string, sourceId: string, parentId: string | null, index: number | undefined, isRoot: boolean, shallow = false): string {
   const src = doc.layers[sourceId];
   const id = createId(src.archetype === "container" ? "inst" : "ic");
   const layer: Layer = {
@@ -76,11 +82,15 @@ export function instantiate(doc: MotionDocument, componentId: string, sourceId: 
     else siblings.splice(index, 0, id);
   }
   // each child puts itself at the end of the new layer's children
-  for (const k of src.children) instantiate(doc, componentId, k, id, undefined, false);
+  if (!shallow) for (const k of src.children) instantiate(doc, componentId, k, id, undefined, false);
   return id;
 }
 
-/** Copies a layer and everything under it as plain new layers (no instance or component marks) under `parentId`, at `index`. Returns the new root's id. */
+/**
+ * Copies a layer and everything under it as new layers (no component marks) under `parentId`, at `index`. Returns the
+ * new root's id. Instances inside stay instances of their components (FigCraft port F9: a variant made from a main that
+ * holds a nested instance holds one too), with their overrides.
+ */
 export function cloneSubtree(doc: MotionDocument, sourceId: string, parentId: string | null, index?: number): string {
   const src = doc.layers[sourceId];
   const id = createId(src.archetype === "container" ? "frm" : "lay");
@@ -98,6 +108,7 @@ export function cloneSubtree(doc: MotionDocument, sourceId: string, parentId: st
     ...(src.variableModes ? { variableModes: clone(src.variableModes) } : {}),
     ...(src.overrides ? { overrides: clone(src.overrides) } : {}),
     ...(src.componentSlot ? { componentSlot: true } : {}),
+    ...(src.instance ? { instance: clone(src.instance) } : {}),
   };
   doc.layers[id] = layer;
   if (parentId !== null) {
@@ -154,13 +165,31 @@ function copyFields(dst: Layer, src: Layer, overridden: ReadonlySet<string>, roo
   }
 }
 
+/** The main a swapped nested instance shows: the component's (its first variant's) main layer. */
+export function swapMainOf(doc: MotionDocument, componentId: string): Layer | undefined {
+  const c = doc.designComponents?.[componentId];
+  return c ? doc.layers[mainsOf(c)[0]] : undefined;
+}
+
 /** Brings one instance layer (and below) in line with the main layer it mirrors, keeping what it overrides. */
-export function syncInstanceLayer(doc: MotionDocument, instId: string): void {
+export function syncInstanceLayer(doc: MotionDocument, instId: string, depth = 0, pool?: Map<string, string>): void {
   const inst = doc.layers[instId];
   const meta = inst?.instance;
-  const src = meta ? doc.layers[meta.source] : undefined;
-  if (!inst || !meta || !src) return;
-  copyFields(inst, src, new Set(meta.overridden ?? []), meta.root === true);
+  const mirrored = meta ? doc.layers[meta.source] : undefined;
+  if (!inst || !meta || !mirrored || depth > 64) return;
+  // layers that no longer sit where they did wait in a pool for the place they now have (FigCraft port F9: a main that
+  // wraps or moves a layer keeps the instances' overrides on it); what is left in it at the end goes
+  const top = !pool;
+  const spare = pool ?? new Map<string, string>();
+  // a nested copy swapped to another component (FigCraft port F9) shows that component's main, where its own source puts it
+  const swapped = meta.swap ? swapMainOf(doc, meta.swap) : undefined;
+  const src = swapped ?? mirrored;
+  const overridden = new Set(meta.overridden ?? []);
+  copyFields(inst, src, overridden, meta.root === true || !!swapped);
+  if (swapped && !meta.root) for (const k of PLACEMENT) if (!overridden.has(k)) {
+    if (mirrored.properties[k] !== undefined) inst.properties[k] = clone(mirrored.properties[k]);
+    else delete inst.properties[k];
+  }
   // children: one for each of the main's, in its order; the instance's own additions stay, after them
   const byMain = new Map<string, string>();
   const own: string[] = [];
@@ -172,17 +201,28 @@ export function syncInstanceLayer(doc: MotionDocument, instId: string): void {
       else stale.push(kid);
     } else own.push(kid);
   }
-  for (const id of stale) dropSubtree(doc, id);
+  for (const id of stale) {
+    const m = doc.layers[id]?.instance;
+    if (m && !spare.has(m.source)) spare.set(m.source, id);
+    else dropSubtree(doc, id);
+  }
   const next: string[] = [];
   for (const mainKid of src.children) {
     let id = byMain.get(mainKid);
-    if (!id) id = instantiate(doc, meta.component, mainKid, inst.id, undefined, false);
-    else syncInstanceLayer(doc, id);
+    if (!id && spare.has(mainKid)) {
+      id = spare.get(mainKid)!;
+      spare.delete(mainKid);
+    }
+    if (!id) id = instantiate(doc, meta.component, mainKid, inst.id, undefined, false, true);
+    doc.layers[id].parentId = inst.id;
+    syncInstanceLayer(doc, id, depth + 1, spare);
     next.push(id);
   }
   // `instantiate` appended the new ones to inst.children itself; the list is rebuilt once, in the main's order
   inst.children = [...next, ...own];
   for (const id of next) doc.layers[id].parentId = inst.id;
+  // (a pooled layer was already taken out of its old parent's children)
+  if (top) for (const id of spare.values()) if (doc.layers[id]) dropSubtree(doc, id);
 }
 
 /** A cheap fingerprint of what an instance would copy from a layer. */
@@ -253,7 +293,9 @@ export function remapInstance(doc: MotionDocument, instRootId: string, newMainId
 export function syncInstances(doc: MotionDocument, before: MotionDocument): void {
   const comps = doc.designComponents;
   if (!comps) return;
-  for (const c of Object.values(comps)) {
+  const cycle = componentCycle(doc);
+  if (cycle) throw new Error(`A component can't contain itself: "${comps[cycle]?.name ?? cycle}".`);
+  for (const c of containmentOrder(doc)) {
     let mains = mainsOf(c);
     const gone = mains.filter((m) => !doc.layers[m]);
     if (gone.length > 0) {
@@ -275,19 +317,101 @@ export function syncInstances(doc: MotionDocument, before: MotionDocument): void
       for (let i = 0; !changed && i < ids.length; i++) changed = sig(doc.layers[ids[i]]) !== sig(was[ids[i]]);
       if (!changed) continue;
       for (const l of Object.values(doc.layers)) if (l.instance?.component === c.id && l.instance.root && l.instance.source === m) syncInstanceLayer(doc, l.id);
+      // nested copies swapped to this component follow it too
+      if (m === mainsOf(c)[0]) for (const l of Object.values(doc.layers)) if (l.instance?.swap === c.id) syncInstanceLayer(doc, l.id);
     }
   }
   if (Object.keys(comps).length === 0) delete doc.designComponents;
 }
 
-/** Turns every instance of a component into plain layers (the look stays; they no longer follow the main). */
-export function detachComponent(doc: MotionDocument, componentId: string): void {
-  for (const l of Object.values(doc.layers)) if (l.instance?.component === componentId) delete l.instance;
+/** The components whose instances (or swaps) are inside a component's mains. */
+export function componentDeps(doc: MotionDocument, componentId: string): Set<string> {
+  const c = doc.designComponents?.[componentId];
+  const out = new Set<string>();
+  if (!c) return out;
+  for (const m of mainsOf(c))
+    for (const id of subtreeIds(doc.layers, m)) {
+      const meta = doc.layers[id]?.instance;
+      if (meta && meta.component !== componentId) out.add(meta.component);
+      if (meta?.swap) out.add(meta.swap);
+    }
+  return out;
 }
 
-/** Turns one instance (below `rootId`) into plain layers. */
+/** Every component a component contains, however deep. */
+export function containedComponents(doc: MotionDocument, componentId: string): Set<string> {
+  const seen = new Set<string>();
+  const stack = [...componentDeps(doc, componentId)];
+  while (stack.length > 0 && seen.size < 10_000) {
+    const x = stack.pop()!;
+    if (seen.has(x)) continue;
+    seen.add(x);
+    stack.push(...componentDeps(doc, x));
+  }
+  return seen;
+}
+
+/** A component that contains itself (directly or through others), if any. */
+export function componentCycle(doc: MotionDocument): string | null {
+  for (const id of Object.keys(doc.designComponents ?? {})) if (containedComponents(doc, id).has(id)) return id;
+  return null;
+}
+
+/** The components, those contained in others first (so an inner main's change reaches the outer main before its instances sync). */
+function containmentOrder(doc: MotionDocument): NonNullable<MotionDocument["designComponents"]>[string][] {
+  const comps = doc.designComponents ?? {};
+  const out: string[] = [];
+  const state = new Map<string, number>();
+  const visit = (id: string) => {
+    if (state.get(id) === 2 || state.get(id) === 1 || !comps[id]) return;
+    state.set(id, 1);
+    for (const d of componentDeps(doc, id)) visit(d);
+    state.set(id, 2);
+    out.push(id);
+  };
+  for (const id of Object.keys(comps)) visit(id);
+  return out.map((id) => comps[id]);
+}
+
+/** Turns every instance of a component into plain layers (the look stays; they no longer follow the main); copies swapped to it show their own main again. */
+export function detachComponent(doc: MotionDocument, componentId: string): void {
+  for (const l of Object.values(doc.layers)) if (l.instance?.component === componentId && l.instance.root) detachInstance(doc, l.id);
+  for (const l of Object.values(doc.layers)) {
+    if (l.instance?.component === componentId) delete l.instance;
+    if (l.instance?.swap === componentId) delete l.instance.swap;
+  }
+}
+
+/**
+ * Turns one instance (below `rootId`) into plain layers. The instances nested in it stay instances of their own
+ * components (FigCraft port F9), keeping their overrides; a swapped one becomes an instance of what it was swapped to.
+ */
 export function detachInstance(doc: MotionDocument, rootId: string): void {
-  for (const id of subtreeIds(doc.layers, rootId)) delete doc.layers[id].instance;
+  const keep = new Map<string, NonNullable<Layer["instance"]>>();
+  const walk = (id: string, swapTo: string | null, depth: number) => {
+    const l = doc.layers[id];
+    if (!l || depth > 64) return;
+    const meta = l.instance;
+    let inner = swapTo;
+    if (meta && id !== rootId) {
+      if (meta.swap) {
+        const main = swapMainOf(doc, meta.swap);
+        if (main) keep.set(id, { component: meta.swap, source: main.id, root: true, ...(meta.overridden ? { overridden: meta.overridden } : {}) });
+        inner = meta.swap;
+      } else if (swapTo) keep.set(id, { component: swapTo, source: meta.source, ...(meta.overridden ? { overridden: meta.overridden } : {}) });
+      else {
+        const s = doc.layers[meta.source]?.instance;
+        if (s) keep.set(id, { component: s.component, source: s.source, ...(s.root ? { root: true } : {}), ...(s.variant ? { variant: clone(s.variant) } : {}), ...(meta.overridden ? { overridden: meta.overridden } : {}) });
+      }
+    }
+    for (const k of l.children) walk(k, inner, depth + 1);
+  };
+  walk(rootId, null, 0);
+  for (const id of subtreeIds(doc.layers, rootId)) {
+    const k = keep.get(id);
+    if (k) doc.layers[id].instance = k;
+    else delete doc.layers[id].instance;
+  }
 }
 
 /** The instance root a layer belongs to, or null. */

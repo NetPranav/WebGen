@@ -59,7 +59,7 @@ export function registerComponentCommands(): () => void {
       id: "component.exposeProperty",
       title: "Expose Property",
       category,
-      args: z.object({ kind: z.enum(["text", "image", "boolean"]), name: z.string().min(1).max(60).optional(), layer: z.string().optional() }),
+      args: z.object({ kind: z.enum(["text", "image", "boolean", "instance"]), name: z.string().min(1).max(60).optional(), layer: z.string().optional() }),
       run: ({ kind, name, layer }) => ({ id: exposeProperty(layer ?? ids()[0] ?? "", kind, name) }),
     }),
     defineTypedCommand({ id: "component.removeProperty", title: "Remove Property", category, args: z.object({ component: z.string(), property: z.string() }), run: ({ component, property }) => ({ ok: removeProperty(component, property) }) }),

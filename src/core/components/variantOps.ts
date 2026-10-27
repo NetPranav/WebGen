@@ -13,6 +13,7 @@ import { createId } from "../ids";
 import { getDocument } from "../store/documentState";
 import { documentCommands } from "../store/useDocumentStore";
 import { cloneSubtree, instanceRootOf, namePathOf, remapInstance, resolveNamePath, subtreeIds } from "./instances";
+import { innerComponentOf, swapInPlace } from "./componentExtras";
 
 const num = (v: unknown, d = 0) => (typeof v === "number" && Number.isFinite(v) ? v : d);
 
@@ -107,8 +108,9 @@ export function setVariant(ids: readonly string[], values: Record<string, string
 
 // --- component properties ----------------------------------------------------------
 
-export type PropertyKind = "text" | "image" | "boolean";
-const PROP_OF: Record<PropertyKind, string> = { text: "content.text", image: "media.src", boolean: "visible" };
+/** `instance` (FigCraft port F9): an instance-swap property, which component a nested instance shows. */
+export type PropertyKind = "text" | "image" | "boolean" | "instance";
+const PROP_OF: Record<PropertyKind, string> = { text: "content.text", image: "media.src", boolean: "visible", instance: "instance.swap" };
 
 /** The main layer that holds `layerId` (it or an ancestor with `componentMain`), or null. */
 function mainOfLayer(layers: Record<string, Layer>, layerId: string): string | null {
@@ -133,6 +135,8 @@ export function exposeProperty(layerId: string, kind: PropertyKind, name?: strin
   if (!path) return null;
   if (kind === "text" && layer.archetype !== "text") return null;
   if (kind === "image" && layer.archetype !== "image") return null;
+  // an instance-swap property is on an instance nested in the main
+  if (kind === "instance" && !(layer.instance?.root && layer.instance.component !== comp.id)) return null;
   const label = (name ?? (path.length > 0 ? path[path.length - 1].replace(/#\d+$/, "") : "Root")).trim().slice(0, 60);
   if (!label || comp.properties?.some((p) => p.name === label)) return null;
   const id = createId("prp");
@@ -168,6 +172,7 @@ export function readProperty(instanceId: string, propertyId: string): string | b
   const layer = root && p ? propertyLayer(doc.layers, root, p.path) : undefined;
   if (!layer || !p) return undefined;
   if (p.type === "boolean") return layer.visible !== false;
+  if (p.type === "instance") return innerComponentOf(doc, layer.id) ?? undefined;
   const v = layer.properties[p.prop];
   return typeof v === "string" ? v : undefined;
 }
@@ -181,6 +186,7 @@ export function setProperty(instanceId: string, propertyId: string, value: strin
   const layer = root && p ? propertyLayer(doc.layers, root, p.path) : undefined;
   if (!layer || !p || layer.locked === true) return false;
   if (p.type === "boolean") documentCommands.setLayerFlags(layer.id, { visible: value !== false });
+  else if (p.type === "instance") return typeof value === "string" && !!swapInPlace(layer.id, value);
   else if (typeof value === "string") documentCommands.updateProps(layer.id, { [p.prop]: value as PropValue });
   else return false;
   return true;

@@ -12,7 +12,8 @@ import { documentCommands } from "../store/useDocumentStore";
 import { useCanvasViewStore } from "../store/useCanvasViewStore";
 import { useSelectionStore } from "../store/useSelectionStore";
 import { createId } from "../ids";
-import { detachComponent, detachInstance, hasNestedComponent, instanceRootOf, instantiate, mainsOf, subtreeIds, syncInstanceLayer } from "./instances";
+import { containedComponents, detachComponent, detachInstance, instanceRootOf, instantiate, mainsOf, subtreeIds, syncInstanceLayer } from "./instances";
+import { holdsMain, innerMainOf, mainAround, swapInPlace } from "./componentExtras";
 import { findVariant } from "./variantOps";
 
 const num = (v: unknown, d = 0) => (typeof v === "number" && Number.isFinite(v) ? v : d);
@@ -27,7 +28,8 @@ export function createComponent(ids: readonly string[], name?: string): string |
   const layers = getDocument().layers;
   const roots = ids.filter((id) => layers[id] && layers[id].locked !== true);
   if (roots.length === 0) return null;
-  if (roots.some((id) => hasNestedComponent(layers, id) || layers[id].instance || layers[id].componentMain)) return null;
+  // instances inside are fine (components nest, FigCraft port F9); a main inside, or an instance itself, isn't
+  if (roots.some((id) => holdsMain(layers, id) || layers[id].instance || layers[id].componentMain)) return null;
   let id: string | null = null;
   transaction("Create component", () => {
     let mainId: string | null;
@@ -64,7 +66,9 @@ export function insertInstance(componentId: string, options: { parentId?: string
   let parentId: string | null = options.parentId ?? (frames.find((f) => f.id === activeId) ?? frames[0])?.id ?? null;
   if (!parentId || !doc.layers[parentId]) return null;
   // not into the main itself (a component can't contain its own instance): into the frame the main is in, or another frame
-  if (mainsOf(comp).some((m) => subtreeIds(doc.layers, m).includes(parentId!))) {
+  // nor into a main it contains, however deep (a component can't contain itself, FigCraft port F9)
+  const around = mainAround(doc.layers, parentId);
+  if (mainsOf(comp).some((m) => subtreeIds(doc.layers, m).includes(parentId!)) || (around && (around === componentId || containedComponents(doc, componentId).has(around)))) {
     const outer = frameIdOf(doc.layers, comp.mainId);
     parentId = outer && !mainsOf(comp).includes(outer) ? outer : (frames.find((f) => !mainsOf(comp).includes(f.id))?.id ?? null);
   }
@@ -145,6 +149,12 @@ export function detachInstances(ids: readonly string[]): number {
 /** Swaps an instance for an instance of another component, in the same place with the same position and size. */
 export function swapInstance(id: string, componentId: string): string | null {
   const doc = getDocument();
+  // a nested instance (inside another instance, or inside a main) swaps in place, so overrides on it carry over (FigCraft port F9)
+  const nested = swapInPlace(id, componentId);
+  if (nested !== undefined) {
+    if (nested) select([nested]);
+    return nested;
+  }
   const root = instanceRootOf(doc.layers, id);
   const old = root ? doc.layers[root] : undefined;
   const comp = doc.designComponents?.[componentId];
@@ -175,9 +185,10 @@ export function goToMain(id: string): string | null {
   const doc = getDocument();
   const layer = doc.layers[id];
   const componentId = layer?.componentMain ?? layer?.instance?.component;
-  // an instance goes to the main of the variant it shows
+  // an instance goes to the main of the variant it shows; a nested instance to its own component's main (FigCraft port F9)
   const root = layer?.instance ? instanceRootOf(doc.layers, layer.id) : null;
-  const mainId = layer?.componentMain ? layer.id : root ? doc.layers[root].instance!.source : componentId ? doc.designComponents?.[componentId]?.mainId : undefined;
+  const inner = layer ? innerMainOf(doc, layer.id) : null;
+  const mainId = layer?.componentMain ? layer.id : inner ?? (root ? doc.layers[root].instance!.source : componentId ? doc.designComponents?.[componentId]?.mainId : undefined);
   if (!mainId || !doc.layers[mainId]) return null;
   select([mainId]);
   const frame = frameIdOf(doc.layers, mainId);

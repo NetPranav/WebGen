@@ -161,6 +161,8 @@ export const LayerSchema = z.object({
       overridden: z.array(z.string()).optional(),
       /** On an instance root of a variant set (Phase 47): the value chosen for each variant property. */
       variant: z.record(z.string(), z.string()).optional(),
+      /** On a nested instance inside another instance (FigCraft port F9): the component it was swapped to, which its layers then mirror. */
+      swap: z.string().optional(),
     })
     .optional(),
   /** This top-level frame is a page (Phase 48): its route (`/`, `/about`) and an optional title. */
@@ -241,7 +243,7 @@ const MotionDocumentShape = z.object({
         variants: z.array(z.object({ mainId: z.string(), values: z.record(z.string(), z.string()) })).max(64).optional(),
         /** Properties exposed on every instance (Phase 47): a name, a kind, and the layer (by name path from the main's root) and property it sets. */
         properties: z
-          .array(z.object({ id: z.string(), name: z.string().min(1).max(60), type: z.enum(["text", "image", "boolean"]), path: z.array(z.string()).max(32), prop: z.string().min(1).max(120) }))
+          .array(z.object({ id: z.string(), name: z.string().min(1).max(60), type: z.enum(["text", "image", "boolean", "instance"]), path: z.array(z.string()).max(32), prop: z.string().min(1).max(120) }))
           .max(40)
           .optional(),
       }),

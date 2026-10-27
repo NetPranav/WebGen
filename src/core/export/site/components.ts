@@ -28,7 +28,7 @@ export interface ComponentDef {
 export type PlanRootFn = (rootId: string, kind: "page" | "component", fromRoute: string, hrefs: "files" | "routes", assets: Set<string>) => { tree: ENode[]; blocks: CssBlock[]; classOf: Map<string, string>; nodeOfLayer: Map<string, ENode> };
 
 const PLACEMENT_PROPS = new Set(["frame.x", "frame.y", "positioning", "frame.rotation", "breakpoints.responsive", "layout.gridColumnStart", "layout.gridColumnSpan", "layout.gridRowStart", "layout.gridRowSpan", "constraints.horizontal", "constraints.vertical"]);
-const PROP_KEY = { text: "content.text", image: "media.src", boolean: "visible" } as const;
+const PROP_KEY = { text: "content.text", image: "media.src", boolean: "visible", instance: "instance.swap" } as const;
 
 const camel = (s: string): string => {
   const w = s.replace(/[^a-zA-Z0-9]+/g, " ").trim().split(" ").filter(Boolean);
@@ -57,6 +57,7 @@ export function isPlainInstance(doc: MotionDocument, rootId: string): boolean {
   for (const id of subtreeIds(doc.layers, rootId)) {
     const l = doc.layers[id];
     if (!l?.instance || l.instance.component !== comp.id) return false; // a layer of its own (a slot's content)
+    if (l.instance.swap) return false; // a nested instance swapped to another component (FigCraft port F9): drawn as it is
     const ok = new Set<string>([...(allowed.get(id) ?? []), ...(l.instance.root ? PLACEMENT_PROPS : [])]);
     for (const k of l.instance.overridden ?? []) if (!ok.has(k)) return false;
   }
@@ -100,6 +101,8 @@ export function componentize(
     const reserved = new Set(["className", "children", ...variantProps.map((v) => v.prop)]);
     const props: ComponentProp[] = [];
     for (const p of comp.properties ?? []) {
+      // an instance-swap property (FigCraft port F9) isn't a prop of the exported component: a swapped instance is drawn as it is
+      if (p.type === "instance") continue;
       let pn = camel(p.name);
       for (let n = 2; reserved.has(pn); n++) pn = `${camel(p.name)}${n}`;
       reserved.add(pn);
@@ -176,9 +179,9 @@ export function componentize(
           if (value !== undefined && value !== vp.values[0]) call[vp.prop] = value;
         }
         if (isInstance) {
-          dc.properties?.forEach((p, i) => {
+          dc.properties?.forEach((p) => {
             const target = resolveNamePath(doc.layers, layerId, p.path);
-            const prop = comp.props[i];
+            const prop = comp.props.find((x) => x.id === p.id);
             if (!target || !prop) return;
             if (p.type === "boolean") {
               if (target.visible === false) call[prop.name] = false;
