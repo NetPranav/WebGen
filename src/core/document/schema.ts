@@ -140,6 +140,12 @@ export const LayerSchema = z.object({
   styleRefs: z.object({ text: z.string().optional(), effect: z.string().optional(), fill: z.string().optional(), stroke: z.string().optional(), grid: z.string().optional() }).optional(),
   /** The mode this frame shows for each variable collection, for everything inside it (FigCraft port F10): collection id to mode id. */
   variableModes: z.record(z.string(), z.string().max(40)).optional(),
+  /** Dev Mode notes for developers (FigCraft port F13): text, pinned properties, a category. */
+  annotations: z.array(z.object({ label: z.string().max(5000).optional(), properties: z.array(z.string().max(60)).max(40).optional(), category: z.string().max(64).optional() })).max(64).optional(),
+  /** Dev Mode measurements kept in the file (FigCraft port F13): to another layer, or across one side of this one. */
+  measurements: z.array(z.object({ to: z.string().optional(), side: z.enum(["top", "right", "bottom", "left"]).optional() })).max(64).optional(),
+  /** Handoff status (FigCraft port F13): ready for development or completed, when it was set, and the layer as it was then (JSON, for Compare changes). */
+  devStatus: z.object({ status: z.enum(["ready", "completed"]), since: z.number(), snapshot: z.string().max(2_000_000).optional() }).optional(),
   /** This layer is the main component with this id (Phase 46): the one place the component is edited. */
   componentMain: z.string().optional(),
   /**
@@ -282,6 +288,8 @@ const MotionDocumentShape = z.object({
       }),
     )
     .optional(),
+  /** Dev Mode annotation categories (FigCraft port F13); absent: Development, Interaction, Accessibility, Content. */
+  annotationCategories: z.array(z.object({ id: z.string().min(1).max(64), name: z.string().min(1).max(64), color: z.string().max(40) })).max(64).optional(),
   /** The breakpoints, widest (the base) first (Phase 43). Absent: Desktop 1440, Tablet 768, Mobile 375. */
   breakpoints: z.array(z.object({ id: z.string().min(1).max(40), name: z.string().min(1).max(40), width: z.number().int().min(100).max(10000) })).max(12).optional(),
   /** How fonts show while they load (the CSS `font-display`; Phase 38). Absent: `swap`. */

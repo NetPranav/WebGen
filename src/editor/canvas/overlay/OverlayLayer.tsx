@@ -1,5 +1,6 @@
 "use client";
 
+import { useDevModeStore } from "@/core/devmode/useDevModeStore";
 import { useRotationOriginStore } from "@/core/editing/rotationOrigin";
 import React, { useEffect, useRef } from "react";
 import type { CanvasHitTester } from "@/core/hit/CanvasHitTester";
@@ -134,6 +135,8 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
     const offSnap = useSnapStore.subscribe(() => controller.invalidate());
     // the rotation origin (FigCraft port F12) shown, hidden or moved
     const offOrigin = useRotationOriginStore.subscribe(() => controller.invalidate());
+    // Dev Mode shown or hidden (FigCraft port F13): the kept measurements come and go
+    const offDev = useDevModeStore.subscribe(() => controller.invalidate());
     const offFonts = useFontsStore.subscribe(() => controller.invalidate(true)); // a font loaded: text changed size
 
     const offTool = useToolStore.subscribe((s, p) => {
@@ -145,6 +148,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ hitTester, canvasRef
       offTool();
       offSnap();
       offOrigin();
+      offDev();
       offFonts();
       canvas.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("mouseleave", onLeave);

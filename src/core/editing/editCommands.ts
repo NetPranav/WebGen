@@ -5,6 +5,7 @@
  * the context menu and agents.
  */
 
+import { registerDevCommands } from "../devmode/devCommands";
 import { getResolvedDocument } from "../store/useDocumentStore";
 import { DEFAULT_EXPORT, downloadBlob, exportFile, layerSvg, parseExportSettings, serializeExportSettings } from "../export/layerExport";
 import { convertToFrame, convertToGroup, convertToSection, resizeToFit } from "../frames/containerOps";
@@ -353,6 +354,7 @@ export function registerEditingCommands(): () => void {
   add(registerLayoutCommands());
   add(registerBreakpointCommands());
   add(registerTokenCommands());
+  add(registerDevCommands());
   add(registerComponentCommands());
   add(registerPageCommands());
   add(registerExportCommands());

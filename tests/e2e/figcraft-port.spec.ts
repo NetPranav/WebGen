@@ -401,3 +401,41 @@ test("FigCraft port: a frame converted to a group and a section from the inspect
   await expect.poll(() => kind(ids.top)).toBe("section");
   await expect.poll(() => inStage(page, (doc) => doc.querySelector("[data-section-label]")?.textContent ?? "", "")).not.toBe("");
 });
+
+test("FigCraft port: Dev Mode in the Code tab: inspect a layer, annotate it, keep a measurement, mark it ready and compare changes", async ({ page }) => {
+  await ready(page);
+  type D = { commands: { addLayer: (input: unknown) => string; updateProps: (id: string, p: Record<string, unknown>) => void }; get: () => { layers: Record<string, { parentId: string | null; archetype: string; annotations?: unknown[]; measurements?: unknown[]; devStatus?: { status: string } }> } };
+  const ids = await page.evaluate(() => {
+    const d = (window as unknown as { __LL_DOC__: D }).__LL_DOC__;
+    const top = Object.entries(d.get().layers).find(([, l]) => l.parentId === null && l.archetype === "container")![0];
+    const card = d.commands.addLayer({ archetype: "container", parentId: top, name: "Card", properties: { positioning: "absolute", "frame.x": 40, "frame.y": 40, "frame.width": 120, "frame.height": 80, "appearance.background.color": "#ff0000" } });
+    const other = d.commands.addLayer({ archetype: "rectangle", parentId: top, name: "Other", properties: { positioning: "absolute", "frame.x": 200, "frame.y": 40, "frame.width": 50, "frame.height": 80 } });
+    return { card, other };
+  });
+  const layer = (id: string) => page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id], id);
+  await run(page, "selection.set", { ids: [ids.card, ids.other] });
+  await page.locator(".dock-zone--right").getByText("Code", { exact: true }).first().click();
+  await page.getByRole("tab", { name: "Inspect" }).click();
+  const inspect = page.getByRole("region", { name: "Inspect" });
+  await expect(inspect.locator('[data-inspect-row="Width"]').first()).toContainText("120");
+  await expect(inspect.locator('[data-inspect-row="Solid"]').first()).toContainText("#FF0000");
+  await inspect.getByLabel("Colour format").selectOption("rgb");
+  await expect(inspect.locator('[data-inspect-row="Solid"]').first()).toContainText("255, 0, 0");
+  await expect(inspect.getByLabel("Inspect CSS")).toContainText("background-color");
+  // an annotation in a category, with a pinned property
+  await inspect.getByLabel("New annotation").fill("Use the card component");
+  await inspect.getByLabel("Annotation category").selectOption("accessibility");
+  await inspect.getByLabel("Pin Width").check();
+  await inspect.getByRole("button", { name: "Add annotation" }).click();
+  await expect.poll(async () => (await layer(ids.card)).annotations?.length ?? 0).toBe(1);
+  // a measurement to the other selected layer, drawn on the canvas while Dev Mode shows
+  await inspect.getByRole("button", { name: "Keep measurement to the other selected layer" }).click();
+  await expect.poll(async () => (await layer(ids.card)).measurements?.length ?? 0).toBe(1);
+  await expect.poll(() => page.locator(".canvas-overlay__spacing:not([hidden]) span").allTextContents()).toContain("40");
+  // ready for development, then a change shows in Compare changes
+  await inspect.getByRole("button", { name: "Mark ready for development" }).click();
+  await expect.poll(async () => (await layer(ids.card)).devStatus?.status).toBe("ready");
+  await page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.commands.updateProps(id, { "frame.width": 136 }), ids.card);
+  await inspect.getByRole("button", { name: "Compare changes" }).click();
+  await expect(inspect.getByRole("list", { name: "Changes" })).toContainText("width 120 → 136");
+});

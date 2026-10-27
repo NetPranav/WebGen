@@ -180,11 +180,11 @@ FigCraft's layout solver is not ported: the browser lays out our frames as CSS f
 
 | Feature | FigCraft source | Our target | We have (phase) | Kind | Status |
 |---|---|---|---|---|---|
-| Inspect: properties with their styles and variables, colour formats, rem | `engine/src/inspect.rs`, `devinspect.rs` | Code tab | Code tab shows export (49) | behaviour | 📋 |
-| Dev measurements kept in the file | `engine/src/dev_measurements.rs` | data + overlay | — | data | 📋 |
-| Annotations with categories | `engine/src/annotations.rs` | data + overlay | — | data | 📋 |
-| Ready-for-dev status and Compare changes | `engine/src/devcompare.rs` | data | — | data | 📋 |
-| Code generation ideas (React with typed props, Tailwind) | `engine/src/codegen.rs`, `component_codegen.rs`, `tailwind.rs` | `src/core/export/site/` | Export v1 (49) | behaviour (compare only) | 📋 |
+| Inspect: properties with their styles and variables, colour formats, rem | `engine/src/inspect.rs`, `devinspect.rs` | `src/core/devmode/inspect.ts`, the Code tab's Inspect view | Code tab shows export (49) | behaviour | ✅ sections (layout, auto layout, typography, fills, strokes, effects), the style or variable on each row, hex/RGB/CSS/HSL/HSB, px or rem, the layer's CSS |
+| Dev measurements kept in the file | `engine/src/dev_measurements.rs` | `devmode/devOps.ts` + overlay | — | data | ✅ to another layer or across a side, follow the layers, drawn while Dev Mode shows, gone with the other layer (back on undo) |
+| Annotations with categories | `engine/src/annotations.rs` | `devOps.ts` | — | data | ✅ text, pinned properties, categories (the four defaults, the file's own, colours); drawn in the panel, not as pins on the canvas |
+| Ready-for-dev status and Compare changes | `engine/src/devcompare.rs` | `devOps.ts` | — | data | ✅ ready / completed with a snapshot; changes per layer as Inspect writes them; comparing with a saved version not ported (versions are Stage 8) |
+| Code generation ideas (React with typed props, Tailwind) | `engine/src/codegen.rs`, `component_codegen.rs`, `tailwind.rs` | `src/core/export/site/` | Export v1 (49) | behaviour (compare only) | ✅ taken: CSS writes a bound property as `var(<code syntax>, <value>)` (Inspect); the rest compared and left to Export v1 (49), which already writes React and Tailwind |
 
 ### F14 · Import
 
@@ -248,6 +248,8 @@ When those phases start, their FigCraft sources are listed here so they can be p
 **2026-10-26: F1 and F2 ported.** Geometry (`bezpath.ts`, `shapes.ts`, `affine.ts`) with every FigCraft `geom` test (18 cases, all green); colour (`color.ts`) with FigCraft's colour, gradient, pattern, profile and named-colour tests (24 cases; one compares with a 1e-9 tolerance because FigCraft uses 32-bit floats). Render definitions draw per-corner radii, smoothing, rounded vertices, arcs, pies and rings; paints gain blend modes, the diamond gradient (checked point by point against FigCraft's |x|+|y| formula) and the seven image adjustments.
 
 **2026-10-26: browser check after F3** (same machine, 4 workers): 657 passed, 14 flaky, 12 failed. Two were real regressions caught here, both F2's: the new image adjustment fields reused the accessible names "Fill 1 saturation" and "Fill 1 contrast" of the Phase 37 controls, so the Phase 37 image tests couldn't find their fields (all three browsers); fixed by naming them "… adjustment". The rest are the baseline's frame-rate and timing tests, plus Phase 63's keyboard journey in Chromium (re-run on its own below).
+
+**2026-10-27: F13 Dev Mode.** `devmode/inspect.ts` (Inspect's sections and formats, the CSS with code syntax), `devmode/devOps.ts` (annotations and categories, kept measurements, ready-for-dev and Compare changes), `devmode/devCommands.ts` (`inspect.properties`, `inspect.css`, `annotation.*`, `measurement.*`, `dev.setStatus`, `dev.compare`, `dev.items`), additive schema (`annotations`, `measurements`, `devStatus` on layers, `annotationCategories` on the document), the Code tab's Inspect view, kept measurements on the overlay while it shows. Ported tests: FigCraft's inspect, code syntax, annotation, measurement and compare cases (7); the Phase 49 Code-tab and export suites still pass.
 
 **2026-10-27: F11 frames, groups, sections, export settings.** `frames/containerOps.ts` (resize to fit, convert to group / frame / section, with FigCraft's refusals), `export/layerExport.ts` (export settings and a layer as SVG, PNG or JPG), properties `frame.kind` and `export.settings`, a section's name drawn at its top, commands `object.resizeToFit`, `object.convertToGroup`, `object.convertToFrame`, `object.convertToSection`, `export.setSettings`, `export.layerSvg`, `export.layer`, an Export block in the Pro inspector. Ported tests: FigCraft's convert-container and resize-to-fit cases and the export-setting rows (7); a browser test exports a PNG in all three browsers.
 

@@ -64,6 +64,9 @@ import { gridInsertion } from "@/core/layout/grid";
 import { worldBox } from "@/core/editing/layerBoxes";
 import { duplicateLayers } from "@/core/editing/editOps";
 import { between } from "@/core/geometry/measureDistances";
+import { placedMeasurements } from "@/core/devmode/devOps";
+import { useDevModeStore } from "@/core/devmode/useDevModeStore";
+import type { SpacingMark } from "@/core/geometry/snap";
 import { insertionIndex, insertionLine } from "@/core/layout/stack";
 import { moveLayers } from "@/core/layers/reparent";
 import { useStackDropStore } from "@/core/store/useStackDropStore";
@@ -234,7 +237,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   /** Every frame's ruler guides as lines in canvas space. */
   const overlayGuides = useCallback(() => guideLines(hitTester.ensure(), getResolvedDocument().layers), [hitTester]);
   /** The distance HUD for the selection while Alt is held and no gesture is running. */
-  const overlayHud = useCallback((hovered: string | null) => {
+  const altHud = useCallback((hovered: string | null) => {
     if (!useSnapStore.getState().alt || useToolStore.getState().gesturing || useCanvasViewStore.getState().mode !== "design") return [];
     const ids = useSelectionStore.getState().selectedIds;
     const index = hitTester.ensure();
@@ -249,6 +252,19 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
     if (!env) return [];
     return distanceMarks({ x: u.cx - u.w / 2, y: u.cy - u.h / 2, width: u.w, height: u.h }, env.others, env.parent);
   }, [hitTester]);
+  const overlayHud = useCallback((hovered: string | null) => {
+    // FigCraft port F13: in Dev Mode, the measurements kept in the file, from the layers' current boxes
+    const kept: SpacingMark[] = [];
+    if (useDevModeStore.getState().on && useCanvasViewStore.getState().mode === "design") {
+      const index = hitTester.ensure();
+      const boxOf = (id: string) => {
+        const b = index.get(id)?.bounds;
+        return b ? { x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height } : null;
+      };
+      for (const p of placedMeasurements(getResolvedDocument(), boxOf)) kept.push(...p.marks);
+    }
+    return [...kept, ...altHud(hovered)];
+  }, [hitTester, altHud]);
   useEffect(() => restoreSnapSettings(), []);
   const tools = useMemo(() => createTools(), []);
   const gestureToolRef = useRef<Tool | null>(null);
