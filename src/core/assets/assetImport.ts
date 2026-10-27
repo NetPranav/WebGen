@@ -14,6 +14,7 @@ import { useAssetUiStore } from "../store/useAssetUiStore";
 import { AssetError, getAssetStore } from "./AssetStore";
 import { assetSrc } from "./useAssetUrl";
 import { importSvgAsVectors, readSvgShapes } from "../editing/vectorOps";
+import { importSvgDesign } from "../editing/svgImportOps";
 import { makeThumbnail } from "./thumbnails";
 
 export interface ImportOutcome {
@@ -116,6 +117,29 @@ export async function placeAsVectors(entry: AssetEntry, at?: { x: number; y: num
   return ids;
 }
 
+/**
+ * Places an SVG asset as an editable design (FigCraft port F14): a frame holding the file's groups, shapes, gradients
+ * and text as layers. Returns the frame's id and the notes on what was left out; null when it can't be placed.
+ */
+export async function placeAsDesign(entry: AssetEntry, at?: { x: number; y: number; parentId?: string | null; parentOrigin?: { x: number; y: number } }): Promise<{ frame: string; notes: string[] } | null> {
+  if (entry.kind !== "svg") return null;
+  const record = await getAssetStore().get(entry.id);
+  if (!record) return null;
+  const text = await record.blob.text();
+  const read = readSvgShapes(text);
+  const frames = listFrames(getDocument().layers);
+  const activeId = useCanvasViewStore.getState().activeFrameId;
+  const frame = frames.find((f) => f.id === (at?.parentId ?? activeId)) ?? frames[0];
+  if (!frame && !at?.parentId) return null;
+  const parentId = at?.parentId ?? frame!.id;
+  const origin = at?.parentOrigin ?? (frame ? { x: frame.x, y: frame.y } : { x: 0, y: 0 });
+  const natural = read ? { width: read.width, height: read.height } : { width: 100, height: 100 };
+  const size = placedSize(natural);
+  const k = size.width / natural.width;
+  const centre = at ? { x: at.x, y: at.y } : frame ? { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 } : { x: 0, y: 0 };
+  return importSvgDesign(text, parentId, { x: centre.x - size.width / 2 - origin.x, y: centre.y - size.height / 2 - origin.y }, k, entry.name);
+}
+
 /** Import, then place every picture among them. */
 export async function importAndPlace(files: readonly File[], at?: Parameters<typeof placeImage>[1]): Promise<ImportOutcome[]> {
   const outcomes = await importFiles(files);
@@ -138,6 +162,10 @@ if (typeof window !== "undefined" && (window as unknown as { __LL_TEST__?: boole
     placeAsVectors: async (id: string) => {
       const entry = getDocument().assets?.[id] ?? Object.values(getDocument().assets ?? {}).find((e) => e.id === id);
       return entry ? placeAsVectors(entry) : [];
+    },
+    placeAsDesign: async (id: string) => {
+      const entry = getDocument().assets?.[id] ?? Object.values(getDocument().assets ?? {}).find((e) => e.id === id);
+      return entry ? placeAsDesign(entry) : null;
     },
     list: async () => (await getAssetStore().list()).map((r) => ({ id: r.id, name: r.name, kind: r.kind, bytes: r.bytes, thumb: !!r.thumb })),
     totalBytes: () => getAssetStore().totalBytes(),

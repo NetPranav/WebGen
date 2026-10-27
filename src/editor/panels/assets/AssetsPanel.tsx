@@ -9,7 +9,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, ImagePlus, Trash2, Upload } from "lucide-react";
 import { getAssetStore } from "@/core/assets/AssetStore";
-import { importFiles, placeAsVectors, placeImage } from "@/core/assets/assetImport";
+import { importFiles, placeAsDesign, placeAsVectors, placeImage } from "@/core/assets/assetImport";
 import type { AssetEntry } from "@/core/document/schema";
 import { documentCommands, useDocument } from "@/core/store/useDocumentStore";
 import { useAssetUiStore } from "@/core/store/useAssetUiStore";
@@ -59,6 +59,11 @@ const Tile: React.FC<{ entry: AssetEntry; uses: number; version: number }> = ({ 
       {entry.kind === "svg" && (
         <button type="button" className="asset-tile__vectors" aria-label={`Place ${entry.name} as vectors`} title="Place as editable vector layers" onClick={() => void placeAsVectors(entry)}>
           Vectors
+        </button>
+      )}
+      {entry.kind === "svg" && (
+        <button type="button" className="asset-tile__vectors" aria-label={`Place ${entry.name} as a design`} title="Place as an editable design: groups, shapes, gradients and text as layers" onClick={() => void placeAsDesign(entry)}>
+          Design
         </button>
       )}
       <div className="asset-tile__name" title={entry.name}>{entry.name}</div>

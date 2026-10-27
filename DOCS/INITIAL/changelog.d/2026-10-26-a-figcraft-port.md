@@ -16,6 +16,7 @@ FigCraft's engine logic (MIT) is being translated into ours, batch by batch, und
 - **F12 editing:** Alt-drag copies the selection (and Duplicate repeats that step), the Scale tool (K) scales everything in a layer by one factor about an anchor (strokes, radii, effects, spacing, text), a movable rotation origin (Alt+R), Alt-hover measuring from the selection to another layer, arc handles on ellipses, and a Selection block in the Pro inspector: the selection's colours (change one everywhere, or select the layers using it), the gaps between its rows and columns, and batch rename with find and replace and `$n` numbering.
 - **F11 frames and export:** resize a frame to fit its layers, convert a frame to a group (its box becomes its layers', what only a frame has goes) or to a section (a canvas organiser that shows its name) and back, and per-layer export settings (PNG, JPG or SVG at a scale with a suffix) that save the layer as files drawn exactly as on the canvas.
 - **F13 Dev Mode:** the Code tab's Inspect view: a layer's properties for handoff with the styles and variables behind them (colours in hex, RGB, CSS, HSL or HSB; px or rem) and its CSS, where a property bound to a variable uses the variable's code syntax (`var(--space-xs, 4px)`); annotations with pinned properties and categories; measurements kept on the canvas; ready-for-development status with Compare changes.
+- **F14 SVG import:** an SVG file can be placed as an editable design (Assets panel, "Design"; command `svg.import`): its groups, shapes (rectangles and ellipses kept as such), compound paths, gradients, text, images, opacity, strokes and drop shadows become layers in a frame named after the file, with notes on what was left out.
 - Paint editor: a blend menu per fill, Diamond in the type list, adjustment presets and sliders for image fills.
 - Render gallery cases for every new shape and paint.
 
@@ -33,5 +34,6 @@ FigCraft's engine logic (MIT) is being translated into ours, batch by batch, und
 - From F12: the Scale tool's live readout, drag-to-reorder of a smart selection on the canvas, measuring padding and gaps with Shift+Alt.
 - From F11: slices, PDF export and SVG export options; frames inside a section don't count as pages.
 - From F13: annotation pins on the canvas, comparing with a saved version.
+- From F14: clip paths and masks (roadmap Phase 74), filters other than shadows and blurs, gradient transforms and patterns in imported SVGs.
 - The rest of the plan ( text, editing behaviours, Dev Mode, import): see the plan's status column.
 - Pattern fills: the cell maths is ported, but drawing a layer as a repeating tile needs a renderer change (CSS has no portable `element()`).

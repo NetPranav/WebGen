@@ -439,3 +439,37 @@ test("FigCraft port: Dev Mode in the Code tab: inspect a layer, annotate it, kee
   await inspect.getByRole("button", { name: "Compare changes" }).click();
   await expect(inspect.getByRole("list", { name: "Changes" })).toContainText("width 120 → 136");
 });
+
+test("FigCraft port: an SVG file placed as an editable design keeps its groups, gradient and text as layers", async ({ page }) => {
+  await ready(page);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" width="200" height="100"><defs><linearGradient id="g"><stop offset="0" stop-color="#ff0000"/><stop offset="1" stop-color="#0000ff"/></linearGradient></defs><g id="badge"><rect id="pill" x="10" y="10" width="120" height="40" rx="20" fill="url(#g)"/><text id="label" x="30" y="36" font-size="16" fill="#ffffff">Hello</text></g><circle id="dot" cx="170" cy="50" r="20" fill="#00aa00" opacity="0.5"/><script>alert(1)</script></svg>`;
+  await page.evaluate(async (svg) => {
+    const dt = new DataTransfer();
+    dt.items.add(new File([svg], "badge.svg", { type: "image/svg+xml" }));
+    const stage = document.querySelector(".whiteboard-stage")!;
+    const r = stage.getBoundingClientRect();
+    stage.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, clientX: r.left + 40, clientY: r.top + 40, bubbles: true, cancelable: true }));
+  }, svg);
+  type Assets = { list: () => Promise<{ id: string; name: string }[]>; placeAsDesign: (id: string) => Promise<{ frame: string; notes: string[] } | null> };
+  await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __LL_ASSETS__: Assets }).__LL_ASSETS__.list())).some((x) => x.name === "badge.svg")).toBe(true);
+  const assetId = (await page.evaluate(() => (window as unknown as { __LL_ASSETS__: Assets }).__LL_ASSETS__.list())).find((x) => x.name === "badge.svg")!.id;
+  const placed = await page.evaluate((id) => (window as unknown as { __LL_ASSETS__: Assets }).__LL_ASSETS__.placeAsDesign(id), assetId);
+  expect(placed).not.toBeNull();
+  type D = { get: () => { layers: Record<string, { name: string; archetype: string; children: string[]; properties: Record<string, unknown> }> } };
+  const names = await page.evaluate((frame) => {
+    const L = (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers;
+    const walk = (id: string): string[] => [`${L[id].archetype}:${L[id].name}`, ...L[id].children.flatMap(walk)];
+    return walk(frame);
+  }, placed!.frame);
+  expect(names).toEqual(["container:badge", "container:badge", "rectangle:pill", "text:label", "ellipse:dot"]);
+  // the gradient and the text reach the stage
+  const pill = await page.evaluate((frame) => {
+    const L = (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers;
+    return Object.values(L).find((l) => l.name === "pill" && JSON.stringify(L[frame]).length > 0)!;
+  }, placed!.frame);
+  expect(String(pill.properties["paint.fills"])).toContain("linear");
+  await expect.poll(() => inStage(page, (doc) => Array.from(doc.querySelectorAll('[data-archetype="text"]')).some((e) => e.textContent === "Hello"), "")).toBe(true);
+  expect(await inStage(page, (doc) => doc.documentElement.outerHTML.includes("alert(1)"), "")).toBe(false);
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(() => page.evaluate((id) => !!(window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id], placed!.frame)).toBe(false);
+});
