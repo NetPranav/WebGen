@@ -207,6 +207,10 @@ const DEFS = {
   "frame.guides": str("[]", null, "layout", only("container")),
   /** Layout grids shown over a frame (FigCraft port F6, `core/layout/layoutGrids.ts`): JSON; editor-only, never exported. */
   "frame.layoutGrids": typed(str("", null, "none", only("container"))),
+  /** What a container is (FigCraft port F11): a frame, a group (its box is its layers', no fill or clip), or a section (a canvas organiser holding frames). */
+  "frame.kind": oneOf(["frame", "group", "section"], "frame", null, "none", only("container")),
+  /** Export settings as JSON (FigCraft port F11): `[{ "format": "png" | "jpg" | "svg", "scale": 2, "suffix": "@2x" }]`. */
+  "export.settings": typed(str("", null, "none", VISUAL)),
   /**
    * A live boolean group (FigCraft port F5): a container whose children are drawn as one shape, combined by this
    * operation (union, subtract, intersect, exclude). Empty: an ordinary container. See `core/editing/layerOutline.ts`.

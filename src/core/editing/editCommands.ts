@@ -5,6 +5,9 @@
  * the context menu and agents.
  */
 
+import { getResolvedDocument } from "../store/useDocumentStore";
+import { DEFAULT_EXPORT, downloadBlob, exportFile, layerSvg, parseExportSettings, serializeExportSettings } from "../export/layerExport";
+import { convertToFrame, convertToGroup, convertToSection, resizeToFit } from "../frames/containerOps";
 import { worldBox, writeBoxes } from "./layerBoxes";
 import { transaction } from "./editOps";
 import { editRotationOrigin, originPoint, setRotationOrigin } from "./rotationOrigin";
@@ -299,6 +302,40 @@ export function registerEditingCommands(): () => void {
       const pivot = originPoint(t, f.frame, f.first);
       transaction("Rotate", () => writeBoxes(t, rotateBoxes(f.boxes, pivot, degrees)));
       return { changed: t.length };
+    },
+  }));
+  // FigCraft port F11: frames, groups and sections
+  add(defineTypedCommand({ id: "object.resizeToFit", title: "Resize to Fit", category: "Layer", args: z.object({ ids: targets }).default({}), run: ({ ids: t }) => ({ changed: resizeToFit(t ?? ids()) }) }));
+  add(defineTypedCommand({ id: "object.convertToGroup", title: "Convert to Group", category: "Layer", args: z.object({ ids: targets }).default({}), run: ({ ids: t }) => ({ ids: convertToGroup(t ?? ids()) }) }));
+  add(defineTypedCommand({ id: "object.convertToFrame", title: "Convert to Frame", category: "Layer", args: z.object({ ids: targets }).default({}), run: ({ ids: t }) => convertToFrame(t ?? ids()) }));
+  add(defineTypedCommand({ id: "object.convertToSection", title: "Convert to Section", category: "Layer", args: z.object({ ids: targets }).default({}), run: ({ ids: t }) => convertToSection(t ?? ids()) }));
+  const exportSetting = z.object({ format: z.enum(["png", "jpg", "svg"]), scale: z.number().min(0.5).max(4), suffix: z.string().max(40) });
+  add(defineTypedCommand({ id: "export.setSettings", title: "Set Export Settings", category: "Layer", args: z.object({ ids: targets, settings: z.array(exportSetting).max(16) }), run: ({ ids: t, settings }) => ({ changed: setLayerProps(t ?? ids(), { "export.settings": serializeExportSettings(settings) || null }, "Export settings") }) }));
+  add(defineTypedCommand({
+    id: "export.layerSvg",
+    title: "Layer as SVG",
+    category: "Layer",
+    args: z.object({ id: z.string().optional(), scale: z.number().min(0.5).max(4).optional() }).default({}),
+    run: ({ id, scale }) => {
+      const target = id ?? ids()[0];
+      const box = target ? worldBox(target) : null;
+      return { svg: target && box ? layerSvg(getResolvedDocument().layers, target, box.w, box.h, scale ?? 1) : "" };
+    },
+  }));
+  add(defineTypedCommand({
+    id: "export.layer",
+    title: "Export Layer",
+    category: "Layer",
+    args: z.object({ id: z.string().optional() }).default({}),
+    run: ({ id }) => {
+      const target = id ?? ids()[0];
+      const box = target ? worldBox(target) : null;
+      if (!target || !box) return { files: 0 };
+      const layers = getResolvedDocument().layers;
+      const settings = parseExportSettings(layers[target].properties["export.settings"]);
+      const list = settings.length > 0 ? settings : [DEFAULT_EXPORT];
+      void Promise.all(list.map((st) => exportFile(layers, target, box, st).then((f) => downloadBlob(f.name, f.blob))));
+      return { files: list.length };
     },
   }));
   add(defineTypedCommand({ id: "arrange.reorder", title: "Reorder Selection", category: "Layer", args: z.object({ ids: targets, source: z.string(), target: z.string(), swap: z.boolean().optional() }), run: ({ ids: t, source, target, swap }) => ({ ok: reorderSelection(t ?? ids(), source, target, swap) }) }));

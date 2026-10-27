@@ -81,12 +81,15 @@ const FlexContainer: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, c
   const borderStyle = resolved.str("appearance.border.style", "none");
   const border = boxStroke(resolved, borderWidth, borderStyle);
   const fill = useFillStyle(layer, resolved, resolved.str("appearance.background.color", "transparent"));
+  // FigCraft port F11: a group or a section (a section shows its name at its top)
+  const kind = resolved.str("frame.kind", "frame");
   return (
     <div
       ref={nodeRef}
       data-element-id={layer.id}
       data-archetype={layer.archetype}
       role={layer.archetype === "form" ? "form" : undefined}
+      data-frame-kind={kind !== "frame" ? kind : undefined}
       style={{
         ...layerBoxStyle(layer, resolved, ctx, { bands: true }),
         display,
@@ -109,6 +112,11 @@ const FlexContainer: React.FC<ArchetypeRenderProps> = ({ layer, resolved, ctx, c
       }}
     >
       {fill.overlay}
+      {kind === "section" && (
+        <span data-section-label="" aria-hidden="true" style={{ position: "absolute", left: 8, top: 8, padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.9)", color: "#0f172a", font: "500 12px/1.4 system-ui, sans-serif", whiteSpace: "nowrap", pointerEvents: "none" }}>
+          {layer.name}
+        </span>
+      )}
       {/* FigCraft port F7: a progressive background blur under the content, a progressive layer blur over it */}
       <BlurBands effects={effectsOf(resolved)} kind="backgroundBlur" />
       {children}

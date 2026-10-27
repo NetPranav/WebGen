@@ -368,3 +368,36 @@ test("FigCraft port: the rotation origin moved to a corner turns the layer about
   expect(Math.round(Number(after["frame.x"]) + 50 - x)).toBe(-25);
   expect(Math.round(Number(after["frame.y"]) + 25 - y)).toBe(50);
 });
+
+test("FigCraft port: a frame converted to a group and a section from the inspector, and a layer exported as PNG and SVG", async ({ page }) => {
+  await ready(page);
+  type D = { commands: { addLayer: (input: unknown) => string }; get: () => { layers: Record<string, { parentId: string | null; archetype: string; properties: Record<string, unknown> }> } };
+  const ids = await page.evaluate(() => {
+    const d = (window as unknown as { __LL_DOC__: D }).__LL_DOC__;
+    const top = Object.entries(d.get().layers).find(([, l]) => l.parentId === null && l.archetype === "container")![0];
+    const card = d.commands.addLayer({ archetype: "container", parentId: top, name: "Card", properties: { positioning: "absolute", "frame.x": 40, "frame.y": 40, "frame.width": 300, "frame.height": 200, "appearance.background.color": "#ff0000" } });
+    const dot = d.commands.addLayer({ archetype: "rectangle", parentId: card, name: "Dot", properties: { positioning: "absolute", "frame.x": 20, "frame.y": 30, "frame.width": 40, "frame.height": 20, "svg.fill": "#0000ff" } });
+    return { top, card, dot };
+  });
+  const kind = (id: string) => page.evaluate((id) => String((window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id].properties["frame.kind"] ?? "frame"), id);
+  await run(page, "selection.set", { ids: [ids.card] });
+  await page.getByRole("tab", { name: "Pro" }).click();
+  await page.getByRole("button", { name: "Convert to group" }).click();
+  await expect.poll(() => kind(ids.card)).toBe("group");
+  expect(await page.evaluate((id) => (window as unknown as { __LL_DOC__: D }).__LL_DOC__.get().layers[id].properties["frame.width"], ids.card)).toBe(40);
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(() => kind(ids.card)).toBe("frame");
+  // the layer as a file: PNG through the browser's canvas, and the SVG it is drawn from
+  await page.getByRole("button", { name: "Add export setting" }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export layer Card" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("Card.png");
+  const svg = (await run(page, "export.layerSvg", { id: ids.card })) as { svg: string };
+  expect(svg.svg).toContain('data-element-id="' + ids.card + '"');
+  // a top-level frame becomes a section, which shows its name
+  await run(page, "selection.set", { ids: [ids.top] });
+  await page.getByRole("button", { name: "Convert to section" }).click();
+  await expect.poll(() => kind(ids.top)).toBe("section");
+  await expect.poll(() => inStage(page, (doc) => doc.querySelector("[data-section-label]")?.textContent ?? "", "")).not.toBe("");
+});

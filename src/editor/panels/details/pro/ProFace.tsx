@@ -25,6 +25,7 @@ import { StrokeSettingsEditor } from "../paint/StrokeSettingsEditor";
 import { ImageSourcePicker } from "../paint/ImageSourcePicker";
 import { TextExtrasEditor } from "../paint/TextExtrasEditor";
 import { SelectionToolsEditor } from "../paint/SelectionToolsEditor";
+import { ExportSettingsEditor } from "../paint/ExportSettingsEditor";
 import { ScrubNumber } from "../controls/ScrubNumber";
 import "@/editor/styles/pro-face.css";
 
@@ -164,6 +165,7 @@ export const ProFace: React.FC = () => {
           <EffectsEditor />
           <TextExtrasEditor />
           <SelectionToolsEditor />
+          <ExportSettingsEditor />
         </>
       )}
       <input type="search" className="pro-face__filter" aria-label="Filter properties" placeholder="Filter properties" value={filter} onChange={(e) => setFilter(e.target.value)} onKeyDown={(e) => e.stopPropagation()} />
