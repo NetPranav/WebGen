@@ -9,6 +9,7 @@ import { documentCommands } from "../store/useDocumentStore";
 import { transaction } from "../editing/editOps";
 import { getTransport } from "../time/transport";
 import { clampWorkArea, slideBar, snapTime, trimIn, trimOut } from "./model";
+import { KEYFRAMES_CLIP_NAME, clipTemplateFor } from "./keyframeOps";
 
 /**
  * Timeline operations (ROADMAP Phase 61): every edit the timeline panel makes, as a function the commands in
@@ -178,7 +179,7 @@ export function setStopwatch(layerId: string, path: string, on: boolean, time = 
   transaction("Turn on stopwatch", () => {
     let clipId = placed?.clip.id;
     if (!clipId) {
-      clipId = documentCommands.addClip(layerId, { id: createId("clip"), name: KEYFRAMES_CLIP, type: "entrance", trigger: "mount", duration: Math.max(comp.duration, local), easing: "power2.out", enabled: true, tracks: [] });
+      clipId = documentCommands.addClip(layerId, clipTemplateFor(comp, local), "Add keyframes", { compositionId });
     } else if (local > placed!.clip.duration) {
       documentCommands.updateClip(clipId, { duration: local });
     }
@@ -188,4 +189,4 @@ export function setStopwatch(layerId: string, path: string, on: boolean, time = 
 }
 
 /** The clip a stopwatch makes when the layer has none. */
-export const KEYFRAMES_CLIP = "Keyframes";
+export const KEYFRAMES_CLIP = KEYFRAMES_CLIP_NAME;

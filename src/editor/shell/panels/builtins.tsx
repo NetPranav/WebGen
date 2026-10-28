@@ -106,7 +106,7 @@ export function registerBuiltInPanels(): void {
   });
   registerPanel({ id: "trace", title: "Execution Trace (Debug)", zone: "bottom", edition: "full", component: ExecutionTracePanel, props: traceProps });
   registerPanel({ id: "blueprint", title: "Logic Blueprint", zone: "bottom", edition: "full", focusScope: "blueprint", component: BlueprintCanvas, props: (c: PanelContext) => ({ focusedNodeId: c.focusedBlueprintNodeId, onBackToViewport: c.collapseBottom }) });
-  registerPanel({ id: "curves", title: "Curve Editor", zone: "bottom", edition: "initial", load: async () => (await import("@/editor/panels/curves/CurveEditor")).CurveEditor });
+  registerPanel({ id: "curves", title: "Graph Editor", zone: "bottom", edition: "initial", focusScope: "timeline", load: async () => (await import("@/editor/panels/graph/GraphEditorPanel")).GraphEditorPanel });
   // Phase 61: the layer timeline (rows, bars, work area, markers). The Motion Sequencer stays until Phase 68 retires it.
   registerPanel({ id: "timeline", title: "Layer Timeline", zone: "bottom", edition: "initial", focusScope: "timeline", load: async () => (await import("@/editor/panels/timeline/TimelinePanel")).TimelinePanel });
   registerPanel({ id: "sequencer", title: "Motion Sequencer", zone: "bottom", edition: "initial", focusScope: "timeline", load: async () => (await import("@/editor/panels/sequencer/TimelineSequencer")).TimelineSequencer });
@@ -126,7 +126,7 @@ export function registerBuiltInPanels(): void {
   });
   registerPanel({ id: "trace", title: "Execution Trace", zone: "fullpage", edition: "full", component: ExecutionTracePanel, props: traceProps });
   registerPanel({ id: "copilot", title: "LazyLayout AI", zone: "fullpage", edition: "initial", load: async () => (await import("@/editor/panels/copilot/AiPromptBar")).AiPromptBar });
-  registerPanel({ id: "curves", title: "Curve Editor", zone: "fullpage", edition: "initial", load: async () => (await import("@/editor/panels/curves/CurveEditor")).CurveEditor });
+  registerPanel({ id: "curves", title: "Graph Editor", zone: "fullpage", edition: "initial", focusScope: "timeline", load: async () => (await import("@/editor/panels/graph/GraphEditorPanel")).GraphEditorPanel });
   registerPanel({
     id: "sequencer",
     title: "Timeline Sequencer",

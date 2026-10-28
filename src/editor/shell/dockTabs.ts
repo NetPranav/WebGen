@@ -6,6 +6,7 @@ import { inspectorTabsFor } from "@/core/workspace/layout";
 export const ALL_BOTTOM_TABS: PanelTab[] = [
   { id: "content-browser", title: "Content Browser", closable: false },
   { id: "timeline", title: "Layer Timeline", closable: false },
+  { id: "curves", title: "Graph Editor", closable: false },
   { id: "sequencer", title: "Motion Sequencer", closable: false },
   { id: "export-code", title: "Export Preview", closable: false },
 ];

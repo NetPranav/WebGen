@@ -66,8 +66,8 @@ const MOTION_TOOLS: { tabId: string; label: string; hint: string; icon: React.Re
   },
   {
     tabId: "curves",
-    label: "Easing",
-    hint: "Easing curve editor (Ctrl+Shift+K)",
+    label: "Graph",
+    hint: "Graph editor: value and speed curves, easing (Ctrl+Shift+K)",
     icon: <Spline size={13} />,
   },
   {

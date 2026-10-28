@@ -180,6 +180,17 @@ function recordCommandChange(label: string, before: MotionDocument, after: Motio
 }
 
 /**
+ * A hook that runs inside every command's recipe, after it, so what it changes lands in the same undo step (Phase 66:
+ * auto-key turns a property edit into a keyframe). It gets the draft and the document as it was before the command.
+ * At most one hook; `setCommitHook(null)` removes it.
+ */
+export type CommitHook = (draft: Draft<MotionDocument>, before: MotionDocument) => void;
+let commitHook: CommitHook | null = null;
+export function setCommitHook(hook: CommitHook | null): void {
+  commitHook = hook;
+}
+
+/**
  * Runs `recipe` against the document and commits the result: recorded in
  * history and emitted as durable, unless a transaction is open, in which case
  * it is applied and emitted as transient.
@@ -190,6 +201,7 @@ function commit(label: string | undefined, recipe: (draft: Draft<MotionDocument>
   // Phase 46: every write leaves clips placed in compositions (the legacy editor writes clips only).
   const [next, patches, inversePatches] = produceWithPatches(before, (draft) => {
     recipe(draft);
+    commitHook?.(draft, before);
     syncCompositions(draft as MotionDocument);
   });
   const resolvedLabel = label ?? DEFAULT_LABEL;
@@ -691,13 +703,47 @@ export const documentCommands = {
 
   // ----------------------------------------------------------------- clips
 
-  addClip(layerId: string, template: ClipTemplate, label = "Add animation"): string {
+  /**
+   * Adds a clip to a layer. With `placement` it goes into that composition (a precomp or an interaction composition the
+   * timeline has open) in the same step, instead of wherever its trigger would put it.
+   */
+  addClip(layerId: string, template: ClipTemplate, label = "Add animation", placement?: { compositionId: string; offset?: number }): string {
     const clip = attachClip(template, layerId);
     commit(label, (draft) => {
       const layer = requireLayer(draft, layerId);
       draft.clips[clip.id] = canonicalClip(layer.archetype, clip, "addClip");
+      const target = placement ? draft.compositions[placement.compositionId] : undefined;
+      if (target) target.clips.push({ clipId: clip.id, offset: placement?.offset ?? 0 });
     });
     return clip.id;
+  },
+
+  /**
+   * Makes a new precomp and places it in `parentId` (Phase 65): a composition other compositions can play, opened from
+   * its bar in the timeline. Returns both ids.
+   */
+  addPrecomp(parentId: string, options: { name?: string; duration?: number } = {}, label = "Add precomp"): { compositionId: string; nestedId: string } {
+    const compositionId = createId("comp");
+    const nestedId = createId("nest");
+    commit(label, (draft) => {
+      const parent = draft.compositions[parentId];
+      if (!parent) throw new Error(`No composition "${parentId}".`);
+      const duration = Math.max(1 / parent.fps, options.duration ?? Math.min(parent.duration, 2));
+      const count = Object.values(draft.compositions).filter((c) => c.kind === "precomp").length + 1;
+      const name = options.name?.trim() || `Precomp ${count}`;
+      draft.compositions[compositionId] = { id: compositionId, name, kind: "precomp", duration, fps: parent.fps, workArea: { start: 0, end: duration }, markers: [], layers: {}, clips: [], nested: [] };
+      parent.nested.push({ id: nestedId, compositionId, name, start: 0, in: 0, out: Math.min(duration, parent.duration), stretch: 1 });
+    });
+    return { compositionId, nestedId };
+  },
+
+  /** Takes a precomp's placement out of a composition. The precomp itself stays in the document. */
+  removeNested(compositionId: string, nestedId: string, label = "Remove precomp placement") {
+    commit(label, (draft) => {
+      const comp = draft.compositions[compositionId];
+      if (!comp) throw new Error(`No composition "${compositionId}".`);
+      comp.nested = comp.nested.filter((n) => n.id !== nestedId);
+    });
   },
 
   updateClip(clipId: string, patch: Partial<Omit<Clip, "id" | "layerId" | "tracks">>, label?: string) {
