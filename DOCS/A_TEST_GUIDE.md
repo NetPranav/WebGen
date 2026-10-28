@@ -1,10 +1,13 @@
-# Lane A manual test guide (Phases 13–38)
+# Lane A manual test guide (Phases 13–38, plus the Project Hub)
 
-**For:** `@OVERxPOWERED`, testing `@NetPranav`'s work. **Covers:** everything Lane A has merged to `main` (Phases 13–38). Lane B's work is in `B_TEST_GUIDE.md`.
-**Updated:** when Lane A merges more phases. Last update covers up to Phase 38.
+**For:** `@OVERxPOWERED`, testing `@NetPranav`'s work. **Covers:** everything Lane A has merged to `main` (Phases 13–38) and the front door of the product, the Project Hub at `/` (section 3.0). Lane B's work is in `B_TEST_GUIDE.md`.
+**Last checked against `main`:** 2026-10-24 (`391a19c`); re-checked for the changes Lane B's Phases 64–68 make to shared screens on 2026-10-28 (section 3.27 was updated, see below). Labels, shortcuts and counts were compared with the code and the live editor, and the unit and Chromium suites were green.
+**Updated:** when Lane A merges more phases (this file, `B_TEST_GUIDE.md` and `USER_MANUAL.md` are the three files kept current). **As of 2026-10-28 `origin/main` has no Lane A work newer than Phase 38.** Phases 39–43 (pen, vector editing, auto layout, grid, breakpoints) are still in open PR #53, and NetPranav's branch `a/figcraft-port` (55 commits, last pushed 27 Oct: vector networks, boolean shapes, effects, variables, components, Dev Mode, SVG import) is not merged and not in a PR. None of it is on `main`, so it is not here. Pull `main` again before you test; when a Lane A PR merges, this guide gets its sections.
+**What CI already checks and what only you can check:** section 6.
 
 | Phase | What you can do or see | Section |
 |---|---|---|
+| (hub) | Project Hub: name a project, pick a scope and a tech stack, launch the editor | 3.0 |
 | 13 | Menus run real commands; drawing tools; command palette | 3.1 |
 | 14 | Panel layout that survives a reload; panels load on demand | 3.2 |
 | 15 | Design / Animate / Code workspaces; inspector tabs; saved layouts | 3.3 |
@@ -31,14 +34,31 @@
 | 36 | Assets: drop pictures on the canvas | 3.24 |
 | 37 | Image fills and cropping | 3.25 |
 | 38 | Fonts: Google, system, your own | 3.26 |
+| (older panels) | LazyLayout AI, bottom-drawer tools, Preferences, Output Log, tear-off windows. Built before the phase plan; no phase owns them | 3.27 |
+
+## The 10-minute quick pass (start here)
+
+If you only have ten minutes, do these. They touch every area of Lane A that is on `main`; each step names the full test.
+
+1. Open `/editor`, **Mount Showcase Demo** (S1–S2).
+2. **Draw** (3.13): press **R**, drag a rectangle inside the page; **O**, an ellipse; **T**, drag a box and type. **Ctrl+Z** takes the last one away.
+3. **Select and transform** (3.14, 3.15): click, **Shift-click**, drag a box on empty canvas; drag a rectangle's corner to resize and just outside a corner to rotate.
+4. **Edit** (3.17, 3.18): **Ctrl+D** to duplicate, select three and press **Alt+A** to align, **Ctrl+G** to group.
+5. **Layers panel and inspector** (3.20, 3.21): click a row, then type a new **X** in **Simple**, switch to **Pro** and scrub a number by its label.
+6. **Paint** (3.23): add a gradient fill, drag its handles on the canvas.
+7. **Workspaces** (3.3): click **Animate workspace**, then **Design workspace**; the drawing is still there.
+8. **Save** (3.1): **Ctrl+S**, reload; everything is still there.
+9. Nothing in the console is red.
 
 ## How to use this guide
 
-Every test has the shape **Do → Expect → Fails if**, and a tick box. Tick the box only when what you see is what **Expect** says; otherwise write the test number and what happened (section 6). Each phase has a **User test** (click around) and, where it makes sense, a **Developer test** (terminal, DevTools or code).
+Every test has the shape **Do → Expect → Fails if**, and a tick box. Tick the box only when what you see is what **Expect** says; otherwise write the test number and what happened (section 8). Each phase has a **User test** (click around) and, where it makes sense, a **Developer test** (terminal, DevTools or code).
 
 > **Known gaps, not bugs** (Lane A's own changelogs list them as not done):
 > - Pen and Pencil tools, and Tier B tools (Motion Path, Gradient tool, Anchor Point, Eyedropper tool), don't exist yet. The dock only shows tools that work.
-> - **New Project** and **Close Project** in the File menu are disabled and name Phase 14. Save As Template names Phase 51, Export Next.js + Prisma Code names Phase 49.
+> - In the menus, greyed items name the phase that builds them: **Save As Template** (Phase 51), **Export Next.js + Prisma Code** (Phase 49), **120 FPS Cable Physics** (Phase 119), and in Help **Documentation** (183), **Report Issue or Feedback** (185), **About** (189). **New Project** and **Close Project** are live now: both save and go back to the Project Hub.
+> - **The header chip reads `MyProject.uweb` whatever your project is called.** It is a placeholder, not a Lane A bug.
+> - **There is no list of your projects anywhere.** The hub only creates new ones. To get an old project back, keep its `/editor?projectId=…` address, or import its `.lazy.json` file.
 > - The Motion inspector (right dock, **Motion** tab) is read-only until the timeline phases.
 > - Hover and press looks wait for States (Phase 78). Effect surfaces and 3D layers draw a labelled placeholder.
 > - A whole-document animation of layers other than the root is not yet editable in the Sequencer (Lane B's timeline phases).
@@ -56,23 +76,26 @@ npm run dev            # open http://localhost:3000/editor
 
 - Use **Chromium** for the main pass; section 5 repeats the key tests in **Firefox** and **Safari/WebKit** (Lane A fixed several WebKit-only bugs).
 - Open DevTools → **Console** and keep it open. **Any red error while you test is a failure.**
-- `/editor` redirects to `/editor?projectId=…` and creates a project.
+- `/editor` redirects to `/editor?projectId=…` and creates a project. `/` is the Project Hub (section 3.0); `/database` is switched off and sends you to `/editor`.
+- Keep the address of a project you want to come back to. There is no project list yet.
 
 ### 1.1 The map: where everything is
 
 | Thing | Where | Names you will see |
 |---|---|---|
 | Menus | Top header | **File**, **Edit**, **View**, **Window**, **Help** |
-| Canvas size buttons | Header | **Desktop Canvas (1440px)**, **Tablet Canvas (768px)**, **Mobile Canvas (375px)** |
-| Demo content | Header | **Mount Showcase Demo** (a heading and a button) |
-| Workspace tabs | Header, right side | **Design workspace**, **Animate workspace**, **Code workspace**; button **Saved layouts** |
-| Command palette | Header | **Open command palette** (or **Ctrl+P**) |
-| Save / Undo / Redo | Header | **Save Project (Ctrl+S)**, **Undo (Ctrl+Z)**, **Redo (Ctrl+Shift+Z)** |
+| Canvas size buttons | Header, middle | **Desktop Canvas (1440px)**, **Tablet Canvas (768px)**, **Mobile Canvas (375px)** |
+| Demo content | Header, right | **Mount Showcase Demo** (a heading and a button). Once mounted the same button reads **Clear showcase demo**. |
+| Workspace tabs | Second row, left | **Design workspace**, **Animate workspace**, **Code workspace**; button **Saved layouts** |
+| Motion tools | Second row, next to the tabs | **Presets tool**, **Timeline tool**, **Easing tool**, **Export tool**. Each opens a tab in the bottom drawer (Content Browser, Motion Sequencer, curves, Export Preview). |
+| Command palette | Second row, right | **Open command palette**, shown as "Search commands… Ctrl K". **Ctrl+P** and **Ctrl+K** both open it. |
+| Save / Undo / Redo | Small buttons at the top-left corner of the stage | **Save Project (Ctrl+S / Cmd+S)**, **Undo (Ctrl+Z)**, **Redo (Ctrl+Shift+Z)** |
+| Help and settings | Header, far right | **Engine Documentation (F1)**, **Project Settings & Preferences (Ctrl+,)** (the gear; it lights up while Preferences is open) |
 | Frame bar | Over the top of the stage | Frame title and size boxes, move/duplicate/delete buttons, **Frame** (add), **Design** / **Preview**, **Snap objects**, **Snap guides**, **Pixel grid**, **Rulers**, **Light** / **Dark** / **Checkerboard** |
 | Tool dock | Bottom of the stage | **Select Tool**, **Hand Tool (Pan)**, **Frame Tool**, **Rectangle Tool**, **Ellipse Tool**, **Line Tool**, **Arrow Tool**, **Polygon Tool**, **Star Tool**, **Text Tool**, then **Zoom Out**, **Current Zoom 100%. Click to reset.**, **Zoom In**, **Fit Viewport to Screen** |
 | Left dock | Left | Tabs **Layers** and **Assets** |
-| Right dock (inspector) | Right | Tabs **Design**, **Motion**, **Code**; inside Design a **Simple / Pro** switch |
-| Status bar | Very bottom | Layer count text, the transport bar (Lane B), zoom |
+| Right dock (inspector) | Right | Tabs **Design**, **Motion**, **Code**. With **nothing selected** the Design tab shows **World Environment** (Inspect Mode, Viewport & Grid, Element Interaction, Snapping, Theme & Design Tokens, Motion). Select a layer to get the **Simple / Pro** inspector. |
+| Status bar | Very bottom | **Panels**, "All changes saved", the selected layer's name, **Output Log**, **Execution Trace**, the transport bar (Lane B), **Parity idle** badge (dev builds), branch, FPS and memory readouts |
 
 ### 1.2 Recipe B: get something to work on
 
@@ -96,6 +119,31 @@ npm run dev            # open http://localhost:3000/editor
 
 ## 3. Tests by phase
 
+### 3.0 The Project Hub (the front door, `/`)
+
+No phase owns this screen, but it is the first thing a person sees. It creates a project and opens the editor on it.
+
+**User test**
+- [ ] **H1** Do: open `http://localhost:3000/`. Expect: the browser tab says "LazyLayout | AI-Native Motion Design Studio". The page shows a left list (Project Plan, Environment, Templates, Review & Launch), and five numbered cards: **01 Project Name** (a field that holds `LazyLayout`), **02 Select Design Scope** (**Element Design** ticked, **Component Design**, **Custom**), **03 Project Details** (a description box counting to 500 and tags UI / UX, Animation, Frontend, Web App, Interactive, + Add tag), **04 Technology Stack**, **05 Review & Launch** with the button **Launch Studio**. No console errors.
+- [ ] **H2** Do: click each scope card in turn. Expect: the tick moves, and the **Design Scope** line in **05 Review & Launch** follows.
+- [ ] **H3** Do: open each dropdown in **04 Technology Stack**. Expect: Target Framework: Next.js 15 (App Router), Next.js 15 (Pages Router), React 19 (Vite), Vue 3 (Composition API), Svelte 5 (Runes), Vanilla HTML5 / ES6. Styling System: Tailwind CSS v4, Vanilla CSS & Modern Variables, CSS Modules, Styled Components / Emotion. Animation Engine: GSAP 3.12, Framer Motion 11, SVG Vector & Native CSS Keyframes, Hybrid (GSAP Scroll + Framer Springs). Starting Template: Blank Canvas, Interactive Hover / Tap, Scroll Reveal & Parallax, Ambient Infinite Loop. **Language** is a TypeScript / JavaScript switch. Each change shows in **05 Review & Launch**.
+- [ ] **H4** Do: type `My Landing` in the project name, then click **Launch Studio**. Expect: the editor opens at `/editor?projectId=…&name=My%20Landing&scope=element&…` with your choices in the address. The **Layers** panel lists one layer called **My Landing** (a single button-type element drawn 1440 × 900, not the `RootContainer` that `/editor` makes).
+- [ ] **H5** Do: reload that page. Expect: the same project comes back.
+- [ ] **H6** Do: go back to `/` and click **Open in Editor** (top right). Expect: a new, empty project opens at `/editor`.
+- [ ] **H7** Do: open `http://localhost:3000/database`. Expect: you are sent to `/editor` (that route is switched off on purpose).
+- [ ] **H8** Do: in the editor (started from `/editor`, with a rectangle drawn) choose **File → New Project…**. Expect: you land on the hub. Press the browser's **Back** button. Expect: your project is back at the same address with the rectangle saved (the Layers tree starts collapsed; open the arrow to see it).
+
+**Known gaps (don't report)**
+- Picking a **Starting Template**, a tag, or writing a description doesn't change what you get: the editor opens on one empty frame. Starter projects are Phase 51.
+- The left list (Environment, Templates, Review & Launch) doesn't open other pages; you stay on `/`.
+- There is no list of earlier projects.
+- **A hub-launched project is one button element.** The Rectangle, Ellipse and other shape tools draw nothing inside it and don't say why. To get a canvas to draw on, start from `/editor` (or **Open in Editor**).
+
+**Developer test**
+- [ ] **H9** Do: DevTools → Application → IndexedDB. Expect: the project you launched is stored there with its framework, styling, animation, language and template.
+
+---
+
 ### 3.1 Phase 13: command bus, menus and tools
 
 **User test**
@@ -105,7 +153,8 @@ npm run dev            # open http://localhost:3000/editor
 - [ ] **T13.4** Do: **View → Zoom In**, **Zoom Out**, **Reset Zoom (100%)** (or **Ctrl++**, **Ctrl+-**, **Ctrl+0**). Expect: the canvas zooms accordingly.
 - [ ] **T13.5** Do: **Edit → Preferences…** (**Ctrl+,**). Expect: preferences open.
 - [ ] **T13.6** Do: **Help → Keyboard Shortcuts** (**Ctrl+/**). Expect: the command palette opens.
-- [ ] **T13.7** Do: open **File**. Expect: **New Project…** and **Close Project** are greyed and say "Phase 14", **Save As Template…** says Phase 51, **Export Next.js + Prisma Code** says Phase 49. There are **no** fake recent-project entries.
+- [ ] **T13.7** Do: open **File**. Expect: **Save As Template…** is greyed and says Phase 51, **Export Next.js + Prisma Code** is greyed and says Phase 49. **New Project…** and **Close Project** are not greyed. There are **no** fake recent-project entries.
+- [ ] **T13.7a** Do: **File → New Project…**. Expect: the editor saves and you land on the Project Hub (`/`). **Close Project** does the same. Press the browser's Back button: you return to your project with your work in it (the Layers tree starts collapsed).
 - [ ] **T13.8** Do: click a greyed item. Expect: nothing happens and there is no console error.
 - [ ] **T13.9** Do: **Ctrl+P**, type `zoom`, run **Zoom In**. Expect: the canvas zooms.
 
@@ -123,7 +172,7 @@ npm run dev            # open http://localhost:3000/editor
 - [ ] **T14.2** Do: press **Ctrl+P**, type `reset layout`, run it. Expect: back to the Design workspace default.
 
 **Developer test**
-- [ ] **T14.3** Do: `wc -l src/editor/shell/EditorShell.tsx`. Expect: about 390 lines (it was 2,139).
+- [ ] **T14.3** Do: `wc -l src/editor/shell/EditorShell.tsx`. Expect: about 410 lines (it was 2,139).
 - [ ] **T14.4** Do: open DevTools → Network, filter "JS", reload on the **Design workspace**. Expect: the Sequencer, Curve Editor, Export Preview, Output Log, Live Code and History chunks are **not** fetched. Click **Animate workspace**: the Sequencer chunk appears.
 - [ ] **T14.5** Do: in the Console run `document.querySelector('.dock-layout').dataset.loadedPanels`. Expect: a list that grows only as you show panels.
 - [ ] **T14.6** Do: in the Console run `document.querySelector('.dock-zone--center').__m = 1`, switch between the three workspace tabs and resize splitters, then run `document.querySelector('.dock-zone--center').__m`. Expect: `1` (the stage element was never replaced).
@@ -145,7 +194,7 @@ npm run dev            # open http://localhost:3000/editor
 - [ ] **T15.8** Do: reload. Expect: the saved layout is still listed. Delete it from the same menu: it disappears, also after a reload.
 
 **Developer test**
-- [ ] **T15.9** Do: `npx playwright test tests/e2e/presets.spec.ts --project=chromium`. Expect: pass (three tests, including the "under 100 ms and the stage is not replaced" check).
+- [ ] **T15.9** Do: `npx playwright test tests/e2e/presets.spec.ts --project=chromium`. Expect: pass (including the "under 100 ms and the stage is not replaced" check).
 
 ---
 
@@ -161,7 +210,7 @@ Use a throwaway project.
 
 ### 3.5 Phase 17: render definitions
 
-- [ ] **T17.1** Do: open `http://localhost:3000/editor/render-gallery`. Expect: 53 cases, no console errors.
+- [ ] **T17.1** Do: open `http://localhost:3000/editor/render-gallery`. Expect: 77 cases (the page says how many), no console errors.
 - [ ] **T17.2** Do: scroll through them. Expect: every layer type draws something visible (including toggle, badge, floating button, icon, divider, background, SVG group and text, which used to draw nothing).
 - [ ] **T17.3** Do: look at the shapes (rectangle, ellipse, line, polygon, star, arrow, path). Expect: they look like what their names say.
 - [ ] **T17.4** Do: look at the hostile and edge cases (huge sizes, bad image sources, odd path data, deep nesting). Expect: each stays inside its box, nothing runs, nothing overflows.
@@ -433,7 +482,26 @@ Select a rectangle first. Open the right dock's **Design** tab; make sure the sw
 - [ ] **T38.4** Do: pick a variable font. Expect: sliders for width, optical size, slant.
 - [ ] **T38.5** Do: in DevTools → Network, choose a font from the list. Expect: the font file is fetched only when a layer uses it.
 - [ ] **T38.6** Do: change the project's font-display setting. Expect: it saves.
-- [ ] **T38.7** (Developer) Do: `npx playwright test tests/e2e/fonts.spec.ts --project=chromium`. Expect: pass (needs internet).
+- [ ] **T38.7** (Developer) Do: `npx playwright test tests/e2e/fonts.spec.ts --project=chromium`. Expect: pass (it fakes Google Fonts, so it needs no internet; T38.1–T38.5 are the only check of the real service).
+
+---
+
+### 3.27 The older panels no phase owns
+
+These were built before the phase plan, are on screen today, and are mostly cut or replaced in later phases (Lane B's Phase 68 retires the old animation panels). Test only that they open, show what is written here and don't crash. Don't judge them as finished.
+
+- [ ] **T27a.1** Do: **Window → LazyLayout AI**, then move the pointer toward the right edge of the window and click. Expect: while you move, a hint reads "Move left or right to choose dock location"; after the click the panel **LazyLayout AI** ("Intelligent Layout & AST Reasoning") docks on the right with a greeting "LazyLayout AI Ready", four buttons (**Diagnose Errors**, **Add Counter Logic**, **Trace Status**, **Explain Graph**) and a box that says "Ask LazyLayout AI to diagnose, fix, or generate logic…".
+- [ ] **T27a.2** Do: type `make the heading fade in` and press Enter. Expect: a reply that introduces itself ("I am LayoutAI…") and lists what it can do. **It does not animate anything.** Then send `Diagnose errors` (reply: "System Diagnostics Clean"), `Create counter logic` (reply: "Blueprint Generation Proposal", asking for your review) and `Explain the active blueprint graph`. The assistant matches a few fixed phrases inside the browser; nothing is sent to any model.
+- [ ] **T27a.3** Do: with DevTools → Network open, send three messages. Expect: no request to any other website.
+- [ ] **T27a.4** Do: send `<b onmouseover=alert(3)>hi</b>`. Expect: shown as text, no alert (same as T16.3).
+- [ ] **T27a.5** Do: click **Presets tool** (second row). Expect: a bottom drawer opens on **Content Browser** with an **Add Animation** button (and "Animation Library Empty" in the library list). The Animation panel shows **No layer selected** until you select a layer (Phase 68), then that layer's own animations. The drawer's other tabs are **Layer Timeline**, **Graph Editor**, **Motion Sequencer** and **Export Preview**.
+- [ ] **T27a.6** Do: click **Easing tool**. Expect: the **Graph editor** (Phase 67, it replaced the old curve editor): **Value graph** and **Speed graph** buttons, the text "Select keyframes (or a layer that has them) to see their curves here", and an **Easing** strip (Snappy, Smooth, Bouncy, Lazy, Linear, Ease in, Ease out, Ease in and out, Overshoot, Hold) that is greyed until a keyframe is selected. The full tests are in `B_TEST_GUIDE.md` 3.15.
+- [ ] **T27a.7** Do: click **Export tool**. Expect: **Export Preview** shows generated code for the target layer, with the targets **Pure CSS (0kb)**, **WAAPI (Native)**, **Framer Motion**, **GSAP 3**, and **Copy Code** / download buttons.
+- [ ] **T27a.8** Do: select a layer and open the right dock's **Code** tab. Expect: generated code with **Copy code to clipboard**, **Download file** and a button that packages a Next.js repository as a ZIP. The **Motion** tab says "Select a layer to see what moves on it" until you select one.
+- [ ] **T27a.9** Do: **Edit → Preferences…** (or the gear at the far right). Expect: a full-page settings screen with **General**, **Build & Target**, **Design Tokens**, **Environment Keys** and **Return to Viewport**. **The name and ID shown (`MyProject.uweb`, `proj_8f92ab41`) are placeholders, not your project's.**
+- [ ] **T27a.10** Do: click **Output Log** in the status bar. Expect: a log panel with filters (All, Blueprints, Sequencer, API, Compiler, Warnings, Errors), a search box and a command line. **The lines in it are sample text** (for example an `AuthWorkflow` graph and `GET /api/v1/projects`), not events from your project.
+- [ ] **T27a.11** Do: open `http://localhost:3000/editor/detach/sequencer`. Expect: a stand-alone window page titled **Timeline Sequencer** with a **Return to Main Editor** button.
+- [ ] **T27a.12** Do: open **Window** and look at the entries (Outliner Panel, Details & Inspector, Content Browser, Output Log & Console, Logic Blueprint Canvas, Timeline Sequencer, Live Code Inspector, Pages & Routing Manager, Deployment & Cloud Studio, Plugin Manager, Undo History, Version Control & Snapshots …). Expect: the menu opens with no console error. Try three entries: each opens or focuses something and nothing crashes. Most are from the full edition's plan and are not part of the Stage 1 or Stage 2 work.
 
 ---
 
@@ -455,15 +523,45 @@ Repeat in **Firefox** and **Safari/WebKit**:
 - [ ] **X5** T17.1 and T19.1 (gallery and stage lab).
 - [ ] **X6** T27.2–T27.4 (move, resize, rotate).
 
-## 6. Run the automated suites and compare
+## 6. What CI already checks, and what only you can check
+
+### 6.1 What CI does on every push and pull request (`.github/workflows/ci.yml`)
+
+| Job | What it runs | What it proves |
+|---|---|---|
+| `verify` | `npm run typecheck`, `npm run lint` (0 errors, at most 463 warnings), unit tests twice (normal and `NEXT_PUBLIC_EDITION=full`), `npm run build`, then four repo checks: bundle scope, doc links in `DOCS/INITIAL`, no ad-hoc compatibility logic in the editor, roadmap order | The code compiles, nothing in the logic regressed (about 2,000 unit tests), the production build works, the docs and roadmap are consistent |
+| `e2e` | The whole Playwright suite in **Chromium, Firefox and WebKit**, against a production build, one worker, one retry (177 tests in Chromium) | Every phase's "You'll see" line still happens in a real browser |
+| `Export Build Harness` | Nightly, and on pull requests that touch `src/compiler`, the schema or the animation types: builds the exported code inside three fixture apps (Next.js, Vite React, Vue) | Exported code still compiles |
+
+So **the developer-side testing is taken care of by CI.** Every "Developer test" line in this guide that runs `npx tsx --test …` or `npx playwright test …` repeats what CI already does. Run them only when you want an answer before you push, or to chase a failure. The quick local gate before a push is `npm test && npm run lint && npm run build`.
+
+On 2026-10-24 all of this was green on `main`: `npm test` (1,976 unit tests, 0 failed, 4 skipped), `npm run lint` (0 errors), the four repo checks, and 177 of 177 Chromium end-to-end tests (one 60 fps test failed once under full load and passed when run alone, as noted under T20.6). The export harness passed on its last four nightly runs (21–24 October). I could not read GitHub's branch-protection setting; COLLABORATION.md says `verify` and `e2e` must be green before a merge.
+
+### 6.2 What CI cannot tell you (this is what your manual testing is for)
+
+| Gap | Why CI misses it | Where to test it |
+|---|---|---|
+| **Does it feel right?** Spacing, readability, whether a control is findable, whether a gesture feels smooth | Tests assert values, not taste | Everything in section 3 marked "User test" |
+| **The Project Hub, LazyLayout AI, Preferences, Output Log, tear-off windows** | No Playwright test opens them (the only references are in code and one menu-coverage test) | 3.0 and 3.27 |
+| **Real Google Fonts** | `fonts.spec.ts` fakes `fonts.googleapis.com` and `fonts.gstatic.com`, so the real service is never called | T38.1–T38.5, with internet |
+| **Real files from your computer**: dragging a picture or font from the file manager, the file picker, the download of an exported project | The tests inject files in code | T13.3, T36.1–T36.6, T38.3 |
+| **Speed on your machine** | The 60 fps limits are loosened for shared CI runners (WebKit is only held to "not broken"), and there is no performance-budget suite before Phase 101 | T19.1, T20.6, T21.10, section 7 |
+| **Long sessions**: 10 minutes of looping playback, memory growth, many undo steps | Tests run for seconds | Section 7 of both guides |
+| **Dev-only behaviour**: the parity badge, the lab pages (`/editor/stage-lab` and friends) | CI tests a production build with labs switched on by a flag | B guide Phase 60 and Phase 57 |
+| **Odd environments**: private window with storage blocked, two tabs on one project, a phone-width window, browser zoom | Rare in tests | Section 7 |
+| **How the browsers look**, not just whether they work | CI runs Firefox and WebKit functionally; nobody compares how they look | Section 5 |
+
+If a test in this guide has no automated twin, nothing else will catch it. If it has one, the twin's file name is in the line below it.
+
+### 6.3 Run the automated suites yourself and compare
 
 ```bash
-npm test                 # typecheck + unit tests
+npm test                 # typecheck + unit tests (default and full edition)
 npm run lint             # must exit 0
 npm run build
-npm run check:bundle-scope && npm run check:doc-links && npm run check:no-adhoc-compat
-npx playwright test --project=chromium
-rm -rf test-results playwright-report
+npm run check:bundle-scope && npm run check:doc-links && npm run check:no-adhoc-compat && npm run check:roadmap-order
+npx playwright test --project=chromium     # stop `npm run dev` first: Playwright reuses port 3000
+rm -rf test-results playwright-report      # lint scans these if you leave them
 ```
 
 Several of Lane A's specs measure time and can fail once when the machine is busy. Re-run a failure alone (`npx playwright test <file> --workers=1`) before reporting it.
