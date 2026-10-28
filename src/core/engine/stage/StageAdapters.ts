@@ -23,14 +23,16 @@ export class StageAdapters implements EngineAdapter {
   readonly kernel: KernelAdapter;
   private readonly all: EngineAdapter[];
   private playing = false;
+  /** Layers with a scroll-driven clip (Phase 81): the kernel draws them, because a Web Animation can't follow the scroll. */
+  private scrollLayers: ReadonlySet<string> = new Set();
 
   constructor(options: { waapi?: boolean } = {}) {
     // `__LL_KERNEL_ONLY__` is a test seam (set before load): everything on the kernel adapter, to compare it with Web Animations.
     const kernelOnly = typeof window !== "undefined" && (window as unknown as { __LL_KERNEL_ONLY__?: boolean }).__LL_KERNEL_ONLY__ === true;
     const useWaapi = options.waapi ?? (!kernelOnly && typeof Element !== "undefined" && typeof Element.prototype.animate === "function");
-    const onWaapi = (paths: ReadonlySet<string>) => useWaapi && this.playing && canRunOnWaapi(paths);
-    this.waapi = new WaapiAdapter((_id, paths) => onWaapi(paths));
-    this.kernel = new KernelAdapter((_id, paths) => !onWaapi(paths));
+    const onWaapi = (id: string, paths: ReadonlySet<string>) => useWaapi && this.playing && !this.scrollLayers.has(id) && canRunOnWaapi(paths);
+    this.waapi = new WaapiAdapter((id, paths) => onWaapi(id, paths));
+    this.kernel = new KernelAdapter((id, paths) => !onWaapi(id, paths));
     this.all = [this.waapi, this.kernel];
   }
 
@@ -54,6 +56,12 @@ export class StageAdapters implements EngineAdapter {
   }
   seek(time: number): void {
     for (const a of this.all) a.seek(time);
+  }
+  /** The layers whose scroll-driven clips the scroll driver is feeding; they leave any Web Animation for the kernel. */
+  setScrollLayers(layers: ReadonlySet<string>): void {
+    if (layers.size === this.scrollLayers.size && Array.from(layers).every((id) => this.scrollLayers.has(id))) return;
+    this.scrollLayers = layers;
+    this.invalidate();
   }
   setInputs(inputs: EvaluateInputs): void {
     for (const a of this.all) a.setInputs(inputs);

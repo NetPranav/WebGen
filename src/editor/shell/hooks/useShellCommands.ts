@@ -21,6 +21,7 @@ import { registerSelectionCommands } from "@/core/selection/selectionCommands";
 import { registerEditingCommands } from "@/core/editing/editCommands";
 import { registerTimelineCommands } from "@/core/timeline/timelineCommands";
 import { installAutoKey } from "@/core/timeline/keyframeOps";
+import { registerScrollClipCommand, registerScrollCommands } from "@/core/scroll/scrollCommands";
 import { useSavedLayouts } from "@/core/workspace/useSavedLayouts";
 
 export interface ShellCommandActions {
@@ -251,6 +252,8 @@ export function useShellCommands(actions: ShellCommandActions) {
   // Phase 61: the timeline's switches, trims, work area and markers.
   useEffect(() => registerTimelineCommands(), []);
   useEffect(() => installAutoKey(), []);
+  useEffect(() => registerScrollCommands(), []);
+  useEffect(() => registerScrollClipCommand(), []);
 
   // Phase 15: workspace presets and saved layouts. The no-argument commands are what the
   // palette runs; the typed ones (`args`) are what an agent calls (Law 20).

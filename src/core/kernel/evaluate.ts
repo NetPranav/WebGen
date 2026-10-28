@@ -43,6 +43,13 @@ export interface EvaluateInputs {
   pointer?: { x: number; y: number } | null;
   /** A virtual scroll progress, 0-1 — reserved the same way. */
   scrollProgress?: number;
+  /**
+   * Phase 81: the clip-local time (seconds) the scroll driver says each scroll-driven clip is at. A scrubbed clip's is
+   * progress × duration; a triggered clip's is the seconds since it was entered. A clip listed here plays at that time
+   * wherever it is placed and whatever the composition's time; it is how scroll reaches the kernel without the kernel
+   * knowing about scrolling.
+   */
+  scrollClipTime?: Record<string, number>;
 }
 
 export type ResolvedProps = Record<string, PropValue>;
@@ -173,6 +180,11 @@ export function evaluate(doc: MotionDocument, compositionId: string, layerId: st
     const samples: CategorizedSample[] = [];
     for (const clip of Object.values(doc.clips)) {
       if (clip.layerId !== layerId || !clip.enabled) continue;
+      const driven = inputs.scrollClipTime?.[clip.id];
+      if (driven !== undefined) {
+        samples.push({ category: CLIP_TYPE_TO_CATEGORY[clip.type], props: sampleClip(clip, Math.min(clip.duration, Math.max(0, driven))) });
+        continue;
+      }
       const timing = clipTimeInComposition(comp, clip, t);
       if (!timing) continue;
       samples.push({ category: CLIP_TYPE_TO_CATEGORY[clip.type], props: sampleClip(clip, timing.time) });
