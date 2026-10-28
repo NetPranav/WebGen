@@ -3,7 +3,7 @@
 ## Project Name: LazyLayout — AI-Native Motion Design Studio
 **Document Version:** 4.0.0
 **Date:** 2026-10-18
-**Status:** Active. Stage 0 (Phases 1–12) ✅. **Lane A:** Phases 13–19 ✅ (CI green on `main`, 2026-10-19); 20–38 are merged to `main` but their rows still say 🚧 until someone marks them ✅; 39–43 are in open PR #53. **Lane B:** Phases 53–63 ✅; 64–68 are built on the branch `b/phase-64-68-timeline-keyframes-graph` (🚧 until its CI is green on `main`; Phase 68 is only partly done, see its entry). **Next: Phase 69** (Lane B, needs Phase 40 from Lane A as well as 68).
+**Status:** Active. Stage 0 (Phases 1–12) ✅. **Lane A:** Phases 13–19 ✅ (CI green on `main`, 2026-10-19); 20–38 are merged to `main` but their rows still say 🚧 until someone marks them ✅; 39–43 are in open PR #53. **Lane B:** Phases 53–63 ✅; 64–68 are built on the branch `b/phase-64-68-timeline-keyframes-graph` (🚧 until its CI is green on `main`; Phase 68 is only partly done, see its entry). **Next: Phase 69** (Lane B, needs Phase 40 from Lane A as well as 68); Phase 81 (needs only 59) is built on `b/phase-81-scroll-model`, fallback path only.
 **File Location:** `DOCS/INITIAL/ROADMAP.md`
 **Supersedes:** v3.3 (91 phases, run through a separate order file). v3.3 is kept unchanged as `ROADMAP_v3_ARCHIVE.md` for its progress logs, amendments and evidence. `order.md` is retired: in v4, **the phase number is the order**.
 **Inputs:** `PRD.md` v2.4, `AUDIT.md`, the grammar (`lazylayout_element_grammer.md` v0.3), `ANIMATION_PROPERTIES_AND_ENGINE_SPECIFICATION.md`, `INTERACTIVE_EFFECTS_ENGINE_SPECIFICATION.md`, and the World Environment properties in `action working.md`.
@@ -257,7 +257,7 @@ One row per phase, in execution order. Update the Status column together with th
 | 78 | States | 33, 77 | v3 11.1 | 2 | 📋 |
 | 79 | Transitions & smart animate | 78 | v3 11.2 | 2 | 📋 |
 | 80 | Animated variants & interactive components | 47, 79 | v3 75.2 (animated half), 75.4 | 2 | 📋 |
-| 81 | Scroll: model & runtime | 59 | v3 13.1, 13.2 | 2 | 📋 |
+| 81 | Scroll: model & runtime | 59 | v3 13.1, 13.2 | 2 | 🚧 |
 | 82 | Scroll simulator & section choreography | 48, 81 | v3 13.3, 76.2 | 2 | 📋 |
 | 83 | Accessible text splitting | 31, 38, 82 | v3 17.1 | 2 | 📋 |
 | 84 | Text motion | 83 | v3 17.2 | 2 | 📋 |
@@ -1070,8 +1070,11 @@ The document and World Environment have their own stores, After-track actions mo
 **Done when:** a variant switch matches `evaluate()` in the stage; instance overrides survive main-component edits.
 
 ### Phase 81 · Scroll: model & runtime
-**Needs:** 59 · **Was:** v3 13.1, 13.2 · **Status:** 📋
+**Needs:** 59 · **Was:** v3 13.1, 13.2 · **Status:** 🚧
 - [ ] Scroll triggers (enter, leave, enter-back, leave-back) and scroll-linked ranges (start/end offsets, scrub smoothing, pin); view progress per layer. Native CSS scroll-driven animations where possible, otherwise an IntersectionObserver plus scheduler progress driver (never GSAP).
+
+**Built so far (the scheduler-driven fallback path):** `src/core/scroll/model.ts` (pure: range parsing like `"top 80%"`, `resolveRange`, `viewProgress`, the four crossings `scrollEvents`, `smoothProgress` for scrub, `pinOffset`, and the triggered-clip state `advanceTriggered`); `ScrollDriver.ts` (each frame reads the frame's scroll and each scroll clip's layer, and works out every clip's time: a scrubbed clip follows view progress with optional smoothing, a triggered clip plays once on enter and rewinds on leave-back, a pinned layer is held with CSS `translate`; it also publishes per-layer view progress in `scrollStore`); a new kernel input `EvaluateInputs.scrollClipTime` (the driver tells the kernel each clip's own time, the kernel stays pure); `StageEngine` runs the driver in **Preview only** (in Design the page isn't scrolled and reveals stay as drawn), and layers with a scroll clip are kept off Web Animations. Commands: `motion.setScrollTrigger` (range, scrub, pin) and `motion.addScrollClip` (a parallax or a reveal in one call). Layout is read with `offsetTop`, which ignores transforms, so a reveal that moves a layer can't move its own range. Triggers are `scrollProgress` and `inView`; the range is the clip's `scrollTrigger.start` and `end` (default `top bottom` to `bottom top`).
+**Not built, so the phase stays 🚧:** native CSS scroll-driven animations (a `ViewTimeline`) for the cases they can handle; pinned spacing (a pin holds the layer but doesn't lengthen the page); a scroll trigger set from the UI (only by command for now); and the 3-browser check (Chromium is covered here, Firefox and WebKit run in CI).
 
 **You'll see:** parallax and scroll-reveal work in Preview.
 **Done when:** parallax, scroll-reveal and pinned-sequence references match `evaluate()` at 5 scroll positions in 3 browsers, on both the native and fallback paths.

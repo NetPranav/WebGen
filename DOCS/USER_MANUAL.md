@@ -218,7 +218,18 @@ Edits you make while a precomp or interaction tab is open belong to that timelin
 
 Click **Presets tool** (second row) to open the **Content Browser**, which holds the **Animation** panel for the **selected layer**: pick a layer first. **Add Animation** offers ready-made motions (Fade In Up, Spring Pop, Scale Pulse, Card Flip, Scroll Parallax) and shows how many animation slots the layer can use. Each animation lists what it does (from → to values), when it starts (On load, Hover, Click, Scroll, State), its duration, delay and easing, and all of it can be edited there. These are the same animations the timeline shows. Everything is saved with the project and undoes like any other edit.
 
-### 9.9 Keeping an eye on playback
+### 9.9 Scroll animation
+
+Animation can follow the page's **scroll**, as in parallax and scroll-reveal pages. Scroll animations play only in **Preview** (the **Preview** button in the frame bar): while you design, the page isn't scrolled and your layers show as drawn.
+
+- **Parallax:** the layer's animation follows how far you have scrolled through the layer's range. Scroll back and it reverses.
+- **Reveal:** the layer waits at its first frame, plays once when it scrolls into view, and plays again after you scroll back above it.
+- **Pin:** the layer stays in place on screen for the length of its range.
+- A range is written like `top 80%`: the layer's top reaches 80% of the way down the screen. Without one, the range runs from the layer entering at the bottom of the screen to leaving at the top.
+
+There is no scroll panel yet. Scroll animations are added with commands from the **command palette** (**Ctrl+P**): **Add a Scroll Animation to a Layer** and **Set a Clip's Scroll Range, Scrub and Pin** (these take arguments, so they are mostly for the AI co-pilot and advanced users for now). A scroll scrubber on the timeline is planned.
+
+### 9.10 Keeping an eye on playback
 
 The **parity badge** in the status bar (development builds) checks that what is playing matches the reference. Green is good. If it turns red, hover it for details and tell the team.
 
@@ -308,7 +319,7 @@ For anything else, note what you did and what happened, and send it to the team 
 So you don't spend time looking: these are planned, not available.
 
 - **Pen and Pencil** tools, vector editing and boolean shapes; **auto layout** and **grid**; **breakpoints** (per-screen overrides); design tokens, **components** and **variants**; pages and prototype links; **static export** to a ready site; templates. (Several are being built by the other half of the team and will appear here as they land.)
-- **Motion paths** drawn on the canvas, onion skin, anchor points, parenting, masks, blend-mode effects, expressions, hover/press **states** and **transitions**, scroll animation, text splitting and motion export (all part of the animation plan).
+- **Motion paths** drawn on the canvas, onion skin, anchor points, parenting, masks, blend-mode effects, expressions, hover/press **states** and **transitions**, a scroll panel and scrubber (scroll animation works, but only through commands for now), text splitting and motion export (all part of the animation plan).
 - The stage does not yet draw a precomp's effect; the timeline shows what is inside it but the canvas plays only the layers' own animation.
 - The old **Motion Sequencer** tab is still there beside the new timeline until it is retired.
 - Starter **templates** in the Hub don't change what you get yet.
