@@ -48,7 +48,8 @@ export function interpolateValue(method: InterpolationMethod, from: PropValue, t
 
   switch (method) {
     case "numeric": {
-      if (typeof from === "number" && typeof to === "number") return lerp(from, to, clamped);
+      // Not clamped: a spring, a `back` curve or a bezier handle pulled past 1 overshoots the target on purpose (Phase 67).
+      if (typeof from === "number" && typeof to === "number") return lerp(from, to, Number.isFinite(t) ? t : clamped);
       return holdDiscrete(from, to, clamped);
     }
 
@@ -75,7 +76,8 @@ export function interpolateValue(method: InterpolationMethod, from: PropValue, t
 
     case "vector": {
       if (isNumberArray(from, 3) && isNumberArray(to, 3)) {
-        return [lerp(from[0], to[0], clamped), lerp(from[1], to[1], clamped), lerp(from[2], to[2], clamped)];
+        const u = Number.isFinite(t) ? t : clamped; // vectors overshoot too (position and scale in 3D)
+        return [lerp(from[0], to[0], u), lerp(from[1], to[1], u), lerp(from[2], to[2], u)];
       }
       return holdDiscrete(from, to, clamped);
     }

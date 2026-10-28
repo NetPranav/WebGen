@@ -1,7 +1,10 @@
-# Lane B manual test guide (Phases 53–63)
+# Lane B manual test guide (Phases 53–68)
 
-**For:** `@OVERxPOWERED`. **Covers:** everything Lane B has merged to `main`, tested together with Lane A's work (`A_TEST_GUIDE.md`).
-**Updated:** after every phase. The newest phase is at the end of section 3 (look for "NEW" in the table below).
+**For:** `@OVERxPOWERED`. **Covers:** Lane B's phases 53–68, tested together with Lane A's work (`A_TEST_GUIDE.md`).
+**Last checked:** Phases 53–63 against `main` on 2026-10-24 (`391a19c`). **Phases 64–68 (marked NEW) are on the branch `b/phase-64-68-timeline-keyframes-graph`, not on `main` yet**: switch to that branch (or its PR) to test them. Their labels and counts were compared with the code and the unit tests and the Chromium e2e specs for them passed on 2026-10-28.
+**Updated:** after every phase (this file, `A_TEST_GUIDE.md` and `USER_MANUAL.md` are the three files kept current with every phase). The newest phase is the last one in section 3.
+**What a person should test, in order:** the **10-minute quick pass** below first. If it passes, do the phase sections you care about.
+**What CI already checks and what only you can check:** `A_TEST_GUIDE.md` section 6.
 
 | Phase | What you can now do or see | PR | Section |
 |---|---|---|---|
@@ -15,7 +18,26 @@
 | 60 | A parity badge in the status bar checks the engine against the kernel | #48 | 3.8 |
 | 61 | The Layer Timeline: layer rows, bars, work area, markers, motion badges | #49 | 3.9 |
 | 62 | Twirl a layer open and click a stopwatch to start keyframing | #50 | 3.10 |
-| 63 | After Effects keys in the timeline: frames, I/O, B/N, zoom | this PR (NEW) | 3.11 |
+| 63 | After Effects keys in the timeline: frames, I/O, B/N, zoom | #51 | 3.11 |
+| 64 | Keyframes drawn on one canvas, only visible rows built: big timelines stay fast | this branch (NEW) | 3.12 |
+| 65 | Tabs for Main, hover/press timelines and precomps, with breadcrumbs | this branch (NEW) | 3.13 |
+| 66 | Auto-key, and select / move / copy / paste / align / distribute / delete keyframes | this branch (NEW) | 3.14 |
+| 67 | Graph editor: value and speed curves, Snappy / Smooth / Bouncy / Lazy, bezier handles, Bounce and Time | this branch (NEW) | 3.15 |
+| 68 | The Content Browser's Animation panel lives in the document (part 1; the phase isn't finished) | this branch (NEW) | 3.16 |
+
+## The 10-minute quick pass (start here)
+
+If you only have ten minutes, do these. They cover the newest work end to end. Each step points at the full test.
+
+1. Open `/editor`, **Mount Showcase Demo**, click **Animate workspace**, click the ▸ of the root row. (Recipe in 3.12.)
+2. **Keyframes (3.12, 3.14):** open **HeroHeading → ▸P → Transform**. Seek to 1 s, click **◆** on **Position X**; seek to 2 s, click **◆**. Two yellow diamonds. Click one, **Shift-click** the other, drag them right: they move together. **Ctrl+Z**: they go back.
+3. **Auto-key (3.14, T66.1–T66.5):** click **● Auto-key**, seek to 0 s, 1 s, 2 s, and type a different **X** each time in the **Pro** inspector. Three diamonds. Drag the needle: the heading slides. **Ctrl+Z** removes one at a time. Turn Auto-key off.
+4. **Easing (3.15, T67.2–T67.9):** select a diamond, press **Ctrl+Shift+K**, click **Bouncy**, then press Play: it overshoots and settles. The panel shows **Bounce** and **Time**, never "stiffness".
+5. **Precomp (3.13, T65.2–T65.5):** click **+ Precomp**, double-click the blue bar, add a keyframe inside, click **Main** in the breadcrumbs: the precomp's row says **1 key time**.
+6. **Animation panel (3.16, T68.1–T68.9):** select HeroHeading, click **Presets tool**, **Add Animation → Fade In Up**; reload the page. The animation is still there.
+7. Nothing in the console is red.
+
+If a step fails, note the test number and stop: later steps depend on it.
 
 ## How to use this guide
 
@@ -25,13 +47,17 @@ Every test has the same shape:
 - **Expect:** what you should see.
 - **Fails if:** what a bug looks like, so you know when to write it down.
 
-Tick the box when the result is what **Expect** says. If it isn't, don't tick it: write the test number and what happened (section 6 says how to report it).
+Tick the box when the result is what **Expect** says. If it isn't, don't tick it: write the test number and what happened (section 8 says how to report it).
 
 Each phase has a **User test** (click around, no tools needed) and a **Developer test** (terminal, DevTools or code).
 
 > **Known behaviour, not bugs.** Don't report these:
 > - **A project with no animation does nothing when you press Play.** Only the playhead and timecode move. Make an animation with Recipe A below.
-> - **The Sequencer works on the page's root container**, not on whichever layer you click. The Layer Timeline (Phase 61) lists every layer and its time bar but doesn't edit keyframes yet; that arrives in Phases 62–66.
+> - **The old Motion Sequencer works on the page's root container**, not on whichever layer you click. The Layer Timeline is the real timeline now: it trims bars (Phase 61), turns stopwatches on (62), adds, selects, drags and pastes keyframes and records them with Auto-key (66), and sets easing with the Graph editor (67). The Sequencer stays until Phase 68 is finished.
+> - **The stage doesn't draw a precomp's animation yet** (Phase 65): the timeline puts the keyframes in the right place and the parent's bar shows them, but playing Main doesn't play what's inside a precomp on the canvas.
+> - **Keyframes aren't separate page elements any more** (Phase 64). If you inspect the timeline you will find a `<canvas>`, not one node per diamond. That is intended.
+> - **The project-name chip in the header always reads `MyProject.uweb`**, whatever you named the project. It is a placeholder, not a bug in your phase (`StudioHeader.tsx` is never given the name).
+> - **Start from `/editor`, not from the Project Hub (`/`).** A project launched from the hub starts with one empty frame named after the project; `/editor` starts with the root container that these recipes assume (its row is called **RootContainer**).
 > - **The toolbar's "Play Live Application Preview"** is a different feature from the transport.
 > - **The Sequencer's Step Backward button** moves 0.1 s, not one frame. The status bar's step buttons move one frame.
 > - **Only animation of numbers, lengths, angles and colours is drawn on the stage.** Behaviours other than `loop`, signal bindings, states and path morphs are not shown yet (`KERNEL_GAPS` in `src/core/kernel/evaluate.ts`).
@@ -57,7 +83,9 @@ npm run dev            # then open http://localhost:3000/editor
 |---|---|---|
 | Workspace switch | Top header | Three tabs: **Design workspace**, **Animate workspace**, **Code workspace** |
 | Transport bar | **Status bar**, very bottom, centre | Buttons **Stop and return to start**, **Step back one frame**, **Play** (becomes **Pause**), **Step forward one frame**, **Loop: off** (cycles), then a timecode like `00:00:00 / 00:05:00` |
-| Layer Timeline (new in Phase 61) | Bottom of the screen in the **Animate** tab, opened by default | Tab **Layer Timeline**. One row per layer, a ruler, bars. See section 3.9 |
+| Layer Timeline (new in Phase 61) | Bottom of the screen in the **Animate** tab, opened by default | Tab **Layer Timeline**. One row per layer, a ruler, bars. See section 3.9. Above it (Phase 65) is a **tab strip** (Main, interaction tabs, opened precomps, **+ Precomp**); under it the toolbar with **● Auto-key** and the keyframe buttons (Phase 66) |
+| Graph editor (new in Phase 67) | Same bottom area: tab **Graph**, or **Ctrl+Shift+K** | Region **Graph editor**: **Value graph** / **Speed graph**, the easing presets, **Bounce** and **Time** sliders |
+| Animation panel (Phase 68) | **Presets tool** (second row) opens the **Content Browser** | Shows the **selected layer's** animations; **Add Animation** lists presets |
 | Sequencer (the older timeline panel, used by Phases 54–60) | Same bottom area: click the tab **Motion Sequencer** (next to Layer Timeline, Content Browser and Export Preview), or the header button **Timeline tool** | Tab **Motion Sequencer**. Has its own **Play**, **Stop and Reset**, **Step Backward**, **Toggle Loop**, speed pills, **+ Keyframe**, and a ruler across the top |
 | Demo content | Header, right of the canvas-size buttons | Button **Mount Showcase Demo** |
 | Stage | Centre | The canvas with the frames |
@@ -321,7 +349,7 @@ If any step fails, stop and report it. Everything else depends on them.
   `document.getAnimations().forEach(a => a.effect.updateTiming({ easing: 'steps(3, end)' }))`
   Expect: within about half a second the badge turns **red** (**Parity drift**), and the Console shows a warning starting `[PARITY_DRIFT] layer el_root_container, …`. Hovering the badge lists what differs.
 - [ ] **T60.9** Do: click **Pause**, then **Play** again. Expect: the animations are baked again from the kernel and the badge returns to green.
-- [ ] **T60.10** Do: `npx tsx --test src/core/engine/stage/__tests__/parity.test.ts`. Expect: 8 tests pass.
+- [ ] **T60.10** Do: `npx tsx --test src/core/engine/stage/__tests__/parity.test.ts`. Expect: all pass (11 tests at Phase 63).
 - [ ] **T60.11** Do: `npx playwright test tests/e2e/parity.spec.ts --project=chromium`. Expect: 3 tests pass (green stays green; an injected wrong easing raises `[PARITY_DRIFT]`; the badge turns green in the editor).
 - [ ] **T60.12** Do: read `src/core/engine/stage/parity.ts`. Expect: tolerances 0.5 px for lengths, 0.01 for opacity, 0.005 for matrix entries, 6 frames for the clock, one sample every 30 frames.
 
@@ -331,7 +359,7 @@ If any step fails, stop and report it. Everything else depends on them.
 
 **What changed:** the **Animate workspace** now opens a new bottom tab, **Layer Timeline**. It shows one row per layer. On the left of each row are switches, a blend mode and a parent. On the right is the layer's **time bar**: the stretch of time the layer is "on". Above the rows are a ruler, the green **work area**, and markers. A red needle shows the playhead. The older **Motion Sequencer** tab is still next to it.
 
-**Set up:** open `/editor`, click **Mount Showcase Demo**, click **Animate workspace**. The bottom area opens on **Layer Timeline**. You see one row, the root layer (called something like "Root Canvas" or the demo's container).
+**Set up:** open `/editor`, click **Mount Showcase Demo**, click **Animate workspace**. The bottom area opens on **Layer Timeline**. You see one row, the root layer (**RootContainer**).
 
 **How the panel is laid out** (left to right in each row): a small arrow ▸/▾ (show or hide the layer's children), then five switch buttons: ● visible, **S** solo, 🔒 lock, **~** shy, **≋** motion blur, then the layer's name, a blend-mode menu (starts at `normal`) and a parent menu (starts at the layer's current parent). Hover a switch to see its tooltip. The bar to the right is a rounded rectangle labelled with the layer name; it has a handle on each end.
 
@@ -377,7 +405,7 @@ If any step fails, stop and report it. Everything else depends on them.
 - [ ] **T61.31** Do: look at a layer that has no animation (for example the demo's heading). Expect: **no** badge on its row.
 
 **Developer test**
-- [ ] **T61.32** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: 22 tests pass.
+- [ ] **T61.32** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: all pass (42 at Phase 63: 22 from Phase 61, 12 from Phase 62, 8 from Phase 63).
 - [ ] **T61.33** Do: `npx playwright test tests/e2e/timeline.spec.ts --project=chromium`. Expect: 4 tests pass, including the ten-step journey.
 - [ ] **T61.34** Do: export a project after trimming and open the file. Expect: `snapshot.document.compositions.comp_main.layers.<layerId>` has `start`, `in`, `out`, `stretch`; `workArea` has `start` and `end`; `markers` lists your markers; layers carry `solo`, `shy`, `motionBlur` only while on.
 - [ ] **T61.35** Do: press **Ctrl+P**, type `timeline`. Expect: Trim Layer, Move Layer in Time, Set Layer Bar, Set Work Area, Set Work Area Start/End at Playhead, Add Marker at Playhead, Delete Marker, Open Layer Timeline. Run **Add Marker at Playhead**: a marker appears.
@@ -424,7 +452,7 @@ If any step fails, stop and report it. Everything else depends on them.
 - [ ] **T62.22** Do: hover the **canvas** and press **U**. Expect: nothing (it is a timeline key).
 
 **Developer test**
-- [ ] **T62.23** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: 34 tests pass (22 from Phase 61 and 12 new).
+- [ ] **T62.23** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: all pass (the same file, 42 tests at Phase 63).
 - [ ] **T62.24** Do: `npx playwright test tests/e2e/stopwatch.spec.ts --project=chromium`. Expect: 4 tests pass.
 - [ ] **T62.25** Do: turn **Position X** on at 1 s, export the project (**File → Export Project File**), open the file and find the heading's clip. Expect: `clips.<id>` named `Keyframes`, type `entrance`, trigger `mount`, one track `transform.x` with one keyframe at time `1` (± a frame) and value `0`.
 - [ ] **T62.26** Do: **Ctrl+P**, type `stopwatch`. Expect: "Turn a Stopwatch On or Off" (needs arguments, so it is for agents), and `reveal` finds "Reveal Animated Properties (U, twice for modified)" and "Reveal Properties".
@@ -470,10 +498,165 @@ If any step fails, stop and report it. Everything else depends on them.
 - [ ] **T63.22** Do: with the pointer over the **canvas** press **I**, **O**, **B**, **N**, **=**, **-**. Expect: the canvas keys apply (**O** is the Ellipse tool); the timeline doesn't change.
 
 **Developer test**
-- [ ] **T63.23** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: 42 tests pass (34 earlier and 8 new).
+- [ ] **T63.23** Do: `npx tsx --test src/core/timeline/__tests__/timeline.test.ts`. Expect: all pass (42 tests).
 - [ ] **T63.24** Do: `npx playwright test tests/e2e/timeline-navigation.spec.ts tests/e2e/keybinding-conflicts.spec.ts --project=chromium`. Expect: pass (the conflict audit proves no two commands answer the same key at once).
 - [ ] **T63.25** Do: **Ctrl+P** and type `frame`, `zoom`, `work area`, `point`. Expect: Next Frame, Previous Frame, Forward Ten Frames, Back Ten Frames, Zoom Timeline In/Out/to the Work Area, Work Area Starts/Ends at the Playhead, Go to In/Out Point, each showing its key (PageDown, Shift+PageUp, =, -, \, B, N, I, O).
 - [ ] **T63.26** Do: look at `src/core/timeline/model.ts`. Expect: `navigationTarget`, `zoomToRange` and `stepZoom` are pure functions with limits 20 to 2,400 pixels per second.
+
+---
+
+### 3.12 Phase 64: the timeline at scale (NEW)
+
+**What changed:** keyframe diamonds are no longer separate page elements. They are painted on **one canvas** laid over the timeline, and the timeline only builds the rows you can actually see. Nothing looks different, except that very long timelines stay fast. A closed layer now shows **one grey dot per keyframe time** on its row.
+
+**Set up:** open `/editor`, **Mount Showcase Demo**, **Animate workspace**, click the ▸ arrow of the root row. Click **▸P** on the **HeroHeading** row, then the ▸ arrow next to **Transform**.
+
+**User test**
+- [ ] **T64.1** Do: move the needle to 1 s (click the ruler) and click the **◆** button on the **Position X** row (its tooltip says "Add a keyframe here at the playhead"). Expect: a yellow diamond appears on that row at 1 s.
+- [ ] **T64.2** Do: move to 2 s and click **◆** again. Expect: a second diamond at 2 s.
+- [ ] **T64.3** Do: click the **▾P** of HeroHeading to close it. Expect: the diamonds disappear from the property rows and **grey dots** appear on the HeroHeading row at 1 s and 2 s.
+- [ ] **T64.4** Do: open it again, drag the timeline's vertical scroll bar up and down. Expect: rows scroll smoothly with no blank flashes, and the diamonds stay on the right rows.
+- [ ] **T64.5** Do: zoom in (**=** over the timeline) and scroll sideways. Expect: diamonds stay lined up with the ruler.
+- [ ] **T64.6** Do: right-click one diamond and use the browser's Inspect on the timeline. Expect: you can't find one element per diamond (a single `<canvas>` draws them).
+- [ ] **T64.7** Do: open several layers' groups so the list is long (HeroHeading and BuyButton, Transform and Appearance), then scroll. Expect: still smooth.
+
+**Developer test**
+- [ ] **T64.8** Do: `npx tsx --test src/core/timeline/__tests__/keyframing.test.ts`. Expect: all 37 pass. The first six are Phase 64, including **"200 layers × 20 tracks"**: it prints a line like `build 40 ms for 3001 rows, paint 0.08 ms for 11 rows`. **Fails if** the build is over 120 ms or the paint over 4 ms (the test fails).
+- [ ] **T64.9** Do: in DevTools run `document.querySelector('.timeline__items').dataset`. Expect: `rowsBuilt` is smaller than `rowsTotal` once the list is longer than the window.
+- [ ] **T64.10** Do: `npx playwright test tests/e2e/keyframing.spec.ts -g "Phase 64" --project=chromium`. Expect: 2 tests pass.
+- [ ] **T64.11** Do: read `src/core/timeline/lanes.ts`. Expect: `visibleWindow`, `drawLanes` (one path and one fill per colour), `hitKey` and `keysInBox` are pure functions with no DOM.
+
+---
+
+### 3.13 Phase 65: precomps and interaction tabs (NEW)
+
+**What changed:** above the timeline there is now a **tab strip**. **Main** is the timeline that plays by itself. A hover or press animation gets its own tab. A **precomp** (a timeline inside a timeline) is a bar you can open in a tab of its own, with **breadcrumbs** showing the way back.
+
+**Set up:** same as 3.12 (demo mounted, Animate workspace).
+
+**User test**
+- [ ] **T65.1** Do: look above the toolbar. Expect: a tab **Main** (highlighted) and a button **+ Precomp**.
+- [ ] **T65.2** Do: click **+ Precomp**. Expect: a blue row appears at the **bottom** of the list tagged `PRECOMP`, named **Precomp 1**, saying **empty**, with **Open** and **×** buttons and a blue bar along the timeline.
+- [ ] **T65.3** Do: double-click the blue bar. Expect: a new tab **Precomp 1** opens and is selected, a line **Main › Precomp 1** appears under the tabs, and the ruler is now 2 s long.
+- [ ] **T65.4** Do: open HeroHeading's **Transform**, move to 0.5 s, click **◆** on **Position X**. Expect: a diamond on that row. Click the **Main** crumb in the breadcrumbs. Expect: you're back in **Main**, and the precomp's row now says **1 key time** with a small diamond on its bar. (The parent shows what changed inside.)
+- [ ] **T65.5** Do: the **Precomp 1** tab is still there. Click it. Expect: your keyframe is still in it. Click **Main** (tab) and press the **×** on the Precomp 1 tab. Expect: the tab goes; the precomp row stays in Main.
+- [ ] **T65.6** Do: click **Open** on the precomp row. Expect: it opens again with its keyframe.
+- [ ] **T65.7** Do: click **×** on the precomp row. Expect: the row goes (the precomp is only taken out of this timeline).
+- [ ] **T65.8** Do: nest one level deeper: open a precomp, click **+ Precomp**, open the new one. Expect: breadcrumbs read **Main › Precomp 1 › Precomp 2**; clicking **Precomp 1** goes there.
+- [ ] **T65.9** Do: with a layer selected, open the **Content Browser** (Presets tool), **Add Animation** and pick **Spring Pop** (a Hover animation). Go back to the timeline. Expect: a new tab appears with the hover's name and "Hover on …". Click it. Expect: that animation's own timeline (about 0.45 s long).
+- [ ] **T65.10** Do: with a hover tab open, turn on a stopwatch for a property. Expect: it goes into **that** tab (no extra tab appears; the Main tab doesn't get the keyframe).
+- [ ] **T65.11** Do: **Ctrl+Z** repeatedly. Expect: each add, move or delete undoes one step at a time and tabs update.
+
+**Developer test**
+- [ ] **T65.12** Do: `npx tsx --test src/core/timeline/__tests__/keyframing.test.ts`. Expect: the "Phase 65" group of 7 passes.
+- [ ] **T65.13** Do: `npx playwright test tests/e2e/keyframing.spec.ts -g "Phase 65" --project=chromium`. Expect: pass.
+- [ ] **T65.14** Do: export the project, open the file. Expect: `compositions.<id>` has `"kind": "precomp"`, and `comp_main.nested` lists it.
+
+**Known gap (don't report):** the stage doesn't draw a precomp's animation yet. The keyframes are in the right place and the parent shows them; playing Main doesn't play what's inside a precomp on the canvas.
+
+---
+
+### 3.14 Phase 66: keyframing and Auto-key (NEW)
+
+**What changed:** you can select, drag, copy and paste keyframes, and a new **● Auto-key** button records your edits as keyframes.
+
+**Set up:** as 3.12. Keep HeroHeading's **Transform** group open.
+
+*Auto-key*
+- [ ] **T66.1** Do: click **● Auto-key**. Expect: it turns red and is pressed.
+- [ ] **T66.2** Do: seek to 0 s, select **HeroHeading** (click its name), switch the right dock to **Design → Pro**, type `10` in **X** (Position). Expect: the heading moves, and a diamond appears on **Position X** at 0 s.
+- [ ] **T66.3** Do: seek to 1 s and type `60`; seek to 2 s and type `120`. Expect: three diamonds (0, 1, 2 s).
+- [ ] **T66.4** Do: drag the needle slowly from 0 to 2 s. Expect: the heading slides smoothly from 10 to 120, and the value on the Position X row follows.
+- [ ] **T66.5** Do: **Ctrl+Z**. Expect: the 2 s value **and** its diamond disappear together; **Ctrl+Z** twice more removes the others.
+- [ ] **T66.6** Do: switch **● Auto-key** off and change X. Expect: the layer moves, no diamond.
+- [ ] **T66.7** Do: with Auto-key on, drag the heading on the stage at 1 s. Expect: a keyframe at 1 s on Position X and Position Y (one per axis you changed).
+
+*Selecting and moving*
+- [ ] **T66.8** Do: make keyframes at 1 s and 2 s on Position X (the **◆** button). Click the first diamond. Expect: it turns blue, the toolbar says **1 keyframe selected**, and the needle jumps to it.
+- [ ] **T66.9** Do: **Shift-click** the second. Expect: **2 keyframes selected**.
+- [ ] **T66.10** Do: drag one of them 60 px right. Expect: both move together by 0.5 s (to 1.5 and 2.5 s), snapped to frames. **Ctrl+Z** puts both back in one step.
+- [ ] **T66.11** Do: drag them far to the right. Expect: they stop at the end of the composition without being squashed together.
+- [ ] **T66.12** Do: **Shift-drag** a box on empty space in the row around some diamonds. Expect: those become selected (a dashed purple box shows while dragging). A plain drag on empty space still scrubs the needle.
+- [ ] **T66.13** Do: click empty space in a row. Expect: the selection clears.
+
+*Copy, paste, align, distribute, scale, delete*
+- [ ] **T66.14** Do: select the two diamonds, click **Copy keys**, move the needle to 3 s, click the **BuyButton** row name (select that layer), click **Paste keys**. Expect: two diamonds on BuyButton's Position X at 3 s and 4 s (the same spacing).
+- [ ] **T66.15** Do: with one copied layer, select **two** layers and **Paste keys**. Expect: both get the keys.
+- [ ] **T66.16** Do: with the pointer over the timeline press **Ctrl+C**, then **Ctrl+V**. Expect: same as the buttons.
+- [ ] **T66.17** Do: select several, move the needle, click **Align to playhead**. Expect: all of them now sit at the needle.
+- [ ] **T66.18** Do: make three keyframes at uneven times (1, 1.2, 3 s), select all, click **Distribute**. Expect: they end up at 1, 2 and 3 s.
+- [ ] **T66.19** Do: select two keys 1 s apart, click **Slower**. Expect: they are 1.25 s apart (the first stays). **Faster**: 0.8 of that.
+- [ ] **T66.20** Do: select keys and press **Delete** (pointer over the timeline). Expect: they go. Delete the last key of a property: its stopwatch turns off.
+- [ ] **T66.21** Do: with the pointer over the **stage** press **Delete** with keys selected. Expect: it deletes **layers**, not keyframes (the keys belong to the timeline).
+- [ ] **T66.22** Do: **Ctrl+P**, type `keyframe`. Expect: Add Keyframe at the Playhead, Select Keyframes, Move Keyframes in Time, Align, Distribute, Scale Keyframe Time, Delete Keyframes, Copy Keyframes, Paste Keyframes at the Playhead, Select All Keyframes, Deselect Keyframes.
+
+**Developer test**
+- [ ] **T66.23** Do: `npx tsx --test src/core/timeline/__tests__/keyframing.test.ts`. Expect: the "Phase 66" group passes (14 tests), including "3 recorded changes make 3 keyframes, playback matches `evaluate()`, undo removes them".
+- [ ] **T66.24** Do: `npx playwright test tests/e2e/keyframing.spec.ts -g "Phase 66" --project=chromium`. Expect: 3 tests pass.
+- [ ] **T66.25** Do: `npx playwright test tests/e2e/keybinding-conflicts.spec.ts --project=chromium`. Expect: pass (Delete, Backspace, Ctrl+C, Ctrl+V and F9 are timeline-only, so they don't clash with the stage's).
+- [ ] **T66.26** Do: read `applyAutoKey` in `src/core/timeline/keyframeOps.ts` and `setCommitHook` in `src/core/store/useDocumentStore.ts`. Expect: auto-key is a hook inside the document store's commit, so it works for every way of editing.
+
+---
+
+### 3.15 Phase 67: the Graph editor and easing (NEW)
+
+**What changed:** the bottom tab **Easing** is now **Graph**: a graph editor for how keyframes move. A **kernel bug** was fixed along the way: springs and "back" curves never overshot before; now they do.
+
+**Set up:** do T66.1–T66.3 (Position X at 10, 60 → use 10 at 0 s and 110 at 1 s), turn **● Auto-key** off, click a diamond to select it. Then press **Ctrl+Shift+K** (or click the **Graph** tab in the bottom drawer).
+
+**User test**
+- [ ] **T67.1** Do: look at the graph. Expect: a plot with one coloured curve, a red playhead line, a small circle at each keyframe, and a legend "HeroHeading · Position X". Buttons **Value graph** and **Speed graph**.
+- [ ] **T67.2** Do: click the **second** circle. Expect: it grows; the heading under the plot says **Easing into the selected keyframe** and a tag **linear** appears.
+- [ ] **T67.3** Do: click **Bouncy**. Expect: the curve now overshoots the second keyframe and settles; **Bounce** and **Time** sliders appear; the tag says **spring**. Press Play: the heading really overshoots then settles.
+- [ ] **T67.4** Do: click **Smooth**, **Snappy**, **Lazy**. Expect: a different curve each time; Smooth never overshoots.
+- [ ] **T67.5** Do: drag the **Bounce** slider. Expect: the curve changes live; the number beside it follows.
+- [ ] **T67.6** Do: read everything on the graph panel on the **Simple** inspector face. Expect: the words **Bounce** and **Time**, and **no** "Stiffness", "Damping" or "Mass" anywhere.
+- [ ] **T67.7** Do: switch the Design inspector to **Pro** (select the layer, Design tab, **Pro**), come back to the graph. Expect: the spring now also shows **Stiffness**, **Damping**, **Mass** as read-only numbers.
+- [ ] **T67.8** Do: click **Ease in and out**. Expect: an S-shaped curve with **two yellow handles** joined by dashed lines to the keyframes. Drag one. Expect: the curve bends live and, on release, the easing is saved (tag **curve**). **Ctrl+Z** undoes it.
+- [ ] **T67.9** Do: click **Hold**. Expect: the curve becomes a step: the value stays at the first keyframe's until the second. Play: the heading jumps.
+- [ ] **T67.10** Do: click **Speed graph**. Expect: a hump for ease curves (fast in the middle), flat for linear.
+- [ ] **T67.11** Do: select the **first** keyframe in the timeline. Expect: the graph says **The first keyframe has no easing into it** and the preset buttons still work on later keys you select.
+- [ ] **T67.12** Do: select several keyframes of one track and click **Snappy**. Expect: every segment into a selected keyframe changes; **Ctrl+Z** undoes all in one step.
+- [ ] **T67.13** Do: make a colour animation (stopwatch on **Fill colour**) and select its keyframe. Expect: the graph says colours have no curve (the property isn't drawn), but the presets still apply.
+- [ ] **T67.14** Do: in the timeline select a keyframe and press **F9**. Expect: its easing becomes **Ease in and out**.
+- [ ] **T67.15** Do: with nothing selected, select a layer that has keyframes. Expect: the graph shows that layer's curves.
+- [ ] **T67.16** Do: Play, then pause with the needle mid-way. Expect: the graph's red line sits at the same time as the timeline's needle.
+
+**Developer test**
+- [ ] **T67.17** Do: `npx tsx --test src/core/timeline/__tests__/keyframing.test.ts`. Expect: the "Phase 67" group passes (10 tests), including "the graph's curve matches the kernel's golden values at every sample" (six easings).
+- [ ] **T67.18** Do: `npx tsx --test "src/core/kernel/__tests__/*.test.ts"`. Expect: pass (the interpolation fix didn't break the kernel).
+- [ ] **T67.19** Do: `npx playwright test tests/e2e/keyframing.spec.ts -g "Phase 67" --project=chromium`. Expect: pass.
+- [ ] **T67.20** Do: in the console `__LL_ENGINE__.kernel("el_hero_heading", 0.7)` with a Bouncy keyframe from 10 to 110. Expect: a value above 110 at some time between 0.5 and 0.9 s.
+
+**Known gaps (don't report):** each curve is scaled to fit its own height (so different properties can share the plot); keyframes can't be dragged inside the graph yet; the graph has no motion-path (spatial) handles (Phase 69).
+
+---
+
+### 3.16 Phase 68 (part 1): the Animation panel lives in the document (NEW)
+
+**What changed:** the **Content Browser's Animation panel** used to keep its animations in a hidden temporary list that vanished on reload. It now shows the **selected layer's real animations**, the same ones the timeline shows.
+
+**Set up:** `/editor`, **Mount Showcase Demo**, select the **HeroHeading** layer (Layers panel). Click **Presets tool** (second row) to open the Content Browser.
+
+**User test**
+- [ ] **T68.1** Do: select nothing, look at the Animation panel. Expect: **No layer selected** and a hint to select one. It does **not** show a made-up "Untitled" stack or sample tracks.
+- [ ] **T68.2** Do: select HeroHeading. Expect: its name shows in the panel's header chip and the list is empty ("No Tracks on HeroHeading") unless you've animated it.
+- [ ] **T68.3** Do: **Add Animation**, pick **Fade In Up**. Expect: a track **Fade In Up** (On Load) appears, listing `transform.y 24px → 0px` and `appearance.opacity 0 → 1`.
+- [ ] **T68.4** Do: switch to the **Layer Timeline**, open HeroHeading's **▸P**. Expect: **Position Y** and **Opacity** now have keyframes and their stopwatches are on.
+- [ ] **T68.5** Do: back in the Animation panel, change the track's **duration** to 1.2. Expect: in the timeline the last keyframes move to 1.2 s (the first stay at 0).
+- [ ] **T68.6** Do: change a **to** value (for example Y to `-12px`). Expect: the timeline's second Position Y keyframe now holds -12; play to see it.
+- [ ] **T68.7** Do: change the trigger from **On Load** to **Hover**. Expect: a new tab "Hover on HeroHeading" appears over the timeline and the animation no longer plays on load.
+- [ ] **T68.8** Do: **Ctrl+Z** a few times. Expect: each change undoes (trigger, value, duration, then the add), and the panel and timeline stay in step.
+- [ ] **T68.9** Do: add an animation, then **reload the page**. Expect: the animation is **still there** in both the panel and the timeline. (Before Phase 68 it vanished.)
+- [ ] **T68.10** Do: rename the stack by clicking its name chip, typing a new name and pressing Enter. Expect: the **layer** is renamed (check the Layers panel).
+- [ ] **T68.11** Do: delete the track with its trash button. Expect: the keyframes disappear from the timeline; **Ctrl+Z** brings them back.
+
+**Developer test**
+- [ ] **T68.12** Do: `npx tsx --test src/core/animation/__tests__/stackAdapter.test.ts`. Expect: 12 tests pass, including the **grep gate** (no `INITIAL_ELEMENT_TRACKS` anywhere in `src`) and "survives a save and reload".
+- [ ] **T68.13** Do: `grep -rn "INITIAL_ELEMENT_TRACKS" src`. Expect: no results.
+- [ ] **T68.14** Do: `grep -rln "AnimationSample" src | wc -l`. Expect: **a number above zero**: the export code still reads that old model. **This is why Phase 68 is not finished.**
+
+**Not done yet (so Phase 68 stays 🚧):** the older **Motion Sequencer** tab, and moving the exporters off `AnimationSample`.
 
 ---
 
@@ -486,6 +669,8 @@ If any step fails, stop and report it. Everything else depends on them.
 - [ ] **R5** Do: in the Sequencer open the add-property menu (**Add property track for current archetype**). Expect: properties that aren't legal for the layer are disabled with a reason.
 - [ ] **R6** Do: **File → Export Project File** and open the file. Expect: valid JSON, `schemaVersion` 6.
 - [ ] **R7** Do: `npm run build && npm run start`, open `http://localhost:3000/editor`, repeat section 2 (smoke) and Recipe A. Expect: it all works in the production build too.
+- [ ] **R8** Do: make three keyframes, reload the page. Expect: they are all still there (keyframes, easing, precomps and the Animation panel's tracks are in the document).
+- [ ] **R9** Do: with **● Auto-key** on, drag a layer on the stage once. Expect: undo takes the move **and** its keyframes in one step.
 
 ## 5. Cross-browser pass (about 10 minutes)
 
@@ -494,6 +679,7 @@ Repeat in **Firefox** and **Safari/WebKit** (CI runs all three):
 - [ ] **X2** Recipe A, then T57.1–T57.4.
 - [ ] **X3** T54.1–T54.14 (transport bar).
 - [ ] **X4** T59.1, T59.3, T59.6 (hand-over) and T60.2 (badge turns green).
+- [ ] **X5** T64.1–T64.5 (canvas keyframes line up with the ruler; WebKit and Firefox size canvases differently), T66.8–T66.12 (selecting and dragging keyframes), T67.3 and T67.8 (the Bouncy curve and a dragged handle).
 - [ ] **X5** T53.1 and T53.3 (import and schema version).
 - [ ] **X6** T61.1, T61.7, T61.14 and T61.20 (the Layer Timeline).
 - [ ] **X7** T62.1, T62.6, T62.11 and T62.18 (stopwatches and U).
@@ -501,16 +687,20 @@ Repeat in **Firefox** and **Safari/WebKit** (CI runs all three):
 
 ## 6. Run the automated suites and compare
 
+CI already runs all of these on every push (typecheck, lint, unit tests twice, build, four repo checks, and Playwright on Chromium, Firefox and WebKit). Run them yourself only when you want the answer before pushing. `A_TEST_GUIDE.md` section 6 says what CI covers and what it can't.
+
 ```bash
 npm test                 # typecheck + unit tests (default and full edition)
 npm run lint             # must exit 0
 npm run build
-npm run check:bundle-scope && npm run check:doc-links && npm run check:no-adhoc-compat
-npx playwright test --project=chromium
+npm run check:bundle-scope && npm run check:doc-links && npm run check:no-adhoc-compat && npm run check:roadmap-order
+npx playwright test --project=chromium     # stop `npm run dev` first: Playwright reuses port 3000
 rm -rf test-results playwright-report      # lint scans these if you leave them
 ```
 
 Several timing-based tests can fail once on a busy machine and pass when run alone (`npx playwright test <file> --workers=1`). Re-run a failure by itself before reporting it.
+
+**What only a person can check in Lane B's work:** how the animation *looks* while it plays (smoothness, no flash at the hand-over between scrubbing and playing), whether the timeline is readable and its handles easy to grab, long-running playback and memory (section 7), and the behaviour in Firefox and Safari (section 5). CI proves the numbers match the kernel within tolerance; it can't tell you it looks right.
 
 ## 7. Things worth trying to break
 

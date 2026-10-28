@@ -404,3 +404,156 @@
 .timeline__key:hover {
   background: #fff;
 }
+
+/* ---- Phase 64: keyframes drawn on one canvas, rows built only for the view ---- */
+.timeline__canvas-layer {
+  position: sticky;
+  height: 0;
+  width: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.timeline__canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+.timeline__items {
+  position: relative;
+}
+.timeline__box {
+  position: absolute;
+  z-index: 3;
+  border: 1px dashed #6366f1;
+  background: rgba(99, 102, 241, 0.16);
+  pointer-events: none;
+}
+.timeline__addkey {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 3px;
+  background: transparent;
+  color: #facc15;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+.timeline__addkey:hover {
+  background: rgba(250, 204, 21, 0.2);
+}
+
+/* ---- Phase 65: composition tabs, breadcrumbs, precomp bars ---- */
+.timeline__tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px 6px 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
+  overflow-x: auto;
+}
+.timeline__tab {
+  display: flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  font-size: 11px;
+}
+.timeline__tab--active {
+  background: var(--surface-2, #1e1e2a);
+  border-color: var(--border-subtle, rgba(128, 128, 128, 0.3));
+}
+.timeline__tab-button,
+.timeline__tab-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.timeline__tab-close {
+  padding: 4px 6px;
+  opacity: 0.6;
+}
+.timeline__tab-trigger {
+  margin-left: 6px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+.timeline__tab-add {
+  align-self: center;
+  margin-left: 6px;
+}
+.timeline__crumbs {
+  padding: 3px 10px;
+  font-size: 11px;
+  opacity: 0.9;
+}
+.timeline__crumb {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.timeline__crumb:disabled {
+  text-decoration: none;
+  font-weight: 600;
+  cursor: default;
+}
+.timeline__row--nested {
+  background: rgba(56, 189, 248, 0.07);
+}
+.timeline__nested-tag {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: rgba(56, 189, 248, 0.25);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.timeline__bar--nested {
+  background: rgba(56, 189, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.8);
+  cursor: pointer;
+}
+.timeline__nested-key {
+  position: absolute;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  background: #e0f2fe;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/* ---- Phase 66: keyframing toolbar ---- */
+.timeline__sep {
+  flex: none;
+  width: 1px;
+  align-self: stretch;
+  margin: 0 4px;
+  background: rgba(128, 128, 128, 0.35);
+}
+.timeline__record--on {
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
+}
+.timeline__keycount {
+  font-size: 10px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.timeline__tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

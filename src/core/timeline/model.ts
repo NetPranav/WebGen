@@ -53,6 +53,7 @@ export function buildTimelineRows(doc: MotionDocument, compositionId: string, ex
   const comp = doc.compositions[compositionId];
   if (!comp) return [];
   const rows: TimelineRow[] = [];
+  const motion = motionIndex(doc);
   for (const row of buildRows(doc.layers, expanded)) {
     const layer = doc.layers[row.id];
     if (options.hideShy && layer.shy === true) continue;
@@ -66,7 +67,7 @@ export function buildTimelineRows(doc: MotionDocument, compositionId: string, ex
       motionBlur: layer.motionBlur === true,
       blendMode: typeof blend === "string" && blend !== "" ? blend : "normal",
       parentName: layer.parentId ? (doc.layers[layer.parentId]?.name ?? null) : null,
-      motion: motionSummary(doc, row.id),
+      motion: motion.get(row.id) ?? { clips: 0, states: 0, engine: null },
     });
   }
   return rows;
@@ -197,6 +198,21 @@ export interface KeyframeMark {
   value: PropValue;
 }
 
+/** The marks of one clip's tracks, in composition seconds, added to `out` (`path → marks`). */
+function collectMarks(out: Map<string, KeyframeMark[]>, clip: MotionDocument["clips"][string], bar: CompositionLayer, offset: number): void {
+  for (const track of clip.tracks) {
+    const marks = out.get(track.property) ?? [];
+    for (const k of track.keyframes) {
+      marks.push({ id: k.id, clipId: clip.id, trackId: track.id, time: bar.start + (offset + (clip.delay ?? 0) + k.time) * bar.stretch, value: k.value });
+    }
+    out.set(track.property, marks);
+  }
+}
+
+const sortMarks = (out: Map<string, KeyframeMark[]>) => {
+  for (const marks of out.values()) marks.sort((a, b) => a.time - b.time);
+};
+
 /** The tracks animating each property of a layer in a composition: `path → keyframe marks`. */
 export function animatedProperties(doc: MotionDocument, compositionId: string, layerId: string): Map<string, KeyframeMark[]> {
   const out = new Map<string, KeyframeMark[]>();
@@ -206,16 +222,29 @@ export function animatedProperties(doc: MotionDocument, compositionId: string, l
   for (const placement of comp.clips) {
     const clip = doc.clips[placement.clipId];
     if (!clip || clip.layerId !== layerId || !clip.enabled) continue;
-    for (const track of clip.tracks) {
-      const marks = out.get(track.property) ?? [];
-      for (const k of track.keyframes) {
-        marks.push({ id: k.id, clipId: clip.id, trackId: track.id, time: bar.start + (placement.offset + (clip.delay ?? 0) + k.time) * bar.stretch, value: k.value });
-      }
-      out.set(track.property, marks);
-    }
+    collectMarks(out, clip, bar, placement.offset);
   }
-  for (const marks of out.values()) marks.sort((a, b) => a.time - b.time);
+  sortMarks(out);
   return out;
+}
+
+/**
+ * `animatedProperties` for every layer in one pass over the composition's clips (Phase 64: a timeline with hundreds of
+ * layers can't afford a scan per layer). Layers with no keyframes are absent.
+ */
+export function animatedIndex(doc: MotionDocument, compositionId: string): Map<string, Map<string, KeyframeMark[]>> {
+  const index = new Map<string, Map<string, KeyframeMark[]>>();
+  const comp = doc.compositions[compositionId];
+  if (!comp) return index;
+  for (const placement of comp.clips) {
+    const clip = doc.clips[placement.clipId];
+    if (!clip || !clip.enabled || !doc.layers[clip.layerId]) continue;
+    let layerMarks = index.get(clip.layerId);
+    if (!layerMarks) index.set(clip.layerId, (layerMarks = new Map()));
+    collectMarks(layerMarks, clip, layerBar(comp, clip.layerId), placement.offset);
+  }
+  for (const layerMarks of index.values()) sortMarks(layerMarks);
+  return index;
 }
 
 /** The property's value on the layer itself (its own setting, else the archetype's default), ignoring animation. */
@@ -231,10 +260,17 @@ export function isModified(layer: Layer, path: string, animated: boolean): boole
 }
 
 export type TimelineItem =
-  | { kind: "layer"; row: TimelineRow; propsOpen: boolean }
+  | { kind: "layer"; row: TimelineRow; propsOpen: boolean; /** Composition seconds of every keyframe of the layer, sorted and without repeats (drawn as the layer's summary dots). */ keyTimes: number[] }
   | { kind: "group"; layerId: string; layerName: string; group: PropertyGroup; label: string; open: boolean; count: number }
   | { kind: "property"; layerId: string; layerName: string; path: string; label: string; animated: boolean; keys: KeyframeMark[]; value: PropValue | undefined }
   | { kind: "info"; layerId: string; layerName: string; group: PropertyGroup; label: string; detail: string };
+
+/** Every distinct keyframe time across a layer's properties, sorted. */
+function uniqueTimes(animated: Map<string, KeyframeMark[]>): number[] {
+  const times = new Set<number>();
+  for (const marks of animated.values()) for (const m of marks) times.add(Math.round(m.time * 1e6) / 1e6);
+  return [...times].sort((a, b) => a - b);
+}
 
 export type RevealMode = "animated" | "modified";
 
@@ -252,13 +288,15 @@ export interface TimelineViewState {
  */
 export function buildTimelineItems(doc: MotionDocument, compositionId: string, expanded: ReadonlySet<string>, view: TimelineViewState, options: { hideShy?: boolean } = {}): TimelineItem[] {
   const items: TimelineItem[] = [];
+  const index = animatedIndex(doc, compositionId);
+  const none = new Map<string, KeyframeMark[]>();
   for (const row of buildTimelineRows(doc, compositionId, expanded, options)) {
     const layer = doc.layers[row.id];
     const reveal = view.reveal[row.id];
     const propsOpen = reveal !== undefined || view.open.has(row.id);
-    items.push({ kind: "layer", row, propsOpen });
+    const animated = index.get(row.id) ?? none;
+    items.push({ kind: "layer", row, propsOpen, keyTimes: uniqueTimes(animated) });
     if (!propsOpen) continue;
-    const animated = animatedProperties(doc, compositionId, row.id);
     for (const group of PROPERTY_GROUPS) {
       const rows: TimelineItem[] = [];
       if (group === "transform" || group === "appearance") {
