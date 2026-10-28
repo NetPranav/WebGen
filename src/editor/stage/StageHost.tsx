@@ -17,6 +17,8 @@ import { createPlanStore } from "@/core/render/planStore";
 import { StageContext, StoreRenderLayer, type StageContextValue } from "@/core/render/StoreRenderLayer";
 import { StageRenderer, registerFrameRenderer, setStageRenderer } from "@/core/render/StageRenderer";
 import { installStageEngine } from "@/core/engine/stage/StageEngine";
+import { createFrameScrollHost } from "@/core/scroll/frameHost";
+import { useCanvasViewStore } from "@/core/store/useCanvasViewStore";
 import { evaluate } from "@/core/kernel/evaluate";
 import { getTransport, transport } from "@/core/time/transport";
 import { parityStore } from "@/core/engine/stage/parity";
@@ -107,7 +109,8 @@ export const StageHost: React.FC<StageHostProps> = ({ width = "100%", height = "
 
   // The animation engine: shows the transport's time on the stage by writing to the layers' elements (Phase 57).
   useEffect(() => {
-    const uninstall = installStageEngine(renderer);
+    // Scroll-driven clips play only in Preview, where the page is scrolled; in Design they stay as drawn (Phase 81).
+    const uninstall = installStageEngine(renderer, { scroll: { host: createFrameScrollHost(renderer.registry, getDocument), active: () => useCanvasViewStore.getState().mode === "preview" } });
     // Test seam: the kernel's answer for a layer, and the transport's seek, so a browser test can compare the stage with the oracle.
     if (window.__LL_TEST__) {
       window.__LL_ENGINE__ = { kernel: (layerId, time) => evaluate(getDocument(), getTransport().compositionId, layerId, time), seek: (time) => transport.seek(time), play: () => transport.play(), pause: () => transport.pause(), time: () => getTransport().time, parity: () => parityStore.getState(), document: () => getDocument(), loop: (on) => transport.setLoop(on ? "loop" : "off") };

@@ -1,7 +1,7 @@
-# Lane B manual test guide (Phases 53–68)
+# Lane B manual test guide (Phases 53–68, 81)
 
 **For:** `@OVERxPOWERED`. **Covers:** Lane B's phases 53–68, tested together with Lane A's work (`A_TEST_GUIDE.md`).
-**Last checked:** Phases 53–63 against `main` on 2026-10-24 (`391a19c`). **Phases 64–68 (marked NEW) are on the branch `b/phase-64-68-timeline-keyframes-graph`, not on `main` yet**: switch to that branch (or its PR) to test them. Their labels and counts were compared with the code and the unit tests and the Chromium e2e specs for them passed on 2026-10-28.
+**Last checked:** Phases 53–68 on `main` (PR #55 merged, CI green). **Phase 81 (marked NEW) is on the branch `b/phase-81-scroll-model`, not on `main` yet**: switch to that branch (or its PR) to test it. Their labels and counts were compared with the code and the unit tests and the Chromium e2e specs for them passed on 2026-10-28.
 **Updated:** after every phase (this file, `A_TEST_GUIDE.md` and `USER_MANUAL.md` are the three files kept current with every phase). The newest phase is the last one in section 3.
 **What a person should test, in order:** the **10-minute quick pass** below first. If it passes, do the phase sections you care about.
 **What CI already checks and what only you can check:** `A_TEST_GUIDE.md` section 6.
@@ -19,11 +19,12 @@
 | 61 | The Layer Timeline: layer rows, bars, work area, markers, motion badges | #49 | 3.9 |
 | 62 | Twirl a layer open and click a stopwatch to start keyframing | #50 | 3.10 |
 | 63 | After Effects keys in the timeline: frames, I/O, B/N, zoom | #51 | 3.11 |
-| 64 | Keyframes drawn on one canvas, only visible rows built: big timelines stay fast | this branch (NEW) | 3.12 |
-| 65 | Tabs for Main, hover/press timelines and precomps, with breadcrumbs | this branch (NEW) | 3.13 |
-| 66 | Auto-key, and select / move / copy / paste / align / distribute / delete keyframes | this branch (NEW) | 3.14 |
-| 67 | Graph editor: value and speed curves, Snappy / Smooth / Bouncy / Lazy, bezier handles, Bounce and Time | this branch (NEW) | 3.15 |
-| 68 | The Content Browser's Animation panel lives in the document (part 1; the phase isn't finished) | this branch (NEW) | 3.16 |
+| 64 | Keyframes drawn on one canvas, only visible rows built: big timelines stay fast | #55 | 3.12 |
+| 65 | Tabs for Main, hover/press timelines and precomps, with breadcrumbs | #55 | 3.13 |
+| 66 | Auto-key, and select / move / copy / paste / align / distribute / delete keyframes | #55 | 3.14 |
+| 67 | Graph editor: value and speed curves, Snappy / Smooth / Bouncy / Lazy, bezier handles, Bounce and Time | #55 | 3.15 |
+| 68 | The Content Browser's Animation panel lives in the document (part 1; the phase isn't finished) | #55 | 3.16 |
+| 81 | Scroll drives animation in Preview: parallax, reveal, pin (fallback path) | this branch (NEW) | 3.17 |
 
 ## The 10-minute quick pass (start here)
 
@@ -35,7 +36,8 @@ If you only have ten minutes, do these. They cover the newest work end to end. E
 4. **Easing (3.15, T67.2–T67.9):** select a diamond, press **Ctrl+Shift+K**, click **Bouncy**, then press Play: it overshoots and settles. The panel shows **Bounce** and **Time**, never "stiffness".
 5. **Precomp (3.13, T65.2–T65.5):** click **+ Precomp**, double-click the blue bar, add a keyframe inside, click **Main** in the breadcrumbs: the precomp's row says **1 key time**.
 6. **Animation panel (3.16, T68.1–T68.9):** select HeroHeading, click **Presets tool**, **Add Animation → Fade In Up**; reload the page. The animation is still there.
-7. Nothing in the console is red.
+7. **Scroll (3.17, T81.1–T81.6):** make the page tall, add a scroll animation with Ctrl+P → `Add a Scroll Animation to a Layer`, switch the frame bar to **Preview**, scroll: the layer moves with the scroll. Back in **Design** it is as drawn.
+8. Nothing in the console is red.
 
 If a step fails, note the test number and stop: later steps depend on it.
 
@@ -657,6 +659,38 @@ If any step fails, stop and report it. Everything else depends on them.
 - [ ] **T68.14** Do: `grep -rln "AnimationSample" src | wc -l`. Expect: **a number above zero**: the export code still reads that old model. **This is why Phase 68 is not finished.**
 
 **Not done yet (so Phase 68 stays 🚧):** the older **Motion Sequencer** tab, and moving the exporters off `AnimationSample`.
+
+---
+
+### 3.17 Phase 81: scroll drives animation in Preview (NEW)
+
+**What changed:** scrolling the page can now play animation. It works only in **Preview** (the frame bar's **Preview** button): in **Design** the page isn't scrolled, so scroll animations stay as drawn and don't hide anything while you edit. There is no scroll panel yet; you set scroll animations with two commands from the command palette (**Ctrl+P**).
+
+- **Parallax (scrubbed):** the layer's animation follows how far the page has scrolled through the layer's *range*.
+- **Reveal (in view):** the layer waits at its first frame, plays once when it comes into view, and rewinds when you scroll back above it.
+- **Pin:** the layer is held in place for the length of its range.
+- A range is written like `top 80%` (the layer's top meets 80% of the way down the screen). Default: from the layer's top meeting the bottom of the screen to its bottom leaving the top.
+
+**Set up (a page that scrolls):** `/editor`, **Mount Showcase Demo**. Select the **BuyButton** layer, switch the right dock to **Design → Pro**, set **Positioning** to absolute and **Y** to `2500` (the button drops far below the page). The page now scrolls in Preview.
+
+**User test**
+- [ ] **T81.1** Do: **Ctrl+P**, type `scroll`. Expect: **Add a Scroll Animation to a Layer** and **Set a Clip's Scroll Range, Scrub and Pin**. (They need arguments, so running them from the palette says so. Steps T81.2 onwards use the developer console, see T81.9.)
+- [ ] **T81.2** Do: **Parallax.** In the console run `__LL_COMMANDS__.all().find(c=>c.id==="motion.addScrollClip").run({layerId:"el_hero_heading",property:"transform.y",from:0,to:-200,mode:"scrub",start:"top top",end:"top -1000px"})` (the page must have been opened with the test flag, see T81.9). Expect: a new animation on the heading; in the timeline's Animation panel it shows as a Scroll animation.
+- [ ] **T81.3** Do: stay in **Design**, scroll the page (hover the stage, use **Space**+drag or the browser scroll inside the frame). Expect: the heading doesn't move because of scroll.
+- [ ] **T81.4** Do: click **Preview** in the frame bar and scroll the page slowly. Expect: the heading slides **up** by up to 200 px as you scroll through its range, smoothly and exactly in step with the scroll bar; scrolling back reverses it.
+- [ ] **T81.5** Do: **Reveal.** Run the same command for `el_buy_button`, `property:"appearance.opacity"`, `from:0`, `to:1`, `mode:"reveal"`, `duration:0.4`. In **Preview** at the top of the page. Expect: the button is invisible (and below the fold anyway). Scroll to the bottom. Expect: it fades in over 0.4 s and stays. Scroll back to the top and down again: it fades in again.
+- [ ] **T81.6** Do: **Pin.** Run `motion.addScrollClip` for the heading with `from:0,to:0,mode:"scrub",start:"top top",end:"top -400px",pin:true`, in Preview scroll through. Expect: the heading stays put on screen for 400 px of scrolling, then scrolls away.
+- [ ] **T81.7** Do: click **Design** again. Expect: every layer returns to its normal look at once, and nothing stays shifted.
+- [ ] **T81.8** Do: **Ctrl+Z** after adding a scroll animation. Expect: it goes away in one step.
+
+**Developer test**
+- [ ] **T81.9** Do: start the editor with the test flag: in DevTools run `window.__LL_TEST__ = true` *before* the editor loads (or use the Playwright specs below, which do it for you). Expect: `__LL_COMMANDS__` exists.
+- [ ] **T81.10** Do: `npx tsx --test src/core/scroll/__tests__/scroll.test.ts`. Expect: 22 tests pass (ranges, the four crossings, smoothing, pin, triggered clips, the driver on a fake page, the kernel at 5 scroll positions, Preview-only, the commands).
+- [ ] **T81.11** Do: `npx playwright test tests/e2e/scroll.spec.ts --project=chromium`. Expect: 3 tests pass.
+- [ ] **T81.12** Do: in the console, with a parallax on the heading, `scrollStore` isn't exposed, but `document.querySelector('iframe[title="Stage"]').contentWindow.scrollTo(0, 600)` then read the heading's computed transform. Expect: it matches the kernel's value for that view progress.
+- [ ] **T81.13** Do: read `src/core/scroll/model.ts`. Expect: pure functions, no DOM. `src/core/scroll/ScrollDriver.ts` reads the page through a small host interface.
+
+**Known gaps (don't report):** scroll animations can't be set from a panel yet (commands only); there is no scroll scrubber on the timeline (Phase 82); pinned layers don't lengthen the page; native CSS scroll-driven animation isn't used yet, only the scheduler path; Firefox and Safari are checked by CI only.
 
 ---
 

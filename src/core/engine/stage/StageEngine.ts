@@ -5,6 +5,7 @@ import type { StageRenderer } from "../../render/StageRenderer";
 import { StageAdapters } from "./StageAdapters";
 import { ParityMonitor, parityEnabled } from "./parity";
 import type { AdapterHost, EngineAdapter } from "./types";
+import { ScrollDriver, type ScrollHost } from "../../scroll/ScrollDriver";
 
 /**
  * ROADMAP Phase 57: puts the animation on the stage. Reads the transport (Phase 54), and each frame, in the
@@ -19,6 +20,8 @@ export interface StageEngineOptions {
   adapter?: EngineAdapter;
   /** Run the parity monitor (Phase 60). Default: dev builds, tests and `?parity=1`. */
   parity?: boolean;
+  /** Scroll-driven clips (Phase 81): the frame's scroll, and whether it is live (Preview only; in Design the page isn't scrolled and reveals stay as drawn). */
+  scroll?: { host: ScrollHost; active: () => boolean };
 }
 
 export function installStageEngine(renderer: StageRenderer, options: StageEngineOptions = {}): () => void {
@@ -55,7 +58,22 @@ export function installStageEngine(renderer: StageRenderer, options: StageEngine
     }
   });
 
-  const unregister = scheduler.register("apply", () => {
+  const scrollDriver = options.scroll ? new ScrollDriver(options.scroll.host) : null;
+  let scrollWasLive = false;
+
+  const unregister = scheduler.register("apply", (frame) => {
+    if (scrollDriver && options.scroll) {
+      const live = options.scroll.active();
+      if (live || scrollWasLive) {
+        const update = live ? scrollDriver.update(frame) : scrollDriver.reset();
+        scrollWasLive = live;
+        if (update.changed) {
+          if (adapter instanceof StageAdapters) adapter.setScrollLayers(update.layers);
+          adapter.setInputs({ scrollClipTime: update.clipTime });
+          dirty = true;
+        }
+      }
+    }
     const { time, playing, rate } = getTransport();
     if (playing !== lastPlaying || (playing && rate !== lastRate)) {
       if (playing) adapter.play(time, rate);
@@ -87,6 +105,7 @@ export function installStageEngine(renderer: StageRenderer, options: StageEngine
       : null;
 
   return () => {
+    scrollDriver?.reset();
     unmonitor?.();
     unregister();
     unsubscribeTransport();
