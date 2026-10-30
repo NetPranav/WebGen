@@ -4,6 +4,7 @@ import { parseColor, toCss } from "../paint/colorMath";
 import { paintCss, parseFills, safeDashArray, type GradientStop, type Paint } from "../paint/paints";
 import { arrowhead, isArrowCap, parseSides, parseWidthProfile, roundedSideStrokes, rectSideStrokes, variableOutline, type StrokeAlign, type StrokeCap, type WidthPoint } from "../paths/strokes";
 import type { Geometry } from "./shapePaint";
+import { brushOutline, parseBrush, type Brush } from "../paths/brush";
 import type { ResolvedProps } from "./types";
 
 /**
@@ -35,6 +36,8 @@ export interface StrokeSettings {
   miterLimit: number;
   dash: string | undefined;
   lineCap: "butt" | "round" | "square";
+  /** A brush the stroke is drawn with (FigCraft port F3), or null. */
+  brush: Brush | null;
 }
 
 /** The layer's stroke settings, or null when it uses none of the FigCraft-port settings (draw the plain stroke). */
@@ -47,7 +50,8 @@ export function strokeSettings(resolved: ResolvedProps, defaultStroke: string, d
   const capStart = open ? readCap(resolved.get("shape.startCap")) : "none";
   const capEnd = open ? readCap(resolved.get("shape.endCap")) : "none";
   const arrows = isArrowCap(capStart) || isArrowCap(capEnd);
-  if (list === null && align === null && !sides && !profile && !arrows) return null;
+  const brush = parseBrush(resolved.get("stroke.brush"));
+  if (list === null && align === null && !sides && !profile && !arrows && !brush) return null;
   const color = resolved.str("svg.stroke", defaultStroke);
   const paints = list ?? (color !== "none" && parseColor(color) ? [{ type: "solid", color, opacity: 1, visible: true } as Paint] : []);
   const cap = resolved.str("svg.strokeLinecap", "butt");
@@ -64,6 +68,7 @@ export function strokeSettings(resolved: ResolvedProps, defaultStroke: string, d
     miterLimit: Math.min(100, Math.max(1, resolved.num("stroke.miterLimit", 4))),
     dash: safeDashArray(resolved.str("svg.strokeDasharray", "none")),
     lineCap: cap === "round" || cap === "square" ? cap : capStart === "round" || capEnd === "round" ? "round" : "butt",
+    brush,
   };
 }
 
@@ -105,7 +110,7 @@ export function StrokeLayer({ id, settings: s, width, height, geometry, outline,
   if (s.weight <= 0 || s.paints.length === 0) return null;
   const align = closed ? (s.align ?? "center") : "center";
   // how far a stroke can reach past the box (outside alignment, wide profiles, arrowheads)
-  const reach = s.weight * (s.profile ? Math.max(1, ...s.profile.map((p) => p.scale * (1 + Math.abs(p.bias)))) : 1) * 4 + 24;
+  const reach = s.weight * (s.brush ? 2 + (s.brush.scatter ?? 0) : 1) * (s.profile ? Math.max(1, ...s.profile.map((p) => p.scale * (1 + Math.abs(p.bias)))) : 1) * 4 + 24;
   const box = { x: -reach, y: -reach, width: width + 2 * reach, height: height + 2 * reach };
   const maskId = `${id}__stroke`;
   const clipId = `${id}__strokeclip`;
@@ -115,6 +120,10 @@ export function StrokeLayer({ id, settings: s, width, height, geometry, outline,
   if (closed && rect && s.sides) {
     const ring = toDrawing(rect.radii.some((r) => r > 0) || rect.smoothing > 0 ? roundedSideStrokes(width, height, rect.radii, rect.smoothing, s.sides, align) : rectSideStrokes(width, height, s.sides, align));
     area = <path d={ring.toSvg()} fill="#fff" fillRule="evenodd" />;
+  } else if (s.brush && outline) {
+    // a brush: the stroke's area is the brush's shapes along the path, filled non-zero (they may overlap)
+    const body = brushOutline(outline, s.weight, s.brush, s.profile);
+    area = body ? <path d={toDrawing(body).toSvg()} fill="#fff" fillRule="nonzero" /> : null;
   } else if (s.profile && outline) {
     const w = align === "center" ? s.weight : s.weight * 2;
     const body = variableOutline(outline, w, { join: s.join, miterLimit: s.miterLimit, capStart: s.capStart, capEnd: s.capEnd, dashes: s.dash ? s.dash.split(" ").map(Number) : [] }, s.profile);

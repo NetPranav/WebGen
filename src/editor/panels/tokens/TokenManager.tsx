@@ -4,11 +4,13 @@
  * The token manager (ROADMAP Phase 45), the inspector's Tokens tab: modes, colour and number variables with a value
  * for each mode, and text and effect styles made from the selected layer. Every control runs a `token.*` or
  * `style.*` command. FigCraft port F10: string and boolean variables, a value that is an alias of another variable,
- * a description, scopes and code syntax per variable; collections, each with its own modes; paint and grid styles.
+ * a description, scopes and code syntax per variable; collections, each with its own modes; paint and grid styles;
+ * variables exported as JSON (Figma's shape) or CSS, and such JSON imported.
  */
 
 import React, { useState } from "react";
-import { invokeCommand } from "@/core/commands";
+import { invokeCommand, tryRunCommand } from "@/core/commands";
+import { downloadBlob } from "@/core/export/layerExport";
 import { documentStore } from "@/core/store/documentState";
 import { useModeStore } from "@/core/store/useModeStore";
 import { useSelectionStore } from "@/core/store/useSelectionStore";
@@ -20,6 +22,35 @@ const stop = (e: React.KeyboardEvent) => e.stopPropagation();
 const blurOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
   e.stopPropagation();
   if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+};
+
+/** Export the variables as JSON or CSS, or import JSON (a file); what the import did shows below. */
+const VariablesIO: React.FC = () => {
+  const [note, setNote] = useState("");
+  const exportAs = (format: "json" | "css") => {
+    const r = tryRunCommand("token.exportVariables", { format });
+    if (r.ok) downloadBlob(format === "css" ? "variables.css" : "variables.json", new Blob([(r.result as { text: string }).text], { type: format === "css" ? "text/css" : "application/json" }));
+  };
+  const importFile = async (file: File | undefined) => {
+    if (!file) return;
+    const r = tryRunCommand("token.importVariables", { variables: await file.text() });
+    if (!r.ok) return setNote(r.message ?? "That file couldn't be read.");
+    const { variables, updated, warnings } = r.result as { variables: number; updated: number; warnings: string[] };
+    setNote([`${variables} added, ${updated} updated.`, ...warnings].join(" "));
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+      <div style={row}>
+        <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Export variables as JSON" onClick={() => exportAs("json")}>Export JSON</button>
+        <button type="button" className="panel-icon-btn panel-text-btn" aria-label="Export variables as CSS" onClick={() => exportAs("css")}>Export CSS</button>
+        <label className="panel-icon-btn panel-text-btn" style={{ cursor: "pointer" }}>
+          Import
+          <input type="file" accept=".json,application/json" aria-label="Import variables" style={{ display: "none" }} onChange={(e) => void importFile(e.target.files?.[0]).finally(() => (e.target.value = ""))} />
+        </label>
+      </div>
+      {note && <p role="status" style={{ fontSize: 11, opacity: 0.75, margin: 0 }}>{note}</p>}
+    </div>
+  );
 };
 
 /** One mode's value: a literal editor for the variable's type, or the variable it aliases. */
@@ -314,6 +345,7 @@ export const TokenManager: React.FC = () => {
 
       <section aria-label="Variables">
         <strong style={{ fontSize: 11 }}>Variables {variables.length > 0 && <span style={{ opacity: 0.6 }}>{variables.length}</span>}</strong>
+        <VariablesIO />
         {variables.length === 0 ? (
           <p style={{ fontSize: 11, opacity: 0.65, margin: "4px 0" }}>Name a colour or a number above, then bind layers to it in the Design tab: change it once and every layer follows, in every mode.</p>
         ) : (

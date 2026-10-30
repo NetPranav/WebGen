@@ -5,6 +5,7 @@
  * the context menu and agents.
  */
 
+import { parseBrush, sanitizeBrush } from "../paths/brush";
 import { importSvgDesign } from "./svgImportOps";
 import { registerDevCommands } from "../devmode/devCommands";
 import { getResolvedDocument } from "../store/useDocumentStore";
@@ -347,6 +348,13 @@ export function registerEditingCommands(): () => void {
     category: "Layer",
     args: z.object({ text: z.string().max(5_000_000), name: z.string().max(120).optional(), parentId: z.string().nullable().optional(), x: z.number().finite().optional(), y: z.number().finite().optional(), scale: z.number().positive().max(100).optional() }),
     run: ({ text, name, parentId, x, y, scale }) => importSvgDesign(text, parentId === undefined ? (getDocument().layers[ids()[0] ?? ""]?.parentId ?? Object.values(getDocument().layers).find((l) => l.parentId === null)?.id ?? null) : parentId, { x: x ?? 0, y: y ?? 0 }, scale ?? 1, name ?? "SVG"),
+  }));
+  add(defineTypedCommand({
+    id: "stroke.setBrush",
+    title: "Set Stroke Brush",
+    category: "Layer",
+    args: z.object({ ids: targets, brush: z.object({ preset: z.string(), spacing: z.number().optional(), sizeJitter: z.number().optional(), rotationJitter: z.number().optional(), scatter: z.number().optional(), seed: z.number().optional() }).nullable() }),
+    run: ({ ids: t, brush }) => ({ changed: setLayerProps(t ?? ids(), { "stroke.brush": brush && parseBrush(JSON.stringify(brush)) ? JSON.stringify(sanitizeBrush(brush)) : null }, "Brush") }),
   }));
   add(defineTypedCommand({ id: "arrange.reorder", title: "Reorder Selection", category: "Layer", args: z.object({ ids: targets, source: z.string(), target: z.string(), swap: z.boolean().optional() }), run: ({ ids: t, source, target, swap }) => ({ ok: reorderSelection(t ?? ids(), source, target, swap) }) }));
   const paintTarget = z.object({ id: z.string(), prop: z.string(), index: z.number().int().min(0).optional() });

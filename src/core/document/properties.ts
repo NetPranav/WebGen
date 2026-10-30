@@ -533,6 +533,8 @@ const DEFS = {
   "stroke.sides": typed(str("", null, "paint", only("rectangle", "container", "form", "button", "badge", "fab", "generic"))),
   /** Variable width: JSON points `[{t, scale, bias?}]` along the path (see `parseWidthProfile`). Empty: uniform. */
   "stroke.widthProfile": typed(str("", null, "paint", only("line", "svgPath", "rectangle", "ellipse", "polygon", "star"))),
+  /** A brush the stroke is drawn with (FigCraft port F3), as JSON: `{ "preset": "taper" | "dots" | …, spacing, sizeJitter, rotationJitter, scatter, seed }`. */
+  "stroke.brush": typed(str("", null, "paint", only("line", "svgPath", "rectangle", "ellipse", "polygon", "star"))),
   /** Corners sharper than this ratio bevel instead of mitring (default 4, about 29°). */
   "stroke.miterLimit": ranged(num(4, "stroke-miterlimit", "paint", SVG_STROKED), { min: 1, max: 100 }),
   /** More than one stroke: a list of paints like `paint.fills`, first on top. When set it replaces the plain stroke colour. */

@@ -16,6 +16,7 @@ import { resolveProps } from "@/core/render/resolve";
 import { readCap } from "@/core/render/strokePaint";
 import { STROKE_ALIGNS, STROKE_CAPS, WIDTH_PRESETS, capLabel, parseSides, parseWidthProfile, presetLabel, presetProfile, profilePreset, type StrokeAlign } from "@/core/paths/strokes";
 import { NumberField } from "../controls/NumberField";
+import { PRESETS as BRUSHES, parseBrush, preset as brushPreset } from "@/core/paths/brush";
 
 const set = (patch: Record<string, unknown>) => void invokeCommand("stroke.set", patch);
 const ALIGN_LABEL: Record<StrokeAlign, string> = { inside: "Inside", center: "Center", outside: "Outside" };
@@ -80,6 +81,31 @@ export const StrokeSettingsEditor: React.FC = () => {
           ))}
         </div>
       )}
+      {takesProfile && (() => {
+        // FigCraft port F3: a brush draws the stroke with shapes
+        const brush = parseBrush(r.get("stroke.brush"));
+        const setBrush = (b: Record<string, unknown> | null) => void invokeCommand("stroke.setBrush", { brush: b });
+        return (
+          <div className="effects-block__row" style={{ flexWrap: "wrap" }}>
+            <select aria-label="Stroke brush" value={brush?.preset ?? ""} onChange={(e) => setBrush(e.target.value ? { ...(brush ?? {}), preset: e.target.value } : null)}>
+              <option value="">No brush</option>
+              {BRUSHES.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
+            {brush && brushPreset(brush.preset)?.kind === "scatter" && (
+              <>
+                <NumberField label="Brush spacing" badge="Sp" min={0} max={100} step={0.25} value={brush.spacing} onCommit={(spacing) => setBrush({ ...brush, spacing })} />
+                <NumberField label="Brush size jitter" badge="Sz" min={0} max={100} value={Math.round(brush.sizeJitter * 100)} onCommit={(v) => setBrush({ ...brush, sizeJitter: v / 100 })} />
+                <NumberField label="Brush rotation jitter" badge="Rt" min={0} max={100} value={Math.round(brush.rotationJitter * 100)} onCommit={(v) => setBrush({ ...brush, rotationJitter: v / 100 })} />
+                <NumberField label="Brush scatter" badge="Sc" min={0} max={4} step={0.25} value={brush.scatter} onCommit={(scatter) => setBrush({ ...brush, scatter })} />
+              </>
+            )}
+          </div>
+        );
+      })()}
       {takesMiter && (
         <div className="effects-block__row">
           <NumberField label="Miter limit" badge="Miter" min={1} max={100} value={Number(r.get("stroke.miterLimit") ?? 4) || 4} onCommit={(miterLimit) => set({ miterLimit })} />

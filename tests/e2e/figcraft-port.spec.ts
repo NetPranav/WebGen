@@ -513,3 +513,31 @@ test("FigCraft port: a component inside a component: the icon's edit reaches the
   await page.keyboard.press(`${MOD}+z`);
   await expect.poll(async () => (await layers())[inested].instance?.swap ?? null).toBe(null);
 });
+
+test("FigCraft port: a brush picked in the Pro inspector draws the stroke with shapes; variables export and import round-trip", async ({ page }) => {
+  await ready(page);
+  const r = await drawRect(page, { x: 40, y: 60, w: 160, h: 100 });
+  await page.evaluate((id) => (window as unknown as { __LL_DOC__: { commands: { updateProps: (id: string, p: Record<string, unknown>) => void } } }).__LL_DOC__.commands.updateProps(id, { "svg.strokeWidth": 8, "svg.stroke": "#000000" }), r);
+  await run(page, "selection.set", { ids: [r] });
+  await page.getByRole("tab", { name: "Pro" }).click();
+  await page.getByRole("combobox", { name: "Stroke brush" }).selectOption("dots");
+  const brushPath = (id: string) => inStage(page, (doc, id) => doc.querySelector(`mask[id="${id}__stroke"] path[fill-rule="nonzero"]`)?.getAttribute("d")?.length ?? 0, id);
+  await expect.poll(() => brushPath(r)).toBeGreaterThan(200);
+  await page.getByRole("spinbutton", { name: "Brush spacing" }).fill("4");
+  await page.getByRole("spinbutton", { name: "Brush spacing" }).press("Enter");
+  const sparse = await brushPath(r);
+  await page.keyboard.press(`${MOD}+z`);
+  await expect.poll(() => brushPath(r)).toBeGreaterThan(sparse);
+  // variables: a collection exported as JSON, removed, imported back; CSS names the dark mode
+  const theme = (await run(page, "token.createCollection", { name: "Theme", modes: ["Light", "Dark"] })) as { id: string };
+  await run(page, "token.createVariable", { name: "bg", type: "color", values: { light: "#ffffff", dark: "#000000" }, collection: theme.id });
+  const json = ((await run(page, "token.exportVariables", { collections: ["Theme"] })) as { text: string }).text;
+  expect(((await run(page, "token.exportVariables", { format: "css", collections: ["Theme"] })) as { text: string }).text).toContain('[data-theme="Dark"]');
+  await run(page, "token.deleteCollection", { id: theme.id });
+  const result = (await run(page, "token.importVariables", { variables: json })) as { collections: number; variables: number };
+  expect([result.collections, result.variables]).toEqual([1, 1]);
+  await page.locator(".dock-zone--right").getByText("Tokens", { exact: true }).first().click();
+  const manager = page.getByRole("region", { name: "Tokens" });
+  await expect(manager.getByRole("button", { name: "Export variables as JSON" })).toBeVisible();
+  await expect(manager.locator('[data-collection="Theme"]')).toBeVisible();
+});

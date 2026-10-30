@@ -1,0 +1,3704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LazyLayout: Manual Testing Guide & Repository Analysis</title>
+  <style>
+    
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap');
+
+  @page {
+    size: A4;
+    margin: 16mm 14mm 16mm 14mm;
+    @top-right {
+      content: "LazyLayout Manual Testing Guide & Repo Analysis";
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      color: #64748b;
+      font-weight: 500;
+    }
+    @bottom-left {
+      content: "Confidential - Quality Assurance & Engine Verification";
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      color: #64748b;
+      font-weight: 600;
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #0f172a;
+    background: #ffffff;
+    line-height: 1.5;
+    font-size: 9.5pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Cover Page */
+  .cover-page {
+    page-break-after: always;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 40px 20px 20px 20px;
+    background: linear-gradient(135deg, #090d16 0%, #1e1b4b 60%, #0f172a 100%);
+    color: #ffffff;
+    border-radius: 12px;
+  }
+
+  .cover-top {
+    border-bottom: 2px solid rgba(255,255,255,0.12);
+    padding-bottom: 24px;
+  }
+
+  .cover-badge-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .cover-badge {
+    background: rgba(99, 102, 241, 0.25);
+    border: 1px solid rgba(129, 140, 248, 0.4);
+    color: #c7d2fe;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+  }
+
+  .cover-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 32pt;
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0 0 12px 0;
+    letter-spacing: -0.5px;
+    background: linear-gradient(to right, #ffffff, #c7d2fe, #93c5fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .cover-subtitle {
+    font-size: 13pt;
+    color: #cbd5e1;
+    font-weight: 400;
+    margin: 0 0 18px 0;
+    line-height: 1.4;
+  }
+
+  .cover-desc {
+    font-size: 10pt;
+    color: #94a3b8;
+    max-width: 680px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .cover-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 30px 0;
+  }
+
+  .cover-stat-box {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 14px 18px;
+    border-radius: 8px;
+  }
+
+  .cover-stat-number {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20pt;
+    font-weight: 700;
+    color: #38bdf8;
+    margin-bottom: 2px;
+  }
+
+  .cover-stat-label {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+
+  .cover-footer {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5pt;
+    color: #94a3b8;
+  }
+
+  /* Typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: #0f172a;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+
+  h1 {
+    font-size: 18pt;
+    font-weight: 700;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 6px;
+    color: #1e1b4b;
+    margin-top: 24px;
+  }
+
+  h2 {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #1e293b;
+    border-left: 4px solid #6366f1;
+    padding-left: 8px;
+    margin-top: 18px;
+  }
+
+  h3 {
+    font-size: 11.5pt;
+    font-weight: 600;
+    color: #334155;
+    margin-top: 14px;
+  }
+
+  p {
+    margin: 0 0 8px 0;
+  }
+
+  code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5pt;
+  }
+
+  code {
+    background: #f1f5f9;
+    padding: 1px 4px;
+    border-radius: 4px;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+  }
+
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 10px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 8pt;
+    margin: 8px 0 12px 0;
+    line-height: 1.45;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px 0;
+    font-size: 8.5pt;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #1e293b;
+    border-bottom: 2px solid #94a3b8;
+  }
+
+  tr:nth-child(even) td {
+    background: #fbfcfe;
+  }
+
+  /* Callouts & Alert Boxes */
+  .callout {
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+
+  .callout-info {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    color: #1e3a8a;
+  }
+
+  .callout-warning {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    color: #92400e;
+  }
+
+  .callout-success {
+    background: #ecfdf5;
+    border-left: 4px solid #10b981;
+    color: #065f46;
+  }
+
+  .callout-danger {
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
+  }
+
+  /* Phase Cards */
+  .phase-header-card {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-top: 4px solid #6366f1;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 18px 0 12px 0;
+    page-break-inside: avoid;
+  }
+
+  .phase-badge-line {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .phase-num-badge {
+    background: #4f46e5;
+    color: #ffffff;
+    font-size: 8pt;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .phase-lane-badge {
+    background: #e0e7ff;
+    color: #3730a3;
+    font-size: 7.5pt;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .phase-status-badge {
+    background: #dcfce7;
+    color: #166534;
+    font-size: 7.5pt;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .phase-title {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 4px 0 6px 0;
+  }
+
+  .phase-completed-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-top: 6px;
+    font-size: 8.5pt;
+    color: #334155;
+  }
+
+  /* Test Case Block */
+  .test-case-card {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    margin: 10px 0 14px 0;
+    page-break-inside: avoid;
+    background: #ffffff;
+    overflow: hidden;
+  }
+
+  .test-case-header {
+    background: #f1f5f9;
+    border-bottom: 1px solid #cbd5e1;
+    padding: 6px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .test-id-title {
+    font-weight: 700;
+    font-size: 9pt;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .test-status-boxes {
+    display: flex;
+    gap: 12px;
+    font-size: 8pt;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  .status-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .checkbox-sq {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid #64748b;
+    border-radius: 2px;
+    background: #ffffff;
+  }
+
+  .test-case-body {
+    padding: 8px 12px;
+    font-size: 9pt;
+  }
+
+  .test-row {
+    margin-bottom: 5px;
+  }
+
+  .test-label {
+    font-weight: 600;
+    color: #1e293b;
+    display: inline-block;
+    min-width: 65px;
+  }
+
+  .test-do {
+    color: #0f172a;
+  }
+
+  .test-expect {
+    color: #047857;
+  }
+
+  .test-fails {
+    color: #b91c1c;
+  }
+
+  /* Defect / Note Ruled Area */
+  .defect-note-box {
+    margin-top: 8px;
+    background: #fbfcfe;
+    border: 1px dashed #94a3b8;
+    border-radius: 4px;
+    padding: 6px 10px;
+  }
+
+  .note-header {
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .ruled-line {
+    height: 18px;
+    border-bottom: 1px dotted #cbd5e1;
+    margin-bottom: 2px;
+  }
+
+  /* Table of Contents */
+  .toc-container {
+    page-break-after: always;
+    padding: 10px 0;
+  }
+
+  .toc-title {
+    font-size: 18pt;
+    font-weight: 700;
+    border-bottom: 2px solid #6366f1;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    color: #1e1b4b;
+  }
+
+  .toc-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px dotted #e2e8f0;
+    font-size: 9pt;
+  }
+
+  .toc-section-title {
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .toc-page {
+    font-weight: 600;
+    color: #6366f1;
+  }
+
+  .toc-subitem {
+    padding-left: 18px;
+    font-size: 8.5pt;
+    color: #475569;
+  }
+
+  /* Section Dividers */
+  .page-break {
+    page-break-before: always;
+  }
+
+  .section-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    color: #ffffff;
+    padding: 18px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+
+  .section-hero h1 {
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    margin-top: 0;
+    padding-bottom: 8px;
+  }
+
+  .section-hero p {
+    color: #cbd5e1;
+    font-size: 9.5pt;
+    margin: 0;
+  }
+
+  </style>
+</head>
+<body>
+  
+<div class="cover-page">
+  <div class="cover-top">
+    <div class="cover-badge-row">
+      <span class="cover-badge">LazyLayout Studio</span>
+      <span class="cover-badge">Release 1 · Initial Phase</span>
+      <span class="cover-badge">Roadmap v4.0.0</span>
+      <span class="cover-badge">Quality Assurance Master</span>
+    </div>
+    <div class="cover-title">LazyLayout: Complete Repository Analysis & Manual Testing Documentation</div>
+    <div class="cover-subtitle">Comprehensive Architectural Breakdown, Subsystem Analysis, and Phase-by-Phase Quality Assurance Test Execution Manual with Defect Capture Worksheets</div>
+    <p class="cover-desc">
+      A publication-grade testing manual and engineering reference covering the entire LazyLayout codebase: 
+      Stage 0 (Foundations 1–12), Stage 1 (Viewport & Layout 13–49), FigCraft Port Deepening (F1–F14), 
+      Stage 2 (Animation Engine & Timeline 53–63), cross-browser matrices, chaotic stress suites, 
+      and explicit verification for all 50 known issues from AUDIT_ISSUES.md.
+    </p>
+  </div>
+
+  <div class="cover-grid">
+    <div class="cover-stat-box">
+      <div class="cover-stat-number">202 Phases</div>
+      <div class="cover-stat-label">Sequential Roadmap Order</div>
+    </div>
+    <div class="cover-stat-box">
+      <div class="cover-stat-number">70+ Completed</div>
+      <div class="cover-stat-label">Fully Documented Test Targets</div>
+    </div>
+    <div class="cover-stat-box">
+      <div class="cover-stat-number">216 Properties</div>
+      <div class="cover-stat-label">Canonical Motion Paths in MDM</div>
+    </div>
+    <div class="cover-stat-box">
+      <div class="cover-stat-number">50 Audit Gaps</div>
+      <div class="cover-stat-label">Explicitly Verified Test Cases</div>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <div><strong>Project:</strong> LazyLayout (AI-Native Motion Design Studio)</div>
+    <div><strong>Baseline:</strong> Next.js 16 · React 19 · TypeScript 5.x</div>
+    <div><strong>Date:</strong> October 2026 · Confidential QA Guide</div>
+  </div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="toc-container">
+  <div class="toc-title">Table of Contents</div>
+  
+  <div class="toc-item">
+    <span class="toc-section-title">Part I: Comprehensive Repository & Codebase Analysis</span>
+    <span class="toc-page">Section 1</span>
+  </div>
+  <div class="toc-subitem">• 1. Executive Summary & Product Vision ("Figma for Motion with AI")</div>
+  <div class="toc-subitem">• 2. Core Architectural Laws (The 20 Invariant Laws)</div>
+  <div class="toc-subitem">• 3. Technical Stack & Dependencies (Next.js 16, React 19, TypeScript)</div>
+  <div class="toc-subitem">• 4. Architectural Subsystems Breakdown (MDM, Command Bus, Stage Host, WAAPI)</div>
+  <div class="toc-subitem">• 5. Known Audit Issues & Defect Landscape (50 Cataloged Issues)</div>
+
+  <div class="toc-item" style="margin-top: 10px;">
+    <span class="toc-section-title">Part II: Manual Testing Architecture & Execution Framework</span>
+    <span class="toc-page">Section 2</span>
+  </div>
+  <div class="toc-subitem">• 1. Testing Methodology: The "Do → Expect → Fails if" Standard</div>
+  <div class="toc-subitem">• 2. Defect Capture & Note-Writing Protocol (When Expected Outcome Was Not Observed)</div>
+  <div class="toc-subitem">• 3. Environment Setup & Pre-Flight Configuration</div>
+  <div class="toc-subitem">• 4. Interface Topography Map (Where Every Control Is Located)</div>
+  <div class="toc-subitem">• 5. Fundamental Test Recipes: Recipe A (Motion) & Recipe B (Shapes)</div>
+  <div class="toc-subitem">• 6. Quick Smoke Test Suite (3-Minute Pre-Flight: S1–S5)</div>
+
+  <div class="toc-item" style="margin-top: 10px;">
+    <span class="toc-section-title">Part III: Phase-by-Phase Manual Testing Specifications</span>
+    <span class="toc-page">Section 3</span>
+  </div>
+  <div class="toc-subitem"><strong>• Stage 0: Foundations (Phases 1–12)</strong> — Model, Rules, Kernel, Undo, Decomposition</div>
+  <div class="toc-subitem"><strong>• Stage 1: Viewport, Tools & Selection (Phases 13–28)</strong> — Camera, Multi-frame, Shapes, Hit-testing</div>
+  <div class="toc-subitem"><strong>• Stage 1: Editing, Layers, Inspectors, Paint & Assets (Phases 29–38)</strong> — Duplication, Tree, Gradients, Fonts</div>
+  <div class="toc-subitem"><strong>• Stage 1: Vector, Layout, Components & Export (Phases 39–49)</strong> — Pen, Auto-layout, Breakpoints, Next.js ZIP</div>
+  <div class="toc-subitem"><strong>• FigCraft Port Deepening (Features F1–F14)</strong> — Squircles, P3, Vector Networks, Booleans, Dev Mode</div>
+  <div class="toc-subitem"><strong>• Stage 2: Animation Grammar, Transport & Timeline (Phases 53–63)</strong> — Clock, Scheduler, WAAPI, Timeline</div>
+
+  <div class="toc-item" style="margin-top: 10px;">
+    <span class="toc-section-title">Part IV: Regression, Cross-Browser, Stress & Audit Testing</span>
+    <span class="toc-page">Section 4</span>
+  </div>
+  <div class="toc-subitem">• 1. End-to-End Regression Journeys (25-step full lifecycle test)</div>
+  <div class="toc-subitem">• 2. Cross-Browser Compatibility Matrix (Chromium, Firefox, WebKit differences)</div>
+  <div class="toc-subitem">• 3. Chaotic Stress & Break-Testing Scenarios (15 Torture Scenarios)</div>
+  <div class="toc-subitem">• 4. Comprehensive Audit Issues Verification Matrix (50 Specific Test Cases for AUDIT_ISSUES.md)</div>
+  <div class="toc-subitem">• 5. Standardized Defect Reporting Guide & Bug Filing Template</div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part I: Comprehensive Repository & Codebase Analysis</h1>
+  <p>Detailed architectural inspection of LazyLayout: product vision, core thesis, technology stack, directory organization, state management, runtime execution engines, security boundaries, and known gaps.</p>
+</div>
+
+<h2>1. Executive Summary & Product Vision</h2>
+<p><strong>LazyLayout</strong> (internally designated <em>"Unreal Engine for Animation & Frontend Design"</em> and <em>"Figma for Motion with AI"</em>) is an AI-native motion design studio. It bridges the deep gulf between three disciplines that rarely overlap: visual motion design, animation engineering (GSAP, Framer Motion, WAAPI, Three.js, shaders), and production-grade frontend engineering.</p>
+
+<p>In standard industry workflows, designers create animations in Figma or After Effects that cannot be cleanly translated to code without manual rewriting, approximation, and performance degradation. Conversely, frontend developers write complex animation scripts without interactive visual feedback. LazyLayout resolves this by providing:</p>
+<ul>
+  <li><strong>A unified visual canvas</strong> that feels like Figma for authoring responsive layouts, vector shapes, typography, and design tokens.</li>
+  <li><strong>A multi-engine animation timeline</strong> that operates like After Effects (with keyframe twirl-downs, stopwatches, curves, and transport control).</li>
+  <li><strong>A deterministic evaluation kernel</strong> (<code>evaluate(t)</code>) guaranteeing that what you scrub and play in the editor matches exported production code down to the sub-pixel (Preview = Export).</li>
+  <li><strong>Multi-target static code generation</strong> compiling to production Next.js 16 (App Router), Vite + React, or standalone HTML with Tailwind, CSS Modules, or vanilla CSS.</li>
+  <li><strong>AI-native authoring</strong> where Claude API or local MCP agents can propose layout and motion changes as typed, reviewable diffs with strict zero-silent-write guarantees.</li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>Current Repository State (October 2026):</strong>
+  The repository is operating under <strong>ROADMAP v4.0.0</strong> (202 sequential phases). 
+  <strong>Stage 0 (Phases 1–12)</strong> is 100% complete. 
+  <strong>Stage 1 (Phases 13–52)</strong> has delivered the complete viewport, drawing tools, inspector, design tokens, components, multi-page routing, and static export (with active FigCraft port deepening F1–F14). 
+  <strong>Stage 2 (Phases 53–102)</strong> has merged Phases 53–63 to <code>main</code>, delivering schema v6, central clock transport, frame scheduler, WAAPI acceleration, and the Layer Timeline.
+</div>
+
+<h2>2. Core Architectural Laws (The 20 Laws)</h2>
+<p>Every commit and pull request in this repository is strictly bound by 20 non-negotiable architectural laws:</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 15%;">Law</th>
+      <th style="width: 25%;">Name</th>
+      <th>Architectural Mandate & Invariant</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Law 1</strong></td>
+      <td><strong>Inside-Out</strong></td>
+      <td>Types and schema precede rules; rules precede diagnostics; diagnostics precede UI controls. No UI control may exist without an underlying rule table assertion.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 2</strong></td>
+      <td><strong>One Document</strong></td>
+      <td>Every surface (canvas, inspector, timeline, AI agent, code view, exporter) reads and writes the single Motion Document Model (MDM). No parallel state models.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 3</strong></td>
+      <td><strong>Preview = Export</strong></td>
+      <td>Every animation evaluates through pure mathematics (<code>evaluate(t)</code>) such that the live preview and exported code match within 0.5% pixel tolerance.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 4</strong></td>
+      <td><strong>No Silent AI Writes</strong></td>
+      <td>Every AI or agent action generates a visible diff (ghost layers/keyframes) requiring explicit human approval. No silent state modifications.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 5</strong></td>
+      <td><strong>Real Verification</strong></td>
+      <td>Verification gates must run in TypeScript compiler (<code>tsc</code>), real browsers (Chromium, Firefox, WebKit), and real production builds, not synthetic mocks.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 6</strong></td>
+      <td><strong>Simple by Default</strong></td>
+      <td>Every capability must expose a Simple face (≤ 7 controls, zero technical jargon) before or alongside its Pro face.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 7</strong></td>
+      <td><strong>Licensing Gate</strong></td>
+      <td>Third-party code cannot be introduced without formal licensing verification in <code>LICENSES.md</code> (e.g. GSAP is strictly an export target, never bundled in editor runtime).</td>
+    </tr>
+    <tr>
+      <td><strong>Law 8</strong></td>
+      <td><strong>One Clock</strong></td>
+      <td>A single central transport (<code>src/core/time/transport.ts</code>) owns the timeline, playhead, frame rate, and loop mode. No individual panel holds its own timer.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 9</strong></td>
+      <td><strong>Hot Path</strong></td>
+      <td>Per-frame animation values never touch React state or the document store. They flow directly through the FrameScheduler and the DOM node registry.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 10</strong></td>
+      <td><strong>Document Space</strong></td>
+      <td>All layer geometry is stored in document coordinates. Editor UI reads bounding boxes solely through the renderer's measurement API.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 11</strong></td>
+      <td><strong>One Renderer</strong></td>
+      <td>The editor stage and code exporters render from the identical per-archetype render definitions (<code>src/core/render/definitions/</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Law 12</strong></td>
+      <td><strong>Signal Input Bus</strong></td>
+      <td>Continuous inputs (pointer, scroll, touch, keys) are sampled once per frame by the central scheduler. No component attaches unmanaged listeners.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 13</strong></td>
+      <td><strong>Surface Budget</strong></td>
+      <td>Only the GPU compositor creates WebGL/WebGPU contexts within strict hardware device-tier memory limits.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 14</strong></td>
+      <td><strong>Graceful Degradation</strong></td>
+      <td>Every interactive effect defines a fallback chain: GPU Shader → CSS/Canvas → Static Poster → Accessible Reduced-Motion alternative.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 15</strong></td>
+      <td><strong>Deterministic Replay</strong></td>
+      <td>Simulations, particles, and physics replay identically from <code>(seed, input tape, fixed dt step)</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 16</strong></td>
+      <td><strong>Untrusted Code</strong></td>
+      <td>User code, code components, and raw shaders run only inside an isolated sandbox with zero access to editor privileges or cookies.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 17</strong></td>
+      <td><strong>Visual First (No Maths)</strong></td>
+      <td>Everything authorable can be created without entering numbers or mathematical formulas (using handles, feel sliders, or visual meters).</td>
+    </tr>
+    <tr>
+      <td><strong>Law 18</strong></td>
+      <td><strong>Sequential Order</strong></td>
+      <td>Roadmap phase numbers represent strict execution order. Every phase's dependencies only point backward to lower phase numbers.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 19</strong></td>
+      <td><strong>Visible Progress</strong></td>
+      <td>Every phase from Phase 13 onward must deliver a user-visible change on screen ("You'll see"). At most two infrastructure phases may run consecutively.</td>
+    </tr>
+    <tr>
+      <td><strong>Law 20</strong></td>
+      <td><strong>Agent Parity</strong></td>
+      <td>Every user interaction is a typed command on the command bus, exposed directly to local MCP servers so AI agents can control the entire editor.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3. Technical Stack & Dependencies</h2>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 25%;">Domain</th>
+      <th style="width: 35%;">Technology / Library</th>
+      <th>Role & Configuration</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Framework Baseline</strong></td>
+      <td>Next.js 16 (App Router) + React 19</td>
+      <td>Strict modern React 19 concurrent features, Server/Client components, and Next.js 16 layout routing.</td>
+    </tr>
+    <tr>
+      <td><strong>Language & Types</strong></td>
+      <td>TypeScript 5.x (Strict Mode)</td>
+      <td>Full type-safety, zero <code>any</code> policy, compiler emitting no errors (<code>tsc --noEmit</code> enforced in CI).</td>
+    </tr>
+    <tr>
+      <td><strong>Styling & Design System</strong></td>
+      <td>Vanilla CSS + CSS Modules + TailwindCSS</td>
+      <td>CSS custom properties design tokens, theme variables, hardware-accelerated transforms, zero ad-hoc CSS.</td>
+    </tr>
+    <tr>
+      <td><strong>State Management</strong></td>
+      <td>Zustand (Decomposed split stores)</td>
+      <td>Fine-grained stores: <code>useDocumentStore</code>, <code>useEnvironmentStore</code>, <code>useProjectStore</code>, <code>useSelectionStore</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Stage Rendering</strong></td>
+      <td>Isolated <code>&lt;iframe&gt;</code> Host (StageHost v2)</td>
+      <td>Live DOM tree at <code>/stage-frame.html</code> with strict CSP <code>script-src 'none'</code> and postMessage message-channel dispatch.</td>
+    </tr>
+    <tr>
+      <td><strong>Animation Engines</strong></td>
+      <td>Web Animations API (WAAPI) + Custom Kernel</td>
+      <td>WAAPI runtime for GPU-accelerated CSS properties; deterministic mathematical kernel (<code>evaluate()</code>) for scrub/pause.</td>
+    </tr>
+    <tr>
+      <td><strong>3D & Graphics</strong></td>
+      <td>Three.js 0.186.1 + React Three Fiber + Drei</td>
+      <td>MIT-licensed WebGL 3D rendering pipeline for meshes, materials, lights, and cameras.</td>
+    </tr>
+    <tr>
+      <td><strong>Vector & Booleans</strong></td>
+      <td><code>polygon-clipping</code> + Kurbo/FigCraft ports</td>
+      <td>Curve fitting, bezier mathematical evaluations, vector network topology, and boolean clipping operations.</td>
+    </tr>
+    <tr>
+      <td><strong>Testing & Parity</strong></td>
+      <td>Playwright 1.50+ & Node.js Native Test Runner</td>
+      <td>Cross-browser testing (Chromium, Firefox, WebKit), pixel-parity diffing (pngjs), export build compilation harness.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>4. Architectural Subsystems Breakdown</h2>
+
+<h3>4.1 Unified Motion Document Model (MDM v6)</h3>
+<p>The core data model lives under <code>src/core/document/</code>. It defines 216 canonical property paths organized into a strictly typed document tree:</p>
+<pre><code>// Conceptual Document Hierarchy
+MotionDocument {
+  id: string,
+  schemaVersion: 6,
+  pages: Record&lt;string, Page&gt;,
+  layers: Record&lt;string, Layer&gt;,            // Flat dictionary of all layers with parentId links
+  compositions: Record&lt;string, Composition&gt;,// Timeline tracks, triggers, work areas, markers
+  clips: Record&lt;string, Clip&gt;,              // Keyframe sequences, behaviors, reactive signals
+  designComponents: Record&lt;string, Component&gt;, // Component definitions, variants, properties
+  tokens: { collections, variables, modes },// Design tokens and semantic color/number variables
+  breakpoints: Breakpoint[],               // Responsive breakpoints (Desktop, Tablet, Mobile)
+  assets: Record&lt;string, Asset&gt;             // Image/font asset registry with SHA-256 deduplication
+}</code></pre>
+<p>Every property is accessed via dot-notation canonical paths (e.g. <code>transform.x</code>, <code>appearance.opacity</code>, <code>paint.fills</code>, <code>shape.cornerRadius</code>, <code>layout.auto</code>). All mutations occur through patch-based command transactions that create atomic undo/redo records in IndexedDB.</p>
+
+<h3>4.2 Command Bus & Focus Model (Phase 13)</h3>
+<p>Located in <code>src/core/commands/</code>. Every interactive action is a typed command registered with a unique identifier (e.g. <code>edit.undo</code>, <code>canvas.zoomIn</code>, <code>transport.play</code>, <code>tool.select</code>). Commands specify VS Code-style <code>when</code> context clauses reading from the Zustand context keys store:</p>
+<ul>
+  <li><code>canvasFocus</code>: True when pointer hovers the stage canvas.</li>
+  <li><code>timelineFocus</code>: True when pointer hovers the Layer Timeline or Sequencer.</li>
+  <li><code>textEditing</code>: True when an input, textarea, or canvas inline text editor has focus.</li>
+  <li><code>selection.count</code>: Number of currently selected layers.</li>
+  <li><code>transport.playing</code>: Whether the animation transport is running.</li>
+</ul>
+<p>This completely eliminates keyboard shortcut conflicts (e.g. pressing Space over the timeline plays animation, while pressing Space over canvas activates the Hand panning tool).</p>
+
+<h3>4.3 Stage Host v2 & DOM Isolation (Phase 18)</h3>
+<p>Prior to Phase 18, the editor stage was an HTML string injected into an iframe (<code>srcDoc</code>), causing the entire canvas to reload on every keystroke. StageHost v2 mounts a permanent, static iframe (<code>/stage-frame.html</code>) governed by strict Content Security Policy (<code>script-src 'none'</code>):</p>
+<ul>
+  <li>The iframe never runs untrusted scripts or eval.</li>
+  <li>Mutations are reconciled incrementally via DOM operations using <code>LayerNodeRegistry</code> (Phase 19).</li>
+  <li>Editing a layer's color, position, or size updates only that specific DOM node in under 1ms, maintaining smooth 60 FPS even with 500+ complex layers.</li>
+</ul>
+
+<h3>4.4 Dual Animation Engine & Parity Verification (Phases 57–60)</h3>
+<p>LazyLayout solves the classic animation editing paradox (scrubbing requires instant random-access mathematics, while playback requires hardware-accelerated thread independence) using a dual-engine architecture:</p>
+<ul>
+  <li><strong>Scrubbing & Paused State:</strong> The pure TypeScript <strong>Deterministic Evaluation Kernel</strong> (<code>src/core/kernel/evaluate.ts</code>) evaluates all property paths at exact time <code>t</code>. It integrates GSAP-derived cubic-bezier easings and Framer Motion physical spring formulas.</li>
+  <li><strong>Playing State:</strong> Eligible CSS properties (transforms, opacity, colors) hand off instantly to native browser <strong>Web Animations (WAAPI)</strong> running on the compositor thread.</li>
+  <li><strong>Zero-Pixel Handoff:</strong> Pausing terminates WAAPI and re-applies kernel inline styles with 0.0px jump.</li>
+  <li><strong>Parity Badge:</strong> A real-time drift auditor (<code>src/core/engine/stage/parity.ts</code>) samples the stage every 30 frames and computes mathematical variance against <code>evaluate(t)</code>. A green badge in the status bar confirms drift remains under 0.5px.</li>
+</ul>
+
+<h3>4.5 FigCraft Port Architecture (F1–F14)</h3>
+<p>On branch <code>a/figcraft-port</code>, LazyLayout incorporates the engine algorithms from the high-performance Rust vector engine FigCraft (MIT licensed), translating data structures and mathematical behaviors into clean TypeScript:</p>
+<ul>
+  <li><strong>Squircle Corner Smoothing (F1):</strong> Continuous-curvature corner radii (G2 continuity) rather than simple circular arcs.</li>
+  <li><strong>Display P3 Color Gamut (F2):</strong> Full wide-gamut color parsing and <code>color(display-p3 ...)</code> rendering.</li>
+  <li><strong>Vector Networks & Paint Bucket (F4):</strong> True non-manifold vector topologies with vertices, segments, and faces, editable via the Paint Bucket tool (B).</li>
+  <li><strong>Live Boolean Groups & Shape Builder (F5):</strong> Non-destructive boolean unions/subtractions where operands remain editable layers, plus the interactive Shape Builder tool (Shift+M).</li>
+  <li><strong>Dev Mode (F13):</strong> Inspector showing CSS syntax with token variables, annotations, and kept measurement overlays.</li>
+</ul>
+
+<h2>5. Known Audit Issues & Defect Landscape (AUDIT_ISSUES.md)</h2>
+<p>The repository maintains an active audit log of 50 identified issues discovered during Stage 0–Stage 1 development. Understanding these is essential for thorough manual testing:</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 10%;">ID</th>
+      <th style="width: 15%;">Area</th>
+      <th style="width: 10%;">Sev</th>
+      <th>Issue Summary & Defect Behavior</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>#1</strong></td>
+      <td>Selection (26)</td>
+      <td><strong>Med</strong></td>
+      <td>Selection array retains layer IDs that were deleted via undo, redo, or frame removal.</td>
+    </tr>
+    <tr>
+      <td><strong>#3</strong></td>
+      <td>Editing (29)</td>
+      <td><strong>Med</strong></td>
+      <td>Delete, Cut, Duplicate, Nudge, and Group operations still execute on locked layers if selected via command.</td>
+    </tr>
+    <tr>
+      <td><strong>#4</strong></td>
+      <td>Editing (29)</td>
+      <td><strong>High</strong></td>
+      <td>Editing shortcuts (Delete, nudge, duplicate, arrange) still fire while Preview mode is active.</td>
+    </tr>
+    <tr>
+      <td><strong>#5</strong></td>
+      <td>Tools (24)</td>
+      <td><strong>Med</strong></td>
+      <td>Window blur or pointer cancellation mid-drag leaves <code>gesturing</code> state active, locking shortcuts.</td>
+    </tr>
+    <tr>
+      <td><strong>#7</strong></td>
+      <td>Document (3)</td>
+      <td><strong>High</strong></td>
+      <td>Executing undo or redo while a drag transaction is in progress corrupts history and document tree.</td>
+    </tr>
+    <tr>
+      <td><strong>#10</strong></td>
+      <td>Camera (20)</td>
+      <td><strong>High</strong></td>
+      <td><code>NaN</code> or <code>Infinity</code> entering zoom anchor can blank the entire viewport canvas.</td>
+    </tr>
+    <tr>
+      <td><strong>#11</strong></td>
+      <td>Hit-testing (22)</td>
+      <td><strong>Med</strong></td>
+      <td>Overlapping frames can select a child of the frame underneath, violating visual stacking order.</td>
+    </tr>
+    <tr>
+      <td><strong>#18</strong></td>
+      <td>Transform (27)</td>
+      <td><strong>Med</strong></td>
+      <td>A pure position move mistakenly writes explicit width/height, converting hug-sized layers into fixed.</td>
+    </tr>
+    <tr>
+      <td><strong>#21</strong></td>
+      <td>Document (3)</td>
+      <td><strong>High</strong></td>
+      <td><code>insertLayers</code> can overwrite an existing layer if IDs collide without deduplication check.</td>
+    </tr>
+    <tr>
+      <td><strong>#23</strong></td>
+      <td>Clipboard (29)</td>
+      <td><strong>High</strong></td>
+      <td>Cut command deletes layer from stage even if clipboard write permission was denied.</td>
+    </tr>
+    <tr>
+      <td><strong>#24</strong></td>
+      <td>Time (54)</td>
+      <td><strong>High</strong></td>
+      <td>Seeking with <code>NaN</code> corrupts transport playhead and work area into <code>NaN</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>#33</strong></td>
+      <td>Import (3)</td>
+      <td><strong>High</strong></td>
+      <td><code>.lazy.json</code> import lacks file size and layer count ceilings, allowing hostile memory exhaustion.</td>
+    </tr>
+    <tr>
+      <td><strong>#36</strong></td>
+      <td>Stage (18)</td>
+      <td><strong>Med</strong></td>
+      <td><code>performance.mark</code> calls executed on every render frame never clear, causing slow memory leak.</td>
+    </tr>
+    <tr>
+      <td><strong>#45</strong></td>
+      <td>Dev Routes</td>
+      <td><strong>Med</strong></td>
+      <td>Testing lab routes (<code>/editor/canvas-lab</code>, <code>stage-lab</code>, <code>render-gallery</code>) are exposed in production builds.</td>
+    </tr>
+  </tbody>
+</table>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part II: Manual Testing Architecture & Execution Framework</h1>
+  <p>Standardized QA protocol, environment initialization, interface topography map, rapid pre-flight smoke testing, and fundamental test recipes.</p>
+</div>
+
+<h2>1. Manual Testing Methodology & The "Do → Expect → Fails if" Standard</h2>
+<p>To ensure 100% test reproducibility across human testers, automated agents, and multi-browser environments, every test in this guide adheres to the rigorous <strong>Do → Expect → Fails if</strong> tripartite formula:</p>
+
+<ul>
+  <li><strong>Do:</strong> The exact sequence of physical user interactions—keystrokes, mouse moves, clicks, drags, or menu selections.</li>
+  <li><strong>Expect:</strong> The precise observable visual, temporal, or DOM state that must occur if the implementation is correct.</li>
+  <li><strong>Fails if:</strong> Explicit descriptions of bug states, regressions, timing drift, visual artifacts, or console errors that constitute an immediate test failure.</li>
+</ul>
+
+<h3>1.1 Defect Logging & Write-In Protocol</h3>
+<div class="callout callout-warning">
+  <strong>CRITICAL QA INSTRUCTION:</strong>
+  Every test case includes a status selector (<code>Pass</code>, <code>Fail</code>, <code>Blocked</code>) and a dedicated 
+  <strong>✎ Actual Outcome / Defect Notes</strong> write-in box. 
+  If what you observe matches the <strong>Expect</strong> specification exactly, mark <code>[X] Pass</code>. 
+  <strong>If the expected outcome was NOT observed, or if unexpected behavior occurred:</strong>
+  <ol>
+    <li>Mark <code>[X] Fail</code> (or <code>[X] Blocked</code> if preceding steps prevent reaching this state).</li>
+    <li>In the provided write-in lines, explicitly record:
+      <ul>
+        <li>What actually appeared on screen or failed to appear.</li>
+        <li>The exact text of any Red Console Errors in DevTools.</li>
+        <li>Browser name, version, and operating system.</li>
+        <li>Whether running in <code>npm run dev</code> or a production build (<code>npm run build && npm run start</code>).</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<h2>2. Environment Setup & Pre-Flight Configuration</h2>
+<pre><code># 1. Ensure you are on the correct branch and up to date
+cd "/Users/pranav/Project Folder/WebAPPBuilder"
+git status
+
+# 2. Install dependencies cleanly (if package-lock changed)
+npm ci
+
+# 3. Start the Next.js development server
+npm run dev
+
+# 4. Open Chromium (or Brave, Chrome, Edge) to:
+http://localhost:3000/editor</code></pre>
+
+<div class="callout callout-info">
+  <strong>DevTools Requirement:</strong> 
+  Open Chrome/Chromium DevTools immediately (<code>F12</code> or <code>Cmd+Option+I</code>) and navigate to the 
+  <strong>Console</strong> tab. Keep it visible throughout testing. 
+  <strong>ANY red uncaught exception or error log that appears during an action is an automatic test failure</strong>, 
+  even if the user interface appears normal on the surface.
+</div>
+
+<h2>3. Editor Topography Map: Where Everything Is Located</h2>
+<p>Refer to this interface directory for all button, panel, and shortcut references:</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 22%;">Area</th>
+      <th style="width: 25%;">Physical Screen Location</th>
+      <th>UI Controls, Buttons & Indicators</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Application Header</strong></td>
+      <td>Top bar across full screen width</td>
+      <td>
+        • <strong>Menus:</strong> File, Edit, View, Window, Help<br>
+        • <strong>Canvas Presets:</strong> Desktop (1440px), Tablet (768px), Mobile (375px)<br>
+        • <strong>Demo Loader:</strong> Mount Showcase Demo button<br>
+        • <strong>Workspace Tabs:</strong> Design workspace, Animate workspace, Code workspace<br>
+        • <strong>Header Tools:</strong> Saved layouts, Open Command Palette (Ctrl+P), Save (Ctrl+S), Undo (Ctrl+Z), Redo (Ctrl+Shift+Z)
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Frame Control Bar</strong></td>
+      <td>Floating strip directly above canvas stage</td>
+      <td>
+        • Active Frame Name & Dimension boxes (W / H)<br>
+        • Frame Presets dropdown (Desktop, Tablet, Mobile, Custom)<br>
+        • Mode Toggles: <strong>Design</strong> / <strong>Preview</strong><br>
+        • Snapping: Snap objects, Snap guides, Pixel grid, Rulers (Shift+R)<br>
+        • Canvas Backdrop: Light, Dark, Checkerboard
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Tool Dock</strong></td>
+      <td>Centered horizontally at bottom of stage</td>
+      <td>
+        • Selection & Hand tools (V, H)<br>
+        • Creation tools: Frame (F), Rectangle (R), Ellipse (O), Line (L), Arrow (Shift+L), Polygon (Y), Star (Shift+Y), Text (T)<br>
+        • Vector & Editing tools: Pen (P), Pencil (Shift+P), Paint Bucket (B), Shape Builder (Shift+M)<br>
+        • Zoom controls: Zoom Out, Current Zoom (Click to 100%), Zoom In, Fit to Screen (Shift+1)
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Left Dock</strong></td>
+      <td>Left vertical sidebar</td>
+      <td>
+        • <strong>Layers tab:</strong> Hierarchical DOM tree, search input, eye (hide/show), padlock (lock/unlock), motion badges<br>
+        • <strong>Assets tab:</strong> Image/video asset gallery, SVG import, usage counts<br>
+        • <strong>Pages tab:</strong> Multi-page route list (/, /about), add page, section anchors
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Right Dock (Inspector)</strong></td>
+      <td>Right vertical sidebar</td>
+      <td>
+        • Inspector Tabs: <strong>Design</strong>, <strong>Motion</strong>, <strong>Code</strong><br>
+        • Design Inspector toggle: <strong>Simple</strong> face vs <strong>Pro</strong> face<br>
+        • Alignment Bar: Align Left, Center, Right, Top, Middle, Bottom, Distribute, Tidy<br>
+        • Property groups: Position, Dimensions, Auto-layout, Constraints, Fill, Stroke, Effects, Typography, Tokens
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Bottom Drawer</strong></td>
+      <td>Bottom section (active in Animate workspace)</td>
+      <td>
+        • <strong>Layer Timeline tab:</strong> Layer rows, In/Out time bars, Work area (green bar), Markers, Solo/Shy/Lock switches, Property twirl-downs (▸P), Keyframe stopwatches (◷)<br>
+        • <strong>Motion Sequencer tab:</strong> Track-based keyframe editor, playhead needle, speed pills<br>
+        • <strong>Export Preview tab:</strong> Live code and markup generation
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Status Bar</strong></td>
+      <td>Very bottom strip of window</td>
+      <td>
+        • Layer count readout (e.g. "3 layers selected")<br>
+        • Central Transport Bar: Stop & Return, Step Back (1 frame), Play / Pause, Step Forward, Loop toggle, Timecode (MM:SS:FF)<br>
+        • Parity Badge: <code>Parity idle</code> (grey), <code>Parity OK</code> (green), <code>Parity drift</code> (red)
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>4. Fundamental Test Recipes</h2>
+<p>Most tests in this guide build upon two standardized setup recipes:</p>
+
+<h3>Recipe A: Make an Animated Demo Page (Motion & Timeline Tests)</h3>
+<ol>
+  <li>Open <code>http://localhost:3000/editor</code>.</li>
+  <li>Click the <strong>Animate workspace</strong> tab in the header. The bottom drawer opens on <strong>Layer Timeline</strong>.</li>
+  <li>Click the <strong>Motion Sequencer</strong> tab next to it and wait 1 second for the sequencer to hydrate.</li>
+  <li>Click <strong>Mount Showcase Demo</strong> in the header. A complete demo page with a heading and a button appears on the stage.</li>
+  <li>In the Sequencer, click on the ruler at approximately <strong>0.4s</strong>. The playhead jumps there.</li>
+  <li>Click <strong>+ Keyframe</strong>. Two tracks appear: <code>appearance.opacity</code> and <code>transform.y</code>.</li>
+  <li>Click <strong>Stop and return to start</strong> in the status bar transport (timecode resets to <code>00:00:00</code>).</li>
+  <li>Click <strong>Play</strong> in the status bar.</li>
+</ol>
+<div class="callout callout-success">
+  <strong>Recipe A Success Baseline:</strong> The demo page smoothly fades in and slides upward over ~0.4s, then remains stationary. Status bar timecode counts up continuously.
+</div>
+
+<h3>Recipe B: Make Visual Shapes & Layers (Layout & Editing Tests)</h3>
+<ol>
+  <li>Open <code>http://localhost:3000/editor</code>.</li>
+  <li>Click <strong>Mount Showcase Demo</strong>.</li>
+  <li>Click the <strong>Rectangle Tool</strong> (dock or shortcut <code>R</code>) and drag a box inside the page.</li>
+  <li>Click the <strong>Ellipse Tool</strong> (shortcut <code>O</code>) and drag an oval beside it.</li>
+  <li>Click the <strong>Text Tool</strong> (shortcut <code>T</code>), drag a text box, and type <code>Test Run</code>.</li>
+</ol>
+<div class="callout callout-success">
+  <strong>Recipe B Success Baseline:</strong> Three new distinct layers are created inside the demo page container, immediately visible in the Layers panel on the left and selectable with the Select tool (<code>V</code>).
+</div>
+
+<h2>5. Quick Smoke Test Suite (3-Minute Pre-Flight)</h2>
+<p>Perform this rapid smoke check before undertaking any detailed phase testing. If any step fails, halt testing immediately and file an environment blocker.</p>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">Smoke Test S1 · Editor Boot & Clean Console</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Navigate to <code>http://localhost:3000/editor</code> in Chromium with DevTools Console open.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Editor loads completely. URL redirects to <code>/editor?projectId=...</code>. Design workspace tab is active. ZERO red error messages in the console.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Blank screen, spinning loader never resolves, 500 server error, or any red uncaught exception appears in console.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">Smoke Test S2 · Showcase Demo Mounting</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Click <strong>Mount Showcase Demo</strong> in the top header.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">A white desktop frame mounts on the dotted canvas containing a styled heading and an interactive button. Layers panel populates with the hierarchy.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Nothing appears on canvas, canvas flickers to black, or mounting takes longer than 1 second.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">Smoke Test S3 · Top Header Menus</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Click each top menu item in sequence: <strong>File</strong>, <strong>Edit</strong>, <strong>View</strong>, <strong>Window</strong>, <strong>Help</strong>. Click canvas to dismiss.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Each dropdown menu opens instantly with formatted shortcut badges. Clicking outside dismisses cleanly without leaving orphaned popups.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Menu fails to open, opens behind the stage iframe, or throws console errors.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">Smoke Test S4 · Command Palette (Ctrl+P)</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Press <strong>Ctrl+P</strong> (Cmd+P on Mac). Type <code>zoom</code>, then press <strong>Escape</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Command palette modal overlays the center of the screen with a focused search input. Typing filters matching commands (e.g. Zoom In, Zoom Out). Escape closes it immediately.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Native browser print dialog opens instead of command palette, palette fails to open, or search input cannot be typed into.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">Smoke Test S5 · Shape Creation & Undo Transaction</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select Rectangle Tool (shortcut <code>R</code>), drag a box inside the demo frame. Press <strong>Ctrl+Z</strong>. Press <strong>Ctrl+Shift+Z</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Rectangle appears on drag release. Ctrl+Z completely removes it in one atomic step. Ctrl+Shift+Z (redo) restores it exactly in place.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Shape does not appear, requires multiple undo presses to remove, or undo corrupts the document.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part III: Manual Testing Suite — Stage 0: Foundation</h1>
+  <p>Verification tests for core architectural infrastructure: Unified Document Model (MDM), transactional history, IndexedDB persistence, rule table, deterministic evaluation kernel, and store decomposition.</p>
+</div>
+
+<!-- Phase 1 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 1</span>
+    <span class="phase-lane-badge">Core Foundation</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Build Health, Tooling & Verification Pipeline</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Strict TypeScript compiler zero-error configuration, ESLint warning budget enforcement (&lt;463 warnings), Next.js 16 / React 19 build validation, Playwright three-browser harness integration, and architectural link checkers.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T1.1 (Dev) · Production Build & Lint Compliance</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Run <code>npm run typecheck && npm run lint && npm run build</code> in terminal.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">All three exit with code 0. Zero TypeScript errors. ESLint reports 0 errors and warning budget is respected. Next.js production build completes.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Any command exits non-zero, type errors occur, or ESLint budget is exceeded.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 2 & 7 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 2 & 7</span>
+    <span class="phase-lane-badge">Core Document</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Unified Motion Document Model & Canonical Property Paths</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> MDM schema v5/v6 data structures, 216 canonical dot-notation property paths registered in <code>properties.ts</code>, document geometry hierarchy, and schema version migrations.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T2.1 (Dev) · Property Path Registry Integrity</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Run <code>npx tsx --test "src/core/document/__tests__/properties.test.ts"</code>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">All property paths resolve correctly with expected interpolation types (number, color, unit, matrix). Zero missing paths.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Any test fails, or unregistered property paths are detected.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 3 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 3</span>
+    <span class="phase-lane-badge">Persistence</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">History Engine, IndexedDB Autosave & .lazy.json Project Files</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Gesture transaction batching (a 60-frame drag = 1 undo step), IndexedDB non-blocking autosave, dirty state indicator dot, crash recovery, and full JSON export/import of <code>.lazy.json</code> project bundles.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T3.1 (User) · Autosave, Dirty Indicator & Reload Recovery</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Mount Showcase Demo. Draw a rectangle. Observe the top Save button. Wait 3 seconds, then hard reload the browser (<code>Cmd+R</code> / <code>F5</code>).</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Drawing the shape causes a small dirty dot to appear on the Save button. Within ~1s, autosave flushes to IndexedDB and the dot clears. After reload, the rectangle and demo restore identically.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Dirty dot remains stuck indefinitely, data is lost on reload, or editor crashes with IndexedDB error.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T3.2 (User) · .lazy.json Project File Export & Re-Import</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Choose <strong>File → Export Project File (.lazy.json)</strong>. Open the downloaded file in a text editor. In the editor, navigate to <code>/editor</code> (blank canvas) and choose <strong>File → Import Project File...</strong>, selecting the exported file.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">The exported file is valid JSON with <code>schemaVersion: 6</code>. The re-imported project loads flawlessly with all shapes, text, and properties intact.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">File download fails, JSON is corrupted, or import throws schema validation errors.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 10 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 10</span>
+    <span class="phase-lane-badge">Rules Engine</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Executable Motion Rules Engine & Scored Engine Routing</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Executable rules compiled directly from the grammar matrix (432 assertions), conditional gating (⚠️ conditional / 🔒 subsumed), accessibility strobe limiter (≤3 flashes/sec), and scored engine routing (CSS vs WAAPI vs Three.js; GSAP excluded from editor runtime).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T10.1 (Dev) · Rule Table Assertions & Routing Score</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Run <code>npx tsx --test "src/core/rules/__tests__/*.test.ts"</code>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">All 432 grammar compatibility assertions pass. <code>rules.canAdd</code>, <code>rules.validate</code>, and <code>rules.route</code> return correct engine choices without importing GSAP.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Any matrix assertion fails or illegal engine routing is suggested.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 11 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 11</span>
+    <span class="phase-lane-badge">Kernel</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Deterministic Evaluation Kernel (evaluate())</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Pure TypeScript mathematical oracle <code>evaluate(document, time)</code>. Features exact GSAP cubic-bezier easing solver (Newton-Raphson + bisection), Motion physical spring integrator with velocity handoff, and OKLab color space interpolation.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T11.1 (Dev) · Golden Easing & Spring Determinism</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Run <code>npx tsx --test "src/core/kernel/__tests__/*.test.ts"</code>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">111 assertions pass across 5 test suites. Kernel easing matches real GSAP golden values; spring solver matches Motion golden values; 200-sample determinism fuzz test passes with 0 drift.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Mathematical divergence from golden reference values or non-deterministic outputs.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 12 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 12</span>
+    <span class="phase-lane-badge">State Decomposition</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Store Decomposition & Fine-Grained Subscriptions</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Decomposed monolithic 1,554-line store into atomic Zustand stores: <code>useDocumentStore</code> (document state & patches), <code>useEnvironmentStore</code> (camera, grid, lighting), <code>useProjectStore</code> (metadata), and <code>useSelectionStore</code> (active IDs).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T12.1 (Dev) · Fine-Grained Subscription Performance</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Run <code>npx tsx --test "src/core/store/__tests__/documentStore.test.ts"</code>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Fine-grained per-clip and per-layer selectors fire only when their respective entity changes. Updates to Layer A do not trigger re-render in Layer B subscribers.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Unnecessary subscriber notification cycles or memory retention leaks.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part III (Cont.): Stage 1 — Viewport, Stage Host, Tools & Selection (Phases 13–28)</h1>
+  <p>Rigorous manual test specifications for command bus routing, dock workspace persistence, security boundaries, stage host iframe isolation, camera navigation, shape creation, spatial hit-testing, selection mechanics, and transform handles.</p>
+</div>
+
+<!-- Phase 13 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 13</span>
+    <span class="phase-lane-badge">Lane A · Viewport</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Command Bus, Menu Registry & Focus-Disambiguated Shortcuts</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Single centralized command registry with context keys (<code>canvasFocus</code>, <code>timelineFocus</code>, <code>textEditing</code>). File/Edit/View/Window/Help menus route commands through the dispatcher. Eliminates conflicting key listeners.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T13.1 · Menu Undo/Redo & Keybinding Dispatch</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Mount demo. Draw a rectangle. Choose <strong>Edit → Undo</strong> from the top menu. Choose <strong>Edit → Redo</strong>. Press <strong>Ctrl+Z</strong> then <strong>Ctrl+Shift+Z</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Menu Undo removes rectangle; Menu Redo restores it. Keystrokes produce identical single-step transitions.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Menu click does not fire undo, requires double click, or causes desynchronization.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T13.7 · Disabled Menu States & Pending Phasing</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Open <strong>File</strong> menu. Inspect disabled items: <strong>New Project...</strong>, <strong>Save As Template...</strong>, <strong>Export Next.js + Prisma Code</strong>. Click a disabled item.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Items are visibly grayed out with phase annotations (e.g. "Phase 51", "Phase 49"). Clicking them produces zero action and ZERO console errors. No fake recent-project items exist.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Clicking disabled items triggers crashes or uncaught console exceptions.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 14 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 14</span>
+    <span class="phase-lane-badge">Lane A · Workspace</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Workspace Dock Model & On-Demand Panel Registry</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Panel registry with lazy-loaded chunks. Resizable splitters between side docks and stage. Splitter dimensions and docked panel layout persist across page reloads in <code>localStorage</code>. Corrupt layout self-healing.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T14.1 · Splitter Resize & Reload Persistence</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Click <strong>Animate workspace</strong> tab. Drag the vertical splitter before the right dock to widen it significantly. Reload the browser page.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Page reloads directly into Animate workspace with the right dock retaining the exact widened pixel width.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Dock snaps back to default width or resets to Design workspace.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 15 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 15</span>
+    <span class="phase-lane-badge">Lane A · Presets</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Workspace Presets (Design, Animate, Code) & Saved Layouts</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> One-click preset switching: Design (Figma-style: stage + inspector), Animate (After Effects-style: timeline drawer + motion inspector), Code (developer-style: live code inspector). Custom named layouts saving and deletion.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T15.1 · Rapid Workspace Switching & Stage Preservation</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Draw a rectangle on the canvas. Rapidly click between <strong>Design</strong>, <strong>Animate</strong>, and <strong>Code</strong> workspace tabs 20 times.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Switches are instantaneous (&lt;100ms). The center stage frame is NEVER destroyed or reloaded. Drawn rectangle remains stable on screen throughout.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Stage flickers to white, iframe reloads, drawn shapes disappear, or editor freezes.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 16 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 16</span>
+    <span class="phase-lane-badge">Lane A · Security</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Threat Model & Hostile Content XSS Neutralization</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Verification of nine trust boundaries and ten security rules (R1–R10). Text layers, layer names, SVG attributes, and AI co-pilot prompts are strictly sanitized against script injection and prototype pollution.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T16.1 · Hostile XSS Injection in Text Layer</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Pick Text Tool (<code>T</code>), drag a box, and enter: <code>&lt;img src=x onerror=alert(1)&gt;</code>. Double-click layer in Layers panel and rename it to: <code>&lt;script&gt;alert(2)&lt;/script&gt;</code>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect"><strong>ZERO alert boxes appear.</strong> Both strings render strictly as inert plain text in both the canvas DOM and Layers panel tree.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Any browser alert dialog opens, script executes, or DOM elements are injected into editor shell.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 17 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 17</span>
+    <span class="phase-lane-badge">Lane A · Render</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Archetype Render Definitions & Render Gallery</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Replaced monolithic renderer with modular per-archetype definitions (<code>src/core/render/definitions/</code>). 53 visual gallery cases covering basic shapes, complex SVGs, badges, floating buttons, and edge cases.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T17.1 · Render Gallery Inspection (53 Cases)</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Open <code>http://localhost:3000/editor/render-gallery</code> in browser. Scroll through all cases.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">All 53 cases render with visual clarity (rectangles, ellipses, stars, arrows, paths, dividers, badges). Zero console errors. Malformed inputs stay confined to boxes.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Blank test cells, broken images, unstyled fallbacks, or console errors appear.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 18 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 18</span>
+    <span class="phase-lane-badge">Lane A · Stage Host</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Stage Host v2: Isolated Live Frame & Strict CSP</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Retired HTML-string iframe (<code>srcDoc</code>). Stage runs inside <code>/stage-frame.html</code> with <code>Content-Security-Policy: script-src 'none'</code>. Canvas editing modifies the live DOM directly.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T18.1 · Live DOM Frame Selection & Shortcut Pass-Through</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Mount Showcase Demo. Click the heading directly on the canvas. With pointer hovering over the stage, press <strong>Ctrl+Z</strong>, <strong>V</strong>, <strong>H</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Heading gets blue outline with dimension badges. Shortcuts fire immediately without clicking parent window to regain focus. Stage does not reload or flicker.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Keystrokes are swallowed by the iframe, stage flickers, or selection fails to highlight.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 19 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 19</span>
+    <span class="phase-lane-badge">Lane A · Incremental</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Incremental Reconciliation & Measurement API at Scale</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> <code>LayerNodeRegistry</code> managing direct DOM element updates. Single property edits bypass React reconciliation. 500-layer stress laboratory (<code>/editor/stage-lab</code>) mounting in &lt;500ms.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T19.1 · 500-Layer Mount & Single Node Mutation</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Navigate to <code>http://localhost:3000/editor/stage-lab</code>. Click <strong>Load 500 layers</strong>. Click <strong>Edit one layer</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">500 layers mount with reported time &lt; 500ms. Clicking "Edit one layer" increments counter and updates only layer 250 in under 2ms without re-rendering the other 499 layers.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Mounting takes &gt; 1000ms, page freezes, or editing causes full list re-render lag.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 20 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 20</span>
+    <span class="phase-lane-badge">Lane A · Viewport</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Viewport Camera (Pan & Zoom 2%–6,400%)</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Hardware-accelerated canvas pan and zoom. Smooth cursor-anchored zooming (2% to 6,400%), 100% snap, keyboard shortcuts (Shift+1 fit, Shift+2 zoom selection, Shift+0 100%), per-project camera persistence.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T20.1 · Pan, Pointer Zoom & Clamping Limits</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Hold <strong>Space</strong> and drag on canvas. Use <strong>Ctrl+Wheel</strong> (or pinch trackpad) over a corner of the demo. Click Zoom In until capped, then Zoom Out.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Space+drag pans fluidly. Zoom anchors around mouse pointer, not canvas center. Zoom stops cleanly at 6,400% maximum and 2% minimum. 100% snaps.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Camera produces NaN/Infinity, screen blanks, zoom stutters, or limits are exceeded.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 21 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 21</span>
+    <span class="phase-lane-badge">Lane A · Multi-Frame</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Multi-Frame Responsive Canvas</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Infinite canvas hosting multiple root frames simultaneously (Desktop 1440px, Tablet 768px, Mobile 375px). Frame titles, dimensions, re-ordering, duplication, and backdrop themes (Light, Dark, Checkerboard).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T21.1 · Responsive Frame Spawning & Title Renaming</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Click <strong>Tablet Canvas (768px)</strong>, then <strong>Mobile Canvas (375px)</strong> in the top header. Double-click the Mobile frame title and rename to <code>Phone View</code>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Tablet and Mobile frames spawn cleanly beside Desktop frame. Renaming updates title cleanly on canvas and in Layers panel.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Frames overlap, spawn off-screen, or renaming throws exception.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 22 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 22</span>
+    <span class="phase-lane-badge">Lane A · Hit-Testing</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Hit-Testing & Spatial Indexing</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> R-Tree/BBox spatial index (<code>HitIndex</code>) for sub-millisecond layer hit-testing. Hover outlines, direct child selection vs <code>Ctrl-click</code> (Cmd-click) deep selection, and lock/hide safety guards.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T22.1 · Direct Child vs Deep Ctrl-Click Selection</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Mount demo. Click the button inside the demo card. Deselect. Now hold <strong>Ctrl</strong> (Cmd on Mac) and click the text label inside the button.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Normal click selects the top-level container or direct child. Ctrl-click deep-selects the exact innermost text span layer.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Ctrl-click behaves identically to normal click, or selection picks incorrect sibling.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 23 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 23</span>
+    <span class="phase-lane-badge">Lane A · Modes</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Overlay Layer & Design vs Preview Modes</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> SVG overlay plane rendering selection rings, hover outlines, and dimension labels. <strong>Preview Mode</strong> toggle rendering live interactive links and buttons while disabling selection handles and edit shortcuts.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T23.1 · Preview Mode Live Interactivity</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Mount demo. Click <strong>Preview</strong> in the frame bar. Hover and click the demo button. Press <strong>Delete</strong>. Click <strong>Design</strong> to return.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">In Preview mode, no outlines or handles appear; button shows CSS hover/active effects; pressing Delete does NOT delete the layer. Switching to Design restores selection.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Handles remain visible in Preview, or Delete shortcut deletes layers while previewing.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 24 & 25 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 24 & 25</span>
+    <span class="phase-lane-badge">Lane A · Tools</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Tool State Machine & Shape Creation Tools</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Modal tool state machine: Select (V), Hand (H), Frame (F), Rectangle (R), Ellipse (O), Line (L), Arrow (Shift+L), Polygon (Y), Star (Shift+Y), Text (T). Drag-to-create with Shift (1:1 ratio / 45° snap) and Alt (center draw).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T25.1 · Shift-Square & Center-Alt Creation</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Press <strong>R</strong>. Hold <strong>Shift</strong> and drag inside frame. Press <strong>O</strong>. Hold <strong>Alt</strong> and drag inside frame.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Shift forces strict 1:1 aspect ratio (perfect square). Alt draws ellipse expanding symmetrically from the initial click center.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Shift allows non-square dimensions or Alt does not expand from center.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 26 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 26</span>
+    <span class="phase-lane-badge">Lane A · Selection</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Multi-Selection, Marquee & Hierarchy Navigation</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Shift-click multi-selection, rubber-band marquee selection across multiple layers, <strong>Ctrl+A</strong> (select all), <strong>Escape</strong> (select none), <strong>Ctrl+Shift+A</strong> (invert), <strong>Enter</strong> (select children), <strong>Shift+Enter</strong> (select parent).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T26.1 · Marquee Drag & Hierarchy Tree Traversal</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Draw two shapes. Drag a marquee over both with Select tool. Status bar reads "2 layers selected". Select the parent frame and press <strong>Enter</strong>. Press <strong>Shift+Enter</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Marquee selects both shapes. Enter jumps selection down to children. Shift+Enter moves selection up to the parent frame.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Marquee misses intersecting shapes or hierarchy keys fail to navigate.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 27 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 27</span>
+    <span class="phase-lane-badge">Lane A · Transform</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Transform Handles, Rotation & Shape Gizmos</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> 8 bounding box transform handles, rotational zones outside corners (Shift snaps to 15°), multi-selection collective transforms, corner radius live handles, polygon sides handle, star points handle.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T27.1 · Corner Resize, Rotation & Radius Gizmo</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a rectangle. Drag a corner handle to resize. Hover just outside corner until rotate cursor appears and drag with Shift held. Drag the circular corner-radius handle inside corner. Press <strong>Ctrl+Z</strong> three times.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Shape resizes smoothly. Rotation snaps in exact 15° increments. Radius handle rounds corners visually. Each gesture undoes cleanly in exactly one step.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Rotation angle drifts, radius handle does not round corners, or undo creates intermediate artifacts.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 28 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 28</span>
+    <span class="phase-lane-badge">Lane A · Guides</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Snapping, Smart Guides & Canvas Rulers</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Smart magnetic snapping to edges and centers of adjacent layers. Equal spacing indicators. Alt-hover distance measurement badges. Rulers (Shift+R) with drag-out persistent guide lines.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T28.1 · Smart Guide Lines & Ruler Guide Creation</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Drag a rectangle near another. Press <strong>Shift+R</strong> to show rulers. Drag cursor out of top ruler into canvas. Reload page.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Red magnetic snapping lines appear when edges align. A horizontal blue guide line is created from ruler. Guide lines remain after reload.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Snapping lines fail to display, guide cannot be dragged, or guides vanish on reload.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part III (Cont.): Stage 1 — Editing, Layers, Inspectors, Paint & Assets (Phases 29–38)</h1>
+  <p>Detailed manual test specifications for Figma-style editing operations, alignment tools, inline text editing, hierarchical layers tree, Simple and Pro inspector faces, paint/gradients engine, asset management, and typography.</p>
+</div>
+
+<!-- Phase 29 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 29</span>
+    <span class="phase-lane-badge">Lane A · Editing</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Editing Operations (Clipboard, Duplication, Z-Order, Groups)</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Cross-tab Copy/Paste (Ctrl+C, Ctrl+V), Cut (Ctrl+X), Duplicate with relative offset memory (Ctrl+D), Arrow key nudging (1px, Shift+arrow 10px), Z-order stacking (Ctrl+[, Ctrl+], Ctrl+Shift+[, Ctrl+Shift+]), Grouping (Ctrl+G, Ctrl+Shift+G), Lock (Ctrl+Shift+L), Hide (Ctrl+Shift+H), and canvas context menu.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T29.1 · Duplicate Repeat Offset (Ctrl+D) & Cross-Tab Paste</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a shape. Press <strong>Ctrl+D</strong>. Nudge the copy 20px right and 20px down. Press <strong>Ctrl+D</strong> again. Press <strong>Ctrl+C</strong>, switch to a second tab on same project, and press <strong>Ctrl+V</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Second Ctrl+D duplicates again with identical 20px/20px offset applied automatically. Pasting into the second tab pastes the shape identically into that document.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Duplicate spawns at 0,0, offset memory fails, or cross-tab clipboard fails to paste.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T29.7 · Grouping & Ungrouping (Ctrl+G / Ctrl+Shift+G)</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select two shapes with Shift-click. Press <strong>Ctrl+G</strong>. Verify Layers panel. Press <strong>Ctrl+Shift+G</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Ctrl+G wraps both in a new Group container; shapes maintain exact canvas positions. Ctrl+Shift+G ungroups them back to parent container.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Shapes shift coordinates when grouped or ungrouping leaves orphan nodes.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 30 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 30</span>
+    <span class="phase-lane-badge">Lane A · Layout</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Alignment, Distribution & Grid Tidy Up</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Top alignment bar and shortcuts: Alt+A (left), Alt+H (horizontal center), Alt+D (right), Alt+W (top), Alt+V (vertical center), Alt+S (bottom). Equal distribution (Ctrl+Alt+H/V), grid Tidy Up (Ctrl+Alt+T), and interactive spacing handles.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T30.1 · Multi-Layer Alignment & Distribution</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Draw three rectangles scattered across frame. Select all three. Click <strong>Align Top</strong> (Alt+W). Click <strong>Distribute Horizontally</strong> (Ctrl+Alt+H).</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Top edges align perfectly to the topmost shape. Horizontal gaps between shapes become exactly equal while outermost shapes remain fixed.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Shapes shift out of alignment or distribution calculates unequal spacing.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 31 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 31</span>
+    <span class="phase-lane-badge">Lane A · Text</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Direct Canvas Inline Text Editing & Styled Character Runs</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Double-click canvas text editing. In-place styled character runs (Ctrl+B bold, Ctrl+I italic, Ctrl+U underline, Ctrl+Shift+X strikethrough on highlighted selection only). Automatic text sizing modes (Auto Width, Auto Height, Fixed).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T31.1 · Inline Formatting & Atomic Undo</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Double-click a text layer on canvas. Type <code>Alpha Beta Gamma</code>. Highlight the word <code>Beta</code> only and press <strong>Ctrl+B</strong>. Press <strong>Escape</strong> to commit. Press <strong>Ctrl+Z</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Only <code>Beta</code> becomes bold; <code>Alpha</code> and <code>Gamma</code> remain normal weight. Pressing Escape commits clean DOM. Ctrl+Z undoes the text edit in a single atomic step.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Entire text block bolds instead of selection, or undo takes multiple steps.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 32 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 32</span>
+    <span class="phase-lane-badge">Lane A · Layers</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Layers Panel Tree & Synchronized Selection</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Visual hierarchical tree in left dock. Drag-and-drop layer reordering and reparenting. Inline rename (F2 / double-click), visibility toggle (eye), lock toggle (padlock), live layer search filter, and context menu.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T32.1 · Canvas ⇄ Layers Panel Bi-Directional Sync</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a shape on the canvas. Look at the Layers panel. Select another layer in the Layers panel. Drag a row up in the Layers panel.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Canvas selection highlights the corresponding row in Layers panel. Panel selection highlights the layer on canvas. Dragging row up reorders DOM stacking order immediately.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Selection desynchronizes or layer reordering fails to change visual depth.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 33 & 34 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 33 & 34</span>
+    <span class="phase-lane-badge">Lane A · Inspector</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Design Inspector: Simple vs Pro Faces & Numeric Scrubbers</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Simple Face (&le;7 clean controls: Position, Size, Fill, Stroke, Radius, Opacity; zero jargon) vs Pro Face (hundreds of legal properties, fine-grained transforms, blend modes). Numeric label scrubbing with Shift (10x) and Alt (0.1x) modifiers.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T34.1 · Pro Inspector Label Scrubbing & Undo</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a rectangle. Switch inspector to <strong>Pro</strong>. Click and drag horizontally on the <strong>X</strong> label in Position. Observe shape moving. Press <strong>Escape</strong> mid-drag.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Dragging the label smoothly scrubs the coordinate in real time. Pressing Escape mid-drag cancels the gesture, immediately restoring initial coordinate.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Label cannot be scrubbed, values jump wildly, or Escape fails to restore original value.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 35 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 35</span>
+    <span class="phase-lane-badge">Lane A · Paint</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Paint Engine: Colors, Gradients, Multi-Strokes, Shadows & Blurs</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Multi-layer fill stacks. Solid colors (HSB / OKLCH / Hex), linear, radial, and conic gradients with on-canvas drag handles. Multiple strokes, dashed lines, caps/joins, drop shadows, inner shadows, layer blur, and backdrop blur.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T35.1 · Linear Gradient On-Canvas Interactive Gizmo</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a rectangle. In Fill section, add a <strong>Linear Gradient</strong>. On canvas, drag the start and end circle handles across the shape. Press <strong>Shift</strong> while dragging end handle.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Interactive gradient line appears over shape. Dragging handles changes angle and length live. Shift snaps angle in 15° increments.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Handles fail to appear, dragging does not update canvas gradient, or Shift snap fails.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 36 & 37 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 36 & 37</span>
+    <span class="phase-lane-badge">Lane A · Assets</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Asset Store, Storage Safety & Interactive Image Fills</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Drag-and-drop picture upload directly to canvas. SHA-256 deduplication (same file dropped twice creates 1 asset). Script stripping on imported SVGs. Image fill modes (Fill, Fit, Crop, Tile) with interactive on-canvas crop bounding box.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T37.1 · Image Fill Modes & On-Canvas Interactive Crop</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Apply an image fill to a rectangle. Test <strong>Fill</strong>, <strong>Fit</strong>, and <strong>Crop</strong> modes. In Crop mode, drag corner crop handles and middle move handle.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Fill covers bounds; Fit contains without clipping; Crop exposes on-canvas cropping handles allowing pan/zoom of the image within the container mask.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Image distorts aspect ratio improperly or crop gizmo fails to respond.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 38 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 38</span>
+    <span class="phase-lane-badge">Lane A · Typography</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Typography, Google Fonts & Custom Web Font Upload</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Dynamic Google Fonts search and on-demand font fetching (fonts downloaded only when a layer uses them). Custom font upload (.ttf, .otf, .woff, .woff2) embedded into project bundle. Variable font axis sliders (weight, optical size, slant).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T38.1 · Google Font Picker & Dynamic Fetching</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a text layer. In inspector typography section, open font family dropdown. Search <code>Playfair Display</code> and select it. Open DevTools Network tab.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Text renders instantly in Playfair Display serif. Network tab confirms font file is requested only upon selection. Selection bounding box automatically adapts to new font glyph metrics.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Font falls back to default sans-serif, selection box does not resize, or console throws font fetch error.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part III (Cont.): Stage 1 — Vector, Layout, Components & Export (Phases 39–49)</h1>
+  <p>Comprehensive manual test specifications for vector pen/pencil authoring, auto-layout flexbox stacks, CSS grid, responsive breakpoint cascades, design tokens/variables, components/variants, multi-page routing, and static code generation.</p>
+</div>
+
+<!-- Phase 39 & 40 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 39 & 40</span>
+    <span class="phase-lane-badge">Lane A · Vector</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Pen & Pencil Drawing, Path Node Editing & Booleans</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Pencil tool (Shift+P) gesture curve-fitting algorithm. Pen tool (P) placing nodes and pulling bezier handles (Alt breaks handle tangent). Node editing mode (Enter / double-click), node addition/deletion. Boolean union, subtract, intersect, exclude, and Flatten.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T39.1 · Pen Tool Bezier Curve Creation & Closing</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Press <strong>P</strong> (Pen Tool). Click to place node 1. Drag to place node 2 and pull bezier handles. Click on node 1 to close path. Press <strong>Escape</strong>. Press <strong>Ctrl+Z</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Curved path creates cleanly with smooth bezier curvature. Path closes and fills. Entire path creation is reversed in exactly one Ctrl+Z step.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Handles fail to pull, clicking node 1 does not close path, or undo takes multiple steps.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T40.1 · Boolean Union & Destructive Flatten</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Draw two overlapping rectangles. Select both. Click <strong>Boolean Union</strong>. Observe single outline. Click <strong>Flatten to path</strong>. Double-click the resulting shape.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Shapes merge into a single compound path. Flatten converts it into an editable vector path exposing individual bezier nodes.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Boolean produces visual gaps, leaves interior overlapping lines, or fails to flatten.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 41 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 41</span>
+    <span class="phase-lane-badge">Lane A · Auto-Layout</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Auto-Layout Stacks (CSS Flexbox with Figma Controls)</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Convert loose layers into auto-layout flex stack (Shift+A). Direction (horizontal/vertical), wrap, gap, 4-side padding. Child sizing modes: Hug, Fill, Fixed. Drag-and-drop reordering with visual blue insertion indicator line.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T41.1 · Shift+A Stack Creation & Child Drag Reorder</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Draw three buttons side by side. Select all three and press <strong>Shift+A</strong>. In inspector, change gap to <code>24px</code>. Drag the first button past the third button.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Buttons wrap in an auto-layout flex container with 24px gaps. Dragging displays a vertical blue insertion line; releasing drops button into the new sequence position.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Buttons overlap, gap does not update, or reorder line fails to display.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 42 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 42</span>
+    <span class="phase-lane-badge">Lane A · Constraints</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">CSS Grid Layout Containers & Pinned Constraints</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Grid layout containers with column/row track lists (e.g. <code>1fr 2fr</code>, <code>repeat(3, 1fr)</code>) and column/row cell spans. Directional constraints for free layers (Left, Right, Left & Right, Center, Scale) adapting when parent frame resizes.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T42.1 · Directional Constraints on Parent Frame Resize</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Draw a rectangle inside a frame. Set its Horizontal Constraint to <strong>Right</strong>. Select the frame and drag its right transform handle outward to widen it.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">The rectangle moves automatically to maintain an exact constant pixel distance from the right edge of the frame.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Rectangle remains stationary at absolute X or distorts unexpectedly.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 43 & 44 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 43 & 44</span>
+    <span class="phase-lane-badge">Lane A · Breakpoints</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Responsive Breakpoints Cascade & Multi-View Canvas</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Responsive Breakpoint Bar (Desktop 1440, Tablet 768, Mobile 375). Downward cascading property overrides. "All" Breakpoint Canvas rendering all device views simultaneously side-by-side with live synchronized updates.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T43.1 · Downward Cascading Overrides (Mobile Edit Isolation)</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select <strong>Mobile (375px)</strong> in breakpoint bar. Change a heading font size to <code>18px</code> and background color to blue. Switch back to <strong>Desktop (1440px)</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Desktop retains original large font and original color. Changes made in Mobile are stored strictly as responsive overrides for Mobile only.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Editing Mobile modifies the Desktop master styling.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 45 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 45</span>
+    <span class="phase-lane-badge">Lane A · Tokens</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Design Tokens, Semantic Variables & Theme Modes</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Tokens management panel. Semantic color and number variables with multi-mode values (Light / Dark). Binding layer properties (fills, text color, spacing) to tokens. Mode toggle switching whole page instantly. Text and effect styles.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T45.1 · Token Binding & Instant Light/Dark Mode Switch</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Create color variable <code>brand/primary</code> (Light: <code>#3b82f6</code>, Dark: <code>#1d4ed8</code>). Bind two shapes to it. Toggle canvas mode switch from <strong>Light</strong> to <strong>Dark</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Both shapes instantly switch fill to the dark mode color. Editing the token's value in the Tokens tab updates all bound layers immediately.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Shapes fail to update color or mode toggle does not re-resolve variables.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 46 & 47 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 46 & 47</span>
+    <span class="phase-lane-badge">Lane A · Components</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Components, Instances, Variant Matrices & Container Slots</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Create Component (Ctrl+Alt+K). Synced instance tree propagation. Instance override isolation with Reset override. Variant properties (e.g. Size: S/M/L, Tone: Primary/Secondary). Container slots for custom instance content.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T46.1 · Main Component Sync & Instance Overrides</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Turn a button frame into a Component (Ctrl+Alt+K). Duplicate it to make an instance. On the instance, override text to <code>Submit</code>. On the main component, change background to red.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Instance background immediately turns red (inheriting main's update), while retaining its custom overridden text <code>Submit</code>.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Instance fails to inherit color change or main overwrite destroys instance's text override.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 48 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 48</span>
+    <span class="phase-lane-badge">Lane A · Pages</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Multi-Page Routing, Sections & Interactive Prototype Links</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Pages tab in left dock managing routes (<code>/</code>, <code>/about</code>, <code>/contact</code>). Full-width section bands. Shared headers and footers across pages. Layer hyperlink wiring (to page, section anchor, or external URL). Interactive navigation in Preview mode.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T48.1 · Prototype Navigation Link in Preview Mode</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Create an <code>/about</code> page. On the home page, select a button and set Link destination to <code>/about</code> in inspector. Switch to <strong>Preview</strong> mode and click the button.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Preview switches instantly to <code>/about</code> page. Top address bar updates to <code>/about</code>. Back button navigates back to home page.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Link click does nothing, page fails to render, or back navigation breaks.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 49 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 49</span>
+    <span class="phase-lane-badge">Lane A · Export</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Static Code Exporter (Next.js, Vite, HTML, Tailwind)</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Export Dialog (Ctrl+E). Compiles entire design to Next.js 16 (App Router), Vite + React, or pure HTML with CSS Modules, Tailwind, or Vanilla CSS. Generates clean component files with typed TypeScript props. ZIP download.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T49.1 · Next.js / Tailwind ZIP Export & Parity</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Mount demo. Choose <strong>File → Export Site...</strong> (Ctrl+E). Select <strong>Next.js (App Router)</strong> and <strong>TailwindCSS</strong>. Click <strong>Export & Download ZIP</strong>. Unpack and inspect generated project.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">ZIP downloads. Contains valid Next.js project structure (<code>app/page.tsx</code>, <code>components/</code>, <code>tailwind.config.ts</code>). Code is clean, dependency-honest, with zero compile errors.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Download fails, export contains missing imports, or generated components fail to compile.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part III (Cont.): FigCraft Port Deepening Suite (Features F1–F14)</h1>
+  <p>Comprehensive manual and developer test specifications for the ported Rust FigCraft engine capabilities: continuous squircle geometry, Display P3 gamut, vector networks, paint bucket, live boolean groups, shape builder, nested component swaps, and Dev Mode.</p>
+</div>
+
+<!-- F1 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Feature F1</span>
+    <span class="phase-lane-badge">FigCraft Port</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Shape Geometry: Squircle Corner Smoothing & Arc/Ring Handles</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Continuous-curvature corner smoothing (squircles, G2 continuity 0–100%) on rectangles; rounded star/polygon vertices; interactive arc gizmos on ellipses (start angle, sweep angle, inner ratio creating donuts/rings).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">TF1.1 · Squircle Corner Smoothing & Ellipse Ring Arc Handles</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a rectangle. In inspector, set Corner Smoothing to <code>60%</code> (iOS squircle). Select an ellipse. Drag the circular Arc Handle on its right perimeter upward, then drag the inner ratio handle inward.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Rectangle corners transition smoothly into straight edges without tangent discontinuities. Ellipse becomes an open donut ring path governed by <code>fill-rule="evenodd"</code>.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Corners remain standard circular arcs or arc handles fail to drag.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- F2 & F3 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Features F2 & F3</span>
+    <span class="phase-lane-badge">FigCraft Port</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Display P3 Wide Gamut, Diamond Gradients, Multi-Strokes & Arrowheads</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Display P3 wide-gamut color parsing and <code>color(display-p3 ...)</code> rendering. Exact four-quadrant diamond gradients. Multiple independent strokes per shape with inside/center/outside alignment, per-side weights, and custom arrowheads.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">TF3.1 · Stroke Alignment (Inside / Center / Outside) & Arrowheads</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a shape. Set a 10px stroke. Cycle alignment: <strong>Inside</strong>, <strong>Center</strong>, <strong>Outside</strong>. Draw a line (<code>L</code>) and set start cap to <strong>Arrow</strong> and end cap to <strong>Circle</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Stroke shifts position cleanly across boundary. Outside stroke does not intrude into inner fill. Line renders with an arrowhead on start and a solid circle on end.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Stroke alignment does not move or line caps render as plain flat ends.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- F4 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Feature F4</span>
+    <span class="phase-lane-badge">FigCraft Port</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Vector Networks & Interactive Paint Bucket Tool (B)</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Non-manifold vector network topology (vertices connecting arbitrary branching edges). Automatic face discovery. Paint Bucket tool (shortcut <code>B</code>) clicking inside closed vector regions to fill or unfill enclosed areas.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">TF4.1 · Paint Bucket Region Filling & Unfilling (B)</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Draw a rectangle, select it, click <strong>Flatten to path</strong>. Press <strong>B</strong> (Paint Bucket). Click inside the shape. Click inside it again. Press <strong>Ctrl+Z</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">First click unfills the bounded region (path becomes hollow outline). Second click refills it with the active fill paint. Ctrl+Z undoes the fill state in one step.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Paint bucket does not change fill or fails to identify closed network face.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- F5 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Feature F5</span>
+    <span class="phase-lane-badge">FigCraft Port</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Live Boolean Groups & Shape Builder Tool (Shift+M)</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Non-destructive Live Boolean Groups where operands remain individual editable layers. <strong>Shape Builder Tool</strong> (Shift+M) allowing direct click or drag across overlapping shape regions to merge, or Alt-click to delete regions.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">TF5.1 · Live Boolean Non-Destructive Operation Switching</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select two overlapping rectangles. Click <strong>Live boolean group (union)</strong>. Inspect Layers panel. In inspector, switch Boolean operation to <strong>Subtract</strong>. Press <strong>Ctrl+Z</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">A live boolean group is created; both operands still exist as layers inside it. Switching to Subtract instantly recalculates the visual cutout. Ctrl+Z returns to Union.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Operands are permanently destroyed, or switching operation fails to update stage.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">TF5.2 · Shape Builder Overlap Region Merge (Shift+M)</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Draw two overlapping rectangles. Select both. Press <strong>Shift+M</strong> (Shape Builder). Hover over the overlapping center intersection. Click it.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Hovering highlights the exact intersecting segment. Clicking extracts the intersection into a new distinct shape while trimming the parent rectangles.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Shape builder does not detect intersection, or click fails to create region.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- F7 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Feature F7</span>
+    <span class="phase-lane-badge">FigCraft Port</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Advanced Effects: Progressive Blurs & SVG Noise Turbulences</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Multi-stop Progressive Background Blur (blur radius ramps linearly between two spatial points); SVG procedural noise grain filters (mono, duo, full-color) using <code>feTurbulence</code> and <code>feFlood</code>; simulated frosted glass with highlight reflection.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">TF7.1 · SVG Noise Filter & Progressive Blur Bands</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Select a shape. In Pro inspector Effects, add <strong>Noise</strong>. Switch mode to <strong>Duo</strong>. Add a <strong>Progressive Background Blur</strong> with radius 16px.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Shape displays fine procedural grain texture via SVG filter. Progressive blur splits into 5 backdrop blur bands smoothly ramping optical depth.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Noise renders as solid gray or blur does not ramp progressively.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- F9 & F10 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Features F9 & F10</span>
+    <span class="phase-lane-badge">FigCraft Port</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Nested Components, Push Changes & Token Variable Aliases</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Nested component instance swaps; "Push changes to main component"; Combine as variants; variable token collections with aliases (e.g. <code>surface → bg</code>) and circular dependency refusal; frame-scoped collection modes.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">TF9.1 · Push Changes to Main & Token Alias Resolution</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Create component. Duplicate an instance. Change instance background color. Click <strong>Push changes to main component</strong> in Instance inspector.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">The modified color pushes backward to the main component, which in turn propagates to all other unmodified instances across the document.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Push changes button is disabled or main component fails to adopt the new styling.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- F13 & F14 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Features F13 & F14</span>
+    <span class="phase-lane-badge">FigCraft Port</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Dev Mode Code Inspection & Native Editable SVG Vector Import</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Dev Mode Code Tab showing generated CSS with token variable syntax (<code>var(--token)</code>), annotations, and measurement overlays. Native SVG import parsing compound paths, gradients, and groups into fully editable vector design layers.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">TF14.1 · SVG Import to Fully Editable Design Vectors</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">In Assets panel, click <strong>Import Design SVG...</strong>. Select an SVG with paths and text. Double-click the imported layers on canvas.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">SVG imports not as a static image, but as a structured frame containing native path, text, and group layers with editable bezier nodes.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">SVG imports as an inert <code>&lt;img&gt;</code> tag or throws SVG parser errors.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part III (Cont.): Stage 2 — Animation Grammar, Transport & Timeline (Phases 53–63)</h1>
+  <p>Exhaustive manual and developer test specifications for the central transport clock, deterministic frame scheduler, WAAPI acceleration, scrub vs play handoff, real-time parity verification badge, Layer Timeline, and After Effects keybindings.</p>
+</div>
+
+<!-- Phase 53 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 53</span>
+    <span class="phase-lane-badge">Lane B · Schema v6</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Schema v6 Migration: Advanced Clip Types & Triggers</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Migration from Schema v5 to v6. New clip types (<code>exit</code>, <code>focus</code>, <code>stagger</code>, <code>layout</code>) and triggers (<code>unmount</code>, <code>layoutChange</code>). Automatic backward-compatible migration of older <code>.lazy.json</code> project bundles.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T53.1 · Schema Migration from Older Projects</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Import <code>tests/e2e/fixtures/showcase-v4.lazy.json</code>. Choose <strong>File → Export Project File (.lazy.json)</strong>. Open in text editor and inspect <code>schemaVersion</code>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Older project opens flawlessly with zero console warnings. Exported bundle automatically migrates and writes <code>"schemaVersion": 6</code>.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Import throws migration exception or exported version remains at 4 or 5.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 54 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 54</span>
+    <span class="phase-lane-badge">Lane B · Transport</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Central Transport Bar & Single Clock Authority</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Single clock authority (<code>src/core/time/transport.ts</code>) managing time, 60fps frame rate, loop mode (Off, Loop, Ping-Pong), and shuttle speeds. Transport controls in status bar with precise <code>MM:SS:FF</code> timecode. Keyboard shuttling (J/K/L).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T54.1 · Play, Pause, Single-Frame Stepping & Ping-Pong Loop</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Click <strong>Play</strong> in status bar. Wait 2 seconds. Click <strong>Pause</strong>. Click <strong>Step forward one frame</strong> 5 times. Click Loop button twice to set <strong>Loop: ping-pong</strong>. Click Play.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Timecode advances to ~<code>00:02:00</code>. Pause stops timecode dead. Stepping advances exactly 5 frames (<code>00:02:05</code>). In ping-pong mode, playback counts up to 5s, reverses smoothly toward 0s, and repeats.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Timecode drifts, skips frames, or ping-pong fails to count backwards.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T54.16 · J / K / L Timeline Shuttling Keys</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Hover mouse over timeline panel. Press <strong>L</strong> (plays 1x). Press <strong>L</strong> again (2x), again (4x). Press <strong>J</strong> (slows to 2x, 1x, pauses). Press <strong>J</strong> from standstill (plays backwards). Press <strong>K</strong> (stops dead). Click into a text box and press <strong>L</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">L accelerates shuttle speed forward; J reverses shuttle; K stops immediately. Typing in a text box types the letter 'L' and does NOT trigger transport.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Shuttle keys fail or fire while typing in text inputs.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 55 & 56 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 55 & 56</span>
+    <span class="phase-lane-badge">Lane B · Scheduler</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Deterministic Frame Scheduler & Sequencer Clock Integration</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Single <code>requestAnimationFrame</code> loop ordering per-frame tasks: <code>input → evaluate → apply → render → overlay → stats</code>. Background tab gap clamp (&le;0.25s). Motion Sequencer unified onto central transport clock.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T56.1 · Sequencer Ruler Scrubbing & Status Bar Synchronization</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Execute Recipe A. Click at <strong>1.5s</strong> on the Sequencer ruler. Drag the playhead needle handle horizontally back and forth between 0s and 3s.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">The Sequencer needle tracks the mouse with zero lag. Status bar timecode updates simultaneously. Both clocks match within 1 frame (e.g. <code>00:01.500</code> = <code>00:01:30</code>).</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Needle lags behind mouse, timecodes disagree, or scrubbing causes visual stutter.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 57 & 58 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 57 & 58</span>
+    <span class="phase-lane-badge">Lane B · Kernel & WAAPI</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Evaluation Kernel on the Stage & WAAPI Hardware Acceleration</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Kernel output applies live to DOM elements during playback/scrubbing. Eligible simple properties (transforms, opacity, colors) promote to native browser Web Animations API (<code>ll:&lt;layer_id&gt;</code>) running on GPU compositor thread.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T57.1 · Live Stage Animation & Playhead Scrubbing</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Execute Recipe A. Click <strong>Stop and return to start</strong>. Slowly drag playhead needle from 0s to 1s. Click <strong>Play</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Dragging needle scrubs the demo page opacity and slide-up smoothly in exact real-time sync with mouse. Clicking Play executes silky 60fps GPU playback.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Stage elements do not move when scrubbing, or animation jumps abruptly.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 59 & 60 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phases 59 & 60</span>
+    <span class="phase-lane-badge">Lane B · Parity</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Zero-Pixel Scrub vs Play Handoff & Real-Time Parity Badge</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Seamless transition between kernel mathematical evaluation (paused/scrubbing) and WAAPI hardware playback. Real-time parity auditor sampling stage every 30 frames and displaying status badge: <code>Parity idle</code> (grey), <code>Parity OK</code> (green), <code>Parity drift</code> (red, &gt;0.5px drift).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T59.1 · Zero-Pixel Pause Handoff & Green Parity Badge</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Execute Recipe A. Start playback with <strong>Play</strong>. Observe parity badge on right side of status bar. While demo is mid-fade, click <strong>Pause</strong>. Step 1 frame forward, then backward.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Parity badge turns green (<strong>Parity OK</strong>). Clicking Pause produces ZERO visible jump or flicker. Frame stepping smoothly increments/decrements with exact kernel matching.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Parity badge turns red, or pausing snaps stage elements to different coordinates.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 61 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 61</span>
+    <span class="phase-lane-badge">Lane B · Layer Timeline</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">The Layer Timeline (Rows, Time Bars, Work Area & Markers)</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Full Layer Timeline workspace. One row per layer with time bars. In/Out trim handles, time sliding. Green Work Area bar with dedicated start/end handles. Yellow timeline markers. Layer switches: Solo (S), Visibility (●), Lock (🔒), Shy (~), Motion blur (≋), Blend mode, and Parent menu. Motion badges in Layers panel.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T61.1 · Layer In/Out Trimming & Solo Switch (S)</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">In Animate workspace, open <strong>Layer Timeline</strong>. Expand root layer. On heading row, drag the right bar handle inward to 2s. Click <strong>S</strong> (Solo) on heading row. Press <strong>Ctrl+Z</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Heading bar trims to 2.0s with white outline. Solo mode hides all other layers on stage except heading. Ctrl+Z cleanly un-solos the layer.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Trim handle does not drag, solo fails to hide other layers, or undo fails.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 62 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 62</span>
+    <span class="phase-lane-badge">Lane B · Keyframing</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">Twirl-Downs, Keyframe Stopwatches (◷) & U Hotkey Filtering</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> Property twirl-downs (▸P) opening groups: Transform, Appearance, Effects, States, Behaviours, Links. Stopwatch icons (◷) toggling keyframing and spawning yellow keyframe diamonds on ruler. <strong>U</strong> hotkey revealing animated properties; <strong>UU</strong> revealing all modified properties.
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T62.1 · Stopwatch Keyframe Toggling & U Reveal Hotkey</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">In Layer Timeline, click <strong>▸P</strong> on heading row. Expand <strong>Transform</strong>. Move playhead to 1s and click stopwatch ◷ on <strong>Position X</strong>. Select layer name, hover timeline, and press <strong>U</strong>.</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Stopwatch turns bright yellow; yellow diamond appears at 1s. Pressing U hides all un-animated properties, isolating Position X in the row view.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Stopwatch does not turn yellow, diamond fails to spawn, or U fails to filter.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 63 -->
+<div class="phase-header-card">
+  <div class="phase-badge-line">
+    <span class="phase-num-badge">Phase 63</span>
+    <span class="phase-lane-badge">Lane B · Navigation</span>
+    <span class="phase-status-badge">✅ CI Green</span>
+  </div>
+  <div class="phase-title">After Effects Timeline Navigation Hotkeys</div>
+  <div class="phase-completed-box">
+    <strong>What was completed:</strong> After Effects industry-standard keybindings active over Layer Timeline: <strong>Home</strong> (comp start), <strong>End</strong> (comp end), <strong>PageDown / PageUp</strong> (step 1 frame), <strong>Shift+PageDown / Up</strong> (step 10 frames), <strong>I</strong> (jump to In-point), <strong>O</strong> (jump to Out-point), <strong>B</strong> (set Work Area Start), <strong>N</strong> (set Work Area End), <strong>= / -</strong> (zoom timeline), <strong>\</strong> (zoom to fit Work Area).
+  </div>
+</div>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">T63.1 · I / O In-Out Jumping & B / N Work Area Setting</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">Trim heading layer bar to 1s–3s. Select heading. Hover mouse over timeline. Press <strong>I</strong>. Press <strong>B</strong>. Press <strong>O</strong>. Press <strong>N</strong>. Press <strong>\</strong> (backslash).</span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">I jumps needle to 1s; B snaps work area start to 1s. O jumps needle to 3s; N snaps work area end to 3s. Backslash zooms timeline horizontally so the 1s–3s work area fills the visible viewport width.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Shortcuts fail to navigate, or keys trigger canvas actions instead.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+  
+<div class="page-break"></div>
+
+<div class="section-hero">
+  <h1>Part IV: Regression, Cross-Browser, Stress & Audit Testing</h1>
+  <p>Holistic integration validation: 25-step multi-feature user journeys, cross-browser compatibility matrix (Chromium, Firefox, WebKit), 15 chaotic stress test scenarios, and comprehensive verification suite for the 50 known issues from AUDIT_ISSUES.md.</p>
+</div>
+
+<h2>1. End-to-End Regression Journeys</h2>
+<p>Execute these complex multi-feature workflows to verify that independent subsystems interoperate seamlessly without state corruption:</p>
+
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">Journey J1 · Full Lifecycle: Design → Animate → Inspect → Export</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">
+      1. Boot editor on fresh project.<br>
+      2. Draw Desktop frame (1440px), add two rectangles and a text layer.<br>
+      3. Wrap shapes in an auto-layout flex stack (Shift+A) with 20px padding.<br>
+      4. Convert stack to a Component (Ctrl+Alt+K) and duplicate an instance.<br>
+      5. Switch to <strong>Animate workspace</strong>. Twirl open instance properties (▸P) and toggle Position X stopwatch at 1s.<br>
+      6. Scrub playhead and press Play in transport bar (verify parity badge is green).<br>
+      7. Switch to <strong>Code workspace</strong> and inspect generated CSS.<br>
+      8. Open File → Export Site (Ctrl+E) and export Next.js + Tailwind project.
+    </span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Every transition operates smoothly without lag. The exported site reproduces the exact canvas layout and motion. Parity badge remains green throughout.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Any step throws an error, components desync, or export fails.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<h2>2. Cross-Browser Compatibility Matrix</h2>
+<p>Run these critical checks across <strong>Chromium</strong> (Chrome/Brave/Edge), <strong>Firefox</strong>, and <strong>WebKit</strong> (Safari):</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 15%;">Test ID</th>
+      <th style="width: 25%;">Feature Area</th>
+      <th style="width: 35%;">Cross-Browser Verification Action</th>
+      <th>Engine Differences & Known Traps</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>XB-01</strong></td>
+      <td>StageHost CSP & PostMessage</td>
+      <td>Verify stage loads cleanly in WebKit with <code>script-src 'none'</code>.</td>
+      <td>WebKit enforces strict origin policies on iframe communication.</td>
+    </tr>
+    <tr>
+      <td><strong>XB-02</strong></td>
+      <td>Zoom & Pan Canvas 60 FPS</td>
+      <td>Pan and zoom with 5 frames × 200 layers in Firefox and WebKit.</td>
+      <td>Check AUD-37 (WebKit zoom frame ceiling with high layer counts).</td>
+    </tr>
+    <tr>
+      <td><strong>XB-03</strong></td>
+      <td>WAAPI Animation Execution</td>
+      <td>Execute Recipe A and observe Web Animations in Firefox DevTools.</td>
+      <td>Firefox sub-frame timing precision differs slightly from Blink.</td>
+    </tr>
+    <tr>
+      <td><strong>XB-04</strong></td>
+      <td>Squircle & Arc SVG Rendering</td>
+      <td>Render Gallery in Safari: verify smooth squircle corners and donut rings.</td>
+      <td>WebKit requires explicit <code>fill-rule="evenodd"</code> on compound paths.</td>
+    </tr>
+    <tr>
+      <td><strong>XB-05</strong></td>
+      <td>Keyboard Focus Routing</td>
+      <td>Hover canvas and timeline in Firefox; test Space (Hand vs Play).</td>
+      <td>Firefox pointer-enter dispatch order can differ under rapid mouse sweeps.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3. Chaotic Stress & Break-Testing Scenarios (15 Edge Scenarios)</h2>
+<p>Perform these aggressive torture tests to verify error recovery, memory safety, and boundary enforcement:</p>
+<div class="test-case-card">
+  <div class="test-case-header">
+    <span class="test-id-title">Stress S1–S5 · Input & Memory Torture Suite</span>
+    <div class="test-status-boxes">
+      <span class="status-option"><span class="checkbox-sq"></span> Pass</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Fail</span>
+      <span class="status-option"><span class="checkbox-sq"></span> Blocked</span>
+    </div>
+  </div>
+  <div class="test-case-body">
+    <div class="test-row"><span class="test-label">Do:</span> <span class="test-do">
+      • <strong>S1:</strong> Rapidly alternate between <strong>L</strong> and <strong>J</strong> 50 times over the Sequencer.<br>
+      • <strong>S2:</strong> Switch workspaces 30 times as fast as possible.<br>
+      • <strong>S3:</strong> In stage-lab, mount 500 layers and hold down <strong>Ctrl+Z</strong> continuously.<br>
+      • <strong>S4:</strong> Leave looping animation running in background for <strong>15 minutes</strong> with DevTools Memory tab recording.<br>
+      • <strong>S5:</strong> Open the same project simultaneously in two browser tabs and edit shapes in both.
+    </span></div>
+    <div class="test-row"><span class="test-label">Expect:</span> <span class="test-expect">Editor does not crash. Transport handles shuttling without locking. Memory graph stays completely flat (no leaks). Second browser tab opens safely in read-only mode.</span></div>
+    <div class="test-row"><span class="test-label">Fails if:</span> <span class="test-fails">Browser tab crashes, memory climbs continuously (leak), or history is corrupted.</span></div>
+    <div class="defect-note-box">
+      <div class="note-header"><span>✎ Actual Outcome / Defect Notes</span><span>(Fill if expected outcome not observed)</span></div>
+      <div class="ruled-line"></div>
+      <div class="ruled-line"></div>
+    </div>
+  </div>
+</div>
+
+<h2>4. Comprehensive Audit Issues Verification Matrix (AUDIT_ISSUES.md)</h2>
+<p>Explicit test cases targeting all 50 known issues documented in <code>AUDIT_ISSUES.md</code>:</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 6%;">#</th>
+      <th style="width: 14%;">Area</th>
+      <th style="width: 8%;">Sev</th>
+      <th style="width: 36%;">Targeted Test Action</th>
+      <th style="width: 24%;">Expected Pass Behavior</th>
+      <th style="width: 12%;">Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>1</strong></td>
+      <td>Selection (26)</td>
+      <td>Med</td>
+      <td>Delete a frame containing 3 selected layers. Inspect <code>useSelectionStore.ids</code>.</td>
+      <td>Deleted layer IDs are immediately purged from selection array.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>2</strong></td>
+      <td>Commands (13)</td>
+      <td>Low</td>
+      <td>Select 2 layers. Check context key <code>selection.count</code>.</td>
+      <td>Context key updates accurately to <code>2</code>.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>3</strong></td>
+      <td>Editing (29)</td>
+      <td>Med</td>
+      <td>Lock a layer. Select it via command and press Delete or Nudge.</td>
+      <td>Locked layer is strictly protected and does NOT delete or move.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>4</strong></td>
+      <td>Editing (29)</td>
+      <td>High</td>
+      <td>Switch to <strong>Preview</strong> mode. Press Delete, Ctrl+D, Ctrl+G.</td>
+      <td>Editing shortcuts are strictly disabled while Preview mode is active.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>5</strong></td>
+      <td>Tools (24)</td>
+      <td>Med</td>
+      <td>Begin dragging a shape, press Alt+Tab to blur window mid-drag.</td>
+      <td><code>gesturing</code> state terminates safely; shortcuts do not lock up.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>6</strong></td>
+      <td>Tools (25)</td>
+      <td>Low</td>
+      <td>Begin dragging a rectangle. Press Escape before releasing mouse.</td>
+      <td>Shape creation is aborted cleanly; no layer is spawned.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>7</strong></td>
+      <td>Document (3)</td>
+      <td>High</td>
+      <td>Press Ctrl+Z while actively dragging a transform handle.</td>
+      <td>Undo is either ignored during active drag or terminates transaction safely.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>8</strong></td>
+      <td>Document (3)</td>
+      <td>Med</td>
+      <td>Execute <code>jumpTo</code> to an invalid history state index.</td>
+      <td>Editor aborts cleanly without entering an infinite loop.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>9</strong></td>
+      <td>Camera (20)</td>
+      <td>Med</td>
+      <td>Manually corrupt localStorage camera zoom to <code>10000%</code> and reload.</td>
+      <td>Zoom clamps automatically to legal range (2%–6,400%).</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>10</strong></td>
+      <td>Camera (20)</td>
+      <td>High</td>
+      <td>Pass <code>NaN</code> to <code>setCamera()</code> in console.</td>
+      <td>Camera rejects non-finite values; canvas does not blank.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>11</strong></td>
+      <td>Hit-test (22)</td>
+      <td>Med</td>
+      <td>Stack Frame B over Frame A. Click overlapping area.</td>
+      <td>Click selects child of Frame B (topmost), respecting paint order.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>12</strong></td>
+      <td>Frames (21)</td>
+      <td>Med</td>
+      <td>Move a frame vertically and execute <code>moveFrame</code>.</td>
+      <td>Frame respects custom Y position; does not force single-row reset.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>13</strong></td>
+      <td>Frames (21)</td>
+      <td>Med</td>
+      <td>Delete a top-level frame. Check <code>page.rootElementId</code>.</td>
+      <td>Page updates root ID safely without pointing to orphaned null.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>14</strong></td>
+      <td>Frames (21)</td>
+      <td>Med</td>
+      <td>Create a new empty frame in a blank project. Select Rectangle tool.</td>
+      <td>Empty frame is rendered and accepts shape drawing immediately.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>15</strong></td>
+      <td>Guides (28)</td>
+      <td>Low</td>
+      <td>Attempt to create 500 guides on a frame via script.</td>
+      <td>System enforces sensible guide limit (e.g. max 50).</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>16</strong></td>
+      <td>Geometry</td>
+      <td>Med</td>
+      <td>Pass non-finite coordinates to <code>dragBox</code> and <code>unionBox</code>.</td>
+      <td>Geometry helpers reject <code>NaN</code>/<code>Infinity</code>.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>17</strong></td>
+      <td>Persistence</td>
+      <td>Low</td>
+      <td>Delete a project. Check localStorage for lingering camera keys.</td>
+      <td>Associated project camera keys are cleanly unlinked.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>18</strong></td>
+      <td>Transform (27)</td>
+      <td>Med</td>
+      <td>Move a hug-sized container across the canvas with mouse.</td>
+      <td>Move updates X/Y only; does NOT overwrite width/height to fixed.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>19</strong></td>
+      <td>Clipboard (29)</td>
+      <td>Med</td>
+      <td>Copy 5,000 layers to clipboard and paste.</td>
+      <td>Clipboard either pastes successfully or reports clear payload limit.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>20</strong></td>
+      <td>Document (2)</td>
+      <td>Med</td>
+      <td>Duplicate a document containing 10,000 layers.</td>
+      <td><code>createId</code> generates non-colliding 64-bit UUIDs.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>21</strong></td>
+      <td>Document (3)</td>
+      <td>High</td>
+      <td>Insert a layer with an ID matching an existing layer.</td>
+      <td>Collision is detected and layer is re-keyed rather than overwritten.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>22</strong></td>
+      <td>Clipboard (29)</td>
+      <td>Low</td>
+      <td>Select a locked container and press Ctrl+V.</td>
+      <td>Paste into locked or hidden containers is rejected with message.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>23</strong></td>
+      <td>Clipboard (29)</td>
+      <td>High</td>
+      <td>Trigger Cut with clipboard permission blocked.</td>
+      <td>Layer is NOT deleted from stage if clipboard copy failed.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>24</strong></td>
+      <td>Time (54)</td>
+      <td>High</td>
+      <td>Execute <code>transport.seek(NaN)</code> in console.</td>
+      <td>Seek is rejected; playhead does not corrupt to <code>NaN</code>.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>25</strong></td>
+      <td>Time (54)</td>
+      <td>Med</td>
+      <td>Define a composition with <code>fps: 0</code>.</td>
+      <td>Composition validator rejects <code>fps: 0</code>, defaulting to 60.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>26</strong></td>
+      <td>Time (54)</td>
+      <td>Med</td>
+      <td>Set work area start to 4s and end to 2s (inverted).</td>
+      <td>Work area auto-corrects or clamps to minimum 1-frame duration.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>27</strong></td>
+      <td>Time (54)</td>
+      <td>Med</td>
+      <td>Play composition at fractional frame rate (23.976 fps).</td>
+      <td>Timecode prints cleanly formatted <code>MM:SS:FF</code> without float blur.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>28</strong></td>
+      <td>Time (54)</td>
+      <td>Med</td>
+      <td>Execute <code>tick(Infinity)</code> or advance by <code>NaN</code>.</td>
+      <td>Time validator discards non-finite delta step.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>29</strong></td>
+      <td>Time (54)</td>
+      <td>Low</td>
+      <td>Set transport playback rate to <code>1e12</code>.</td>
+      <td>Rate clamps to legal playback range (0.1x to 8x).</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>30</strong></td>
+      <td>Time (55)</td>
+      <td>Low</td>
+      <td>Register a throwing task in the FrameScheduler.</td>
+      <td>Scheduler catches error, logs once, and disables task to prevent log flood.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>31</strong></td>
+      <td>Time (55)</td>
+      <td>Low</td>
+      <td>Execute <code>FrameScheduler.step(-1)</code>.</td>
+      <td>Negative or <code>NaN</code> step is safely rejected.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>32</strong></td>
+      <td>Persistence (3)</td>
+      <td>Med</td>
+      <td>Simulate IndexedDB failure during autosave.</td>
+      <td>Autosave schedules automatic retry backoff.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>33</strong></td>
+      <td>Import (3)</td>
+      <td>High</td>
+      <td>Attempt to import a 200MB corrupted JSON file.</td>
+      <td>Import validates file size ceiling before parsing, preventing OOM.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>34</strong></td>
+      <td>Import (3)</td>
+      <td>Low</td>
+      <td>Export project with name <code>CON.lazy.json</code> or control chars.</td>
+      <td>File name is sanitized to prevent filesystem reserved clashes.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>35</strong></td>
+      <td>Search (8)</td>
+      <td>Med</td>
+      <td>Inject invalid string into localStorage recent searches key.</td>
+      <td>Search panel catches corrupted data, falls back to empty array.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>36</strong></td>
+      <td>Stage (18)</td>
+      <td>Med</td>
+      <td>Perform 1,000 edits in stage-lab. Inspect <code>performance.getEntries()</code>.</td>
+      <td>Performance marks are cleared periodically; zero memory leak.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>37</strong></td>
+      <td>Camera (20)</td>
+      <td>Med</td>
+      <td>Pan and zoom in WebKit with 5 frames × 200 layers.</td>
+      <td>Frame time remains under 16ms (60 FPS) without 40ms spikes.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>40</strong></td>
+      <td>Menus (13)</td>
+      <td>Low</td>
+      <td>Inspect top menus for built features (e.g. Rulers, Presets).</td>
+      <td>Menu items do not display outdated "Coming in Phase 14" text.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>43</strong></td>
+      <td>Commands (13)</td>
+      <td>Med</td>
+      <td>Run automated keybinding audit spec.</td>
+      <td>Zero shortcut clashes detected across all context modes.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>44</strong></td>
+      <td>Canvas (20)</td>
+      <td>Low</td>
+      <td>Inspect zoom constants in codebase.</td>
+      <td>Zoom limits (2% and 6,400%) are centralized in single constants file.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>45</strong></td>
+      <td>Dev Routes</td>
+      <td>Med</td>
+      <td>Run <code>npm run build && npm run start</code>. Navigate to <code>/editor/stage-lab</code>.</td>
+      <td>Development lab routes are disabled or return 404 in production.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>46</strong></td>
+      <td>Rulers (28)</td>
+      <td>Low</td>
+      <td>Change a shape fill color while rulers are displayed.</td>
+      <td>Rulers do NOT repaint on un-related paint mutations.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>47</strong></td>
+      <td>Hit-test (22)</td>
+      <td>Low</td>
+      <td>Drag a shape continuously across 1,000 layers.</td>
+      <td>Spatial index updates incrementally; drag remains smooth 60 FPS.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>48</strong></td>
+      <td>Editing (29)</td>
+      <td>Low</td>
+      <td>Select two layers in different containers and press Ctrl+G.</td>
+      <td>Group handles cross-container grouping cleanly with reparenting.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>49</strong></td>
+      <td>Frames (21)</td>
+      <td>Low</td>
+      <td>Spawn new frames with custom vertical offsets.</td>
+      <td><code>nextFramePosition</code> places frame relative to visual topmost.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+    <tr>
+      <td><strong>50</strong></td>
+      <td>Overlay (23)</td>
+      <td>Low</td>
+      <td>Hover canvas and press Ctrl without moving mouse.</td>
+      <td>Hover outline instantly switches to deep-select highlight.</td>
+      <td>[ ] Pass<br>[ ] Fail</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5. Standardized Defect Reporting Guide & Bug Filing Template</h2>
+<p>When any test case fails, copy this standardized template to report the issue:</p>
+<pre><code>### [DEFECT REPORT] Phase &lt;Phase_Num&gt; · Test &lt;Test_ID&gt;
+
+- **Severity:** [High (Data Loss / Crash) | Med (Broken Feature) | Low (Cosmetic)]
+- **Phase & Area:** Lane &lt;A|B&gt;, Phase &lt;NN&gt;, Subsystem: &lt;e.g. StageHost / Timeline / Paint&gt;
+- **Browser & Environment:** &lt;e.g. Chromium 130 / macOS 15.1 / npm run dev&gt;
+- **Steps to Reproduce (Do):**
+  1. 
+  2. 
+  3. 
+- **Expected Outcome (Expect):** 
+- **Actual Observed Outcome (Fails if):** 
+- **Console Output / Uncaught Exceptions:**
+  ```
+  &lt;paste red console errors here&gt;
+  ```
+- **Screenshots / Video Timestamp:** 
+</code></pre>
+
+</body>
+</html>

@@ -32,6 +32,9 @@ import {
   updateStyle,
   updateVariable,
 } from "./tokenOps";
+import { getDocument } from "../store/documentState";
+import { collectionsOf } from "./tokens";
+import { exportVariablesCss, exportVariablesJson, importVariablesJson } from "./variablesIO";
 
 const sel = () => useSelectionStore.getState().selectedIds;
 const Value = z.union([z.string().max(2000), z.number(), z.boolean(), z.object({ alias: z.string() })]);
@@ -139,6 +142,25 @@ export function registerTokenCommands(): () => void {
       run: ({ kind, ids }) => ({ changed: detachStyle(ids ?? sel(), kind) }),
     }),
     defineTypedCommand({ id: "style.delete", title: "Delete Style", category, args: z.object({ id: z.string() }), run: ({ id }) => ({ ok: deleteStyle(id) }) }),
+    defineTypedCommand({
+      id: "token.exportVariables",
+      title: "Export Variables",
+      category,
+      args: z.object({ format: z.enum(["json", "css"]).default("json"), collections: z.array(z.string()).optional() }).default({ format: "json" }),
+      run: ({ format, collections }) => {
+        const doc = getDocument();
+        const unknown = collections?.find((c) => !collectionsOf(doc).some((x) => x.id === c || x.name === c));
+        if (unknown !== undefined) throw new Error(`There's no collection \`${unknown}\`.`);
+        return { text: format === "css" ? exportVariablesCss(doc, collections) : JSON.stringify(exportVariablesJson(doc, collections), null, 2) };
+      },
+    }),
+    defineTypedCommand({
+      id: "token.importVariables",
+      title: "Import Variables",
+      category,
+      args: z.object({ variables: z.union([z.string().max(5_000_000), z.record(z.string(), z.unknown())]) }),
+      run: ({ variables }) => importVariablesJson(variables),
+    }),
   ];
   return () => offs.forEach((off) => off());
 }
